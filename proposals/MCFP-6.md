@@ -118,4 +118,3 @@ class DepthListener(McFuncDSLListener):
 
 ---
 
-因实现难度和可读性原因拒绝采纳

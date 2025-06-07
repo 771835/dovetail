@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from main import ScopeType, Symbol
+from mcfdsl.core._interfaces import ISymbol, IScope
+from mcfdsl.core.types import ScopeType
 
 
-class Scope:  # 每层作用域在生成时都会生成为一个函数文件
+class Scope(IScope):  # 每层作用域在生成时都会生成为一个函数文件
     def __init__(self, name: str, parent: Scope = None, scope_type: ScopeType = None, namespace: str = "mcfdsl"):
         self.namespace = namespace
         self.name = name
         self.parent = parent
         self.type = scope_type
-        self.symbols: dict[str, Symbol] = dict()  # 符号表（变量/函数/类）
+        self.symbols: dict[str, ISymbol] = dict()  # 符号表（变量/函数/类）
         self.classes = {}  # 类定义
         self.children = []  # 子作用域
         self.scope_counter = 0  # 用于生成唯一子作用域名
@@ -29,22 +30,22 @@ class Scope:  # 每层作用域在生成时都会生成为一个函数文件
             return "global"
         return self.parent.get_unique_name() + '_' + self.name
 
-    def create_child(self, name: str, scope_type: ScopeType):
+    def create_child(self, name: str, scope_type: ScopeType) -> Scope:
         child = Scope(name=name, parent=self, scope_type=scope_type, namespace=self.namespace)
         self.children.append(child)
         return child
 
-    def add_symbol(self, symbol: Symbol):
+    def add_symbol(self, symbol: ISymbol):
         if symbol.name in self.symbols:
             raise NameError(f"Symbol {symbol.name} already exists in this scope")
         self.symbols[symbol.name] = symbol
 
-    def set_symbol(self, symbol: Symbol):
+    def set_symbol(self, symbol: ISymbol):
         if symbol.name not in self.symbols:
             raise NameError(f"Symbol {symbol.name} does not exist in this scope")
         self.symbols[symbol.name] = symbol
 
-    def resolve_symbol(self, name: str) -> Symbol:
+    def resolve_symbol(self, name: str) -> ISymbol:
         """逐级向上查找符号"""
         name = str(name)
         current = self
@@ -64,7 +65,7 @@ class Scope:  # 每层作用域在生成时都会生成为一个函数文件
             current = current.parent
         raise NameError(f"Undefined scope: {name}")
 
-    def get_parent(self):
+    def get_parent(self) -> Scope:
         if self.parent:
             return self.parent
         else:
@@ -75,3 +76,4 @@ class Scope:  # 每层作用域在生成时都会生成为一个函数文件
             return True
         else:
             return False
+

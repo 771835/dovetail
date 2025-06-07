@@ -21,15 +21,16 @@ McFuncDSL Enhancement Proposals (MCFP) 是推动 McFuncDSL 语言发展的核心
 
 ## 提案状态总览
 
-| 编号       | 标题                            | 状态       | 分类   | 加入版本 |
-|----------|-------------------------------|----------|------|------|
-| MCFP 0   | McFuncDSL 提案索引与流程             | Active   | 元提案  | -    |
-| MCFP 1   | 基础语法规范                        | Draft    | 核心语言 | -    |
-| MCFP 2   | 命令插值系统                        | Deferred | 核心语言 | -    |
-| MCFP 3   | McFuncDSL 到 Minecraft 命令的编译规范 | Draft    | 核心语言 | -    |
-| MCFP 5   | 对于数组的支持                       | Deferred | 核心语言 | -    |
-| MCFP 101 | Selector 类型标准                 | Deferred | 标准库  | -    |
-| MCFP 201 | IDE 工具链规范                     | Deferred | 工具链  | -    |
+| 编号       | 标题                            | 状态       | 分类   | 加入版本 | 备注               |
+|----------|-------------------------------|----------|------|------|------------------|
+| MCFP 0   | McFuncDSL 提案索引与流程             | Active   | 元提案  | -    |                  |
+| MCFP 1   | 基础语法规范                        | Draft    | 核心语言 | -    |                  |
+| MCFP 2   | 命令插值系统                        | Deferred | 核心语言 | -    |                  |
+| MCFP 3   | McFuncDSL 到 Minecraft 命令的编译规范 | Accepted | 核心语言 | -    |                  |
+| MCFP 5   | 对于数组的支持                       | Deferred | 核心语言 | -    |                  |
+| MCFP 6   | 表达式解析性能优化草案                   | Deferred | 核心语言 | -    | 因实现难度和可读性暂时延缓该草案 |
+| MCFP 101 | Selector 类型标准                 | Deferred | 标准库  | -    |                  |
+| MCFP 201 | IDE 工具链规范                     | Deferred | 工具链  | -    |                  |
 
 ---
 
@@ -57,13 +58,14 @@ McFuncDSL Enhancement Proposals (MCFP) 是推动 McFuncDSL 语言发展的核心
 - **Rejected** (已拒绝): 社区未达成共识
 - **Deferred** (延期): 技术条件不成熟暂缓
 - **Implemented** (已实现): 在指定版本中完成
-
+- **Active** (活跃): 长期活跃的提案
+- **Abandoned** (放弃支持): 提案被明确终止维护
 ---
 
 ## 提交与维护流程
 
 1. **提案发起**  
-   - 在 [GitHub 仓库](https://github.com/your-repo) 创建 `mcfp-{编号}.md` 文件
+   - 在 [GitHub 仓库](https://github.com/your-repo) 创建 `MCFP-{编号}.md` 文件
    - 使用 MCFP 模板
 
 2. **社区讨论**  

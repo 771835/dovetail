@@ -74,11 +74,15 @@ functionDecl
       ( paramList | '()' )
       (':' type)       // 返回类型标注
       block
+    | annotation* 'inline'? FUNC type ID
+      ( paramList | '()' )
+      block
     ;
 
 
 methodDecl
     : annotation* 'method' ID paramList (':' type) block
+    | annotation* 'method' type ID paramList block
     ;
 
 paramList
@@ -88,6 +92,7 @@ paramList
 
 paramDecl
     : ID (':' type)  // 强制类型标注
+    | type ID
     ;
 
 
@@ -125,34 +130,36 @@ whileStmt
     ;
 
 constDecl
-    : 'const' ID (':' type)? '=' expr SEMI  // 新增常量声明
+    : 'const' varDeclaration SEMI  // 常量声明
     ;
 
 // 公共规则
 varDeclaration
-    : 'var' ID (':' type)? ('=' expr)?
+    : ID (':' type)? ('=' expr)?
+    | type ID ('=' expr)? // 更符合大多数人习惯的变量声明
     ;
 
 // 变量声明（带分号）
 varDecl
-    : varDeclaration SEMI
+    : 'var' varDeclaration SEMI
     ;
 
 // for 循环变量声明（无分号）
 forLoopVarDecl
-    : varDeclaration
+    : 'var' varDeclaration
     ;
+
 assignment
     : ID '=' expr                     // 变量赋值，如：count = 10
     | expr '.' ID '=' expr
     ;
 
 returnStmt
-    : 'return' expr?                  // 返回语句，如：return result
+    : 'return' expr?                  // 返回语句，如：return result;
     ;
 
 ifStmt
-    : 'if' '(' expr ')' block ('else' block)?  // 条件语句,expr 必须是CompareExpr
+    : 'if' '(' expr ')' block ('else' block)?  // 条件语句,expr必须是CompareExpr
     ;
 
 
@@ -287,4 +294,3 @@ ID  : [a-zA-Z_] [a-zA-Z0-9_]*;
 WS  : [ \t\r\n]+ -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;
 BLOCK_COMMENT: '/*' .*? '*/' -> skip;
-

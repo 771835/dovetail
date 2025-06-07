@@ -1,4 +1,4 @@
-# Generated from E:/python/minecraft-datapack-language/antlr/McFuncDSL.g4 by ANTLR 4.13.2
+# Generated from E:/python/minecraft-datapack-language/antlr/McFuncDSLParser.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .McFuncDSLParser import McFuncDSLParser

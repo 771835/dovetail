@@ -1,4 +1,4 @@
-# Generated from E:/python/minecraft-datapack-language/antlr/McFuncDSL.g4 by ANTLR 4.13.2
+# Generated from E:/python/minecraft-datapack-language/antlr/McFuncDSLParser.g4 by ANTLR 4.13.2
 from antlr4 import *
 from io import StringIO
 import sys
@@ -266,7 +266,7 @@ class McFuncDSLLexer(Lexer):
                   "NUMBER", "STRING", "FSTRING", "ESC", "SAFE_CHAR", "ID", 
                   "WS", "LINE_COMMENT", "BLOCK_COMMENT" ]
 
-    grammarFileName = "McFuncDSL.g4"
+    grammarFileName = "McFuncDSLParser.g4"
 
     def __init__(self, input=None, output:TextIO = sys.stdout):
         super().__init__(input, output)

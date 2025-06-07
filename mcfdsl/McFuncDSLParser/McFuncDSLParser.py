@@ -1,4 +1,4 @@
-# Generated from E:/python/minecraft-datapack-language/antlr/McFuncDSL.g4 by ANTLR 4.13.2
+# Generated from E:/python/minecraft-datapack-language/antlr/McFuncDSLParser.g4 by ANTLR 4.13.2
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
@@ -160,7 +160,7 @@ def serializedATN():
 
 class McFuncDSLParser ( Parser ):
 
-    grammarFileName = "McFuncDSL.g4"
+    grammarFileName = "McFuncDSLParser.g4"
 
     atn = ATNDeserializer().deserialize(serializedATN())
 
@@ -304,7 +304,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ProgramContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -424,7 +424,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ImportStmtContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -478,7 +478,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class AnnotationContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -527,7 +527,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ClassDeclContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -701,7 +701,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class InterfaceDeclContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -815,7 +815,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ConstructorDeclContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -889,7 +889,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class InterfaceMethodDeclContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -976,7 +976,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class TypeContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1040,7 +1040,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class TypeListContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1110,7 +1110,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class PrimitiveTypeContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1175,7 +1175,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class FunctionDeclContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1285,7 +1285,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class MethodDeclContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1373,7 +1373,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ParamListContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1467,7 +1467,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ParamDeclContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1523,7 +1523,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class BlockContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1593,7 +1593,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class StatementContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1737,7 +1737,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ForStmtContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1838,7 +1838,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ForControlContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1934,7 +1934,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class WhileStmtContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -2003,7 +2003,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ConstDeclContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -2083,7 +2083,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class VarDeclarationContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -2167,7 +2167,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class VarDeclContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -2220,7 +2220,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ForLoopVarDeclContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -2268,7 +2268,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class AssignmentContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -2350,7 +2350,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ReturnStmtContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -2410,7 +2410,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class IfStmtContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -2496,7 +2496,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ExprContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -2933,7 +2933,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class PrimaryContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -3159,7 +3159,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class CmdExprContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -3216,7 +3216,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ArgumentListContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -3294,7 +3294,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class ExprListContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -3377,7 +3377,7 @@ class McFuncDSLParser ( Parser ):
 
 
     class LiteralContext(ParserRuleContext):
-        __slots__ = 'parser'
+        __slots__ = 'McFuncDSLParser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
