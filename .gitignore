@@ -1,0 +1,17 @@
+*.mcdl
+*.py[cod]
+*.so
+*.egg
+*.interp
+*.tokens
+*.iml
+.idea/*
+.vscode/
+__pycache__/
+venv/
+.venv/
+ENV/
+.env/
+target/
+build/
+.git/
