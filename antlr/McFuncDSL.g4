@@ -1,4 +1,3 @@
-// "过早优化是万恶之源" —— Donald Knuth
 grammar McFuncDSL;
 
 /* 1. 程序结构 */
@@ -14,41 +13,38 @@ importStmt
     : 'import' STRING SEMI             // 导入库文件，如：import "minecraft_utils.mcdl";
     ;
 
-/* 2. 注解系统（完整实现） */
+/* 2. 注解系统 */
 
 annotation
     : '@' ID     // 仅允许使用预定义注解
     ;
 
-/* 3. 完整类系统（继承+接口+泛型） */
+/* 3. 类系统（继承+接口） */
 classDecl
     : annotation* 'class' ID
       ('extends' type)?                      // 单继承
       ('implements' typeList)?               // 多接口实现
-      '{' 
+      LBRACE // 构造函数为__init__
         (varDecl
         | constDecl
         | methodDecl 
-        | constructorDecl
-        )* 
-      '}'
+        )*
+
+      RBRACE
     ;
 
 interfaceDecl
     : annotation* 'interface' ID
       ('extends' type)?                  // 接口多继承
-      '{' 
+      LBRACE 
         (interfaceMethodDecl
         )* 
-      '}'
+      RBRACE
     ;
 
-constructorDecl
-    : annotation* 'constructor' paramList block  // 完整构造函数
-    ;
 
 interfaceMethodDecl
-    : annotation* 'method' ID paramList (':' type) SEMI
+    : annotation* METHOD ID paramList (':' type) SEMI
     ;
 
 /* 4. 泛型系统(阉割版) */
@@ -70,23 +66,23 @@ primitiveType
     ;
 
 functionDecl
-    : annotation* 'inline'? FUNC ID
+    : annotation* FUNC ID
       ( paramList | '()' )
       (':' type)       // 返回类型标注
       block
-    | annotation* 'inline'? FUNC type ID
+    | annotation* FUNC type ID
       ( paramList | '()' )
       block
     ;
 
 
 methodDecl
-    : annotation* 'method' ID paramList (':' type) block
-    | annotation* 'method' type ID paramList block
+    : annotation* METHOD ID paramList (':' type) block
+    | annotation* METHOD type ID paramList block
     ;
 
 paramList
-    : '(' (paramDecl (',' paramDecl)*) ')'
+    : LPAREN (paramDecl (',' paramDecl)*) RPAREN
     | '()'
     ;
 
@@ -97,13 +93,15 @@ paramDecl
 
 
 block
-    : '{' statement* '}'              // 代码块，包含多个语句
+    : LBRACE statement* RBRACE              // 代码块，包含多个语句
     ;
 
 
 /* 6. 流程控制（全功能实现） */
 statement
-    : varDecl                               // 变量声明
+    : cmdExpr SEMI                          // 命令表达式
+    | cmdBlockExpr                          // 命令块表达式
+    | varDecl                               // 变量声明
     | constDecl                             // 常量声明
     | forStmt                               // for循环
     | whileStmt                             // while循环
@@ -115,8 +113,8 @@ statement
     ;
 
 forStmt
-    : 'for' '(' forControl ')' block        // 传统for循环
-    | 'for' '(' ID ':' expr ')' block       // 增强for循环 (execute as 选择器 run function...)
+    : FOR LPAREN forControl RPAREN block        // 传统for循环
+    | FOR LPAREN ID ':' expr RPAREN block       // 增强for循环 (execute as 选择器 run function...)
     ;
 
 
@@ -126,11 +124,12 @@ forControl
 
 
 whileStmt
-    : 'while' '(' expr ')' block            // while循环
+    : WHILE LPAREN expr RPAREN block            // while循环
     ;
 
 constDecl
-    : 'const' varDeclaration SEMI  // 常量声明
+    : 'const' ID (':' type)? ('=' expr) SEMI  // 常量声明
+    | 'const' type ID ('=' expr)? SEMI
     ;
 
 // 公共规则
@@ -141,12 +140,14 @@ varDeclaration
 
 // 变量声明（带分号）
 varDecl
-    : 'var' varDeclaration SEMI
+    : VAR varDeclaration SEMI
+    | varDeclaration SEMI
     ;
 
 // for 循环变量声明（无分号）
 forLoopVarDecl
-    : 'var' varDeclaration
+    : VAR varDeclaration
+    | varDeclaration
     ;
 
 assignment
@@ -155,23 +156,23 @@ assignment
     ;
 
 returnStmt
-    : 'return' expr?                  // 返回语句，如：return result;
+    : RETURN expr?                  // 返回语句，如：return result;
     ;
 
 ifStmt
-    : 'if' '(' expr ')' block ('else' block)?  // 条件语句,expr必须是CompareExpr
+    : IF LPAREN expr RPAREN block (ELSE block)?  // 条件语句,expr必须是CompareExpr
     ;
 
 
 /* 7. 完整表达式系统（保留所有结构） */
 expr
-    : cmdExpr                               # CmdExpression      // 命令表达式
+    :
     //| lambdaExpr                            # LambdaExpression   // Lambda
     //| methodReference                       # MethodRefExpr      // 方法引用
-    //| 'new' type '(' exprList? ')'          # NewExpr            // 对象创建
+    //| 'new' type '(' exprList? RPAREN          # NewExpr            // 对象创建
     //| <assoc=right> expr '!'                # NotNullAssertion   // 非空断言
     //| expr '?' '.' ID                       # SafeNavigation     // 安全导航
-    | expr '.' ID argumentList         # MethodCall         // 方法调用
+     expr '.' ID argumentList         # MethodCall         // 方法调用
     | expr '.' ID                           # MemberAccess       // 成员访问
     //| expr '[' expr ']'                     # ArrayAccess        // 数组访问
     //| expr argumentList                # FunctionCall       // 函数调用
@@ -180,32 +181,35 @@ expr
     | '-' expr                              # NegExpr            // 负号
     | '!' expr                         #LogicalNotExpr             // not运算符
     | expr ('*'|'/') expr                   # MulDivExpr         // 算术运算
-    | expr ('+'|'-') expr                   # AddSubExpr
+    | expr (ADD|SUB) expr                   # AddSubExpr
     | expr ('>'|'<'|'=='|'!='|'<='|'>=') expr # CompareExpr        // 比较运算
-    | expr '&&' expr                   #LogicalAndExpr             // and运算符
-    | expr '||' expr                   #LogicalOrExpr              // or运算符
+    | expr AND expr                   #LogicalAndExpr             // and运算符
+    | expr OR expr                   #LogicalOrExpr              // or运算符
     ;
 
 
 primary
-    : 'new' 'Selector' '(' STRING ')'       # NewSelectorExpr    // 显式构造函数
+    : NEW TYPE_SELECTOR LPAREN STRING RPAREN       # NewSelectorExpr    // 显式构造函数
     | ID                                    # VarExpr            // 变量
     | literal                               # LiteralExpr        // 字面量
-    | '(' expr ')'                          # ParenExpr          // 括号
-    | 'new' ID argumentList                 # NewObjectExpr      // 显式对象创建
-    | '(' type ')' expr                     #TypeCastExpr        // 强制类型转换
+    | LPAREN expr RPAREN                          # ParenExpr          // 括号
+    | NEW ID argumentList                 # NewObjectExpr      // 显式对象创建
+    | LPAREN type RPAREN expr                     #TypeCastExpr        // 强制类型转换
     ;
 
 /* 8. 命令与插值 */
 cmdExpr
-    : 'cmd' FSTRING ('!')?  // 添加编译时检查标记
+    : CMD FSTRING
     ;
 
+cmdBlockExpr
+    : CMD LBRACE (FSTRING SEMI)* RBRACE
+    ;
 
 /* 9. 辅助规则（全部保留） */
 
 argumentList
-    : '(' exprList? ')'
+    : LPAREN exprList? RPAREN
     | '()'
     ;
 
@@ -218,7 +222,7 @@ literal
     : NUMBER                                // 数字
     | STRING                                // 普通字符串
     | FSTRING                               // 插值字符串
-    | 'true' | 'false'                      // 布尔值
+    | TRUE | FALSE                      // 布尔值
     //| 'null'                                // 空值
     ;
 
@@ -241,6 +245,7 @@ COMMA : ',';
 
 // 关键字（定义在ID之前）
 FUNC: 'func';
+METHOD: 'method';
 CLASS: 'class';
 INTERFACE: 'interface';
 EXTENDS: 'extends';
@@ -256,6 +261,9 @@ TRUE: 'true';
 FALSE: 'false';
 NULL: 'null';
 IN: 'in';
+CMD: 'cmd'
+   | 'command'
+   ;
 ARROW: '->';
 DOUBLE_COLON: '::';
 
@@ -269,8 +277,12 @@ GT  : '>';
 LT  : '<';
 EQ  : '==';
 NEQ : '!=';
-AND : '&&';
-OR  : '||';
+AND : '&&'
+    | 'and'
+    ;
+OR  : '||'
+    | 'or'
+    ;
 ASSIGN : '=';
 
 
@@ -292,5 +304,6 @@ ID  : [a-zA-Z_] [a-zA-Z0-9_]*;
 
 // 空白处理
 WS  : [ \t\r\n]+ -> skip;
-LINE_COMMENT: '//' ~[\r\n]* -> skip;
+LINE_COMMENT: ('//' ~[\r\n]*) -> skip;
+LINE_COMMENT2: ('#' ~[\r\n]*) -> skip;
 BLOCK_COMMENT: '/*' .*? '*/' -> skip;

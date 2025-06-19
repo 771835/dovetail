@@ -1,26 +1,41 @@
 from __future__ import annotations
-from typing import Protocol
 
-from mcfdsl.core.types import ScopeType
+from typing import Any
 
-class IScope(Protocol):
+from mcfdsl.core.language_types import SymbolType, StructureType, ValueType, DataType
+
+
+class IScope:
     name: str
-
+    namespace: str
+    parent: IScope
+    type: StructureType
+    symbols: dict[str, ISymbol]
+    classes: dict
+    children: list[IScope]
+    scope_counter: int
+    commands: list[str]
     def get_name(self) -> str: ...
     def get_file_path(self) -> str: ...
     def get_minecraft_function_path(self) -> str: ...
     def get_unique_name(self) -> str: ...
-    def create_child(self, name: str, scope_type: ScopeType) -> IScope: ...
+    def create_child(self, name: str, type_: StructureType) -> IScope: ...
     def add_symbol(self, symbol: ISymbol) -> None: ...
     def set_symbol(self, symbol: ISymbol) -> None: ...
     def resolve_symbol(self, name: str) -> ISymbol: ...
     def resolve_scope(self, name: str) -> IScope: ...
+    def find_symbol(self, name: str) -> ISymbol: ...
     def get_parent(self) -> IScope: ...
     def is_exist_parent(self): ...
 
 
-class ISymbol(Protocol):
+class ISymbol:
     name: str
-
-    def get_unique_name(self, scope: IScope) -> str: ...
+    symbol_type: SymbolType
+    data_type: DataType
+    value_type: ValueType  # 新增值类型分类
+    value: Any
+    objective: str
+    scope: IScope
+    def get_unique_name(self) -> str: ...
 

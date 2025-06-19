@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 from mcfdsl.core._interfaces import ISymbol, IScope
-from mcfdsl.core.types import ScopeType
+from mcfdsl.core.language_types import StructureType
 
 
 class Scope(IScope):  # 每层作用域在生成时都会生成为一个函数文件
-    def __init__(self, name: str, parent: Scope = None, scope_type: ScopeType = None, namespace: str = "mcfdsl"):
+    def __init__(self, name: str, parent: IScope|None, structure_type: StructureType, namespace: str):
         self.namespace = namespace
         self.name = name
         self.parent = parent
-        self.type = scope_type
+        self.type = structure_type
         self.symbols: dict[str, ISymbol] = dict()  # 符号表（变量/函数/类）
-        self.classes = {}  # 类定义
-        self.children = []  # 子作用域
+        self.classes = dict()  # 类定义
+        self.children: list[IScope] = list()  # 子作用域
         self.scope_counter = 0  # 用于生成唯一子作用域名
-        self.cmd = list()
+        self.commands: list[str] = list()
 
     def get_name(self):
         return self.name
@@ -26,12 +26,12 @@ class Scope(IScope):  # 每层作用域在生成时都会生成为一个函数�
         return f"{self.namespace}:{self.get_unique_name()}".replace("\\", "/")
 
     def get_unique_name(self):
-        if self.type == ScopeType.GLOBAL or self.type is None:
+        if self.type == StructureType.GLOBAL or self.type is None:
             return "global"
         return self.parent.get_unique_name() + '_' + self.name
 
-    def create_child(self, name: str, scope_type: ScopeType) -> Scope:
-        child = Scope(name=name, parent=self, scope_type=scope_type, namespace=self.namespace)
+    def create_child(self, name: str, type_: StructureType) -> Scope:
+        child = Scope(name, self, type_, self.namespace)
         self.children.append(child)
         return child
 
@@ -55,7 +55,15 @@ class Scope(IScope):  # 每层作用域在生成时都会生成为一个函数�
             current = current.parent
         raise NameError(f"Undefined symbol: {name}")
 
-    def resolve_scope(self, name: str) -> Scope:
+    def find_symbol(self, name: str) -> ISymbol:
+        """只在单层查找符号"""
+        name = str(name)
+        if name in self.symbols:
+            return self.symbols[name]
+        else:
+            raise NameError(f"Undefined symbol: {name}")
+
+    def resolve_scope(self, name: str) -> IScope:
         """逐级向上查找该作用域可访问到的作用域"""
         name = str(name)
         current = self
@@ -65,7 +73,7 @@ class Scope(IScope):  # 每层作用域在生成时都会生成为一个函数�
             current = current.parent
         raise NameError(f"Undefined scope: {name}")
 
-    def get_parent(self) -> Scope:
+    def get_parent(self) -> IScope:
         if self.parent:
             return self.parent
         else:
@@ -76,4 +84,3 @@ class Scope(IScope):  # 每层作用域在生成时都会生成为一个函数�
             return True
         else:
             return False
-

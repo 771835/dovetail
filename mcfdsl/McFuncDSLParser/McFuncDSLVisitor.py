@@ -1,4 +1,4 @@
-# Generated from E:/python/minecraft-datapack-language/antlr/McFuncDSLParser.g4 by ANTLR 4.13.2
+# Generated from E:/python/minecraft-datapack-language/antlr/McFuncDSL.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .McFuncDSLParser import McFuncDSLParser
@@ -139,13 +139,13 @@ class McFuncDSLVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by McFuncDSLParser#DirectFuncCall.
-    def visitDirectFuncCall(self, ctx:McFuncDSLParser.DirectFuncCallContext):
+    # Visit a parse tree produced by McFuncDSLParser#LogicalOrExpr.
+    def visitLogicalOrExpr(self, ctx:McFuncDSLParser.LogicalOrExprContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by McFuncDSLParser#CmdExpression.
-    def visitCmdExpression(self, ctx:McFuncDSLParser.CmdExpressionContext):
+    # Visit a parse tree produced by McFuncDSLParser#DirectFuncCall.
+    def visitDirectFuncCall(self, ctx:McFuncDSLParser.DirectFuncCallContext):
         return self.visitChildren(ctx)
 
 
@@ -169,6 +169,11 @@ class McFuncDSLVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by McFuncDSLParser#LogicalNotExpr.
+    def visitLogicalNotExpr(self, ctx:McFuncDSLParser.LogicalNotExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by McFuncDSLParser#PrimaryExpr.
     def visitPrimaryExpr(self, ctx:McFuncDSLParser.PrimaryExprContext):
         return self.visitChildren(ctx)
@@ -176,6 +181,11 @@ class McFuncDSLVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by McFuncDSLParser#AddSubExpr.
     def visitAddSubExpr(self, ctx:McFuncDSLParser.AddSubExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by McFuncDSLParser#LogicalAndExpr.
+    def visitLogicalAndExpr(self, ctx:McFuncDSLParser.LogicalAndExprContext):
         return self.visitChildren(ctx)
 
 
@@ -209,8 +219,18 @@ class McFuncDSLVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by McFuncDSLParser#TypeCastExpr.
+    def visitTypeCastExpr(self, ctx:McFuncDSLParser.TypeCastExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by McFuncDSLParser#cmdExpr.
     def visitCmdExpr(self, ctx:McFuncDSLParser.CmdExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by McFuncDSLParser#cmdBlockExpr.
+    def visitCmdBlockExpr(self, ctx:McFuncDSLParser.CmdBlockExprContext):
         return self.visitChildren(ctx)
 
 

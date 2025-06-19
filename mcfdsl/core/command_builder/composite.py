@@ -1,0 +1,106 @@
+import uuid
+
+from mcfdsl.core._interfaces import ISymbol
+from mcfdsl.core.command_builder._execute import Execute, ScoreOperation
+from mcfdsl.core.command_builder._scoreboard import Scoreboard
+from mcfdsl.core.command_builder.base import BasicCommands
+from mcfdsl.core.language_types import DataType, ValueType, SymbolType
+from mcfdsl.core.result import Result
+from mcfdsl.core.symbol import Symbol
+
+minecraft_version = ["1.20.4"]
+
+
+class Composite:
+    @staticmethod
+    def var_assignment(var: ISymbol, expr: ISymbol | Result) -> str | None:
+        if isinstance(expr, Result):
+            var2 = expr.to_symbol()
+            if var2 is None:
+                return None
+        else:
+            assert isinstance(expr.__class__, ISymbol)
+            var2: ISymbol = expr
+
+        if var2.value_type == ValueType.LITERAL:
+            return BasicCommands.Copy.copy_literal(var, var2.value)
+        elif var2.value_type == ValueType.VARIABLE:
+            return BasicCommands.Copy.copy_variable(var2, var)
+        return None
+
+    @staticmethod
+    def var_compare(left: ISymbol | Result, op: str, right: ISymbol | Result, result_var: ISymbol):
+        if isinstance(left, Result): # 如果left是Result
+            left = left.to_symbol()
+        if isinstance(right, Result): # 如果right是Result
+            right = right.to_symbol()
+
+        # 自动将==替换为游戏支持的=
+        if op == "==":
+            op = "="
+
+        if left.data_type in (DataType.INT , DataType.BOOLEAN) and right.data_type in (DataType.INT , DataType.BOOLEAN):
+            if left.value_type == ValueType.VARIABLE and right.value_type == ValueType.VARIABLE: # 左右都是变量引用
+                return [Composite._variable_compare(left, op, right, result_var)]
+            elif left.value_type == ValueType.LITERAL and right.value_type == ValueType.LITERAL: # 左右都是字面量
+                assert isinstance(left.value, (int, bool))
+                assert isinstance(right.value, (int, bool))
+                return [Scoreboard.set_score(result_var.get_unique_name(), result_var.objective, 1 if Composite._literal_compare(left.value, op, right.value) else 0)]
+            else: # 左右有任意一边是变量引用
+                cmd = []
+                temp = '#' + uuid.uuid4().hex
+                if left.value_type == ValueType.LITERAL:
+                    assert isinstance(left.value, (int, bool))
+                    cmd += Scoreboard.set_score(temp, left.objective, left.value)
+                    left = Symbol(temp, SymbolType.VARIABLE, None, left.data_type, left.objective, left.value,
+                                  ValueType.VARIABLE)
+                elif right.value_type == ValueType.LITERAL:
+                    assert isinstance(right.value, (int, bool))
+                    cmd += Scoreboard.set_score(temp, right.objective, right.value)
+                    right = Symbol(temp, SymbolType.VARIABLE, None, right.data_type, right.objective, right.value,
+                                   ValueType.VARIABLE)
+                else:
+                    return None
+                cmd += Composite._variable_compare(left, op, right, result_var)
+                cmd += Scoreboard.reset_score(temp, result_var.objective)
+                return cmd
+        elif left.data_type == DataType.STRING and right.data_type == DataType.STRING:
+            cmd = []
+            # TODO: 依然待实现
+            return cmd
+        elif isinstance(left.data_type,DataType) and isinstance(right.data_type,DataType):
+            return [Scoreboard.set_score(result_var.get_unique_name(), result_var.objective,0)]
+        else: # 其他
+            return None
+
+    @staticmethod
+    def _variable_compare(left: ISymbol, op: str, right: ISymbol, result_var: ISymbol):
+        ops = ["=", "<", "<=", ">", ">="]
+        if op in ops:
+            op: ScoreOperation
+            return Execute.execute().if_score_compare(left.get_unique_name(), left.objective, op,
+                                                      right.get_unique_name(), right.objective).run(
+                Scoreboard.set_score(result_var.get_unique_name(), result_var.objective, 1))
+        elif op == "!=":
+            return Execute.execute().unless_score_compare(left.get_unique_name(), left.objective, "=",
+                                                          right.get_unique_name(), right.objective).run(
+                Scoreboard.set_score(result_var.get_unique_name(), result_var.objective, 1))
+        else:
+            return None
+
+    @staticmethod
+    def _literal_compare(left: int|bool , op :str , right: int|bool):
+        result = False
+        if op == '<':
+            result = left < right
+        elif op == '>':
+            result = left > right
+        elif op == '<=':
+            result = left <= right
+        elif op == '>=':
+            result = left >= right
+        elif op == '=' or op == '==':
+            result = left == right
+        elif op == '!=':
+            result = left != right
+        return True if result else False

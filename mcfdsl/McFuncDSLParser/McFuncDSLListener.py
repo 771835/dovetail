@@ -1,4 +1,4 @@
-# Generated from E:/python/minecraft-datapack-language/antlr/McFuncDSLParser.g4 by ANTLR 4.13.2
+# Generated from E:/python/minecraft-datapack-language/antlr/McFuncDSL.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .McFuncDSLParser import McFuncDSLParser
@@ -242,21 +242,21 @@ class McFuncDSLListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by McFuncDSLParser#LogicalOrExpr.
+    def enterLogicalOrExpr(self, ctx:McFuncDSLParser.LogicalOrExprContext):
+        pass
+
+    # Exit a parse tree produced by McFuncDSLParser#LogicalOrExpr.
+    def exitLogicalOrExpr(self, ctx:McFuncDSLParser.LogicalOrExprContext):
+        pass
+
+
     # Enter a parse tree produced by McFuncDSLParser#DirectFuncCall.
     def enterDirectFuncCall(self, ctx:McFuncDSLParser.DirectFuncCallContext):
         pass
 
     # Exit a parse tree produced by McFuncDSLParser#DirectFuncCall.
     def exitDirectFuncCall(self, ctx:McFuncDSLParser.DirectFuncCallContext):
-        pass
-
-
-    # Enter a parse tree produced by McFuncDSLParser#CmdExpression.
-    def enterCmdExpression(self, ctx:McFuncDSLParser.CmdExpressionContext):
-        pass
-
-    # Exit a parse tree produced by McFuncDSLParser#CmdExpression.
-    def exitCmdExpression(self, ctx:McFuncDSLParser.CmdExpressionContext):
         pass
 
 
@@ -296,6 +296,15 @@ class McFuncDSLListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by McFuncDSLParser#LogicalNotExpr.
+    def enterLogicalNotExpr(self, ctx:McFuncDSLParser.LogicalNotExprContext):
+        pass
+
+    # Exit a parse tree produced by McFuncDSLParser#LogicalNotExpr.
+    def exitLogicalNotExpr(self, ctx:McFuncDSLParser.LogicalNotExprContext):
+        pass
+
+
     # Enter a parse tree produced by McFuncDSLParser#PrimaryExpr.
     def enterPrimaryExpr(self, ctx:McFuncDSLParser.PrimaryExprContext):
         pass
@@ -311,6 +320,15 @@ class McFuncDSLListener(ParseTreeListener):
 
     # Exit a parse tree produced by McFuncDSLParser#AddSubExpr.
     def exitAddSubExpr(self, ctx:McFuncDSLParser.AddSubExprContext):
+        pass
+
+
+    # Enter a parse tree produced by McFuncDSLParser#LogicalAndExpr.
+    def enterLogicalAndExpr(self, ctx:McFuncDSLParser.LogicalAndExprContext):
+        pass
+
+    # Exit a parse tree produced by McFuncDSLParser#LogicalAndExpr.
+    def exitLogicalAndExpr(self, ctx:McFuncDSLParser.LogicalAndExprContext):
         pass
 
 
@@ -368,12 +386,30 @@ class McFuncDSLListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by McFuncDSLParser#TypeCastExpr.
+    def enterTypeCastExpr(self, ctx:McFuncDSLParser.TypeCastExprContext):
+        pass
+
+    # Exit a parse tree produced by McFuncDSLParser#TypeCastExpr.
+    def exitTypeCastExpr(self, ctx:McFuncDSLParser.TypeCastExprContext):
+        pass
+
+
     # Enter a parse tree produced by McFuncDSLParser#cmdExpr.
     def enterCmdExpr(self, ctx:McFuncDSLParser.CmdExprContext):
         pass
 
     # Exit a parse tree produced by McFuncDSLParser#cmdExpr.
     def exitCmdExpr(self, ctx:McFuncDSLParser.CmdExprContext):
+        pass
+
+
+    # Enter a parse tree produced by McFuncDSLParser#cmdBlockExpr.
+    def enterCmdBlockExpr(self, ctx:McFuncDSLParser.CmdBlockExprContext):
+        pass
+
+    # Exit a parse tree produced by McFuncDSLParser#cmdBlockExpr.
+    def exitCmdBlockExpr(self, ctx:McFuncDSLParser.CmdBlockExprContext):
         pass
 
 

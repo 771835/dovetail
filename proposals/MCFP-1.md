@@ -1,12 +1,14 @@
 # MCFP 1: 基础语法规范
 
 ## 状态
-- [x] Draft
+- [ ] Draft
 - [ ] Proposed
 - [ ] Accepted
 - [ ] Rejected
 - [ ] Deferred
-- [ ] Implemented (版本: )
+- [ ] Implemented (版本: 1.0.0)
+- [x] Active
+- [ ] Abandoned (版本: )
 
 ## 作者
 - 771835 <2790834181@qq.com>
@@ -159,3 +161,6 @@ Minecraft 命令系统缺乏结构化编程能力，现有解决方案存在以�
      | '(' expr ')'                      #ParenExpr
      | 'new' ID argumentList             #NewObjectExpr
      ;
+
+## 变更日志
+- 2025-06-06 初版草案

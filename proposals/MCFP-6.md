@@ -7,12 +7,14 @@
 - [x] Rejected  
 - [ ] Deferred  
 - [ ] Implemented (版本: )  
+- [ ] Active
+- [ ] Abandoned (版本: )
 
 ## 作者  
 - 771835 <2790834181@qq.com>  
 
 ## 创建日期  
-- 2025-6-6
+- 2025-06-06
 
 ---
 
@@ -117,4 +119,5 @@ class DepthListener(McFuncDSLListener):
 - MCFP 201 (工具链规范)  
 
 ---
-
+## 变更日志
+- 2025-06-06 初版草案

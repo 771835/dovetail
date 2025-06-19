@@ -6,7 +6,9 @@
 - [ ] Accepted  
 - [ ] Rejected  
 - [ ] Deferred  
-- [ ] Implemented (版本: -)  
+- [ ] Implemented (版本: )  
+- [ ] Active
+- [ ] Abandoned (版本: )
 
 ## 作者
 - 771835 <2790834181@qq.com>  
@@ -59,7 +61,7 @@
     var a:int = 10;  // 生成: scoreboard objectives add mcfdsl dummy
                    // scoreboard players set global.a mcfdsl 10
     
-    var b:string = "text"; // 生成: data modify storage mcfdsl:global.data.b set value "text"
+    var b:string = "text"; // 生成: data modify storage mcfdsl:var global.data.b set value "text"
 
 ### 3. 表达式求值机制
 #### 3.1 类型提升规则
@@ -75,6 +77,18 @@
     3. 获取 c 的存储位置（假设为 Scoreboard）
     4. 生成: scoreboard players operation $temp2 = $temp1 + c.score
     5. 将 $temp2 赋值给 a
+
+#### 3.3 比较生成策略
+
+| left       | Operand           | right      | 生成指令                                                                                                                                       |
+|------------|-------------------|------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| int        | `==` `!=`         | int        | `execute if score <target> <target_objective> matches <range>`                                                                             |
+| int        | `<` `<=` `>` `>=` | int        | 同上                                                                                                                                         |
+| string     | `==` `!=`         | string     | `execute store success storage <target> <path> int 1.0 run data modify storage <target> <path> set from storage <target> <path>` 命令执行失败即相等 |
+| string/int | `==` `!=`         | string/int | 不相等                                                                                                                                        |
+| class      | `==` `!=`         | any        | 由class的__eq__方法决定,不存在则不相等                                                                                                                  |
+| class      | `<` `<=` `>` `>=` | any        | 由class的魔法方法决定,不存在则不相等                                                                                                                      | 
+| builtins   | `==` `!=`         | any        | 由内置代码决定                                                                                                                                    |
 
 ### 4. 控制流实现
 #### 4.1 While 循环编译模式
@@ -95,6 +109,7 @@
         execute if score $cond run function loop_body
 
 #### 4.2 If-Else 语句实现
+
     // 生成命令序列
     execute if score $condition matches 1 run function if_block
     execute unless score $condition matches 1 run function else_block
@@ -113,12 +128,12 @@
 ## 兼容性影响
 1. 要求 Minecraft 1.20+ 版本（依赖 execute store 语法）
 2. 与纯命令块实现的模块存在 NBT 存储冲突风险
-3. 需要预先生成 mcfdsl:storage 数据结构
 
 ## 参考实现
-[mcfpp](https://github.com/rozukke/mcpp)
+[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)
 
 
 ## 变更日志
 - 2025-06-06 初版草案
 - 2025-06-07 增加表达式求值和类型转换细节,修正了示例代码的语法错误
+- 2025-06-14 修正错误指令
