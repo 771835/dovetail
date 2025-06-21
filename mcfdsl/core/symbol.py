@@ -4,8 +4,6 @@ from __future__ import annotations
 from typing import Any
 
 from mcfdsl.core._interfaces import ISymbol, IScope
-from mcfdsl.core.command_builder import Composite, Scoreboard
-from mcfdsl.core.command_builder._data import Data
 from mcfdsl.core.language_class import Class
 from mcfdsl.core.language_types import SymbolType, DataType, ValueType
 
@@ -26,7 +24,7 @@ class Symbol(ISymbol):
             return self.scope.get_name() + "." + self.name
         else:
             return self.name
-
+    """
     def init_commands(self, value = None) -> str|None:
         if self.symbol_type != SymbolType.VARIABLE:
             return None
@@ -50,6 +48,7 @@ class Symbol(ISymbol):
         elif self.data_type == DataType.STRING:
             return Data.remove_storage(self.get_unique_name(), self.get_storage_path())
         return None
+    """
 
     def get_storage_path(self) -> str:
         return f"{self.scope.namespace}:{self.objective}"

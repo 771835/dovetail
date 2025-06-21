@@ -310,8 +310,12 @@ class MCGenerator(McFuncDSLVisitor):
                         param_name,
                         SymbolType.VARIABLE,
                         self.current_scope,
-                        param_type,
-                        self.var_objective))
+                        self._get_type_definition(param_type),
+                        self.var_objective,
+                        None,
+                        ValueType.VARIABLE
+                    )
+                )
 
         # 处理函数体
         self.visit(ctx.block())

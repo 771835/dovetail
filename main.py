@@ -104,6 +104,7 @@ def compile_mcdl(source_path):
         print_error_info()
         time.sleep(0.1)
         sys.stderr.write(e.__repr__())
+        raise
     except Exception as e:
         time.sleep(0.1)
         print_error_info()
@@ -114,4 +115,8 @@ def compile_mcdl(source_path):
 
 
 if __name__ == "__main__":
-    compile_mcdl("b.mcdl")
+    if len(sys.argv) != 2:
+        print("Usage: python main.py <input>")
+        sys.exit(1)
+    input_file = sys.argv[1]
+    sys.exit(compile_mcdl(input_file))
