@@ -1,6 +1,9 @@
+# coding=utf-8
 from __future__ import annotations
 
+import io
 import sys
+import time
 
 from antlr4.error.ErrorListener import ErrorListener
 
@@ -11,8 +14,11 @@ from mcfdsl.core.generator import MCGenerator
 
 
 class ThrowingErrorListener(ErrorListener):
+    buffer = io.StringIO()
+    error = False
     def syntaxError(self, recognizer, offending_symbol, line, column, msg, e):
-        raise RuntimeError(f"Syntax error at line {line}:{column} - {msg}")
+        self.error = True
+        self.buffer.write(f"Syntax error at line {line}:{column} - {msg} \n")
 
     def reportAmbiguity(
             self,
@@ -50,11 +56,12 @@ def compile_mcdl(source_path):
     input_stream = FileStream(source_path, "utf-8")
     lexer = McFuncDSLLexer.McFuncDSLLexer(input_stream)
     lexer.removeErrorListeners()
-    lexer.addErrorListener(ThrowingErrorListener())
+    listener = ThrowingErrorListener()
+    lexer.addErrorListener(listener)
     stream = CommonTokenStream(lexer)
     parser = McFuncDSLParser.McFuncDSLParser(stream)
     parser.removeErrorListeners()
-    parser.addErrorListener(ThrowingErrorListener())
+    parser.addErrorListener(listener)
 
     def print_error_info():
         # 定义作用域树打印函数
@@ -85,18 +92,20 @@ def compile_mcdl(source_path):
 
     try:
         tree = parser.program()
+        if listener.error:
+            sys.stderr.write(listener.buffer.getvalue())
+            return 1
         generator = MCGenerator()
         generator.visit(tree)
         # 输出到target目录
         generator._generate_commands()
-    except RuntimeError as e:
-        sys.stderr.write(f"Compilation aborted due to syntax error: {e}")
-        return 1  # 直接返回，不执行后续代码生成
     except CompilationError as e:
+        time.sleep(0.1) # 保证前面的输出完成
         print_error_info()
+        time.sleep(0.1)
         sys.stderr.write(e.__repr__())
-        raise
     except Exception as e:
+        time.sleep(0.1)
         print_error_info()
         # 重新抛出异常显示错误详情
         raise

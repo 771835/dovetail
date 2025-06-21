@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import annotations
 
 import warnings
@@ -13,6 +14,7 @@ class CheckedEnum(Enum):  # 基类名称建议
                 stacklevel=2
             )
         return super().__eq__(other)
+
 
 class TargetSelectorVariables(CheckedEnum):
     NEAREST_PLAYER = "@p"
@@ -38,11 +40,12 @@ class SymbolType(CheckedEnum):
     INTERFACE = 'interface'
     NAMESPACE = 'namespace'
 
+
 class DataType(CheckedEnum):
     """基础数据类型：表示变量的存储类型"""
     INT = 'int'
     STRING = 'string'
-    FSTRING = 'fstring' # 特殊类型，将在编译时改为STRING
+    FSTRING = 'fstring'  # 特殊类型，将在编译时改为STRING
     BOOLEAN = 'boolean'
     VOID = 'void'
     SELECTOR = 'selector'
@@ -59,12 +62,11 @@ class StructureType(CheckedEnum):
     BLOCK = 'block'
 
 
-
 class ValueType(CheckedEnum):
     """值类型：表示值的类别"""
     LITERAL = "literal"  # 字面量
     VARIABLE = "variable"  # 变量引用
     # COMPOSITE = "composite"  # 复合表达式结果
     # FUNCTION = "function"  # 函数返回值
-    ERROR = "error"  #  错误
+    ERROR = "error"  # 错误
     OTHER = 'other'

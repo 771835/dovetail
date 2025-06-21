@@ -34,11 +34,6 @@ class McFuncDSLVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by McFuncDSLParser#constructorDecl.
-    def visitConstructorDecl(self, ctx:McFuncDSLParser.ConstructorDeclContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by McFuncDSLParser#interfaceMethodDecl.
     def visitInterfaceMethodDecl(self, ctx:McFuncDSLParser.InterfaceMethodDeclContext):
         return self.visitChildren(ctx)

@@ -1,12 +1,11 @@
 # MCFDSL
 
 > Minecraft数据包编译语言 | 面向对象的Minecraft DSL  
-> 该项目大部分参考了[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)，同时引入了部分新的语法和设计。但是，该项目最初并非由MCFPP启发而产生，仅为作者的想法而产生。  
+> 该项目大部分参考了[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)，同时引入了部分新的语法和设计。但该项目最初并非由MCFPP启发而产生。  
 > 该项目的实现并不完善，若需要生产环境使用，请考虑如MCFPP等相对成熟的项目
 ## 安装
 ### 环境要求
 - Python 3.10+
-- ANTLR4运行时
 
 ### 快速开始
 ```bash

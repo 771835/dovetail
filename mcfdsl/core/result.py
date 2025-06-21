@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import annotations
 
 import uuid
@@ -33,7 +34,7 @@ class Result:
     def __str__(self):
         return self.__repr__()
 
-    def to_symbol(self, scope:IScope = None, name:str = None):
+    def to_symbol(self, scope: IScope = None, name: str = None):
         if self.value_type == ValueType.VARIABLE:
             assert isinstance(self.value, ISymbol)
             return self.value
@@ -42,7 +43,7 @@ class Result:
 
         if self.value_type == ValueType.LITERAL:
             return Symbol(name, SymbolType.VARIABLE, scope, self.data_type,
-                   None, self.value, ValueType.LITERAL)
+                          None, self.value, ValueType.LITERAL)
         else:
             return None
 

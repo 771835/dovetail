@@ -1,27 +1,100 @@
-
-def print_all_attributes(obj):
-    # 获取实例自身的属性（包括 __dict__ 和 __slots__）
-    attrs = {}
-    try:
-        attrs.update(vars(obj))  # 常规属性
-    except TypeError:
-        pass
-    if hasattr(obj, '__slots__'):  # 处理 __slots__
-        for slot in obj.__slots__:
-            if hasattr(obj, slot):
-                attrs[slot] = getattr(obj, slot)
-
-    # 输出实例自身属性
-    for attr, value in attrs.items():
-        print(f"{attr}: {value}")
-
-    # 获取通过 property 定义的动态属性
-    for name in dir(type(obj)):
-        if isinstance(getattr(type(obj), name), property):
-            try:
-                value = getattr(obj, name)
-                print(f"{name} (property): {value}")
-            except Exception as e:
-                print(f"{name} (property): <无法获取值: {e}>")
+# coding=utf-8
+import io
+import sys
 
 
+def print_all_attributes(obj, color=True, print_output=True):
+    """带返回值支持的属性打印函数
+
+    Args:
+        obj: 要分析的对象
+        color: 是否启用颜色输出 (默认启用)
+        print_output: 是否打印输出内容 (默认打印)
+
+    Returns:
+        当 return_output=True 时返回完整输出字符串
+    """
+    buffer = io.StringIO()
+    COL = {}  # 颜色配置字典
+
+    def setup_colors(use_color):
+        """配置颜色方案"""
+        nonlocal COL
+        if use_color:
+            COL = {
+                'reset': '\033[0m',
+                'title': '\033[34m',  # 蓝色
+                'section': '\033[33m',  # 黄色
+                'name': '\033[32m',  # 绿色
+                'value': '\033[37m',  # 白色
+                'error': '\033[31m',  # 红色
+                'prop': '\033[36m'  # 青色
+            }
+        else:
+            COL = {k: '' for k in ['reset', 'title', 'section', 'name', 'value', 'error', 'prop']}
+
+    def write(line):
+        """统一写入方法"""
+        buffer.write(line + '\n')
+
+    # 主逻辑
+    setup_colors(color)
+    header = f" 对象属性分析 [{type(obj).__name__}] "
+    write(f"{COL['title']}{'=' * 30}{header}{'=' * 30}{COL['reset']}")
+
+    # 收集属性逻辑
+    def collect_attributes():
+        try:
+            instance_attrs = vars(obj).copy()
+        except TypeError:
+            instance_attrs = {}
+
+        slots_attrs = {}
+        if hasattr(obj, '__slots__'):
+            for slot in obj.__slots__:
+                if hasattr(obj, slot):
+                    slots_attrs[slot] = getattr(obj, slot)
+
+        properties = {}
+        for name in dir(type(obj)):
+            attr = getattr(type(obj), name)
+            if isinstance(attr, property):
+                try:
+                    properties[name] = getattr(obj, name)
+                except Exception as e:
+                    properties[name] = f"<错误: {str(e)}>"
+
+        return instance_attrs, slots_attrs, properties
+
+    instance_attrs, slots_attrs, properties = collect_attributes()
+
+    # 统一打印逻辑
+    def print_attr_set(title, attrs, is_property=False):
+        write(f"{COL['section']}■ {title}{COL['reset']}")
+        if not attrs:
+            write(f"  {COL['value']}(无){COL['reset']}")
+            return
+
+        for name, value in attrs.items():
+            if isinstance(value, str) and value.startswith("<错误:"):
+                value_str = f"{COL['error']}{value}{COL['reset']}"
+            else:
+                value_str = f"{COL['value']}{repr(value)}{COL['reset']}"
+
+            marker = f"{COL['prop']}↳{COL['reset']}" if is_property else "•"
+            write(f"  {marker} {COL['name']}{name}{COL['reset']}: {value_str}")
+
+    # 分块输出
+    print_attr_set("实例属性", instance_attrs)
+    print_attr_set("Slots 属性", slots_attrs)
+    print_attr_set("动态属性", properties, is_property=True)
+    write(f"{COL['title']}{'=' * 80}{COL['reset']}")
+
+    # 获取输出内容
+    output = buffer.getvalue()
+
+    # 根据参数决定是否打印
+    if print_output:
+        sys.stdout.write(output)
+
+    return output

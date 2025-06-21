@@ -134,7 +134,7 @@ constDecl
 
 // 公共规则
 varDeclaration
-    : ID (':' type)? ('=' expr)?
+    : ID (':' type) ('=' expr)?
     | type ID ('=' expr)? // 更符合大多数人习惯的变量声明
     ;
 
@@ -152,7 +152,7 @@ forLoopVarDecl
 
 assignment
     : ID '=' expr                     // 变量赋值，如：count = 10
-    | expr '.' ID '=' expr
+    // | expr '.' ID '=' expr 暂不实现
     ;
 
 returnStmt

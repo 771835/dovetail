@@ -1,3 +1,4 @@
+# coding=utf-8
 from typing import Callable
 
 from mcfdsl.core._interfaces import ISymbol
@@ -15,11 +16,10 @@ class Selector(Lib):
     def method(self) -> list[Callable[..., list[str]]]:
         pass
 
-    var:TargetSelectorVariables
-    arguments:dict
+    var: TargetSelectorVariables
+    arguments: dict
 
     def __str__(self):
-        format_argument = lambda key: f"{key} = {self.arguments[key]}"
+        def format_argument(key): return f"{key} = {self.arguments[key]}"
         arguments_str = ', '.join(map(format_argument, self.arguments))
         return f"{self.var.value}[{arguments_str}]"
-

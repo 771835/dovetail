@@ -53,15 +53,6 @@ class McFuncDSLListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by McFuncDSLParser#constructorDecl.
-    def enterConstructorDecl(self, ctx:McFuncDSLParser.ConstructorDeclContext):
-        pass
-
-    # Exit a parse tree produced by McFuncDSLParser#constructorDecl.
-    def exitConstructorDecl(self, ctx:McFuncDSLParser.ConstructorDeclContext):
-        pass
-
-
     # Enter a parse tree produced by McFuncDSLParser#interfaceMethodDecl.
     def enterInterfaceMethodDecl(self, ctx:McFuncDSLParser.InterfaceMethodDeclContext):
         pass
