@@ -820,7 +820,7 @@ class MCGenerator(McFuncDSLVisitor):
             expr = self.visit(ctx.expr())
             # TODO:使用更好的方法处理返回result来使调用处正常处理
             result = Symbol(
-                f"return_{uuid.uuid5(self.uuid_namespace,self.current_scope.name)}",
+                f"return_{uuid.uuid5(self.uuid_namespace,self.current_scope.name).hex}",
                 SymbolType.VARIABLE,
                 None,
                 expr.data_type,
