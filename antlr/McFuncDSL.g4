@@ -1,6 +1,6 @@
 grammar McFuncDSL;
 
-/* 1. 程序结构 */
+/* 程序结构 */
 program
     : (importStmt
       | functionDecl
@@ -62,7 +62,7 @@ primitiveType
     | TYPE_STRING  // 字符串类型
     | TYPE_BOOLEAN // 布尔类型
     | TYPE_VOID    // 无返回值类型
-    | TYPE_SELECTOR// 选择器
+    | TYPE_NULL    // 空值
     ;
 
 functionDecl
@@ -114,7 +114,7 @@ statement
 
 forStmt
     : FOR LPAREN forControl RPAREN block        // 传统for循环
-    | FOR LPAREN ID ':' expr RPAREN block       // 增强for循环 (execute as 选择器 run function...)
+    | FOR LPAREN ID ':' expr RPAREN block       // 增强for循环 (expr需为可迭代class)
     ;
 
 
@@ -134,8 +134,8 @@ constDecl
 
 // 公共规则
 varDeclaration
-    : ID (':' type) ('=' expr)?
-    | type ID ('=' expr)? // 更符合大多数人习惯的变量声明
+    : ID (':' type) ('?')? ('=' expr)?
+    | type ID ('?')? ('=' expr)? // 更符合大多数人习惯的变量声明
     ;
 
 // 变量声明（带分号）
@@ -164,7 +164,7 @@ ifStmt
     ;
 
 
-/* 7. 完整表达式系统（保留所有结构） */
+/* 完整表达式系统（保留所有结构） */
 expr
     :
     //| lambdaExpr                            # LambdaExpression   // Lambda
@@ -189,15 +189,14 @@ expr
 
 
 primary
-    : NEW TYPE_SELECTOR LPAREN STRING RPAREN       # NewSelectorExpr    // 显式构造函数
-    | ID                                    # VarExpr            // 变量
+    :ID                                    # VarExpr            // 变量
     | literal                               # LiteralExpr        // 字面量
     | LPAREN expr RPAREN                          # ParenExpr          // 括号
     | NEW ID argumentList                 # NewObjectExpr      // 显式对象创建
     | LPAREN type RPAREN expr                     #TypeCastExpr        // 强制类型转换
     ;
 
-/* 8. 命令与插值 */
+/* 命令与插值 */
 cmdExpr
     : CMD FSTRING
     ;
@@ -206,7 +205,7 @@ cmdBlockExpr
     : CMD LBRACE (FSTRING SEMI)* RBRACE
     ;
 
-/* 9. 辅助规则（全部保留） */
+/* 辅助规则（全部保留） */
 
 argumentList
     : LPAREN exprList? RPAREN
@@ -223,17 +222,17 @@ literal
     | STRING                                // 普通字符串
     | FSTRING                               // 插值字符串
     | TRUE | FALSE                      // 布尔值
-    //| 'null'                                // 空值
+    | NULL                                // 空值
     ;
 
-// 11. 完整词法规则（修正版）
+// 词法规则
 
 TYPE_INT     : 'int';
 TYPE_STRING  : 'string';
 TYPE_BOOLEAN : 'boolean';
 TYPE_VOID    : 'void';
 TYPE_ANY     : 'any';
-TYPE_SELECTOR: 'Selector';
+TYPE_NULL    : 'NoneType';
 
 // 分隔符（定义在ID之前）
 LPAREN : '(';

@@ -1,11 +1,20 @@
-func foo(int x, int y):int {
+func foo1(int x, int y):int {
  int z = x + y;
  return z; // 额，这个也未实现，至于为什么，别问（
  }
 
-func main():void{
+func main1():void{
     x:int = 1;
     y:int = 2;
     z:int = x+y;
+    if (1==1) {
+        x = z;
+    }
     # 为什么不调用foo呢，因为带参函数调用也有点小bug
+}
+func foo2():int {
+ return 10;
+ }
+func main2():void{
+    x:int = foo2();
 }

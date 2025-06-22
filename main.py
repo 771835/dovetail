@@ -115,6 +115,7 @@ def compile_mcdl(source_path):
 
 
 if __name__ == "__main__":
+    sys.argv.append( r".\example\test1.mcdl")
     if len(sys.argv) != 2:
         print("Usage: python main.py <input>")
         sys.exit(1)

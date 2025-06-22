@@ -33,7 +33,7 @@ class Composite:
             if var2 is None:
                 return None
         else:
-            assert isinstance(expr.__class__, ISymbol)
+            assert isinstance(expr, ISymbol)
             var2: ISymbol = expr
 
         if var2.value_type == ValueType.LITERAL:

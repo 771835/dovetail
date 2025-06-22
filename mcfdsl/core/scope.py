@@ -37,14 +37,14 @@ class Scope(IScope):  # 每层作用域在生成时都会生成为一个函数�
         self.children.append(child)
         return child
 
-    def add_symbol(self, symbol: ISymbol):
-        if symbol.name in self.symbols:
+    def add_symbol(self, symbol: ISymbol, force=False):
+        if symbol.name in self.symbols and not force:
             raise NameError(
                 f"Symbol {symbol.name} already exists in this scope")
         self.symbols[symbol.name] = symbol
 
-    def set_symbol(self, symbol: ISymbol):
-        if symbol.name not in self.symbols:
+    def set_symbol(self, symbol: ISymbol, force=False):
+        if symbol.name not in self.symbols and not force:
             raise NameError(
                 f"Symbol {symbol.name} does not exist in this scope")
         self.symbols[symbol.name] = symbol
@@ -67,6 +67,13 @@ class Scope(IScope):  # 每层作用域在生成时都会生成为一个函数�
         else:
             raise ValueError(f"Undefined symbol: {name}")
 
+    def find_scope(self, name: str) -> IScope:
+        """只在单层查找作用域"""
+        name = str(name)
+        for i in self.children:
+            if i.name == name:
+                return i
+        raise ValueError(f"Undefined symbol: {name}")
     def resolve_scope(self, name: str) -> IScope:
         """逐级向上查找该作用域可访问到的作用域"""
         name = str(name)
@@ -75,7 +82,7 @@ class Scope(IScope):  # 每层作用域在生成时都会生成为一个函数�
             if name in [i.name for i in current.children]:
                 return [i for i in current.children if i.name == name][0]
             current = current.parent
-        raise NameError(f"Undefined scope: {name}")
+        raise ValueError(f"Undefined scope: {name}")
 
     def get_parent(self) -> IScope:
         if self.parent:

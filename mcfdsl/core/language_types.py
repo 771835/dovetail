@@ -60,6 +60,7 @@ class StructureType(CheckedEnum):
     LOOP = "loop"
     INTERFACE = 'interface'
     BLOCK = 'block'
+    CONDITIONAL = "conditional"
 
 
 class ValueType(CheckedEnum):

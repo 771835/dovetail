@@ -1,4 +1,5 @@
 # coding=utf-8
+from types import NoneType
 from typing import Any
 
 from mcfdsl.core._interfaces import ISymbol
@@ -6,7 +7,6 @@ from mcfdsl.core.language_class import Class
 from mcfdsl.core.command_builder._data import Data
 from mcfdsl.core.command_builder._scoreboard import Scoreboard
 from mcfdsl.core.language_types import DataType
-from mcfdsl.core.utils.type_utils import TypeUtils
 
 
 class BasicCommands:
@@ -62,7 +62,9 @@ class BasicCommands:
 
         @staticmethod
         def copy_literal(to: ISymbol, value: Any):
-            if TypeUtils.infer(value) != to.data_type:
+            if type(value) not in (str, int ,bool):
+                return None
+            elif type == str and to.data_type != DataType.STRING:
                 return None
 
             if to.data_type == DataType.STRING:

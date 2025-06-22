@@ -21,17 +21,17 @@ McFuncDSL Enhancement Proposals (MCFP) 是推动 McFuncDSL 语言发展的核心
 
 ## 提案状态总览
 
-| 编号       | 标题                            | 状态       | 分类   | 加入版本 | 备注               |
-|----------|-------------------------------|----------|------|------|------------------|
-| MCFP 0   | McFuncDSL 提案索引与流程             | Active   | 元提案  | -    |                  |
-| MCFP 1   | 基础语法规范                        | Draft    | 核心语言 | -    |                  |
-| MCFP 2   | 命令插值系统                        | Deferred | 核心语言 | -    |                  |
-| MCFP 3   | McFuncDSL 到 Minecraft 命令的编译规范 | Accepted | 核心语言 | -    |                  |
-| MCFP 4   | 语法糖加入规范                       | Active   | 核心语法 | -    | -                |
-| MCFP 5   | 对于数组的支持                       | Deferred | 核心语言 | -    |                  |
-| MCFP 6   | 表达式解析性能优化草案                   | Deferred | 核心语言 | -    | 因实现难度和可读性暂时延缓该草案 |
-| MCFP 300 | Selector 类型标准                 | Deferred | 标准库  | -    |                  |
-| MCFP 600 | IDE 工具链规范                     | Deferred | 工具链  | -    |                  |
+| 编号       | 标题                            | 状态       | 分类   | 加入版本 | 备注 |
+|----------|-------------------------------|----------|------|------|----|
+| MCFP 0   | McFuncDSL 提案索引与流程             | Active   | 元提案  | -    |    |
+| MCFP 1   | 基础语法规范                        | Draft    | 核心语言 | -    |    |
+| MCFP 2   | 命令插值系统                        | Deferred | 核心语言 | -    |    |
+| MCFP 3   | McFuncDSL 到 Minecraft 命令的编译规范 | Accepted | 核心语言 | -    |    |
+| MCFP 4   | 语法糖加入规范                       | Draft    | 核心语法 | -    | -  |
+| MCFP 5   | 对于数组的支持                       | Deferred | 核心语言 | -    |    |
+| MCFP 6   | 加入中间IR层以便支持优化项目               | Accepted | 核心语言 | -    | -  |
+| MCFP 300 | Selector 类型标准                 | Deferred | 标准库  | -    |    |
+| MCFP 600 | IDE 工具链规范                     | Deferred | 工具链  | -    |    |
 
 ---
 

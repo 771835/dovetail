@@ -24,31 +24,6 @@ class Symbol(ISymbol):
             return self.scope.get_name() + "." + self.name
         else:
             return self.name
-    """
-    def init_commands(self, value = None) -> str|None:
-        if self.symbol_type != SymbolType.VARIABLE:
-            return None
-
-        if self.data_type in (DataType.INT, DataType.BOOLEAN, DataType.STRING):
-            self.value = value
-            return Composite.var_init(self, value)
-        else:
-            if isinstance(self.data_type, Class):
-                # TODO: 处理class支持
-                return None
-            else:
-                return None
-
-    def del_commands(self) -> str|None:
-        if self.symbol_type != SymbolType.VARIABLE:
-            return None
-
-        if self.data_type in (DataType.INT, DataType.BOOLEAN):
-            return Scoreboard.reset_score(self.get_unique_name(), self.objective)
-        elif self.data_type == DataType.STRING:
-            return Data.remove_storage(self.get_unique_name(), self.get_storage_path())
-        return None
-    """
 
     def get_storage_path(self) -> str:
         return f"{self.scope.namespace}:{self.objective}"
