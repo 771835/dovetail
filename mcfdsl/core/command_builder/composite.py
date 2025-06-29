@@ -13,7 +13,7 @@ from mcfdsl.core.symbol import Symbol
 
 class Composite:
     @staticmethod
-    def var_init(var: ISymbol, value: int|str = None):
+    def var_init(var: ISymbol, value: int | str = None):
         if var.data_type == DataType.INT:
             if value is not None:
                 value = 0
@@ -24,12 +24,13 @@ class Composite:
             if value is not None:
                 value = ''
             return Data.modify_storage_set_value(var.get_unique_name(), var.get_storage_path(), str(value))
-        else :
+        else:
             return None
+
     @staticmethod
     def var_assignment(var: ISymbol, expr: ISymbol | Result) -> str | None:
         if isinstance(expr, Result):
-            var2 = expr.to_symbol()
+            var2 = expr.to_symbol(objective=var.objective)
             if var2 is None:
                 return None
         else:
@@ -47,12 +48,19 @@ class Composite:
             left: ISymbol | Result,
             op: str,
             right: ISymbol | Result,
-            result_var: ISymbol):
-        if isinstance(left, Result):  # 如果left是Result
-            left = left.to_symbol()
-        if isinstance(right, Result):  # 如果right是Result
-            right = right.to_symbol()
-
+            result_var: ISymbol,
+            objective: str = None
+    ):
+        if isinstance(left, Result) and isinstance(right, ISymbol):  # 如果left是Result且right是ISymbol
+            left = left.to_symbol(objective=right.objective)
+        elif isinstance(right, Result) and isinstance(left, ISymbol):  # 如果right是Result且left是ISymbol
+            right = right.to_symbol(objective=left.objective)
+        elif isinstance(left, Result) and isinstance(right, Result):
+            if objective:
+                left = left.to_symbol(objective=objective)
+                right = right.to_symbol(objective=objective)
+            else:
+                return None
         # 自动将==替换为游戏支持的=
         if op == "==":
             op = "="
@@ -82,8 +90,11 @@ class Composite:
                 temp = '#' + uuid.uuid4().hex
                 if left.value_type == ValueType.LITERAL:
                     assert isinstance(left.value, (int, bool))
-                    cmd += Scoreboard.set_score(temp,
-                                                left.objective, left.value)
+                    cmd.append(
+                        Scoreboard.set_score(temp,
+                                             left.objective, left.value
+                                             )
+                    )
                     left = Symbol(
                         temp,
                         SymbolType.VARIABLE,
@@ -94,8 +105,10 @@ class Composite:
                         ValueType.VARIABLE)
                 elif right.value_type == ValueType.LITERAL:
                     assert isinstance(right.value, (int, bool))
-                    cmd += Scoreboard.set_score(temp,
-                                                right.objective, right.value)
+                    cmd.append(
+                        Scoreboard.set_score(temp,
+                                             right.objective, right.value)
+                    )
                     right = Symbol(
                         temp,
                         SymbolType.VARIABLE,
@@ -106,8 +119,8 @@ class Composite:
                         ValueType.VARIABLE)
                 else:
                     return None
-                cmd += Composite._variable_compare(left, op, right, result_var)
-                cmd += Scoreboard.reset_score(temp, result_var.objective)
+                cmd.append(Composite._variable_compare(left, op, right, result_var))
+                cmd.append(Scoreboard.reset_score(temp, result_var.objective))
                 return cmd
         elif left.data_type == DataType.STRING and right.data_type == DataType.STRING:
             cmd = []

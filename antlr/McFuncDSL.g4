@@ -47,7 +47,7 @@ interfaceMethodDecl
     : annotation* METHOD ID paramList (':' type) SEMI
     ;
 
-/* 4. 泛型系统(阉割版) */
+/* 4. 类型系统(阉割版) */
 type
     : ID
     | primitiveType
@@ -62,22 +62,21 @@ primitiveType
     | TYPE_STRING  // 字符串类型
     | TYPE_BOOLEAN // 布尔类型
     | TYPE_VOID    // 无返回值类型
-    | TYPE_NULL    // 空值
     ;
 
 functionDecl
     : annotation* FUNC ID
-      ( paramList | '()' )
-      (':' type)       // 返回类型标注
+      ( paramList)
+      ((':'|'->') type)       // 返回类型标注
       block
     | annotation* FUNC type ID
-      ( paramList | '()' )
+      ( paramList)
       block
     ;
 
 
 methodDecl
-    : annotation* METHOD ID paramList (':' type) block
+    : annotation* METHOD ID paramList (':'|'->') type block
     | annotation* METHOD type ID paramList block
     ;
 
@@ -97,7 +96,7 @@ block
     ;
 
 
-/* 6. 流程控制（全功能实现） */
+/* 6. 流程控制 */
 statement
     : cmdExpr SEMI                          // 命令表达式
     | cmdBlockExpr                          // 命令块表达式
@@ -110,6 +109,16 @@ statement
     | returnStmt SEMI                        // 返回
     | block                                 // 代码块
     | ifStmt                                // 条件语句
+    | breakStmt SEMI                        // break语句
+    | continueStmt SEMI                     // continue语句
+    ;
+
+breakStmt
+    : BREAK
+    ;
+
+continueStmt
+    : CONTINUE
     ;
 
 forStmt
@@ -232,7 +241,6 @@ TYPE_STRING  : 'string';
 TYPE_BOOLEAN : 'boolean';
 TYPE_VOID    : 'void';
 TYPE_ANY     : 'any';
-TYPE_NULL    : 'NoneType';
 
 // 分隔符（定义在ID之前）
 LPAREN : '(';
@@ -260,6 +268,8 @@ TRUE: 'true';
 FALSE: 'false';
 NULL: 'null';
 IN: 'in';
+BREAK: 'break';
+CONTINUE: 'continue';
 CMD: 'cmd'
    | 'command'
    ;

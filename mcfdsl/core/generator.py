@@ -37,11 +37,15 @@ class MCGenerator(McFuncDSLVisitor):
         self.current_scope = self.top_scope
         self.import_manager = ImportManager()  # 引用管理器
         self.uuid_namespace = uuid.uuid4()
+        self.root_scope_id = uuid.uuid5(self.uuid_namespace, self.namespace)
         self.scope_stack = [self.top_scope]
         self.cnt = count()  # 保证for loop和if else唯一性
-        self.var_objective = "var"
-        self.loop_objective = "loop"
-        self.return_objective = "return"
+        self.var_objective = "var_" + self.root_scope_id.hex  # 变量
+        self.loop_objective = "loop_" + self.root_scope_id.hex  # 循环特殊变量
+        self.return_objective = "return_" + self.root_scope_id.hex  # 函数返回值
+        self.args_objective = "args_" + self.root_scope_id.hex  # 参数
+        self.runtime_objective = "runtime_" + self.root_scope_id.hex  # 运行时特殊变量，编译器特殊使用
+        self.temp_objective = "temp_" + self.root_scope_id.hex  # 临时变量
         self._add_command(BasicCommands.comment("Scoreboard initialization"))
         self._add_command(
             Scoreboard.add_objective(
@@ -58,6 +62,21 @@ class MCGenerator(McFuncDSLVisitor):
                 self.return_objective,
                 "dummy",
                 "Function Returns"))
+        self._add_command(
+            Scoreboard.add_objective(
+                self.args_objective,
+                "dummy",
+                "Function Arguments"))
+        self._add_command(
+            Scoreboard.add_objective(
+                self.runtime_objective,
+                "dummy",
+                "Runtime Variables"))
+        self._add_command(
+            Scoreboard.add_objective(
+                self.temp_objective,
+                "dummy",
+                "Temporary Calculations"))
 
     def visit(self, tree) -> Result:
         result = tree.accept(self)
@@ -196,7 +215,7 @@ class MCGenerator(McFuncDSLVisitor):
 
         fstring = ctx.FSTRING().getText()[2:-1]  # 去掉f""
         command = self._process_fstring(fstring)
-        self._add_command(scope=None, cmds=command)
+        self._add_command(cmds=command)
         return Result.from_literal(command, DataType.STRING)
 
     def visitCmdBlockExpr(
@@ -206,7 +225,7 @@ class MCGenerator(McFuncDSLVisitor):
         for fstring in ctx.FSTRING():
             fstring = fstring.getText()[2:-1]
             command += self._process_fstring(fstring)
-            self._add_command(scope=None, cmds=command[-1])
+            self._add_command(cmds=command[-1])
         return Result.from_literal("\n".join(command), DataType.STRING)
 
     # 处理变量声明
@@ -294,9 +313,7 @@ class MCGenerator(McFuncDSLVisitor):
             SymbolType.FUNCTION,
             self.current_scope,
             return_type,  # TODO: 实现返回值系统
-            None,
-            None,
-            ValueType.OTHER)
+            value_type=ValueType.OTHER)
         try:
             self.current_scope.find_symbol(func_name)
             raise DuplicateDefinitionError(func_name)
@@ -317,8 +334,7 @@ class MCGenerator(McFuncDSLVisitor):
                             self.current_scope,
                             self._get_type_definition(param_type),
                             self.var_objective,
-                            None,
-                            ValueType.VARIABLE
+                            value_type=ValueType.VARIABLE
                         )
                     )
 
@@ -345,7 +361,9 @@ class MCGenerator(McFuncDSLVisitor):
             return Result.from_literal(True, DataType.BOOLEAN)
         elif value == 'false':
             return Result.from_literal(False, DataType.BOOLEAN)
-        elif value[0] == 'f':
+        elif value == 'null':
+            return Result.from_literal(None, DataType.NULL)
+        elif value[0] == 'f"' and value[-1] == '"':
             return Result.from_literal(
                 self._process_fstring(value[2:-1]), DataType.FSTRING)
         elif self._is_number(value):
@@ -362,10 +380,7 @@ class MCGenerator(McFuncDSLVisitor):
             class_name,
             SymbolType.CLASS,
             self.current_scope,
-            None,
-            None,
-            None,
-            ValueType.OTHER)
+            value_type=ValueType.OTHER)
         class_symbol.value = Class(
             methods=[
                 method.ID() for method in ctx.methodDecl()],
@@ -446,9 +461,9 @@ class MCGenerator(McFuncDSLVisitor):
 
         else:  # 增强for循环
             selector: Result = self.visit(ctx.expr())
-            if selector.data_type != DataType.SELECTOR:
+            if selector.data_type != DataType.VOID:  # TODO:实现可迭代类型
                 raise TypeError(
-                    f"增强for循环需要{DataType.SELECTOR}而不是{selector.data_type}")
+                    f"增强for循环需要{DataType.VOID}而不是{selector.data_type}")
 
             with self.scoped_environment(f"for_{next(self.cnt)}", StructureType.LOOP):
                 block: Result = self.visit(ctx.block())
@@ -459,25 +474,6 @@ class MCGenerator(McFuncDSLVisitor):
                 run(Function.run(block.value.get_minecraft_function_path())),
                 self.current_scope)
         return Result(ValueType.OTHER, DataType.ANY, None)
-
-    # 选择器生成
-    def visitNewSelectorExpr(#TODO:转移到标准库中而非语法
-            self,
-            ctx: McFuncDSLParser.McFuncDSLParser.NewSelectorExprContext):
-        selector_args = ctx.STRING().getText()[1:-1]
-
-        # TODO:支持更复杂的选择器参数解析
-        selector_predicates = []
-        for pred in selector_args.split(','):
-            pred = pred.strip()
-            if '=' in pred:
-                key, value = pred.split('=')
-                selector_predicates.append(f"{key}={value}")
-
-        # TODO:允许构建更灵活的选择器
-        final_selector = f"@e[{','.join(selector_predicates)}]"
-
-        return Result.from_literal(final_selector, DataType.SELECTOR)
 
     def visitIfStmt(self, ctx: McFuncDSLParser.McFuncDSLParser.IfStmtContext):
         # 生成唯一ID
@@ -544,7 +540,7 @@ class MCGenerator(McFuncDSLVisitor):
                     self.visit(ctx.block(0))
                 elif result == 0 and len(ctx.block()) > 1:  # 如果存在else分支
                     self.visit(ctx.block(1))
-                elif result == 0 : # 不存在else分支
+                elif result == 0:  # 不存在else分支
                     pass
                 else:
                     raise InvalidControlFlowError(
@@ -588,7 +584,7 @@ class MCGenerator(McFuncDSLVisitor):
                 result_var.get_unique_name(),
                 result_var.objective,
                 0))
-        cmd = Composite.var_compare(left, op, right, result_var)
+        cmd = Composite.var_compare(left, op, right, result_var, self.temp_objective)
         if cmd is None:
             raise CompilerSyntaxError(
                 f"不支持的比较操作符 {op}",
@@ -780,8 +776,7 @@ class MCGenerator(McFuncDSLVisitor):
             self.current_scope,
             func_symbol.data_type,
             self.return_objective,
-            None,
-            ValueType.VARIABLE)
+            value_type=ValueType.VARIABLE)
         if func_symbol.symbol_type != SymbolType.FUNCTION:
             raise UndefinedVariableError(
                 func_name,
@@ -796,7 +791,6 @@ class MCGenerator(McFuncDSLVisitor):
         return_var = func_symbol.scope.find_scope(func_name).find_symbol(
             f"return_{uuid.uuid5(self.uuid_namespace, func_name).hex}")
         self._add_command(
-            #f"# scoreboard players operation {result_name} var = return var",
             Composite.var_assignment(result_var, return_var),
             self.current_scope)
 
@@ -839,8 +833,7 @@ class MCGenerator(McFuncDSLVisitor):
                 current,
                 expr.data_type,
                 self.return_objective,
-                None,
-                ValueType.VARIABLE)
+                value_type=ValueType.VARIABLE)
             current.add_symbol(result, True)
             self._add_command(Composite.var_assignment(result, expr))
             self._add_command("return", self.current_scope)

@@ -54,9 +54,9 @@ class TypeMismatchError(CompilationError):
     """类型错误子类"""
 
     def __init__(self, expected_type: str | DataType, actual_type: str | DataType,
-                 line: int = None, column: int = None, filename: str = None):
-        msg = (f"类型不匹配: 期望 {expected_type}，实际为 {actual_type}。"
-               f"（请检查变量类型和操作符兼容性）")
+                 line: int = None, column: int = None, filename: str = None, msg = None):
+        if msg is None:
+            msg = f"类型不匹配: 期望 {expected_type}，实际为 {actual_type}。"
         super().__init__(msg, line=line, column=column, filename=filename)
         self.expected_type = expected_type
         self.actual_type = actual_type
@@ -119,7 +119,9 @@ class UndefinedTypeError(TypeMismatchError):
             f"'{type_name}'",
             line=line,
             column=column,
-            filename=filename)
+            filename=filename,
+            msg=msg
+        )
 
 
 class ArgumentTypeMismatchError(TypeMismatchError):
@@ -127,7 +129,6 @@ class ArgumentTypeMismatchError(TypeMismatchError):
 
     def __init__(self, param_name: str, expected: str, actual: str,
                  line: int = None, column: int = None, filename: str = None):
-        msg = f"参数 '{param_name}' 类型不匹配: 需要 {expected}, 实际为 {actual}"
         super().__init__(expected, actual, line=line, column=column, filename=filename)
         self.param_name = param_name
 

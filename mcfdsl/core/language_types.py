@@ -1,22 +1,10 @@
 # coding=utf-8
 from __future__ import annotations
 
-import warnings
-from enum import Enum
+from mcfdsl.core.safe_enum import SafeEnum
 
 
-class CheckedEnum(Enum):  # 基类名称建议
-    def __eq__(self, other):
-        if isinstance(other, Enum) and self.__class__ is not other.__class__:
-            warnings.warn(
-                f"Comparing different enum types: {self.__class__.__name__} vs {other.__class__.__name__}",
-                UserWarning,
-                stacklevel=2
-            )
-        return super().__eq__(other)
-
-
-class TargetSelectorVariables(CheckedEnum):
+class TargetSelectorVariables(SafeEnum):
     NEAREST_PLAYER = "@p"
     RANDOM_PLAYER = "@r"
     ALL_PLAYER = "@a"
@@ -25,13 +13,13 @@ class TargetSelectorVariables(CheckedEnum):
     NEAREST_ENTITY = "@n"
 
 
-class FunctionType(CheckedEnum):
+class FunctionType(SafeEnum):
     NORMAL = "function"
     METHOD = "method"
     CONSTRUCTOR = "constructor"
 
 
-class SymbolType(CheckedEnum):
+class SymbolType(SafeEnum):
     """符号类型：标识符号的类别"""
     VARIABLE = "variable"
     CONSTANT = 'constant'
@@ -41,18 +29,18 @@ class SymbolType(CheckedEnum):
     NAMESPACE = 'namespace'
 
 
-class DataType(CheckedEnum):
+class DataType(SafeEnum):
     """基础数据类型：表示变量的存储类型"""
     INT = 'int'
     STRING = 'string'
-    FSTRING = 'fstring'  # 特殊类型，将在编译时改为STRING
+    FSTRING = 'fstring'  # 特殊类型，将在编译时改为STRING # TODO:改为运行时拼接
     BOOLEAN = 'boolean'
     VOID = 'void'
-    SELECTOR = 'selector'
+    NULL = 'null'  # 特殊类型，不可为声明变量时的类型
     ANY = 'any'  # 特殊类型，用于类型推断
 
 
-class StructureType(CheckedEnum):
+class StructureType(SafeEnum):
     """结构类型：表示作用域类型"""
     GLOBAL = "global"
     FUNCTION = "function"
@@ -63,7 +51,7 @@ class StructureType(CheckedEnum):
     CONDITIONAL = "conditional"
 
 
-class ValueType(CheckedEnum):
+class ValueType(SafeEnum):
     """值类型：表示值的类别"""
     LITERAL = "literal"  # 字面量
     VARIABLE = "variable"  # 变量引用

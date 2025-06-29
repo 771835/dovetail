@@ -9,6 +9,10 @@ class Scoreboard:
         return f"scoreboard objectives add {objective} {criteria} \"{display_name}\""
 
     @staticmethod
+    def del_objective(objective: str):
+        return f"scoreboard objectives remove {objective}"
+
+    @staticmethod
     def set_score(targets: str, objective: str, score: int):
         return f"scoreboard players set {targets} {objective} {score}"
 

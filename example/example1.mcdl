@@ -1,0 +1,10 @@
+func foo():int{
+    return 0;
+}
+func bar():int{
+    if (foo()==0) {
+        cmd f"say 1";
+    }else {
+        cmd f"say 2";
+    }
+}

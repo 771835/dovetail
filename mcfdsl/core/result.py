@@ -13,10 +13,10 @@ from mcfdsl.core.symbol import Symbol
 @dataclass
 class Result:
     """表达式求值结果容器"""
-    value_type: ValueType    # 值的类型（变量引用/字面量等）
-    data_type: DataType      # 数据类型（int/string等）
-    value: Any               # 实际值 例如Symbol
-    error: bool = False      # 是否错误结果
+    value_type: ValueType  # 值的类型（变量引用/字面量等）
+    data_type: DataType  # 数据类型（int/string等）
+    value: Any  # 实际值 例如Symbol
+    error: bool = False  # 是否错误结果
     error_type: str | None = None  # 错误类型标识
 
     def OK(self, function: callable):
@@ -34,7 +34,7 @@ class Result:
     def __str__(self):
         return self.__repr__()
 
-    def to_symbol(self, scope: IScope = None, name: str = None):
+    def to_symbol(self, scope: IScope = None, name: str = None, objective: str = None):
         if self.value_type == ValueType.VARIABLE:
             assert isinstance(self.value, ISymbol)
             return self.value
@@ -42,8 +42,10 @@ class Result:
             name = f"__{uuid.uuid4().hex}_result__"
 
         if self.value_type == ValueType.LITERAL:
+            if objective is None:
+                return None
             return Symbol(name, SymbolType.VARIABLE, scope, self.data_type,
-                          None, self.value, ValueType.LITERAL)
+                          objective, self.value, ValueType.LITERAL)
         else:
             return None
 

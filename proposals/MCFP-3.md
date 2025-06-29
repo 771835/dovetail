@@ -1,13 +1,13 @@
-# MCFP 3: McFuncDSL 到 Minecraft 命令的编译规范
+# MCFP 3: 代码到指令生成规范
 
 ## 状态
-- [x] Draft  
+- [ ] Draft  
 - [ ] Proposed  
 - [ ] Accepted  
 - [ ] Rejected  
 - [ ] Deferred  
 - [ ] Implemented (版本: )  
-- [ ] Active
+- [x] Active
 - [ ] Abandoned (版本: )
 
 ## 作者
@@ -17,7 +17,10 @@
 - 2025-06-06  
 
 ## 摘要
-本提案规范 McFuncDSL 到 Minecraft 命令的编译策略，定义基于 Visitor 模式和 Scoreboard/NBT Storage 的编译实现方案，建立变量存储、控制流实现和函数调用的标准化编译流程。
+本提案规范 McFuncDSL代码 到 Minecraft 命令的编译策略，
+定义基于 Visitor 模式和 Scoreboard/NBT Storage 的编译实现方案，
+建立变量存储、控制流实现和函数调用的标准化编译流程。
+设置IR层实现跨版本。
 
 ## 动机
 为实现 McFuncDSL 的高级语言特性在 Minecraft 原生命令系统上的运行，需解决以下核心问题：
@@ -30,32 +33,31 @@
 
 ### 1. 核心编译架构
 #### 1.1 Visitor 模式实现
-    // AST 遍历伪代码
-    public class MCGenerator extends McFuncDSLBaseVisitor<Void> {
-        @Override
-        public Void visitVarDeclaration(McFuncDSLParser.VarDeclarationContext ctx) {
-            // 1. 解析变量类型和初始值
-            // 2. 在符号表中注册 Symbol 对象
-            // 3. 生成初始化命令（scoreboard/data modify）
-            return super.visitVarDeclaration(ctx);
-        }
-    }
-
+```python
+# coding=utf-8
+from mcfdsl.McFuncDSLParser.McFuncDSLVisitor import McFuncDSLVisitor
+# AST 遍历伪代码
+class MCGenerator(McFuncDSLVisitor):
+    def visit(self, tree):
+        pass
+```
 #### 1.2 作用域树管理
-    global_scope (root)
-    ├── function_foo_scope
-    │   └── for_loop_scope
-    └── function_bar_scope
-        ├── if_stmt_scope
-        └── else_stmt_scope
+[示例代码](../example/example1.mcdl)
+
+    Current scope structure:
+    └── global (global)
+        ├── foo (function)
+        └── bar (function)
+            ├── if_0 (conditional)
+            └── else_0 (conditional)
 
 ### 2. 变量存储系统
 #### 2.1 存储位置决策矩阵
-| 操作类型   | Scoreboard 处理             | NBT 处理                         |
-|--------|---------------------------|--------------------------------|
-| 整数运算   | 直接使用 scoreboard operation | 需先执行 data get 转存到临时 Scoreboard |
-| 字符串拼接  | 不支持                       | 通过 storage 的 append 操作实现       |
-| 布尔条件判断 | 使用 execute if score       | 需转存为 0/1 的 Scoreboard 值        |
+| 类型     | 存储位置       | 整数运算                      | 拼接                       | 布尔条件判断                  |
+|--------|------------|---------------------------|--------------------------|-------------------------|
+| int    | Scoreboard | 直接使用 Scoreboard operation | 算数运算                     | 使用 execute if score     |
+| bool   | 同int       | 视作0/1的int                 | 同int                     | 同int                    |
+| string | Storage    | 不支持                       | 通过 storage 的 append 操作实现 | 需转存为 0/1 的 Scoreboard 值 |
 
 #### 2.2 变量生命周期示例
     var a:int = 10;  // 生成: scoreboard objectives add mcfdsl dummy
@@ -87,7 +89,7 @@
 | string     | `==` `!=`         | string     | `execute store success storage <target> <path> int 1.0 run data modify storage <target> <path> set from storage <target> <path>` 命令执行失败即相等 |
 | string/int | `==` `!=`         | string/int | 不相等                                                                                                                                        |
 | class      | `==` `!=`         | any        | 由class的__eq__方法决定,不存在则不相等                                                                                                                  |
-| class      | `<` `<=` `>` `>=` | any        | 由class的魔法方法决定,不存在则不相等                                                                                                                      | 
+| class      | `<` `<=` `>` `>=` | any        | 由class的指定魔法方法决定,不存在则不相等                                                                                                                    | 
 | builtins   | `==` `!=`         | any        | 由内置代码决定                                                                                                                                    |
 
 ### 4. 控制流实现
@@ -125,9 +127,12 @@
     scoreboard players operation local.x = #arg0 mcfdsl
     data modify storage mcfdsl:local.data.x set from storage mcfdsl:args.0
 
+### 6. IR层实现
+因篇幅原因，ir层设计具体见[mcfp-3-1](MCFP-3-1.md)
+
 ## 兼容性影响
-1. 要求 Minecraft 1.20+ 版本（依赖 execute store 语法）
-2. 与纯命令块实现的模块存在 NBT 存储冲突风险
+1. 要求 Minecraft 1.20+ 版本
+2. 与纯命令块实现的模块存在 NBT 存储冲突风险 (总不可能所有变量都加一个uuid4罢)
 
 ## 参考实现
 [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)
@@ -137,3 +142,4 @@
 - 2025-06-06 初版草案
 - 2025-06-07 增加表达式求值和类型转换细节,修正了示例代码的语法错误
 - 2025-06-14 修正错误指令
+- 2025-06-28  增加ir层的设计

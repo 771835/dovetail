@@ -1,5 +1,4 @@
 # coding=utf-8
-from types import NoneType
 from typing import Any
 
 from mcfdsl.core._interfaces import ISymbol
@@ -54,15 +53,15 @@ class BasicCommands:
                     to.objective,
                     from_.get_unique_name(),
                     from_.objective)
-            elif from_.data_type == DataType.SELECTOR:
-                return None  # selector选择器类型由编译期模拟，非实际存储，故无需复制
+            elif from_.data_type == DataType.NULL:
+                return None  # TODO:实现null类型的使用 / null类型压根不可能被允许声明(纯粹增加我的实现负担)
             elif isinstance(from_.data_type, Class):
                 return None  # TODO: 自定义复制，此处暂不实现
             return None
 
         @staticmethod
         def copy_literal(to: ISymbol, value: Any):
-            if type(value) not in (str, int ,bool):
+            if type(value) not in (str, int, bool):
                 return None
             elif type == str and to.data_type != DataType.STRING:
                 return None

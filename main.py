@@ -16,6 +16,7 @@ from mcfdsl.core.generator import MCGenerator
 class ThrowingErrorListener(ErrorListener):
     buffer = io.StringIO()
     error = False
+
     def syntaxError(self, recognizer, offending_symbol, line, column, msg, e):
         self.error = True
         self.buffer.write(f"Syntax error at line {line}:{column} - {msg} \n")
@@ -100,7 +101,7 @@ def compile_mcdl(source_path):
         # 输出到target目录
         generator._generate_commands()
     except CompilationError as e:
-        time.sleep(0.1) # 保证前面的输出完成
+        time.sleep(0.1)  # 保证前面的输出完成
         print_error_info()
         time.sleep(0.1)
         sys.stderr.write(e.__repr__())
@@ -115,7 +116,7 @@ def compile_mcdl(source_path):
 
 
 if __name__ == "__main__":
-    sys.argv.append( r".\example\test1.mcdl")
+    sys.argv.append(r"example/example1.mcdl")
     if len(sys.argv) != 2:
         print("Usage: python main.py <input>")
         sys.exit(1)

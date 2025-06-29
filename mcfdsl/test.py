@@ -15,13 +15,13 @@ def print_all_attributes(obj, color=True, print_output=True):
         当 return_output=True 时返回完整输出字符串
     """
     buffer = io.StringIO()
-    COL = {}  # 颜色配置字典
+    COLOR = {}  # 颜色配置字典 # NOQA
 
     def setup_colors(use_color):
         """配置颜色方案"""
-        nonlocal COL
+        nonlocal COLOR
         if use_color:
-            COL = {
+            COLOR = { # NOQA
                 'reset': '\033[0m',
                 'title': '\033[34m',  # 蓝色
                 'section': '\033[33m',  # 黄色
@@ -31,7 +31,7 @@ def print_all_attributes(obj, color=True, print_output=True):
                 'prop': '\033[36m'  # 青色
             }
         else:
-            COL = {k: '' for k in ['reset', 'title', 'section', 'name', 'value', 'error', 'prop']}
+            COLOR = {k: '' for k in ['reset', 'title', 'section', 'name', 'value', 'error', 'prop']} # NOQA
 
     def write(line):
         """统一写入方法"""
@@ -40,7 +40,7 @@ def print_all_attributes(obj, color=True, print_output=True):
     # 主逻辑
     setup_colors(color)
     header = f" 对象属性分析 [{type(obj).__name__}] "
-    write(f"{COL['title']}{'=' * 30}{header}{'=' * 30}{COL['reset']}")
+    write(f"{COLOR['title']}{'=' * 30}{header}{'=' * 30}{COLOR['reset']}")
 
     # 收集属性逻辑
     def collect_attributes():
@@ -70,25 +70,25 @@ def print_all_attributes(obj, color=True, print_output=True):
 
     # 统一打印逻辑
     def print_attr_set(title, attrs, is_property=False):
-        write(f"{COL['section']}■ {title}{COL['reset']}")
+        write(f"{COLOR['section']}■ {title}{COLOR['reset']}")
         if not attrs:
-            write(f"  {COL['value']}(无){COL['reset']}")
+            write(f"  {COLOR['value']}(无){COLOR['reset']}")
             return
 
         for name, value in attrs.items():
             if isinstance(value, str) and value.startswith("<错误:"):
-                value_str = f"{COL['error']}{value}{COL['reset']}"
+                value_str = f"{COLOR['error']}{value}{COLOR['reset']}"
             else:
-                value_str = f"{COL['value']}{repr(value)}{COL['reset']}"
+                value_str = f"{COLOR['value']}{repr(value)}{COLOR['reset']}"
 
-            marker = f"{COL['prop']}↳{COL['reset']}" if is_property else "•"
-            write(f"  {marker} {COL['name']}{name}{COL['reset']}: {value_str}")
+            marker = f"{COLOR['prop']}↳{COLOR['reset']}" if is_property else "•"
+            write(f"  {marker} {COLOR['name']}{name}{COLOR['reset']}: {value_str}")
 
     # 分块输出
     print_attr_set("实例属性", instance_attrs)
     print_attr_set("Slots 属性", slots_attrs)
     print_attr_set("动态属性", properties, is_property=True)
-    write(f"{COL['title']}{'=' * 80}{COL['reset']}")
+    write(f"{COLOR['title']}{'=' * 80}{COLOR['reset']}")
 
     # 获取输出内容
     output = buffer.getvalue()

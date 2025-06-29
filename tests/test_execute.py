@@ -1,7 +1,7 @@
+# coding=utf-8
 import unittest
 
-from mcfdsl.core.command_builder._execute import Execute
-
+from mcfdsl.core.command_builder import Execute
 
 class TestExecuteBuilder(unittest.TestCase):
     """ExecuteBuilder 功能测试套件"""
