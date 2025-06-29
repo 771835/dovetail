@@ -2,7 +2,9 @@
 from dataclasses import dataclass
 from typing import List, Any
 
-from mcfdsl.core._interfaces import IScope, ISymbol
+from mcfdsl.core._interfaces import ISymbol
+from mcfdsl.core.language_class import Class
+from mcfdsl.core.language_types import StructureType, DataType
 from mcfdsl.core.safe_enum import SafeEnum
 
 
@@ -68,7 +70,7 @@ class IRInstruction:
 # 具体指令实现
 @dataclass
 class IRJump(IRInstruction):
-    def __init__(self, scope: IScope, line: int = -1, column: int = -1, filename: str = None):
+    def __init__(self, scope: str, line: int = -1, column: int = -1, filename: str = None):
         operands = [
             scope
         ]
@@ -77,7 +79,7 @@ class IRJump(IRInstruction):
 
 @dataclass
 class IRCondJump(IRInstruction):
-    def __init__(self, cond_var: ISymbol, true_scope: IScope, false_scope: IScope = None, line: int = -1, column: int = -1,
+    def __init__(self, cond_var: str, true_scope: str, false_scope: str = None, line: int = -1, column: int = -1,
                  filename: str = None):
         operands = [
             cond_var,
@@ -89,17 +91,252 @@ class IRCondJump(IRInstruction):
 
 @dataclass
 class IRFunction(IRInstruction):
-    def __init__(self,function: ISymbol, params: List[ISymbol] = None, line: int = -1, column: int = -1, filename: str = None):
+    def __init__(self, func_name: str, params: List[ISymbol] = None, line: int = -1, column: int = -1,
+                 filename: str = None):
+        if params is None:
+            params = []
         operands = [
-
+            func_name,
+            params
         ]
-        super().__init__(IROpCode, operands, line, column, filename)
+        super().__init__(IROpCode.FUNCTION, operands, line, column, filename)
 
 
 @dataclass
-class IR(IRInstruction):
-    def __init__(self, line: int = -1, column: int = -1, filename: str = None):
+class IRReturn(IRInstruction):
+    def __init__(self, value: ISymbol = None, line: int = -1, column: int = -1, filename: str = None):
         operands = [
-
+            value
         ]
-        super().__init__(IROpCode, operands, line, column, filename)
+        super().__init__(IROpCode.RETURN, operands, line, column, filename)
+
+
+@dataclass
+class IRCall(IRInstruction):
+    def __init__(self, func: str, args: List[ISymbol] = None, line: int = -1, column: int = -1, filename: str = None):
+        if args is None:
+            args = []
+        operands = [
+            func,
+            args
+        ]
+        super().__init__(IROpCode.CALL, operands, line, column, filename)
+
+
+@dataclass
+class IRCallInline(IRInstruction):
+    def __init__(self, func: str, args: List[ISymbol] = None, line: int = -1, column: int = -1, filename: str = None):
+        if args is None:
+            args = []
+        operands = [
+            func,
+            args
+        ]
+        super().__init__(IROpCode.CALL_INLINE, operands, line, column, filename)
+
+
+@dataclass
+class IRScopeBegin(IRInstruction):
+    def __init__(self, name: str, stype: StructureType, line: int = -1, column: int = -1, filename: str = None):
+        operands = [
+            name,
+            stype
+        ]
+        super().__init__(IROpCode.SCOPE_BEGIN, operands, line, column, filename)
+
+
+@dataclass
+class IRScopeEnd(IRInstruction):
+    def __init__(self, name: str, line: int = -1, column: int = -1, filename: str = None):
+        operands = [
+            name
+        ]
+        super().__init__(IROpCode.SCOPE_END, operands, line, column, filename)
+
+
+@dataclass
+class IRLoopBegin(IRInstruction):
+    def __init__(self, loop_id: str, init: List[IRInstruction], cond: List[IRInstruction], line: int = -1,
+                 column: int = -1, filename: str = None):
+        operands = [
+            loop_id,
+            init,
+            cond
+        ]
+        super().__init__(IROpCode.LOOP_BEGIN, operands, line, column, filename)
+
+
+@dataclass
+class IRLoopEnd(IRInstruction):
+    def __init__(self, loop_id: str, line: int = -1, column: int = -1, filename: str = None):
+        operands = [
+            loop_id
+        ]
+        super().__init__(IROpCode.LOOP_END, operands, line, column, filename)
+
+
+@dataclass
+class IRBreak(IRInstruction):
+    def __init__(self, loop_id: str, line: int = -1, column: int = -1, filename: str = None):
+        operands = [
+            loop_id
+        ]
+        super().__init__(IROpCode.BREAK, operands, line, column, filename)
+
+
+@dataclass
+class IRContinue(IRInstruction):
+    def __init__(self, loop_id: str, line: int = -1, column: int = -1, filename: str = None):
+        operands = [
+            loop_id
+        ]
+        super().__init__(IROpCode.CONTINUE, operands, line, column, filename)
+
+
+@dataclass
+class IRDeclare(IRInstruction):
+    def __init__(self, name: str, dtype: DataType, value: ISymbol = None, line: int = -1, column: int = -1,
+                 filename: str = None):
+        operands = [
+            name,
+            dtype,
+            value
+        ]
+        super().__init__(IROpCode.DECLARE, operands, line, column, filename)
+
+
+@dataclass
+class IRDeclareTemp(IRInstruction):
+    def __init__(self, name: str, dtype: DataType, value: ISymbol = None, line: int = -1, column: int = -1,
+                 filename: str = None):
+        operands = [
+            name,
+            dtype,
+            value
+        ]
+        super().__init__(IROpCode.DECLARE_TEMP, operands, line, column, filename)
+
+
+@dataclass
+class IRVarRelease(IRInstruction):
+    def __init__(self, name: str, line: int = -1, column: int = -1, filename: str = None):
+        operands = [
+            name
+        ]
+        super().__init__(IROpCode.VAR_RELEASE, operands, line, column, filename)
+
+
+@dataclass
+class IRAssign(IRInstruction):
+    def __init__(self, target: ISymbol, source: ISymbol, line: int = -1, column: int = -1, filename: str = None):
+        operands = [
+            target,
+            source
+        ]
+        super().__init__(IROpCode.ASSIGN, operands, line, column, filename)
+
+
+@dataclass
+class IRUnaryOp(IRInstruction):
+    def __init__(self, result: ISymbol, op, operand: ISymbol, line: int = -1, column: int = -1, filename: str = None):
+        operands = [
+            result,
+            op,
+            operand
+        ]
+        super().__init__(IROpCode.UNARY_OP, operands, line, column, filename)
+
+
+@dataclass
+class IROp(IRInstruction):
+    def __init__(self, result: ISymbol, op, left: ISymbol, right: ISymbol, line: int = -1, column: int = -1,
+                 filename: str = None):
+        operands = [
+            result,
+            op,
+            left,
+            right
+        ]
+        super().__init__(IROpCode.OP, operands, line, column, filename)
+
+
+@dataclass
+class IRCompare(IRInstruction):
+    def __init__(self, result: ISymbol, op, left: ISymbol, right: ISymbol, line: int = -1, column: int = -1,
+                 filename: str = None):
+        operands = [
+            result,
+            op,
+            left,
+            right
+        ]
+        super().__init__(IROpCode.COMPARE, operands, line, column, filename)
+
+
+@dataclass
+class IRClass(IRInstruction):
+    def __init__(self, class_: Class, line: int = -1, column: int = -1, filename: str = None):
+        operands = [
+            class_
+        ]
+        super().__init__(IROpCode.CLASS, operands, line, column, filename)
+
+
+@dataclass
+class IRNewObj(IRInstruction):
+    def __init__(self, result: ISymbol, class_: str, args: List[ISymbol], line: int = -1, column: int = -1,
+                 filename: str = None):
+        operands = [
+            result,
+            class_,
+            args
+        ]
+        super().__init__(IROpCode.NEW_OBJ, operands, line, column, filename)
+
+
+@dataclass
+class IRGetField(IRInstruction):
+    def __init__(self, result: ISymbol, obj: ISymbol, field: str, line: int = -1, column: int = -1,
+                 filename: str = None):
+        operands = [
+            result,
+            obj,
+            field
+        ]
+        super().__init__(IROpCode.GET_FIELD, operands, line, column, filename)
+
+
+@dataclass
+class IRSetField(IRInstruction):
+    def __init__(self, obj: ISymbol, field: str, value: ISymbol, line: int = -1, column: int = -1,
+                 filename: str = None):
+        operands = [
+            obj,
+            field,
+            value
+        ]
+        super().__init__(IROpCode.SET_FIELD, operands, line, column, filename)
+
+
+@dataclass
+class IRCallMethod(IRInstruction):
+    def __init__(self, result: ISymbol, obj: ISymbol, method: str, args: List[ISymbol] = None, line: int = -1,
+                 column: int = -1, filename: str = None):
+        operands = [
+            result,
+            obj,
+            method,
+            args
+        ]
+        super().__init__(IROpCode.CALL_METHOD, operands, line, column, filename)
+
+
+@dataclass
+class IRRawCmd(IRInstruction):
+    def __init__(self, command_string: List[str] | str, line: int = -1, column: int = -1, filename: str = None):
+        if isinstance(command_string, str):
+            command_string = [command_string]
+        operands = [
+            command_string
+        ]
+        super().__init__(IROpCode.RAW_CMD, operands, line, column, filename)
