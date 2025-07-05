@@ -21,5 +21,6 @@ class Selector(Lib):
 
     def __str__(self):
         def format_argument(key): return f"{key} = {self.arguments[key]}"
+
         arguments_str = ', '.join(map(format_argument, self.arguments))
         return f"{self.var.value}[{arguments_str}]"

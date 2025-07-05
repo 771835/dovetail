@@ -13,51 +13,47 @@
 
 ### 控制流指令
 
-```
-JUMP <scope>                 # 无条件跳转
-COND_JUMP <cond_var> <true_scope> [false_scope] # 条件跳转双目标
-FUNCTION <func_name> [params...]  # 函数定义
-RETURN [value]               # 返回值
-CALL <func> [args...]        # 函数调用
-CALL_INLINE <func> [args...] # 函数调用(内联提示)
-SCOPE_BEGIN <name> <type>    # 作用域开始标记
-SCOPE_END <name>             # 作用域结束标记
-LOOP_BEGIN <loop_id> [init] [cond] # 循环开始标记
-LOOP_END <loop_id>           # 结束标记
-BREAK <loop_id>              # 跳出指定循环
-CONTINUE <loop_id>           # 继续下次迭代
-```
+| 指令          | 参数                                    | 备注                  |
+|-------------|---------------------------------------|---------------------|
+| JUMP        | <scope>                               | 无条件跳转到指定作用域         |
+| COND_JUMP   | <cond_var> <true_scope> [false_scope] | 条件跳转到作用域（提供双目标）     |
+| FUNCTION    | <func>                                | 函数定义                |
+| RETURN      | [value]                               | 从函数返回（可选返回值）        |
+| CALL        | <result> <func> [args...]             | 函数调用                |
+| CALL_INLINE | <result> <func> [args...]             | 函数内联调用提示（建议编译器优化）   |
+| SCOPE_BEGIN | <name> <type>                         | 作用域开始标记（可标记为函数、循环等） |
+| SCOPE_END   | -                                     | 作用域结束标记             |
+| BREAK       | -                                     | 跳出指定循环              |
+| CONTINUE    | -                                     | 终止当前循环迭代，继续下次迭代     |
 
 ### 变量操作
 
-```
-DECLARE <name> <dtype> [value] # 声明变量(含初始化)
-DECLARE_TEMP <name> <dtype> [value] # 声明临时变量
-VAR_RELEASE <name>  # 显式释放变量资源
-ASSIGN <target> <source>      # 赋值操作
-UNARY_OP <result> <op> <operand> # 一元运算
-OP <result> <op> <left> <right> # 二元运算
-COMPARE <result> <op> <left> <right> # 比较运算
-```
+| 指令           | 参数                                   | 备注                    |
+|--------------|--------------------------------------|-----------------------|
+| DECLARE      | `<variable>`                         | 声明变量                  |
+| DECLARE_TEMP | `<variable>`                         | 声明临时变量（自动生命周期管理）      |
+| VAR_RELEASE  | `<name>`                             | 显式释放变量资源              |
+| ASSIGN       | `<target>` `<source>`                | 赋值操作                  |
+| UNARY_OP     | `<result>` `<op>` `<operand>`        | 一元运算（如 `-a`, `!b`）    |
+| OP           | `<result>` `<op>` `<left>` `<right>` | 二元运算（如 `a+b`, `c*d`）  |
+| COMPARE      | `<result>` `<op>` `<left>` `<right>` | 比较运算（如 `a>b`, `c==d`） |
 
 ### 面向对象指令
 
-``` 
-CLASS <class> # 声明类
-NEW_OBJ <result> <class> [args...] # 对象实例化
-GET_FIELD <result> <obj> <field>   # 获取字段
-SET_FIELD <obj> <field> <value>    # 设置字段
-CALL_METHOD <result> <obj> <method> [args...] # 方法调用
-```
+| 指令          | 参数                                        | 备注      |
+|-------------|-------------------------------------------|---------|
+| CLASS       | `<class>`                                 | 声明类结构   |
+| NEW_OBJ     | `<result>` `<class>` `[args...]`          | 创建对象实例  |
+| GET_FIELD   | `<result>` `<obj>` `<field>`              | 获取对象字段值 |
+| SET_FIELD   | `<obj>` `<field>` `<value>`               | 设置对象字段值 |
+| CALL_METHOD | `<result>` `<obj>` `<method>` `[args...]` | 调用对象方法  |
 
 ### 命令生成指令
 
-```
-RAW_CMD <command_string>      # 原始命令输出
-FSTRING <result> <fstring>    # 插值字符串处理
-```
-
-<!-- TODO:考虑将FSTRING拆分成多指令 -->
+| 指令      | 参数                     | 备注                   |
+|---------|------------------------|----------------------|
+| RAW_CMD | `<command_string>`     | 输出原生Minecraft命令      |
+| FSTRING | `<result>` `<fstring>` | 插值字符串处理（编译时自动拆分为多指令） |
 
 ## 关键实现细节
 
@@ -90,19 +86,25 @@ COND_JUMP cond_var IF_TRUE IF_FALSE
 
 ```
 
-#### for循环示例
+#### 传统for循环示例
 
 ```
 for (int i=0;i<3;i++) {
     # 循环体
 }
 # 转换成ir层:
-
-LOOP_BEGIN FOR_LOOP i=0 i<3            # 初始化 i=0
-  # 循环体
-  OP i + i 1                     # i++
-LOOP_END FOR_LOOP
-
+SCOPE_BEGIN LOOP loop
+   DECLARE i int 0
+   SCOPE_BEGIN LOOP_CHECK loop_check
+      SCOPE_BEGIN LOOP_BODY loop_body
+         # 循环体
+         OP i + i 1
+      SCOPE_END FOR_LOOP_BODY
+      COMPARE $temp < i 3
+      COND_JUMP $temp FOR_LOOP_BODY
+      COND_JUMP $temp FOR_LOOP
+   SCOPE_END LOOP_CHECK
+SCOPE_END LOOP
 ```
 
 ### 3. 方法调用优化
@@ -116,16 +118,15 @@ GET_FIELD temp_var player "scores"
 GET_FIELD result_var temp_var "value"
 ```
 
-### 4. ir优化:
+### 4. IR优化策略
 
-1. 内存优化:
-    1. 作用域结束自动释放局部变量
-2. 性能优化:
-    1. 常量折叠
-    2. 方法调用内联
-    3. 分支预测
-    4. 分析RAW_CMD指令
-    5. 预存储常用的常量
+1. **内存优化**：
+    - 作用域退出时自动释放局部变量
+    - 临时变量重用池
+2. **性能优化**：
+    - 常量折叠：`OP $t0 + 2 3` → `ASSIGN $t0 5`
+    - 方法内联：`CALL_INLINE foo()` → 插入foo函数体
+    - 命令预计算：`RAW_CMD "say ${1+2}"` → `RAW_CMD "say 3"`
 
 ## IR转换示例
 
@@ -169,3 +170,43 @@ RAW_CMD cmd_str
 1. 保持指令简洁但表达能力完整
 2. 便于进行各种优化(常量折叠、死代码消除等)
 3. 支持高级语言特性到低级命令的转换
+
+## 附录
+
+### 参数类型定义表
+
+```
+Literal:
+    dtype: DataType
+    value: Any
+ 
+Variable:
+    name: str
+    dtype:  DataType|'Class'
+    value: Any (可选)
+
+Constant:
+    name: str
+    dtype:  DataType|'Class'
+    value: Any (可选)
+
+Function:
+    name: str
+    params: list[Variable]
+    return_type:  DataType|'Class'
+
+
+Class:
+    name: str
+    methods: list[Function]）
+    interfaces: Optional[Class]
+    parent: Optional[Class]
+    constants: set[Reference[Constant]]
+    variables: list[Reference[Variable]]
+
+T = 'Variable','Constant','Literal','Function', 'Class'
+Reference:
+    value_type: ValueType
+    value: T
+
+```

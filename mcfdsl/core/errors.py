@@ -54,7 +54,7 @@ class TypeMismatchError(CompilationError):
     """类型错误子类"""
 
     def __init__(self, expected_type: str | DataType, actual_type: str | DataType,
-                 line: int = None, column: int = None, filename: str = None, msg = None):
+                 line: int = None, column: int = None, filename: str = None, msg=None):
         if msg is None:
             msg = f"类型不匹配: 期望 {expected_type}，实际为 {actual_type}。"
         super().__init__(msg, line=line, column=column, filename=filename)

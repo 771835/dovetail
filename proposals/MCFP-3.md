@@ -1,29 +1,35 @@
 # MCFP 3: 代码到指令生成规范
 
 ## 状态
-- [ ] Draft  
-- [ ] Proposed  
-- [ ] Accepted  
-- [ ] Rejected  
-- [ ] Deferred  
-- [ ] Implemented (版本: )  
+
+- [ ] Draft
+- [ ] Proposed
+- [ ] Accepted
+- [ ] Rejected
+- [ ] Deferred
+- [ ] Implemented (版本: )
 - [x] Active
 - [ ] Abandoned (版本: )
 
 ## 作者
-- 771835 <2790834181@qq.com>  
+
+- 771835 <2790834181@qq.com>
 
 ## 创建日期
-- 2025-06-06  
+
+- 2025-06-06
 
 ## 摘要
+
 本提案规范 McFuncDSL代码 到 Minecraft 命令的编译策略，
 定义基于 Visitor 模式和 Scoreboard/NBT Storage 的编译实现方案，
 建立变量存储、控制流实现和函数调用的标准化编译流程。
 设置IR层实现跨版本。
 
 ## 动机
+
 为实现 McFuncDSL 的高级语言特性在 Minecraft 原生命令系统上的运行，需解决以下核心问题：
+
 1. 变量存储系统需要兼容 Scoreboard 和 NBT 的物理限制
 2. 复杂控制流语句在函数文件体系中的实现
 3. 类型系统到 Minecraft 原生数据结构的映射
@@ -32,16 +38,22 @@
 ## 技术规范
 
 ### 1. 核心编译架构
+
 #### 1.1 Visitor 模式实现
+
 ```python
 # coding=utf-8
-from mcfdsl.McFuncDSLParser.McFuncDSLVisitor import McFuncDSLVisitor
+from mcfdsl.core.DSLParser.McFuncDSLVisitor import McFuncDSLVisitor
+
+
 # AST 遍历伪代码
 class MCGenerator(McFuncDSLVisitor):
     def visit(self, tree):
         pass
 ```
+
 #### 1.2 作用域树管理
+
 [示例代码](../example/example1.mcdl)
 
     Current scope structure:
@@ -52,7 +64,9 @@ class MCGenerator(McFuncDSLVisitor):
             └── else_0 (conditional)
 
 ### 2. 变量存储系统
+
 #### 2.1 存储位置决策矩阵
+
 | 类型     | 存储位置       | 整数运算                      | 拼接                       | 布尔条件判断                  |
 |--------|------------|---------------------------|--------------------------|-------------------------|
 | int    | Scoreboard | 直接使用 Scoreboard operation | 算数运算                     | 使用 execute if score     |
@@ -60,19 +74,23 @@ class MCGenerator(McFuncDSLVisitor):
 | string | Storage    | 不支持                       | 通过 storage 的 append 操作实现 | 需转存为 0/1 的 Scoreboard 值 |
 
 #### 2.2 变量生命周期示例
+
     var a:int = 10;  // 生成: scoreboard objectives add mcfdsl dummy
                    // scoreboard players set global.a mcfdsl 10
     
     var b:string = "text"; // 生成: data modify storage mcfdsl:var global.data.b set value "text"
 
 ### 3. 表达式求值机制
+
 #### 3.1 类型提升规则
+
     Operand1 | Operand2 | ResultType
     int      | int      | int
     int      | bool     | int
     string   | any      | string（自动调用 toString）
 
 #### 3.2 临时变量生成策略
+
     // 处理 a = b + c 的伪代码
     1. 获取 b 的存储位置（假设为 NBT）
     2. 生成: execute store result score $temp1 run data get storage mcfdsl b
@@ -93,7 +111,9 @@ class MCGenerator(McFuncDSLVisitor):
 | builtins   | `==` `!=`         | any        | 由内置代码决定                                                                                                                                    |
 
 ### 4. 控制流实现
+
 #### 4.1 While 循环编译模式
+
     // 原始代码
     while (condition) {
         body
@@ -117,7 +137,9 @@ class MCGenerator(McFuncDSLVisitor):
     execute unless score $condition matches 1 run function else_block
 
 ### 5. 函数调用规范
+
 #### 5.1 参数传递机制
+
     // 调用 func(10, "test") 生成:
     scoreboard players set #arg0 mcfdsl 10
     data modify storage mcfdsl:args.0 set value "test"
@@ -128,18 +150,21 @@ class MCGenerator(McFuncDSLVisitor):
     data modify storage mcfdsl:local.data.x set from storage mcfdsl:args.0
 
 ### 6. IR层实现
+
 因篇幅原因，ir层设计具体见[mcfp-3-1](MCFP-3-1.md)
 
 ## 兼容性影响
+
 1. 要求 Minecraft 1.20+ 版本
 2. 与纯命令块实现的模块存在 NBT 存储冲突风险 (总不可能所有变量都加一个uuid4罢)
 
 ## 参考实现
+
 [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)
 
-
 ## 变更日志
+
 - 2025-06-06 初版草案
 - 2025-06-07 增加表达式求值和类型转换细节,修正了示例代码的语法错误
 - 2025-06-14 修正错误指令
-- 2025-06-28  增加ir层的设计
+- 2025-06-28 增加ir层的设计

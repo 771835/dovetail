@@ -1,14 +1,16 @@
 # MCFP 0: McFuncDSL Enhancement Proposals Index
 
 ## 元提案
+
 **状态**: Active  
 **作者**: 771835 <2790834181@qq.com>  
 **创建日期**: 2025-06-06  
-**最新更新**: 2025-06-06  
+**最新更新**: 2025-06-06
 
 ---
 
 ## 简介
+
 McFuncDSL Enhancement Proposals (MCFP) 是推动 McFuncDSL 语言发展的核心文档体系，用于：
 
 1. 标准化语言特性设计
@@ -37,6 +39,7 @@ McFuncDSL Enhancement Proposals (MCFP) 是推动 McFuncDSL 语言发展的核心
 ## MCFP 分类与编号规则
 
 ### 编号范围
+
 | 范围              | 分类        | 示例                  |
 |-----------------|-----------|---------------------|
 | **0**           | 元提案       | MCFP 0              |
@@ -49,9 +52,11 @@ McFuncDSL Enhancement Proposals (MCFP) 是推动 McFuncDSL 语言发展的核心
 | **10000-19999** | 陈旧或已合并的提案 | -                   |
 
 ---
+
 ## 提案生命周期
 
 ### 状态定义
+
 - **Draft** (草案): 提案初步构思，未正式提交
 - **Proposed** (已提交): 进入社区讨论阶段
 - **Accepted** (已采纳): 技术方案通过，等待实现
@@ -60,24 +65,25 @@ McFuncDSL Enhancement Proposals (MCFP) 是推动 McFuncDSL 语言发展的核心
 - **Implemented** (已实现): 在指定版本中完成
 - **Active** (活跃): 长期活跃的提案
 - **Abandoned** (放弃支持): 提案被明确终止维护
+
 ---
 
 ## 提交与维护流程
 
-1. **提案发起**  
-   - 在 [GitHub 仓库](https://github.com/your-repo) 创建 `MCFP-{编号}.md` 文件
-   - 使用 MCFP 模板
+1. **提案发起**
+    - 在 [GitHub 仓库](https://github.com/your-repo) 创建 `MCFP-{编号}.md` 文件
+    - 使用 MCFP 模板
 
-2. **社区讨论**  
-   - 在 Issue 或论坛发起讨论，标题格式: `[MCFP-XXX] 提案标题`
-   - 收集反馈并修改提案
+2. **社区讨论**
+    - 在 Issue 或论坛发起讨论，标题格式: `[MCFP-XXX] 提案标题`
+    - 收集反馈并修改提案
 
-3. **状态变更**  
-   - 核心团队根据讨论结果更新提案状态
-   - 重大状态变更需在变更日志中记录
+3. **状态变更**
+    - 核心团队根据讨论结果更新提案状态
+    - 重大状态变更需在变更日志中记录
 
-4. **版本绑定**  
-   - 实现后的提案需在语言版本更新日志中标注
+4. **版本绑定**
+    - 实现后的提案需在语言版本更新日志中标注
 
 ---
 
@@ -123,4 +129,5 @@ McFuncDSL Enhancement Proposals (MCFP) 是推动 McFuncDSL 语言发展的核心
 ---
 
 ## 参与贡献
+
 - 讨论渠道: GitHub Issues

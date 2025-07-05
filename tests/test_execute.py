@@ -3,6 +3,7 @@ import unittest
 
 from mcfdsl.core.command_builder import Execute
 
+
 class TestExecuteBuilder(unittest.TestCase):
     """ExecuteBuilder 功能测试套件"""
 
@@ -63,6 +64,7 @@ class TestExecuteBuilder(unittest.TestCase):
             str(cmd),
             "execute store result block ~ ~-1 ~ Items[0].Count byte 1 run data get block ~ ~-2 ~ Items[0].Count"
         )
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)  # 显示详细测试结果

@@ -1,0 +1,5 @@
+func main():void{
+    for (int i = 0;i<=3;i= i + 1) {
+        cmd(f"say 1");
+    }
+}

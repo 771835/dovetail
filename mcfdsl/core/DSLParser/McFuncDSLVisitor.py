@@ -16,8 +16,8 @@ class McFuncDSLVisitor(ParseTreeVisitor):
     def visitProgram(self, ctx: McFuncDSLParser.ProgramContext):
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by McFuncDSLParser#importStmt.
-    def visitImportStmt(self, ctx: McFuncDSLParser.ImportStmtContext):
+    # Visit a parse tree produced by McFuncDSLParser#includeStmt.
+    def visitIncludeStmt(self, ctx: McFuncDSLParser.IncludeStmtContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by McFuncDSLParser#annotation.
@@ -184,12 +184,8 @@ class McFuncDSLVisitor(ParseTreeVisitor):
     def visitTypeCastExpr(self, ctx: McFuncDSLParser.TypeCastExprContext):
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by McFuncDSLParser#cmdExpr.
-    def visitCmdExpr(self, ctx: McFuncDSLParser.CmdExprContext):
-        return self.visitChildren(ctx)
-
-    # Visit a parse tree produced by McFuncDSLParser#cmdBlockExpr.
-    def visitCmdBlockExpr(self, ctx: McFuncDSLParser.CmdBlockExprContext):
+    # Visit a parse tree produced by McFuncDSLParser#commandExpr.
+    def visitCommandExpr(self, ctx: McFuncDSLParser.CommandExprContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by McFuncDSLParser#argumentList.

@@ -2,10 +2,10 @@
 from typing import Any
 
 from mcfdsl.core._interfaces import ISymbol
-from mcfdsl.core.language_class import Class
 from mcfdsl.core.command_builder._data import Data
 from mcfdsl.core.command_builder._scoreboard import Scoreboard
 from mcfdsl.core.language_types import DataType
+from mcfdsl.core.symbols.class_ import Class
 
 
 class BasicCommands:

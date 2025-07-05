@@ -2,15 +2,15 @@ grammar McFuncDSL;
 
 /* 程序结构 */
 program
-    : (importStmt
-      | functionDecl
+    : (includeStmt)*
+      (functionDecl
       | classDecl
       | interfaceDecl
       | statement)* EOF
     ;
 
-importStmt
-    : 'import' STRING SEMI             // 导入库文件，如：import "minecraft_utils.mcdl";
+includeStmt
+    : INCULDE STRING SEMI             // 导入库文件，如：include "minecraft_utils.mcdl";
     ;
 
 /* 2. 注解系统 */
@@ -19,11 +19,11 @@ annotation
     : '@' ID     // 仅允许使用预定义注解
     ;
 
-/* 3. 类系统（继承+接口） */
+/* 3. 类系统 */
 classDecl
-    : annotation* 'class' ID
-      ('extends' type)?                      // 单继承
-      ('implements' typeList)?               // 多接口实现
+    : annotation* CLASS ID
+      (EXTENDS type)?                      // 单继承
+      (IMPLEMENTS type)?               // 单接口实现
       LBRACE // 构造函数为__init__
         (varDecl
         | constDecl
@@ -34,8 +34,8 @@ classDecl
     ;
 
 interfaceDecl
-    : annotation* 'interface' ID
-      ('extends' type)?                  // 接口多继承
+    : annotation* INTERFACE ID
+      (EXTENDS type)?                  // 接口多继承
       LBRACE 
         (interfaceMethodDecl
         )* 
@@ -98,8 +98,7 @@ block
 
 /* 6. 流程控制 */
 statement
-    : cmdExpr SEMI                          // 命令表达式
-    | cmdBlockExpr                          // 命令块表达式
+    : commandExpr SEMI                          // 命令表达式
     | varDecl                               // 变量声明
     | constDecl                             // 常量声明
     | forStmt                               // for循环
@@ -128,7 +127,7 @@ forStmt
 
 
 forControl
-    : forLoopVarDecl? SEMI expr? SEMI (assignment|expr)?
+    : forLoopVarDecl? SEMI expr? SEMI (assignment)?
     ;
 
 
@@ -173,7 +172,7 @@ ifStmt
     ;
 
 
-/* 完整表达式系统（保留所有结构） */
+/* 表达式系统 */
 expr
     :
     //| lambdaExpr                            # LambdaExpression   // Lambda
@@ -189,7 +188,7 @@ expr
     | primary                               # PrimaryExpr        // 基础表达式
     | '-' expr                              # NegExpr            // 负号
     | '!' expr                         #LogicalNotExpr             // not运算符
-    | expr ('*'|'/') expr                   # MulDivExpr         // 算术运算
+    | expr (MUL|DIV) expr                   # MulDivExpr         // 算术运算
     | expr (ADD|SUB) expr                   # AddSubExpr
     | expr ('>'|'<'|'=='|'!='|'<='|'>=') expr # CompareExpr        // 比较运算
     | expr AND expr                   #LogicalAndExpr             // and运算符
@@ -206,13 +205,10 @@ primary
     ;
 
 /* 命令与插值 */
-cmdExpr
-    : CMD FSTRING
+commandExpr
+    : CMD argumentList
     ;
 
-cmdBlockExpr
-    : CMD LBRACE (FSTRING SEMI)* RBRACE
-    ;
 
 /* 辅助规则（全部保留） */
 
@@ -223,7 +219,6 @@ argumentList
 
 exprList
     : expr (',' expr)*                      // 表达式列表
-    | '()'
     ;
 
 literal
@@ -251,6 +246,7 @@ SEMI : ';';
 COMMA : ',';
 
 // 关键字（定义在ID之前）
+INCULDE: 'include';
 FUNC: 'func';
 METHOD: 'method';
 CLASS: 'class';

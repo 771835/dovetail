@@ -1,15 +1,17 @@
 # coding=utf-8
+# 弃用
 from __future__ import annotations
 
 from typing import Any
 
 from mcfdsl.core._interfaces import ISymbol, IScope
-from mcfdsl.core.language_class import Class
 from mcfdsl.core.language_types import SymbolType, DataType, ValueType
+from mcfdsl.core.symbols.class_ import Class
 
 
 class Symbol(ISymbol):
-    def __init__(self, name: str, symbol_type: SymbolType, scope: IScope | None, data_type: DataType| Class | None = None,
+    def __init__(self, name: str, symbol_type: SymbolType, scope: IScope | None,
+                 data_type: DataType | Class | None = None,
                  objective: str | None = None, value: Any = None, value_type: ValueType | None = None):
         self.name = name
         self.symbol_type = symbol_type

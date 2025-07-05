@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from mcfdsl.core.language_types import SymbolType, StructureType, ValueType, DataType
+from mcfdsl.core.symbols import NewSymbol
 
 
 class IScope:
@@ -11,27 +12,41 @@ class IScope:
     namespace: str
     parent: IScope
     type: StructureType
-    symbols: dict[str, ISymbol]
+    symbols: dict[str, NewSymbol]
     classes: dict
     children: list[IScope]
     scope_counter: int
     commands: list[str]
+
     def get_name(self) -> str: ...
+
     def get_file_path(self) -> str: ...
+
     def get_minecraft_function_path(self) -> str: ...
+
     def get_unique_name(self) -> str: ...
+
     def create_child(self, name: str, type_: StructureType) -> IScope: ...
+
     def add_symbol(self, symbol: ISymbol, force=False) -> None: ...
+
     def set_symbol(self, symbol: ISymbol, force=False) -> None: ...
+
     def resolve_symbol(self, name: str) -> ISymbol: ...
+
     def resolve_scope(self, name: str) -> IScope: ...
+
     def find_symbol(self, name: str) -> ISymbol: ...
+
     def find_scope(self, name: str) -> IScope: ...
+
     def get_parent(self) -> IScope: ...
+
     def is_exist_parent(self): ...
 
 
 class ISymbol:
+    """ 弃用"""
     name: str
     symbol_type: SymbolType
     data_type: DataType
@@ -39,5 +54,7 @@ class ISymbol:
     value: Any
     objective: str
     scope: IScope
+
     def get_unique_name(self) -> str: ...
+
     def get_storage_path(self) -> str: ...

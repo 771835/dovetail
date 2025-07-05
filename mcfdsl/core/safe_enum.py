@@ -1,10 +1,8 @@
 # coding=utf-8
 """
 增强型安全枚举实现 (Enhanced Safe Enum Implementation)
-- 比较不相同的类型枚举时发出警告/报错
-- 支持严格模式（抛出异常代替警告）
+- 比较不相同的类型枚举时发出警告
 - 提供值验证工具方法
-- 支持大小写不敏感匹配
 """
 
 from __future__ import annotations
@@ -52,14 +50,14 @@ class SafeEnum(Enum):
         return compare_func(other)
 
     def _is_same_enum_type(self, other: Enum) -> bool:
-        """检查是否为相同枚举类型"""
-        return self.__class__ is other.__class__
+        """检查是否为相同枚举类型或继承的类型"""
+        return (
+            isinstance(other, self.__class__)
+        )
 
     def _handle_type_mismatch(self, other: Enum) -> None:
         """
         处理类型不匹配情况
-        - 严格模式：抛出TypeError
-        - 默认：发出UserWarning
         """
         err_msg = (
             f"Enum type mismatch: Comparing {self.__class__.__name__} "

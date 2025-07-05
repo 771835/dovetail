@@ -46,6 +46,8 @@ class StructureType(SafeEnum):
     FUNCTION = "function"
     CLASS = "class"
     LOOP = "loop"
+    LOOP_CHECK = "loop_check"
+    LOOP_BODY = "loop_body"
     INTERFACE = 'interface'
     BLOCK = 'block'
     CONDITIONAL = "conditional"
@@ -54,8 +56,9 @@ class StructureType(SafeEnum):
 class ValueType(SafeEnum):
     """值类型：表示值的类别"""
     LITERAL = "literal"  # 字面量
-    VARIABLE = "variable"  # 变量引用
+    VARIABLE = "variable"  # 变量
     # COMPOSITE = "composite"  # 复合表达式结果
-    # FUNCTION = "function"  # 函数返回值
+    FUNCTION = "function"  # 函数
+    CLASS = "class"
     ERROR = "error"  # 错误
     OTHER = 'other'

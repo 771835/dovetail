@@ -21,7 +21,7 @@ def print_all_attributes(obj, color=True, print_output=True):
         """配置颜色方案"""
         nonlocal COLOR
         if use_color:
-            COLOR = { # NOQA
+            COLOR = {  # NOQA
                 'reset': '\033[0m',
                 'title': '\033[34m',  # 蓝色
                 'section': '\033[33m',  # 黄色
@@ -31,7 +31,7 @@ def print_all_attributes(obj, color=True, print_output=True):
                 'prop': '\033[36m'  # 青色
             }
         else:
-            COLOR = {k: '' for k in ['reset', 'title', 'section', 'name', 'value', 'error', 'prop']} # NOQA
+            COLOR = {k: '' for k in ['reset', 'title', 'section', 'name', 'value', 'error', 'prop']}  # NOQA
 
     def write(line):
         """统一写入方法"""

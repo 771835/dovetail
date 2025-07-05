@@ -19,12 +19,12 @@ class McFuncDSLListener(ParseTreeListener):
     def exitProgram(self, ctx: McFuncDSLParser.ProgramContext):
         pass
 
-    # Enter a parse tree produced by McFuncDSLParser#importStmt.
-    def enterImportStmt(self, ctx: McFuncDSLParser.ImportStmtContext):
+    # Enter a parse tree produced by McFuncDSLParser#includeStmt.
+    def enterIncludeStmt(self, ctx: McFuncDSLParser.IncludeStmtContext):
         pass
 
-    # Exit a parse tree produced by McFuncDSLParser#importStmt.
-    def exitImportStmt(self, ctx: McFuncDSLParser.ImportStmtContext):
+    # Exit a parse tree produced by McFuncDSLParser#includeStmt.
+    def exitIncludeStmt(self, ctx: McFuncDSLParser.IncludeStmtContext):
         pass
 
     # Enter a parse tree produced by McFuncDSLParser#annotation.
@@ -355,20 +355,12 @@ class McFuncDSLListener(ParseTreeListener):
     def exitTypeCastExpr(self, ctx: McFuncDSLParser.TypeCastExprContext):
         pass
 
-    # Enter a parse tree produced by McFuncDSLParser#cmdExpr.
-    def enterCmdExpr(self, ctx: McFuncDSLParser.CmdExprContext):
+    # Enter a parse tree produced by McFuncDSLParser#commandExpr.
+    def enterCommandExpr(self, ctx: McFuncDSLParser.CommandExprContext):
         pass
 
-    # Exit a parse tree produced by McFuncDSLParser#cmdExpr.
-    def exitCmdExpr(self, ctx: McFuncDSLParser.CmdExprContext):
-        pass
-
-    # Enter a parse tree produced by McFuncDSLParser#cmdBlockExpr.
-    def enterCmdBlockExpr(self, ctx: McFuncDSLParser.CmdBlockExprContext):
-        pass
-
-    # Exit a parse tree produced by McFuncDSLParser#cmdBlockExpr.
-    def exitCmdBlockExpr(self, ctx: McFuncDSLParser.CmdBlockExprContext):
+    # Exit a parse tree produced by McFuncDSLParser#commandExpr.
+    def exitCommandExpr(self, ctx: McFuncDSLParser.CommandExprContext):
         pass
 
     # Enter a parse tree produced by McFuncDSLParser#argumentList.

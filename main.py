@@ -5,10 +5,11 @@ import io
 import sys
 import time
 
+from antlr4 import FileStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 
-from mcfdsl.McFuncDSLParser import McFuncDSLParser, McFuncDSLLexer
-from mcfdsl.McFuncDSLParser.McFuncDSLVisitor import *
+from mcfdsl.core.DSLParser import McFuncDSLLexer
+from mcfdsl.core.DSLParser import McFuncDSLParser
 from mcfdsl.core.errors import CompilationError
 from mcfdsl.core.generator import MCGenerator
 
@@ -106,7 +107,7 @@ def compile_mcdl(source_path):
         time.sleep(0.1)
         sys.stderr.write(e.__repr__())
         raise
-    except Exception as e:
+    except Exception:
         time.sleep(0.1)
         print_error_info()
         # 重新抛出异常显示错误详情
@@ -116,7 +117,7 @@ def compile_mcdl(source_path):
 
 
 if __name__ == "__main__":
-    sys.argv.append(r"example/example1.mcdl")
+    sys.argv.append(r"example/example4.mcdl")
     if len(sys.argv) != 2:
         print("Usage: python main.py <input>")
         sys.exit(1)

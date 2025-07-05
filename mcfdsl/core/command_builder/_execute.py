@@ -1,24 +1,24 @@
 # coding=utf-8
-from typing import List, Literal, Optional
+from typing import Literal, Optional
 
 # Define Literal types for better type hinting and potential validation
 # Note: Some of these Literals are based on common Minecraft usage,
 #       not strictly limited by the provided tree snippet which is simplified.
 Axes = Literal["x", "y", "z", "xy", "xz", "yz",
-               "xyz", "yx", "yzx", "zy", "zxy", "zyx"]
+"xyz", "yx", "yzx", "zy", "zxy", "zyx"]
 Anchor = Literal["eyes", "feet"]
 OnRelationship = Literal["attacker",
-                         "controller",
-                         "leasher",
-                         "origin",
-                         "owner",
-                         "passengers",
-                         "target",
-                         "vehicle"]
+"controller",
+"leasher",
+"origin",
+"owner",
+"passengers",
+"target",
+"vehicle"]
 HeightmapType = Literal["motion_blocking",
-                        "motion_blocking_no_leaves",
-                        "ocean_floor",
-                        "world_surface"]
+"motion_blocking_no_leaves",
+"ocean_floor",
+"world_surface"]
 BlocksMode = Literal["all", "masked"]
 # Added more score operations based on common MCJE syntax
 # [ "+=", "-=", "*=", "/=", "%=", "<=>"]
@@ -34,9 +34,9 @@ class ExecuteBuilder:
     Chain methods to add subcommands, then call .run() to finalize.
     """
 
-    def __init__(self, parts: Optional[List[str]] = None):
+    def __init__(self, parts: Optional[list[str]] = None):
         # Start with "execute"
-        self._parts: List[str] = parts if parts is not None else ["execute"]
+        self._parts: list[str] = parts if parts is not None else ["execute"]
 
     def _add_part(self, part: str) -> 'ExecuteBuilder':
         """Helper to add a part to the command and return self for chaining."""
@@ -173,7 +173,7 @@ class ExecuteBuilder:
 
     def _add_conditional_part(self,
                               condition_type: Literal["if",
-                                                      "unless"],
+                              "unless"],
                               part: str) -> 'ExecuteBuilder':
         """Helper to add an if or unless part and return self."""
         return self._add_part(f"{condition_type} {part}")
@@ -374,7 +374,7 @@ class ExecuteBuilder:
 
     def _add_store_part(self,
                         store_type: Literal["result",
-                                            "success"],
+                        "success"],
                         part: str) -> 'ExecuteBuilder':
         """Helper to add a store part and return self."""
         return self._add_part(f"store {store_type} {part}")
@@ -503,6 +503,7 @@ class Execute:
     Static class for starting a Minecraft Java Edition execute command chain.
     Use Execute.execute() to begin building a command.
     """
+
     @staticmethod
     def execute() -> ExecuteBuilder:
         """Starts building an execute command chain."""
