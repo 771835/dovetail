@@ -87,9 +87,8 @@ class MCGenerator(McFuncDSLVisitor):
                 raise UnexpectedError(f"试图添加一条为None的指令")
             scope.commands.append(cmd)
 
-    def _generate_commands(self):
-        for i in self.ir_builder:
-            print(repr(i))
+    def get_generate_ir(self) -> IRBuilder:
+        return self.ir_builder
 
     def _resolve_type_symbol(self, type_name: str) -> Class | None:
         """解析类型名称对应的符号（仅限类/类型定义）"""
@@ -388,28 +387,39 @@ class MCGenerator(McFuncDSLVisitor):
     def visitIfStmt(self, ctx: McFuncDSLParser.IfStmtContext):
         # 生成唯一ID
         if_id = next(self.cnt)
-
-        # 判断expr是否为CompareExpr
-        if not isinstance(
+        condition_expr: Result | None = None
+        if isinstance(  # 判断expr是否为CompareExpr
                 ctx.expr(),
                 McFuncDSLParser.CompareExprContext):
+            # 计算条件表达式
+            condition_expr = self.visit(ctx.expr())
+        elif isinstance(
+                ctx.expr(),
+                McFuncDSLParser.PrimaryExprContext):
+            condition_expr = self.visit(ctx.expr())
+            if condition_expr.value.get_data_type() != DataType.BOOLEAN:
+                raise InvalidSyntaxError(
+                    ctx.expr().getText(),
+                    line=ctx.start.line,
+                    column=ctx.start.column
+                )
+        else:
             raise InvalidSyntaxError(
                 ctx.expr().getText(),
                 line=ctx.start.line,
                 column=ctx.start.column
             )
 
-        # 计算条件表达式
-        condition_expr: Result = self.visit(ctx.expr())
         # 创建if分支作用域
         with self.scoped_environment(f"if_{if_id}", StructureType.CONDITIONAL) as if_scope:
             self.visit(ctx.block(0))
         # 创建else分支作用域
-        with self.scoped_environment(f"else_{if_id}", StructureType.CONDITIONAL) as else_scope:
-            self.visit(ctx.block(1))
-
-        self._add_ir_instruction(IRCondJump(condition_expr.value.value, if_scope.name, else_scope.name))
-
+        if ctx.block(1):
+            with self.scoped_environment(f"else_{if_id}", StructureType.CONDITIONAL) as else_scope:
+                self.visit(ctx.block(1))
+            self._add_ir_instruction(IRCondJump(condition_expr.value.value, if_scope.name, else_scope.name))
+        else:
+            self._add_ir_instruction(IRCondJump(condition_expr.value.value, if_scope.name))
         return Result(None)
 
     def visitCompareExpr(self, ctx):
@@ -537,8 +547,15 @@ class MCGenerator(McFuncDSLVisitor):
     def visitIncludeStmt(
             self,
             ctx: McFuncDSLParser.IncludeStmtContext):
-        import_path: str = self.visit(ctx.STRING()).value.value
 
+        import_path: Reference[Literal] = self.visit(ctx.literal()).value
+        if import_path.get_data_type() != DataType.STRING:
+            raise TypeMismatchError(DataType.STRING,
+                                    import_path.get_data_type(),
+                                    self._get_current_line(),
+                                    self._get_current_column(),
+                                    self.filename)
+        import_path: str = import_path.value.value
         # 检查是否已经导入过
         if self.import_manager.has_imported(import_path):
             return Result(None)
@@ -563,8 +580,9 @@ class MCGenerator(McFuncDSLVisitor):
             raise CompilerImportError(
                 import_path,
                 e.__repr__(),
-                line=ctx.start.line,
-                column=ctx.start.column)
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename)
 
         return Result(None)
 

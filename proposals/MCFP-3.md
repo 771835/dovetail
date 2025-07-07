@@ -39,20 +39,7 @@
 
 ### 1. 核心编译架构
 
-#### 1.1 Visitor 模式实现
-
-```python
-# coding=utf-8
-from mcfdsl.core.DSLParser.McFuncDSLVisitor import McFuncDSLVisitor
-
-
-# AST 遍历伪代码
-class MCGenerator(McFuncDSLVisitor):
-    def visit(self, tree):
-        pass
-```
-
-#### 1.2 作用域树管理
+#### 1.1 作用域树管理
 
 [示例代码](../example/example1.mcdl)
 

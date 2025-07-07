@@ -3,14 +3,13 @@ grammar McFuncDSL;
 /* 程序结构 */
 program
     : (includeStmt)*
-      (functionDecl
-      | classDecl
+      (classDecl
       | interfaceDecl
       | statement)* EOF
     ;
 
 includeStmt
-    : INCULDE STRING SEMI             // 导入库文件，如：include "minecraft_utils.mcdl";
+    : INCULDE literal SEMI             // 导入库文件，如：include "minecraft_utils.mcdl";
     ;
 
 /* 2. 注解系统 */
@@ -110,6 +109,7 @@ statement
     | ifStmt                                // 条件语句
     | breakStmt SEMI                        // break语句
     | continueStmt SEMI                     // continue语句
+    | functionDecl
     ;
 
 breakStmt

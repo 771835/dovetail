@@ -14,8 +14,6 @@ from mcfdsl.core.symbols.reference import Reference
 @dataclass
 class Result:
     """表达式求值结果容器"""
-    # value_type: ValueType  # 值的类型（变量引用/字面量等）
-    # data_type: DataType  # 数据类型（int/string等）
     value: Reference | None  # 实际值
     error: bool = False  # 是否错误结果
     error_type: str | None = None  # 错误类型标识

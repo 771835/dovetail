@@ -93,6 +93,7 @@ McFuncDSL Enhancement Proposals (MCFP) 是推动 McFuncDSL 语言发展的核心
 # MCFP X: 提案标题
 
 ## 状态
+
 - [ ] Draft
 - [ ] Proposed
 - [ ] Accepted
@@ -101,28 +102,37 @@ McFuncDSL Enhancement Proposals (MCFP) 是推动 McFuncDSL 语言发展的核心
 - [ ] Implemented (版本: )
 - [ ] Active
 - [ ] Abandoned (版本: )
+
 ## 作者
+
 - 姓名 <邮箱>
 
 ## 创建日期
+
 - YYYY-MM-DD
 
 ## 摘要
+
 (200字内说明提案目标)
 
 ## 动机
+
 (问题背景与需求分析)
 
 ## 技术规范
+
 (语法变更、API设计等细节)
 
 ## 兼容性影响
+
 (对现有代码的影响评估)
 
 ## 参考实现
+
 (原型代码或链接)
 
 ## 变更日志
+
 (每一次修改的概况)
 ```
 
