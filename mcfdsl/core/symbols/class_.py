@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from mcfdsl.core.symbols.variable import Variable
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Class(NewSymbol):
     name: str
     methods: list[Function]  # 方法列表（保持有序）

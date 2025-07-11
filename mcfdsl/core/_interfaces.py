@@ -1,12 +1,13 @@
 # coding=utf-8
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass
 
-from mcfdsl.core.language_types import SymbolType, StructureType, ValueType, DataType
+from mcfdsl.core.language_enums import StructureType
 from mcfdsl.core.symbols import NewSymbol
 
 
+@dataclass
 class IScope:
     name: str
     namespace: str
@@ -16,7 +17,6 @@ class IScope:
     classes: dict
     children: list[IScope]
     scope_counter: int
-    commands: list[str]
 
     def get_name(self) -> str: ...
 
@@ -28,33 +28,18 @@ class IScope:
 
     def create_child(self, name: str, type_: StructureType) -> IScope: ...
 
-    def add_symbol(self, symbol: ISymbol, force=False) -> None: ...
+    def add_symbol(self, symbol: NewSymbol, force=False) -> None: ...
 
-    def set_symbol(self, symbol: ISymbol, force=False) -> None: ...
+    def set_symbol(self, symbol: NewSymbol, force=False) -> None: ...
 
-    def resolve_symbol(self, name: str) -> ISymbol: ...
+    def resolve_symbol(self, name: str) -> NewSymbol: ...
 
     def resolve_scope(self, name: str) -> IScope: ...
 
-    def find_symbol(self, name: str) -> ISymbol: ...
+    def find_symbol(self, name: str) -> NewSymbol: ...
 
     def find_scope(self, name: str) -> IScope: ...
 
     def get_parent(self) -> IScope: ...
 
-    def is_exist_parent(self): ...
-
-
-class ISymbol:
-    """ 弃用"""
-    name: str
-    symbol_type: SymbolType
-    data_type: DataType
-    value_type: ValueType  # 新增值类型分类
-    value: Any
-    objective: str
-    scope: IScope
-
-    def get_unique_name(self) -> str: ...
-
-    def get_storage_path(self) -> str: ...
+    def exist_parent(self) -> bool: ...

@@ -1,11 +1,13 @@
 # coding=utf-8
 from __future__ import annotations
+
 import argparse
+import contextlib
 import io
 import os
 import sys
 import time
-import contextlib
+
 from antlr4 import FileStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 
@@ -13,7 +15,9 @@ from mcfdsl.core.DSLParser import McFuncDSLLexer
 from mcfdsl.core.DSLParser import McFuncDSLParser
 from mcfdsl.core.errors import CompilationError
 from mcfdsl.core.generator import MCGenerator
+from mcfdsl.core.ir.instructions import IRScopeBegin, IRScopeEnd
 from mcfdsl.core.ir.ir_specification import OptimizationLevel
+from mcfdsl.core.ir.optimizer.o_je_1204 import Optimizer
 
 
 class ThrowingErrorListener(ErrorListener):
@@ -56,7 +60,8 @@ class ThrowingErrorListener(ErrorListener):
         pass
 
 
-def compile_mcdl(source_path, target_path, optimization_level: OptimizationLevel):
+def compile_mcdl(source_path, target_path,
+                 optimization_level: OptimizationLevel, debug=False):
     source_path = os.path.abspath(source_path)
     target_path = os.path.abspath(target_path)
     with contextlib.chdir(os.path.dirname(source_path)):
@@ -84,7 +89,8 @@ def compile_mcdl(source_path, target_path, optimization_level: OptimizationLevel
                 children = node.children
                 for index, child in enumerate(children):
                     new_prefix = prefix + ("    " if is_tail else "│   ")
-                    print_scope_tree(child, new_prefix, index == len(children) - 1)
+                    print_scope_tree(
+                        child, new_prefix, index == len(children) - 1)
 
             # 打印错误信息
             print("\n⚠️ Compilation Error ⚠️")
@@ -107,18 +113,32 @@ def compile_mcdl(source_path, target_path, optimization_level: OptimizationLevel
             generator.visit(tree)
             # 输出到target目录
             ir_builder = generator.get_generate_ir()
+            ir_builder = Optimizer(ir_builder, optimization_level).optimize()
+            depth = 0
             for i in ir_builder:
-                sys.stdout.write(repr(i) + "\n")
-            print(f" 耗时{time.time() - start_time}，原始生成指令{len(ir_builder._instructions)}条")
+                if isinstance(i, IRScopeEnd):
+                    depth -= 1
+                sys.stdout.write(depth * "\t" + repr(i) + "\n")
+                if isinstance(i, IRScopeBegin):
+                    depth += 1
+
+            print(f""" 耗时{time.time() - start_time}
+原始生成指令{len(ir_builder.get_instructions())}条""")
         except CompilationError as e:
             time.sleep(0.1)  # 保证前面的输出完成
             print_error_info()
             time.sleep(0.1)
             sys.stderr.write(e.__repr__())
-            raise
+            if debug:
+                # 重新抛出异常显示错误详情
+                raise
         except Exception:
             time.sleep(0.1)
+
             print_error_info()
+            time.sleep(0.1)
+            print("意外的错误，以下为详细堆栈信息")
+            time.sleep(0.1)
             # 重新抛出异常显示错误详情
             raise
 
@@ -126,14 +146,21 @@ def compile_mcdl(source_path, target_path, optimization_level: OptimizationLevel
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="mcDSL")
     parser.add_argument('input', type=str, help='输入文件路径')
-    parser.add_argument('--minecraft_version', '-mcv', metavar='version', type=str, help='生成游戏版本', default="1.20.4")
-    parser.add_argument('--output', '-o', metavar='output', type=str, help='输出文件路径')
-    parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2], default=0,
+    parser.add_argument('--minecraft_version', '-mcv', metavar='version', type=str, help='生成游戏版本',
+                        default="1.20.4")
+    parser.add_argument(
+        '--output',
+        '-o',
+        metavar='output',
+        type=str,
+        help='输出文件路径')
+    parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2], default=1,
                         help='优化级别')
-
+    parser.add_argument('--debug', action='store_true',
+                        help='启用调试模式')
     args = parser.parse_args()
 
-    sys.exit(compile_mcdl(args.input, args.output or "target", OptimizationLevel(args.O)))
+    sys.exit(compile_mcdl(source_path=args.input, target_path=args.output or "target",
+                          optimization_level=OptimizationLevel(args.O), debug=args.debug))

@@ -136,8 +136,8 @@ whileStmt
     ;
 
 constDecl
-    : 'const' ID (':' type)? ('=' expr) SEMI  // 常量声明
-    | 'const' type ID ('=' expr)? SEMI
+    : 'const' ID (':' type) ('=' expr) SEMI  // 常量声明
+    | 'const' type ID ('=' expr) SEMI
     ;
 
 // 公共规则
@@ -190,7 +190,7 @@ expr
     | '!' expr                         #LogicalNotExpr             // not运算符
     | expr (MUL|DIV) expr                   # MulDivExpr         // 算术运算
     | expr (ADD|SUB) expr                   # AddSubExpr
-    | expr ('>'|'<'|'=='|'!='|'<='|'>=') expr # CompareExpr        // 比较运算
+    | expr ('>' | '<' | '==' | '!=' | '<=' | '>=') expr # CompareExpr      // 比较运算
     | expr AND expr                   #LogicalAndExpr             // and运算符
     | expr OR expr                   #LogicalOrExpr              // or运算符
     ;

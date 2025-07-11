@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from mcfdsl.core._interfaces import IScope
-from mcfdsl.core.language_types import StructureType
+from mcfdsl.core.language_enums import StructureType
 from mcfdsl.core.symbols.base import NewSymbol
 
 
@@ -17,7 +17,6 @@ class Scope(IScope):  # 每层作用域在生成时都会生成为一个函数�
         self.classes = dict()  # 类定义
         self.children: list[IScope] = list()  # 子作用域
         self.scope_counter = 0  # 用于生成唯一子作用域名
-        self.commands: list[str] = list()
 
     def get_name(self):
         return self.name
@@ -95,7 +94,7 @@ class Scope(IScope):  # 每层作用域在生成时都会生成为一个函数�
         else:
             return self
 
-    def is_exist_parent(self):
+    def exist_parent(self) -> bool:
         if self.parent:
             return True
         else:

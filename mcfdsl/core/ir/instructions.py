@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Any
 
-from mcfdsl.core.language_types import StructureType
+from mcfdsl.core.language_enums import StructureType, CompareOps, BinaryOps, UnaryOps
 from mcfdsl.core.safe_enum import SafeEnum
 from mcfdsl.core.symbols import Literal
 from mcfdsl.core.symbols.class_ import Class
@@ -27,12 +27,11 @@ class IROpCode(SafeEnum):
 
     # ===== 变量操作指令 (0x20-0x3F) =====
     DECLARE = 0x20  # 变量声明
-    DECLARE_TEMP = 0x21  # 临时变量声明
-    VAR_RELEASE = 0x22  # 变量释放
-    ASSIGN = 0x23  # 赋值操作
-    UNARY_OP = 0x24  # 一元运算
-    OP = 0x25  # 二元运算
-    COMPARE = 0x26  # 比较运算
+    VAR_RELEASE = 0x21  # 变量释放
+    ASSIGN = 0x22  # 赋值操作
+    UNARY_OP = 0x23  # 一元运算
+    OP = 0x24  # 二元运算
+    COMPARE = 0x25  # 比较运算
     # 预留 0x27-0x3F 用于变量操作扩展
 
     # ===== 面向对象指令 (0x40-0x5F) =====
@@ -46,6 +45,7 @@ class IROpCode(SafeEnum):
     # ===== 命令生成指令 (0x60-0x7F) =====
     RAW_CMD = 0x60  # 原始命令输出
     FSTRING = 0x61  # 格式化字符串
+
     # 预留 0x62-0x7F 用于命令扩展
 
     # ==== 扩展指令集 (0x80-0xFF) ====
@@ -54,9 +54,13 @@ class IROpCode(SafeEnum):
     # ==== 其他指令集 (0x100+) ====
     # 预留 0x100+ 用于用户自行使用
 
+    def __hash__(self):
+        return hash(self.value)
+
 
 class IRInstruction:
-    def __init__(self, opcode: IROpCode, operands: list[Any], line: int = -1, column: int = -1, filename: str = None):
+    def __init__(self, opcode: IROpCode,
+                 operands: list[Any], line: int = -1, column: int = -1, filename: str = None):
         self.filename = filename
         self.column = column
         self.line = line
@@ -64,14 +68,25 @@ class IRInstruction:
         self.opcode = opcode
 
     def __repr__(self):
-        ops = ", ".join(f"{op = }" for op in self.operands)
+        ops = ", ".join(f"{op=}" for op in self.operands)
         return \
             f"{self.opcode}({ops})"
+
+    def __hash__(self):
+        a = tuple(self.operands)
+        return hash((self.opcode, a))
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def get_operands(self):
+        return self.operands
 
 
 # 具体指令实现
 class IRJump(IRInstruction):
-    def __init__(self, scope: str, line: int = -1, column: int = -1, filename: str = None):
+    def __init__(self, scope: str, line: int = -1,
+                 column: int = -1, filename: str = None):
         operands = [
             scope
         ]
@@ -108,35 +123,31 @@ class IRReturn(IRInstruction):
 
 
 class IRCall(IRInstruction):
-    def __init__(self, value: Variable | Constant, func: Function,
+    def __init__(self, result: Variable | Constant, func: Function,
                  args: list[Reference[Variable | Constant | Literal]] = None, line: int = -1, column: int = -1,
-                 filename: str = None):
+                 filename: str = None, opcode:IROpCode = None):
         if args is None:
             args = []
         operands = [
-            value,
+            result,
             func,
             args
         ]
-        super().__init__(IROpCode.CALL, operands, line, column, filename)
+        super().__init__(opcode if opcode else IROpCode.CALL, operands, line, column, filename)
 
+    def __hash__(self):
+        return hash((self.operands[0], self.operands[1], tuple(self.operands[2])))
 
-class IRCallInline(IRInstruction):
-    def __init__(self, value: Variable | Constant, func: Function,
+class IRCallInline(IRCall):
+    def __init__(self, result: Variable | Constant, func: Function,
                  args: list[Reference[Variable | Constant | Literal]] = None, line: int = -1, column: int = -1,
                  filename: str = None):
-        if args is None:
-            args = []
-        operands = [
-            value,
-            func,
-            args
-        ]
-        super().__init__(IROpCode.CALL_INLINE, operands, line, column, filename)
+        super().__init__(result, func, args, line, column, filename, IROpCode.CALL_INLINE)
 
 
 class IRScopeBegin(IRInstruction):
-    def __init__(self, name: str, stype: StructureType, line: int = -1, column: int = -1, filename: str = None):
+    def __init__(self, name: str, stype: StructureType,
+                 line: int = -1, column: int = -1, filename: str = None):
         operands = [
             name,
             stype
@@ -174,17 +185,9 @@ class IRDeclare(IRInstruction):
         super().__init__(IROpCode.DECLARE, operands, line, column, filename)
 
 
-class IRDeclareTemp(IRInstruction):
-    def __init__(self, var: Variable | Constant, line: int = -1, column: int = -1,
-                 filename: str = None):
-        operands = [
-            var
-        ]
-        super().__init__(IROpCode.DECLARE_TEMP, operands, line, column, filename)
-
-
 class IRVarRelease(IRInstruction):
-    def __init__(self, name: str, line: int = -1, column: int = -1, filename: str = None):
+    def __init__(self, name: str, line: int = -1,
+                 column: int = -1, filename: str = None):
         operands = [
             name
         ]
@@ -192,7 +195,7 @@ class IRVarRelease(IRInstruction):
 
 
 class IRAssign(IRInstruction):
-    def __init__(self, target: Variable, source: Reference[Variable | Constant | Literal], line: int = -1,
+    def __init__(self, target: Variable | Constant, source: Reference[Variable | Constant | Literal], line: int = -1,
                  column: int = -1, filename: str = None):
         operands = [
             target,
@@ -202,7 +205,8 @@ class IRAssign(IRInstruction):
 
 
 class IRUnaryOp(IRInstruction):
-    def __init__(self, result: Variable, op, operand: Reference[Variable | Constant | Literal], line: int = -1,
+    def __init__(self, result: Variable, op: UnaryOps, operand: Reference[Variable | Constant | Literal],
+                 line: int = -1,
                  column: int = -1,
                  filename: str = None):
         operands = [
@@ -214,7 +218,7 @@ class IRUnaryOp(IRInstruction):
 
 
 class IROp(IRInstruction):
-    def __init__(self, result: Variable, op, left: Reference[Variable | Constant | Literal],
+    def __init__(self, result: Variable, op: BinaryOps, left: Reference[Variable | Constant | Literal],
                  right: Reference[Variable | Constant | Literal], line: int = -1, column: int = -1,
                  filename: str = None):
         operands = [
@@ -227,7 +231,7 @@ class IROp(IRInstruction):
 
 
 class IRCompare(IRInstruction):
-    def __init__(self, result: Variable, op, left: Reference[Variable | Constant | Literal],
+    def __init__(self, result: Variable, op: CompareOps, left: Reference[Variable | Constant | Literal],
                  right: Reference[Variable | Constant | Literal], line: int = -1, column: int = -1,
                  filename: str = None):
         operands = [
@@ -240,7 +244,8 @@ class IRCompare(IRInstruction):
 
 
 class IRClass(IRInstruction):
-    def __init__(self, class_: Class, line: int = -1, column: int = -1, filename: str = None):
+    def __init__(self, class_: Class, line: int = -1,
+                 column: int = -1, filename: str = None):
         operands = [
             class_
         ]

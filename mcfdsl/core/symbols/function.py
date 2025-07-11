@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, NoReturn
 from mcfdsl.core.symbols.base import NewSymbol
 
 if TYPE_CHECKING:
-    from mcfdsl.core.language_types import DataType
+    from mcfdsl.core.language_enums import DataType
     from mcfdsl.core.symbols.variable import Variable
     from mcfdsl.core.symbols.class_ import Class
 
@@ -20,3 +20,6 @@ class Function(NewSymbol):
 
     def get_name(self) -> NoReturn:
         return self.name
+
+    def __hash__(self):
+        return hash((self.name, tuple(self.params), self.return_type))

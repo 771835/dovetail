@@ -6,9 +6,8 @@ from mcfdsl.core.command_builder._data import Data
 from mcfdsl.core.command_builder._execute import Execute, ScoreOperation
 from mcfdsl.core.command_builder._scoreboard import Scoreboard
 from mcfdsl.core.command_builder.base import BasicCommands
-from mcfdsl.core.language_types import DataType, ValueType, SymbolType
+from mcfdsl.core.language_enums import DataType, ValueType, SymbolType
 from mcfdsl.core.result import Result
-from mcfdsl.core.symbol import Symbol
 
 
 class Composite:
@@ -19,11 +18,13 @@ class Composite:
                 value = 0
             if var.data_type == DataType.BOOLEAN:
                 value = 1 if value else 0
-            return Scoreboard.set_score(var.get_unique_name(), var.objective, int(value))
+            return Scoreboard.set_score(
+                var.get_unique_name(), var.objective, int(value))
         elif var.data_type == DataType.STRING:
             if value is not None:
                 value = ''
-            return Data.modify_storage_set_value(var.get_unique_name(), var.get_storage_path(), str(value))
+            return Data.modify_storage_set_value(
+                var.get_unique_name(), var.get_storage_path(), str(value))
         else:
             return None
 
@@ -51,9 +52,11 @@ class Composite:
             result_var: ISymbol,
             objective: str = None
     ):
-        if isinstance(left, Result) and isinstance(right, ISymbol):  # 如果left是Result且right是ISymbol
+        if isinstance(left, Result) and isinstance(
+                right, ISymbol):  # 如果left是Result且right是ISymbol
             left = left.to_symbol(objective=right.objective)
-        elif isinstance(right, Result) and isinstance(left, ISymbol):  # 如果right是Result且left是ISymbol
+        # 如果right是Result且left是ISymbol
+        elif isinstance(right, Result) and isinstance(left, ISymbol):
             right = right.to_symbol(objective=left.objective)
         elif isinstance(left, Result) and isinstance(right, Result):
             if objective:
@@ -119,7 +122,9 @@ class Composite:
                         ValueType.VARIABLE)
                 else:
                     return None
-                cmd.append(Composite._variable_compare(left, op, right, result_var))
+                cmd.append(
+                    Composite._variable_compare(
+                        left, op, right, result_var))
                 cmd.append(Scoreboard.reset_score(temp, result_var.objective))
                 return cmd
         elif left.data_type == DataType.STRING and right.data_type == DataType.STRING:

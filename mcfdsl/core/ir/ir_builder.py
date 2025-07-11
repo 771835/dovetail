@@ -16,6 +16,9 @@ class IRBuilder:
             # 使用整数索引插入
             self._instructions.insert(index, instruction)
 
+    def get_instructions(self):
+        return self._instructions
+
     def __iter__(self):
         return IRBuilderIterator(self._instructions)
 
@@ -36,7 +39,8 @@ class IRBuilderIterator:
         self._last_index = self.index
         item = self.instructions[self.index]
         self.index += 1
-        # print(f"返回指令: {item} | 位置: {self._last_index} | 下一索引: {self.index}")  # 调试
+        # print(f"返回指令: {item} | 位置: {self._last_index} | 下一索引: {self.index}")
+        # # 调试
         return item
 
     def rollback(self, steps=1):
@@ -44,13 +48,32 @@ class IRBuilderIterator:
         self.index = min(max(0, self.index - steps), len(self.instructions))
         self._last_index = -1  # 重置最后返回位置
 
+    def current(self) -> IRInstruction:
+        """
+            返回当前迭代到的指令（最后返回的指令）
+        """
+        if self._last_index == -1:
+            raise IndexError(
+                "No current instruction to remove (call next() first)")
+        return self.instructions[self._last_index]
+
+    def set_current(self, instr: IRInstruction):
+        """
+             设置当前迭代到的指令（最后返回的指令）
+        """
+        if self._last_index == -1:
+            raise IndexError(
+                "No current instruction to remove (call next() first)")
+        self.instructions[self._last_index] = instr
+
     def remove_current(self) -> IRInstruction:
         """
         删除当前迭代到的指令（最后返回的指令）
         返回被删除的指令
         """
         if self._last_index == -1:
-            raise IndexError("No current instruction to remove (call next() first)")
+            raise IndexError(
+                "No current instruction to remove (call next() first)")
 
         # 删除指令
         removed = self.instructions.pop(self._last_index)

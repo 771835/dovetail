@@ -406,14 +406,16 @@ class ExecuteBuilder:
             id_: str,
             bossbar_store_type: BossbarStoreType) -> 'ExecuteBuilder':
         """Stores the numerical result of the command into a bossbar's value or max."""
-        return self._add_store_part("result", f"bossbar {id_} {bossbar_store_type}")
+        return self._add_store_part(
+            "result", f"bossbar {id_} {bossbar_store_type}")
 
     def store_success_bossbar(
             self,
             id_: str,
             bossbar_store_type: BossbarStoreType) -> 'ExecuteBuilder':
         """Stores the success of the command (1 or 0) into a bossbar's value or max."""
-        return self._add_store_part("success", f"bossbar {id_} {bossbar_store_type}")
+        return self._add_store_part(
+            "success", f"bossbar {id_} {bossbar_store_type}")
 
     # store entity
     def store_result_entity(

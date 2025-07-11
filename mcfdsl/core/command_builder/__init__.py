@@ -6,5 +6,11 @@ from ._scoreboard import Scoreboard
 from .base import BasicCommands
 from .composite import Composite
 
-__all__ = ['Execute', 'Scoreboard', 'Composite', 'BasicCommands', 'Function', 'Data']
+__all__ = [
+    'Execute',
+    'Scoreboard',
+    'Composite',
+    'BasicCommands',
+    'Function',
+    'Data']
 MINECRAFT_VERSION = ['1.20.4']

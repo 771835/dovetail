@@ -24,13 +24,30 @@ class IROptimizerSpec(ABC):
     """IR优化器"""
 
     @abstractmethod
-    def optimize(self, builder: IRBuilder, level: OptimizationLevel = OptimizationLevel.O0) -> IRBuilder:
+    def __init__(self, builder: IRBuilder,
+                 level: OptimizationLevel = OptimizationLevel.O0):
+        """初始化"""
+
+    @abstractmethod
+    def optimize(self) -> IRBuilder:
         """对原始IR优化"""
 
     @classmethod
     @abstractmethod
-    def is_support(cls, version: tuple[int, int, int, MinecraftEdition]) -> bool:
+    def is_support(
+            cls, version: tuple[int, int, int, MinecraftEdition]) -> bool:
         """判断是否支持该版本"""
+
+
+class IROptimizationPass(ABC):
+    @abstractmethod
+    def __init__(self, builder: IRBuilder):
+        """初始化"""
+
+    @abstractmethod
+    def exec(self):
+        """执行优化"""
+        pass
 
 
 class IRCompilerSpec(ABC):
@@ -42,5 +59,6 @@ class IRCompilerSpec(ABC):
 
     @classmethod
     @abstractmethod
-    def is_support(cls, version: tuple[int, int, int, MinecraftEdition]) -> bool:
+    def is_support(
+            cls, version: tuple[int, int, int, MinecraftEdition]) -> bool:
         """判断是否支持该版本"""

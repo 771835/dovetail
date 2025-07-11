@@ -12,13 +12,13 @@ from antlr4 import FileStream, CommonTokenStream
 from mcfdsl.core.DSLParser.McFuncDSLLexer import McFuncDSLLexer
 from mcfdsl.core.DSLParser.McFuncDSLParser import McFuncDSLParser
 from mcfdsl.core.DSLParser.McFuncDSLVisitor import McFuncDSLVisitor
-from mcfdsl.core._interfaces import IScope
 from mcfdsl.core.errors import TypeMismatchError, UnexpectedError, CompilerSyntaxError, UndefinedTypeError, \
-    CompilerImportError, UndefinedVariableError, InvalidSyntaxError, DuplicateDefinitionError
+    CompilerImportError, UndefinedVariableError, InvalidSyntaxError, DuplicateDefinitionError, \
+    ArgumentTypeMismatchError, InvalidControlFlowError, MissingImplementationError, RecursionError, NotCallableError
 from mcfdsl.core.import_manager import ImportManager
 from mcfdsl.core.ir.instructions import *
 from mcfdsl.core.ir.ir_builder import IRBuilder
-from mcfdsl.core.language_types import StructureType, DataType, ValueType
+from mcfdsl.core.language_enums import StructureType, DataType, ValueType
 from mcfdsl.core.result import Result
 from mcfdsl.core.scope import Scope
 from mcfdsl.core.symbols import *
@@ -39,7 +39,6 @@ class MCGenerator(McFuncDSLVisitor):
         self.current_scope = self.top_scope
         self.import_manager = ImportManager()  # 引用管理器
         self.uuid_namespace = uuid.uuid4()
-        self.root_scope_id = uuid.uuid5(self.uuid_namespace, self.namespace)
         self.scope_stack = [self.top_scope]
         self.cnt = count()  # 保证for loop和if else唯一性
         self.filename = "<main>"
@@ -58,34 +57,41 @@ class MCGenerator(McFuncDSLVisitor):
         new_scope = self.current_scope.create_child(name, scope_type)
         self.current_scope = new_scope
         self.scope_stack.append(new_scope)
-        if len(self.scope_stack) > 1000:
+        if len(self.scope_stack) > 100:
             for i in self.scope_stack:
                 print(f"at {i.name}, in {i.parent.name}")
-            raise RecursionError("maximum recursion depth exceeded")
+            raise RecursionError(
+                f"作用域嵌套过深 (超过100层)\n作用域路径: {self.current_scope.get_unique_name()}",
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
         self._add_ir_instruction(IRScopeBegin(name=name, stype=scope_type))
         return new_scope
 
     def _exit_scope(self):
-        if self.current_scope.is_exist_parent():
+        if self.current_scope.exist_parent():
             self.current_scope = self.current_scope.get_parent()
             self.scope_stack.pop()
             self._add_ir_instruction(IRScopeEnd())
 
-    def _add_ir_instruction(self, instructions: IRInstruction | list[IRInstruction]):
+    def _add_ir_instruction(
+            self, instructions: IRInstruction | list[IRInstruction]):
         if isinstance(instructions, IRInstruction):
             instructions = [instructions]
         for instruction in instructions:
             self.ir_builder.insert(instruction)
 
-    def _add_command(self, cmds: str | list[str], scope: IScope | None = None):
-        if scope is None:
-            scope = self.current_scope
-        if isinstance(cmds, str):
-            cmds = [cmds]
-        for cmd in cmds:
-            if cmd is None:
-                raise UnexpectedError(f"试图添加一条为None的指令")
-            scope.commands.append(cmd)
+    def _is_in_loop(self) -> bool:
+        current = self.current_scope
+        while current:
+            if current.type == StructureType.LOOP_BODY:
+                return True
+            elif current.type == StructureType.CONDITIONAL:
+                current = current.parent
+            else:
+                break
+        return False
 
     def get_generate_ir(self) -> IRBuilder:
         return self.ir_builder
@@ -107,14 +113,17 @@ class MCGenerator(McFuncDSLVisitor):
         try:
             if builtin_type := DataType.get_by_value(type_name):
                 return builtin_type
-        except ValueError:  # DataType不存在这个类型
-            pass
+        except ValueError:
+            pass  # DataType不存在此类型,去寻找符号
         if symbol := self._resolve_type_symbol(type_name):
             if symbol:
                 return symbol
-        raise UndefinedTypeError(type_name,
-                                 line=self._get_current_line(),
-                                 column=self._get_current_column())
+        raise UndefinedTypeError(
+            type_name,
+            line=self._get_current_line(),
+            column=self._get_current_column(),
+            filename=self.filename
+        )
 
     # 检查类型是否存在
     def _type_exists(self, type_):
@@ -165,15 +174,17 @@ class MCGenerator(McFuncDSLVisitor):
         var_value: Reference | None = None
         if ctx.expr():
             result = self.visit(ctx.expr())  # 处理初始化表达式
-
+            # 类型推断
             if var_type == DataType.ANY:
                 var_type = result.value.get_data_type()
+            # 类型检查
             if var_type != result.value.get_data_type():
                 raise TypeMismatchError(
                     expected_type=var_type,
                     actual_type=result.value.get_data_type(),
                     line=ctx.start.line,
-                    column=ctx.start.column
+                    column=ctx.start.column,
+                    filename=self.filename
                 )
 
             var_value = result.value
@@ -183,7 +194,9 @@ class MCGenerator(McFuncDSLVisitor):
                 raise CompilerSyntaxError(
                     f"Variable '{var_name}' must be initialized as type cannot be inferred",
                     line=ctx.start.line,
-                    column=ctx.start.column)
+                    column=ctx.start.column,
+                    filename=self.filename
+                )
 
         if not self._type_exists(var_type):  # 判断所给类型是否存在
             raise UndefinedTypeError(
@@ -195,14 +208,50 @@ class MCGenerator(McFuncDSLVisitor):
         var = Variable(
             var_name,
             var_type,
-            var_value
         )
 
         self.current_scope.add_symbol(var)
 
         self._add_ir_instruction(IRDeclare(var))
+        self._add_ir_instruction(IRAssign(var, var_value))
 
         return Result(Reference(ValueType.VARIABLE, var))
+
+    def visitConstDecl(self, ctx: McFuncDSLParser.ConstDeclContext):
+        name = ctx.ID().getText()
+        dtype = self._get_type_definition(ctx.type_().getText())
+        result = self.visit(ctx.expr())  # 处理初始化表达式
+        # 类型推断
+        if dtype == DataType.ANY:
+            dtype = result.value.get_data_type()
+        # 类型检查
+        if dtype != result.value.get_data_type():
+            raise TypeMismatchError(
+                expected_type=dtype,
+                actual_type=result.value.get_data_type(),
+                line=ctx.start.line,
+                column=ctx.start.column,
+                filename=self.filename
+            )
+
+        value = result.value
+        if not self._type_exists(dtype):  # 判断所给类型是否存在
+            raise UndefinedTypeError(
+                dtype.name,
+                line=ctx.start.line,
+                column=ctx.start.column
+            )
+
+        constant = Constant(
+            name,
+            dtype
+        )
+
+        self.current_scope.add_symbol(constant)
+
+        self._add_ir_instruction(IRDeclare(constant))
+        self._add_ir_instruction(IRAssign(constant, value))
+        return Result(Reference(ValueType.CONSTANT, constant))
 
     # 处理函数定义
     def visitFunctionDecl(
@@ -212,7 +261,12 @@ class MCGenerator(McFuncDSLVisitor):
         return_type = self._get_type_definition(ctx.type_().getText())
 
         if self.current_scope.has_symbol(func_name):
-            raise DuplicateDefinitionError(func_name)
+            raise DuplicateDefinitionError(
+                func_name,
+                line=ctx.start.line,
+                column=ctx.start.column,
+                filename=self.filename
+            )
 
         params_list: list[Variable] = []
         params: McFuncDSLParser.ParamListContext = ctx.paramList()
@@ -260,8 +314,9 @@ class MCGenerator(McFuncDSLVisitor):
             return Result.from_literal(None, DataType.NULL)
         elif value[0] == 'f':
             temp_var = Variable(uuid.uuid4().hex, DataType.FSTRING)
-            self._add_ir_instruction(IRDeclareTemp(temp_var))
-            self._add_ir_instruction(IRFstring(temp_var, Reference(ValueType.LITERAL, value[2:-1])))
+            self._add_ir_instruction(IRDeclare(temp_var))
+            self._add_ir_instruction(
+                IRFstring(temp_var, Reference(ValueType.LITERAL, value[2:-1])))
             return Result(Reference(ValueType.VARIABLE, temp_var))
         elif self._is_number(value):
             return Result.from_literal(int(value), DataType.INT)
@@ -274,11 +329,13 @@ class MCGenerator(McFuncDSLVisitor):
         class_name = ctx.ID().getText()
         types = ctx.type_()
         # 使用规则显式检查
-        parent: Class | None = self._get_type_definition(types[0].getText()) if ctx.EXTENDS() else None
+        parent: Class | None = self._get_type_definition(
+            types[0].getText()) if ctx.EXTENDS() else None
         # 接口位置取决于EXTENDS是否存在
         interface: Class | None = self._get_type_definition(
             types[1].getText()) if ctx.EXTENDS() and ctx.IMPLEMENTS() else (
-            self._get_type_definition(types[0].getText()) if not ctx.EXTENDS() and ctx.IMPLEMENTS() else None
+            self._get_type_definition(
+                types[0].getText()) if not ctx.EXTENDS() and ctx.IMPLEMENTS() else None
         )
         constants: set[Reference[Constant]] = set()
         variables: list[Reference[Variable]] = []
@@ -295,10 +352,20 @@ class MCGenerator(McFuncDSLVisitor):
         with self.scoped_environment(class_name, StructureType.CLASS) as class_scope:
             # 处理继承
             if parent:
-                pass  # TODO:处理继承
+                raise MissingImplementationError(
+                    "类继承",
+                    line=ctx.start.line,
+                    column=ctx.start.column,
+                    filename=self.filename
+                )  # TODO:处理继承
 
             if interface:
-                pass  # TODO:接口实现
+                raise MissingImplementationError(
+                    "接口实现",
+                    line=ctx.start.line,
+                    column=ctx.start.column,
+                    filename=self.filename
+                )  # TODO:接口实现
 
             # 处理字段和方法
 
@@ -322,18 +389,27 @@ class MCGenerator(McFuncDSLVisitor):
             with self.scoped_environment(f"while_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
                 self.visit(ctx.block())
             # 评估条件表达式
-            if isinstance(cond, McFuncDSLParser.CompareExprContext):
-                # 从检查函数调用循环体
-                condition_expr = self.visit(cond)
-                condition_var = condition_expr.value
-            else:
+            if not isinstance(cond, (McFuncDSLParser.CompareExprContext, McFuncDSLParser.LogicalOrExprContext,
+                                     McFuncDSLParser.LogicalAndExprContext, McFuncDSLParser.LogicalNotExprContext)):
                 raise InvalidSyntaxError(
                     ctx.expr().getText(),
                     line=ctx.start.line,
-                    column=ctx.start.column
+                    column=ctx.start.column,
+                    filename=self.filename
                 )
-            self._add_ir_instruction(IRCondJump(condition_var.value, loop_body.name))
-            self._add_ir_instruction(IRCondJump(condition_var.value, loop_check.name))
+
+            # 从检查函数调用循环体
+            condition_expr = self.visit(cond)
+            condition_var = condition_expr.value
+
+            self._add_ir_instruction(
+                IRCondJump(
+                    condition_var.value,
+                    loop_body.name))
+            self._add_ir_instruction(
+                IRCondJump(
+                    condition_var.value,
+                    loop_check.name))
         self._add_ir_instruction(IRJump(loop_check.name))
 
     def visitForStmt(self, ctx: McFuncDSLParser.ForStmtContext):
@@ -364,7 +440,9 @@ class MCGenerator(McFuncDSLVisitor):
 
                     # 评估条件表达式
                     if for_control_cond:
-                        if isinstance(for_control_cond, McFuncDSLParser.CompareExprContext):
+                        if isinstance(for_control_cond,
+                                      (McFuncDSLParser.CompareExprContext, McFuncDSLParser.LogicalOrExprContext,
+                                       McFuncDSLParser.LogicalAndExprContext, McFuncDSLParser.LogicalNotExprContext)):
                             # 从检查函数调用循环体
                             condition_expr = self.visit(for_control_cond)
                             condition_var = condition_expr.value
@@ -375,13 +453,26 @@ class MCGenerator(McFuncDSLVisitor):
                                 column=ctx.start.column
                             )
                     else:
-                        condition_var = Reference(ValueType.LITERAL, Literal(DataType.BOOLEAN, True))
-                    self._add_ir_instruction(IRCondJump(condition_var.value, loop_body.name))
-                    self._add_ir_instruction(IRCondJump(condition_var.value, loop_check.name))
+                        condition_var = Reference(
+                            ValueType.LITERAL, Literal(
+                                DataType.BOOLEAN, True))
+                    self._add_ir_instruction(
+                        IRCondJump(
+                            condition_var.value,
+                            loop_body.name))
+                    self._add_ir_instruction(
+                        IRCondJump(
+                            condition_var.value,
+                            loop_check.name))
 
             self._add_ir_instruction(IRJump(loop.name))
         else:  # 增强for循环
-            raise CompilerSyntaxError('暂未实现')
+            raise MissingImplementationError(
+                "增强for循环",
+                line=ctx.start.line,
+                column=ctx.start.column,
+                filename=self.filename
+            )  # TODO:增强for循环实现
         return Result(None)
 
     def visitIfStmt(self, ctx: McFuncDSLParser.IfStmtContext):
@@ -390,7 +481,8 @@ class MCGenerator(McFuncDSLVisitor):
         condition_expr: Result | None = None
         if isinstance(  # 判断expr是否为CompareExpr
                 ctx.expr(),
-                McFuncDSLParser.CompareExprContext):
+                (McFuncDSLParser.CompareExprContext, McFuncDSLParser.LogicalOrExprContext,
+                 McFuncDSLParser.LogicalAndExprContext, McFuncDSLParser.LogicalNotExprContext)):
             # 计算条件表达式
             condition_expr = self.visit(ctx.expr())
         elif isinstance(
@@ -398,16 +490,19 @@ class MCGenerator(McFuncDSLVisitor):
                 McFuncDSLParser.PrimaryExprContext):
             condition_expr = self.visit(ctx.expr())
             if condition_expr.value.get_data_type() != DataType.BOOLEAN:
-                raise InvalidSyntaxError(
-                    ctx.expr().getText(),
+                raise TypeMismatchError(
+                    expected_type=DataType.BOOLEAN,
+                    actual_type=condition_expr.value.get_data_type(),
                     line=ctx.start.line,
-                    column=ctx.start.column
+                    column=ctx.start.column,
+                    filename=self.filename
                 )
         else:
             raise InvalidSyntaxError(
                 ctx.expr().getText(),
                 line=ctx.start.line,
-                column=ctx.start.column
+                column=ctx.start.column,
+                filename=self.filename
             )
 
         # 创建if分支作用域
@@ -417,23 +512,110 @@ class MCGenerator(McFuncDSLVisitor):
         if ctx.block(1):
             with self.scoped_environment(f"else_{if_id}", StructureType.CONDITIONAL) as else_scope:
                 self.visit(ctx.block(1))
-            self._add_ir_instruction(IRCondJump(condition_expr.value.value, if_scope.name, else_scope.name))
+            self._add_ir_instruction(
+                IRCondJump(
+                    condition_expr.value.value,
+                    if_scope.name,
+                    else_scope.name))
         else:
-            self._add_ir_instruction(IRCondJump(condition_expr.value.value, if_scope.name))
+            self._add_ir_instruction(
+                IRCondJump(
+                    condition_expr.value.value,
+                    if_scope.name))
         return Result(None)
 
     def visitCompareExpr(self, ctx):
-        left = self.visit(ctx.expr(0)).value
-        right = self.visit(ctx.expr(1)).value
+        left: Reference = self.visit(ctx.expr(0)).value
+        right: Reference = self.visit(ctx.expr(1)).value
         op = ctx.getChild(1).getText()
-
+        if left.get_data_type() != right.get_data_type():
+            raise TypeMismatchError(
+                expected_type=left.get_data_type(),
+                actual_type=right.get_data_type(),
+                line=ctx.start.line,
+                column=ctx.start.column,
+                filename=self.filename
+            )
         # 生成唯一结果变量
         result_var_name = f"bool_{next(self.cnt)}"
         result_var = Variable(result_var_name,
                               DataType.BOOLEAN)
+        self._add_ir_instruction(IRDeclare(result_var))
+        self._add_ir_instruction(IRCompare(result_var, CompareOps(op), left, right))
 
-        self._add_ir_instruction(IRCompare(result_var, op, left, right))
+        return Result(Reference(ValueType.VARIABLE, result_var))
 
+    def visitLogicalAndExpr(self, ctx: McFuncDSLParser.LogicalAndExprContext):
+        left: Reference = self.visit(ctx.expr(0)).value
+        right: Reference = self.visit(ctx.expr(1)).value
+
+        if left.value_type not in (ValueType.VARIABLE, ValueType.CONSTANT) or right.value_type not in (
+                ValueType.VARIABLE, ValueType.CONSTANT):
+            raise TypeMismatchError(
+                expected_type=DataType.BOOLEAN,
+                actual_type=left.get_data_type() if left.value_type not in (ValueType.VARIABLE, ValueType.CONSTANT)
+                else right.get_data_type(),
+                line=ctx.expr(0).start.line,
+                column=ctx.expr(0).start.column,
+                filename=self.filename
+            )
+        if left.get_data_type() != DataType.BOOLEAN or right.get_data_type() != DataType.BOOLEAN:
+            raise TypeMismatchError(
+                DataType.BOOLEAN,
+                left.get_data_type(),
+                line=ctx.expr(0).start.line,
+                column=ctx.expr(0).start.column,
+                filename=self.filename
+            )
+        # 生成唯一结果变量
+        result_var_name = f"bool_{next(self.cnt)}"
+        result_var = Variable(result_var_name,
+                              DataType.BOOLEAN)
+        temp_var = Variable(uuid.uuid5(self.uuid_namespace, result_var_name).hex,
+                            DataType.INT)
+
+        self._add_ir_instruction(IRDeclare(temp_var))
+        self._add_ir_instruction(IROp(temp_var, BinaryOps.MUL, left, right))
+        self._add_ir_instruction(IRDeclare(result_var))
+        self._add_ir_instruction(IRCompare(result_var, CompareOps.EQ, Reference(ValueType.VARIABLE, temp_var),
+                                           Reference(ValueType.LITERAL, Literal(DataType.INT, 1))))
+        return Result(Reference(ValueType.VARIABLE, result_var))
+
+    def visitLogicalOrExpr(self, ctx: McFuncDSLParser.LogicalOrExprContext):
+        left: Reference = self.visit(ctx.expr(0)).value
+        right: Reference = self.visit(ctx.expr(1)).value
+
+        if left.value_type not in (ValueType.VARIABLE, ValueType.CONSTANT) or right.value_type not in (
+                ValueType.VARIABLE, ValueType.CONSTANT):
+            raise TypeMismatchError(
+                expected_type=DataType.BOOLEAN,
+                actual_type=left.get_data_type() if left.value_type not in (ValueType.VARIABLE, ValueType.CONSTANT)
+                else right.get_data_type(),
+                line=ctx.expr(0).start.line,
+                column=ctx.expr(0).start.column,
+                filename=self.filename
+            )
+        if left.get_data_type() != DataType.BOOLEAN or right.get_data_type() != DataType.BOOLEAN:
+            raise TypeMismatchError(
+                DataType.BOOLEAN,
+                left.get_data_type(),
+                line=ctx.expr(0).start.line,
+                column=ctx.expr(0).start.column,
+                filename=self.filename
+            )
+        # 生成唯一结果变量
+        result_var_name = f"bool_{next(self.cnt)}"
+        result_var = Variable(result_var_name,
+                              DataType.BOOLEAN)
+        temp_var = Variable(uuid.uuid5(self.uuid_namespace, result_var_name).hex,
+                            DataType.INT)
+
+        self._add_ir_instruction(IRDeclare(temp_var))
+        self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left, right))
+        self._add_ir_instruction(IRDeclare(result_var))
+        self._add_ir_instruction(IRCompare(result_var, CompareOps.LT,
+                                           Reference(ValueType.LITERAL, Literal(DataType.INT, 0)),
+                                           Reference(ValueType.VARIABLE, temp_var)))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitVarExpr(
@@ -442,15 +624,21 @@ class MCGenerator(McFuncDSLVisitor):
         var_name = ctx.ID().getText()
         try:
             symbol: NewSymbol = self.current_scope.resolve_symbol(var_name)
-            if not isinstance(symbol, Variable | Constant):
-                raise
-        except ValueError as e:
+            if not isinstance(symbol, (Variable, Constant)):
+                raise UnexpectedError(
+                    f"符号 '{var_name}' 不是变量或常量",
+                    line=ctx.start.line,
+                    column=ctx.start.column,
+                    filename=self.filename
+                )
+        except ValueError:
             raise UndefinedVariableError(
                 var_name,
                 line=ctx.start.line,
-                column=ctx.start.column
-            ) from e
-        return Result(Reference(symbol.value, symbol))
+                column=ctx.start.column,
+                filename=self.filename
+            )
+        return Result(Reference(ValueType.VARIABLE, symbol))
 
     def visitAssignment(
             self,
@@ -460,14 +648,28 @@ class MCGenerator(McFuncDSLVisitor):
 
         try:
             var: NewSymbol = self.current_scope.resolve_symbol(var_name)
-            assert isinstance(var, Variable)  # TODO:使用更好的报错
+            if isinstance(var, Constant):
+                raise CompilerSyntaxError(
+                    f"不能修改常量 '{var_name}'",
+                    line=ctx.start.line,
+                    column=ctx.start.column,
+                    filename=self.filename
+                )
+            elif not isinstance(var, Variable):
+                raise UnexpectedError(
+                    f"符号 '{var_name}' 不是变量",
+                    line=ctx.start.line,
+                    column=ctx.start.column,
+                    filename=self.filename
+                )
             # 类型检查
             if var.dtype != expr_result.value.get_data_type():
                 raise TypeMismatchError(
                     expected_type=var.dtype,
                     actual_type=expr_result.value.get_data_type(),
-                    line=ctx.start.line,
-                    column=ctx.start.column
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
+                    filename=self.filename
                 )
         except ValueError:
             raise UndefinedVariableError(
@@ -490,8 +692,8 @@ class MCGenerator(McFuncDSLVisitor):
         result_var = Variable(result_name,
                               left.value.get_data_type() or right.value.get_data_type())
 
-        self._add_ir_instruction(IRDeclareTemp(result_var))
-        self._add_ir_instruction(IROp(result_var, op, left.value, right.value))
+        self._add_ir_instruction(IRDeclare(result_var))
+        self._add_ir_instruction(IROp(result_var, BinaryOps(op), left.value, right.value))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitAddSubExpr(
@@ -506,8 +708,8 @@ class MCGenerator(McFuncDSLVisitor):
         result_var = Variable(result_name,
                               left.value.get_data_type() or right.value.get_data_type())
 
-        self._add_ir_instruction(IRDeclareTemp(result_var))
-        self._add_ir_instruction(IROp(result_var, op, left.value, right.value))
+        self._add_ir_instruction(IRDeclare(result_var))
+        self._add_ir_instruction(IROp(result_var, BinaryOps(op), left.value, right.value))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitDirectFuncCall(
@@ -524,15 +726,42 @@ class MCGenerator(McFuncDSLVisitor):
 
             args: list[Reference] = []
             if ctx.argumentList().exprList():
-                for arg_expr in ctx.argumentList().exprList():
-                    args.append(self.visit(arg_expr).value)
-
+                for i, (arg_expr, param) in enumerate(
+                        zip(ctx.argumentList().exprList().expr(), func_symbol.params)):
+                    arg_result = self.visit(arg_expr)
+                    args.append(arg_result.value)
+                    if param.dtype != arg_result.value.get_data_type():
+                        raise ArgumentTypeMismatchError(
+                            param_name=param.name,
+                            expected=param.dtype.name,
+                            actual=arg_result.value.get_data_type().name,
+                            line=arg_expr.start.line,
+                            column=arg_expr.start.column,
+                            filename=self.filename
+                        )
+                if  len(ctx.argumentList().exprList().expr()) != len(func_symbol.params):
+                    raise InvalidSyntaxError(
+                        f"参数数量不匹配: 期望 {len(func_symbol.params)} 个参数，实际 {len(ctx.argumentList().exprList().expr())} 个",
+                        line=ctx.start.line,
+                        column=ctx.start.column,
+                        filename=self.filename
+                    )
+            else:
+                if len(func_symbol.params) != 0:
+                    raise InvalidSyntaxError(
+                        f"意外的实参",
+                        line=ctx.start.line,
+                        column=ctx.start.column,
+                        filename=self.filename
+                    )
             self._add_ir_instruction(IRCall(result_var, func_symbol, args))
         else:
-            raise UndefinedVariableError(
+            raise NotCallableError(
                 func_name,
+                func_symbol.__class__.__name__,
                 line=ctx.start.line,
-                column=ctx.start.column
+                column=ctx.start.column,
+                filename=self.filename
             )
 
         return Result(Reference(ValueType.VARIABLE, result_var))
@@ -587,9 +816,23 @@ class MCGenerator(McFuncDSLVisitor):
         return Result(None)
 
     def visitContinueStmt(self, ctx: McFuncDSLParser.ContinueStmtContext):
+        if not self._is_in_loop():
+            raise InvalidControlFlowError(
+                "break 语句只能在循环结构中使用",
+                line=ctx.start.line,
+                column=ctx.start.column,
+                filename=self.filename
+            )
         self._add_ir_instruction(IRContinue())
         return Result(None)
 
     def visitBreakStmt(self, ctx: McFuncDSLParser.ContinueStmtContext):
+        if not self._is_in_loop():
+            raise InvalidControlFlowError(
+                "break 语句只能在循环结构中使用",
+                line=ctx.start.line,
+                column=ctx.start.column,
+                filename=self.filename
+            )
         self._add_ir_instruction(IRBreak())
         return Result(None)

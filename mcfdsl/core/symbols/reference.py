@@ -1,13 +1,14 @@
 # coding=utf-8
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypeVar, Generic
 
 from mcfdsl.core.symbols.base import NewSymbol
 
 if TYPE_CHECKING:
-    from mcfdsl.core.language_types import ValueType, DataType
+    from mcfdsl.core.language_enums import ValueType, DataType
     from mcfdsl.core.symbols import Class, Constant, Literal, Variable, Function
 T = TypeVar(
     'T',
@@ -15,10 +16,16 @@ T = TypeVar(
 )
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Reference(NewSymbol, Generic[T]):
     value_type: ValueType
     value: T
+
+    def __post_init__(self):
+        if isinstance(self.value, Reference):
+            warnings.warn("多重引用")
+            self.value_type = self.value.value_type
+            self.value = self.value.value
 
     def get_name(self) -> str:
         return self.value.get_name()

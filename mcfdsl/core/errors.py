@@ -1,5 +1,5 @@
 # coding=utf-8
-from mcfdsl.core.language_types import DataType
+from mcfdsl.core.language_enums import DataType
 
 
 class CompilationError(Exception):
@@ -179,3 +179,33 @@ class InvalidControlFlowError(CompilationError):
             line=line,
             column=column,
             filename=filename)
+
+
+class MissingImplementationError(CompilerSyntaxError):
+    """未实现的功能错误"""
+
+    def __init__(self, feature: str, line: int = None,
+                 column: int = None, filename: str = None):
+        msg = f"功能 '{feature}' 暂未实现"
+        super().__init__(msg, line=line, column=column, filename=filename)
+
+
+class RecursionError(CompilationError):
+    """递归深度错误"""
+
+    def __init__(self, msg: str, line: int = None,
+                 column: int = None, filename: str = None):
+        super().__init__(f"递归错误: {msg}",
+                         line=line, column=column, filename=filename)
+
+
+class NotCallableError(TypeMismatchError):
+    """不可调用错误"""
+
+    def __init__(self, symbol_name: str, actual_type: str,
+                 line: int = None, column: int = None, filename: str = None):
+        msg = f"符号 '{symbol_name}' (类型 {actual_type}) 不可调用"
+        super().__init__(
+            "可调用类型", actual_type,
+            line=line, column=column, filename=filename,
+            msg=msg)

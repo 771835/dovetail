@@ -34,7 +34,8 @@ class SafeEnum(Enum):
         """重载不等于运算符，添加类型安全检查"""
         return self._type_checked_compare(other, super().__ne__)
 
-    def _type_checked_compare(self, other: Any, compare_func: Callable) -> bool:
+    def _type_checked_compare(self, other: Any,
+                              compare_func: Callable) -> bool:
         """
         执行类型检查并调用比较函数
 
@@ -109,3 +110,6 @@ class SafeEnum(Enum):
     def names(cls) -> tuple:
         """获取枚举所有名称的元组"""
         return tuple(member.name for member in cls)
+
+    def __hash__(self):
+        return hash(self.value)

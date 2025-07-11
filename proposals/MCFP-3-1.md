@@ -31,7 +31,7 @@
 | 指令           | 参数                                   | 备注                    |
 |--------------|--------------------------------------|-----------------------|
 | DECLARE      | `<variable>`                         | 声明变量                  |
-| DECLARE_TEMP | `<variable>`                         | 声明临时变量（自动生命周期管理）      |
+| DECLARE_TEMP | `<variable>`                         | 声明临时变量（自动生命周期管理）弃用    |
 | VAR_RELEASE  | `<name>`                             | 显式释放变量资源              |
 | ASSIGN       | `<target>` `<source>`                | 赋值操作                  |
 | UNARY_OP     | `<result>` `<op>` `<operand>`        | 一元运算（如 `-a`, `!b`）    |

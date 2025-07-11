@@ -1,13 +1,22 @@
 # coding=utf-8
 from typing import Callable
 
-from mcfdsl.core._interfaces import ISymbol
-from mcfdsl.core.language_types import TargetSelectorVariables
 from mcfdsl.core.lib.lib_base import Lib
+from mcfdsl.core.safe_enum import SafeEnum
+from mcfdsl.core.symbols import Constant
+
+
+class TargetSelectorVariables(SafeEnum):
+    NEAREST_PLAYER = "@p"
+    RANDOM_PLAYER = "@r"
+    ALL_PLAYER = "@a"
+    ALL_ENTITIES = "@e"
+    ENTITY_EXECUTING_COMMAND = "@s"
+    NEAREST_ENTITY = "@n"
 
 
 class Selector(Lib):
-    def const(self) -> list[ISymbol]:
+    def const(self) -> list[Constant]:
         pass
 
     def load(self) -> None:
