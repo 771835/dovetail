@@ -60,12 +60,13 @@ class IROpCode(SafeEnum):
 
 class IRInstruction:
     def __init__(self, opcode: IROpCode,
-                 operands: list[Any], line: int = -1, column: int = -1, filename: str = None):
+                 operands: list[Any], line: int = -1, column: int = -1, filename: str = None, debug: bool = False):
         self.filename = filename
         self.column = column
         self.line = line
         self.operands = operands
         self.opcode = opcode
+        self.debug = debug
 
     def __repr__(self):
         ops = ", ".join(f"{op=}" for op in self.operands)
@@ -125,7 +126,7 @@ class IRReturn(IRInstruction):
 class IRCall(IRInstruction):
     def __init__(self, result: Variable | Constant, func: Function,
                  args: list[Reference[Variable | Constant | Literal]] = None, line: int = -1, column: int = -1,
-                 filename: str = None, opcode:IROpCode = None):
+                 filename: str = None, opcode: IROpCode = None):
         if args is None:
             args = []
         operands = [
@@ -137,6 +138,7 @@ class IRCall(IRInstruction):
 
     def __hash__(self):
         return hash((self.operands[0], self.operands[1], tuple(self.operands[2])))
+
 
 class IRCallInline(IRCall):
     def __init__(self, result: Variable | Constant, func: Function,

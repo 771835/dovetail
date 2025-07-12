@@ -33,9 +33,9 @@ class BinaryOps(SafeEnum):
     SHL = '<<'  # 左移: a<<b
     SHR = '>>'  # 右移 (逻辑): a>>b
 
-#    # 逻辑运算 (需布尔操作数)
-#    AND = '&&'  # 逻辑与: a&&b
-#    OR = '||'  # 逻辑或: a||b
+    #    # 逻辑运算 (需布尔操作数)
+    #    AND = '&&'  # 逻辑与: a&&b
+    #    OR = '||'  # 逻辑或: a||b
 
     # 特殊功能
     MIN = 'min'  # 最小值: min(a,b)
@@ -56,7 +56,7 @@ class DataType(SafeEnum):
     """基础数据类型：表示变量的存储类型"""
     INT = 'int'
     STRING = 'string'
-    FSTRING = 'fstring'  # 特殊类型，将在编译时改为STRING # TODO:改为运行时拼接
+    FSTRING = 'fstring'  # 特殊类型，将在编译时改为STRING
     BOOLEAN = 'boolean'
     VOID = 'void'
     NULL = 'null'  # 特殊类型，不可为声明变量时的类型
@@ -86,3 +86,10 @@ class ValueType(SafeEnum):
     CLASS = "class"
     ERROR = "error"  # 错误
     OTHER = 'other'
+
+
+class VariableType(SafeEnum):
+    """变量类型"""
+    ARGUMENT = "argument"
+    GENERAL = "general"
+    RETURN = "return"

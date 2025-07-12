@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import SupportsIndex
 
-from mcfdsl.core.ir.instructions import IRInstruction
+from mcfdsl.core.backend.instructions import IRInstruction
 
 
 class IRBuilder:
@@ -83,6 +83,7 @@ class IRBuilderIterator:
             self.index -= 1
 
         self._last_index = -1  # 重置最后返回位置
+
         return removed
 
     def remove_at(self, index: int) -> IRInstruction:

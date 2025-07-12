@@ -9,7 +9,7 @@ program
     ;
 
 includeStmt
-    : INCULDE literal SEMI             // 导入库文件，如：include "minecraft_utils.mcdl";
+    : INCULDE literal SEMI?             // 导入库文件，如：include "minecraft_utils.mcdl";
     ;
 
 /* 2. 注解系统 */
@@ -34,7 +34,7 @@ classDecl
 
 interfaceDecl
     : annotation* INTERFACE ID
-      (EXTENDS type)?                  // 接口多继承
+      (EXTENDS type)?                  // 接口单继承
       LBRACE 
         (interfaceMethodDecl
         )* 
@@ -43,7 +43,7 @@ interfaceDecl
 
 
 interfaceMethodDecl
-    : annotation* METHOD ID paramList (':' type) SEMI
+    : annotation* METHOD ID paramList (':' type) SEMI?
     ;
 
 /* 4. 类型系统(阉割版) */
@@ -97,18 +97,18 @@ block
 
 /* 6. 流程控制 */
 statement
-    : commandExpr SEMI                          // 命令表达式
+    : commandExpr SEMI?                          // 命令表达式
     | varDecl                               // 变量声明
     | constDecl                             // 常量声明
     | forStmt                               // for循环
     | whileStmt                             // while循环
-    | assignment SEMI                        // 赋值
-    | expr SEMI                              // 表达式语句
-    | returnStmt SEMI                        // 返回
+    | assignment SEMI?                        // 赋值
+    | expr SEMI?                              // 表达式语句
+    | returnStmt SEMI?                        // 返回
     | block                                 // 代码块
     | ifStmt                                // 条件语句
-    | breakStmt SEMI                        // break语句
-    | continueStmt SEMI                     // continue语句
+    | breakStmt SEMI?                        // break语句
+    | continueStmt SEMI?                     // continue语句
     | functionDecl
     ;
 
@@ -136,8 +136,8 @@ whileStmt
     ;
 
 constDecl
-    : 'const' ID (':' type) ('=' expr) SEMI  // 常量声明
-    | 'const' type ID ('=' expr) SEMI
+    : 'const' ID (':' type) ('=' expr) SEMI?  // 常量声明
+    | 'const' type ID ('=' expr) SEMI?
     ;
 
 // 公共规则
@@ -148,8 +148,8 @@ varDeclaration
 
 // 变量声明（带分号）
 varDecl
-    : VAR varDeclaration SEMI
-    | varDeclaration SEMI
+    : VAR varDeclaration SEMI?
+    | varDeclaration SEMI?
     ;
 
 // for 循环变量声明（无分号）

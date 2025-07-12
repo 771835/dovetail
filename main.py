@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
-import os
+import os.path
 import sys
 import time
 
@@ -13,11 +13,11 @@ from antlr4.error.ErrorListener import ErrorListener
 
 from mcfdsl.core.DSLParser import McFuncDSLLexer
 from mcfdsl.core.DSLParser import McFuncDSLParser
+from mcfdsl.core.backend.instructions import IRScopeBegin, IRScopeEnd
+from mcfdsl.core.backend.optimizer.o_je_1204 import Optimizer
+from mcfdsl.core.backend.specification import OptimizationLevel, MinecraftEdition, MinecraftVersion
 from mcfdsl.core.errors import CompilationError
-from mcfdsl.core.generator import MCGenerator
-from mcfdsl.core.ir.instructions import IRScopeBegin, IRScopeEnd
-from mcfdsl.core.ir.ir_specification import OptimizationLevel
-from mcfdsl.core.ir.optimizer.o_je_1204 import Optimizer
+from mcfdsl.core.ir_generator import MCGenerator
 
 
 class ThrowingErrorListener(ErrorListener):
@@ -61,9 +61,12 @@ class ThrowingErrorListener(ErrorListener):
 
 
 def compile_mcdl(source_path, target_path,
-                 optimization_level: OptimizationLevel, debug=False):
+                 optimization_level: OptimizationLevel, debug=False,
+                 minecraft_version=MinecraftVersion(1, 20, 4, MinecraftEdition.JAVA_EDITION),
+                 namespace: str = None):
     source_path = os.path.abspath(source_path)
     target_path = os.path.abspath(target_path)
+    namespace = namespace or "example"
     with contextlib.chdir(os.path.dirname(source_path)):
         start_time = time.time()
         input_stream = FileStream(source_path, "utf-8")
@@ -109,11 +112,12 @@ def compile_mcdl(source_path, target_path,
             if listener.error:
                 sys.stderr.write(listener.buffer.getvalue())
                 return 1
-            generator = MCGenerator("mc_dsl")
+            generator = MCGenerator(namespace)
             generator.visit(tree)
             # 输出到target目录
             ir_builder = generator.get_generate_ir()
-            ir_builder = Optimizer(ir_builder, optimization_level).optimize()
+            ir_builder = Optimizer(ir_builder, optimization_level, debug).optimize()
+            # CodeGenerator(ir_builder, target_path, debug, namespace).generate_commands()
             depth = 0
             for i in ir_builder:
                 if isinstance(i, IRScopeEnd):
@@ -156,11 +160,21 @@ if __name__ == "__main__":
         metavar='output',
         type=str,
         help='输出文件路径')
+    parser.add_argument(
+        '--namespace',
+        '-n',
+        metavar='namespace',
+        type=str,
+        help='输出数据包命名空间')
+
     parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2], default=1,
                         help='优化级别')
     parser.add_argument('--debug', action='store_true',
                         help='启用调试模式')
+
     args = parser.parse_args()
 
     sys.exit(compile_mcdl(source_path=args.input, target_path=args.output or "target",
-                          optimization_level=OptimizationLevel(args.O), debug=args.debug))
+                          optimization_level=OptimizationLevel(args.O), debug=args.debug,
+                          minecraft_version=MinecraftVersion.from_str(args.minecraft_version, "je"),
+                          namespace=args.namespace))

@@ -1,19 +1,22 @@
-# coding=utf-8
 from __future__ import annotations
 
 from mcfdsl.core.language_enums import StructureType
-from mcfdsl.core.symbols.base import NewSymbol
+from mcfdsl.core.symbols import NewSymbol
 
 
-class Scope:
-    def __init__(self, name: str, parent: Scope | None,
+class CodeGeneratorScope:
+    def __init__(self, name: str, parent: CodeGeneratorScope | None,
                  structure_type: StructureType, namespace: str):
         self.namespace = namespace
         self.name = name
         self.parent = parent
         self.type = structure_type
         self.symbols: dict[str, NewSymbol] = dict()  # 符号表（变量/函数/类）
-        self.children: list[Scope] = list()  # 子作用域
+        self.children: list[CodeGeneratorScope] = list()  # 子作用域
+        self.commands: list[str] = list()
+
+    def add_command(self, command: str):
+        self.commands.append(command)
 
     def get_name(self):
         return self.name
@@ -24,13 +27,25 @@ class Scope:
     def get_minecraft_function_path(self):
         return f"{self.namespace}:{self.get_unique_name()}".replace("\\", "/")
 
-    def get_unique_name(self):
+    def get_unique_name(self, separator='/'):
         if self.type == StructureType.GLOBAL or self.type is None:
             return "global"
-        return self.parent.get_unique_name() + '/' + self.name
+        return self.parent.get_unique_name(separator) + separator + self.name
 
-    def create_child(self, name: str, type_: StructureType) -> Scope:
-        child = Scope(name, self, type_, self.namespace)
+    def get_symbol_path(self, name: str):
+        name = str(name)
+        current = self
+        while current:
+            if name in current.symbols:
+                break
+            current = current.parent
+        if current:
+            return f"{current.get_unique_name()}.{name}"
+        else:
+            return name
+
+    def create_child(self, name: str, type_: StructureType) -> CodeGeneratorScope:
+        child = CodeGeneratorScope(name, self, type_, self.namespace)
         self.children.append(child)
         return child
 
@@ -67,7 +82,7 @@ class Scope:
         else:
             raise ValueError(f"Undefined symbol: {name}")
 
-    def find_scope(self, name: str) -> Scope:
+    def find_scope(self, name: str) -> CodeGeneratorScope:
         """只在单层查找作用域"""
         name = str(name)
         for i in self.children:
@@ -75,7 +90,7 @@ class Scope:
                 return i
         raise ValueError(f"Undefined symbol: {name}")
 
-    def resolve_scope(self, name: str) -> Scope:
+    def resolve_scope(self, name: str) -> CodeGeneratorScope:
         """逐级向上查找该作用域可访问到的作用域"""
         name = str(name)
         current = self
@@ -85,7 +100,7 @@ class Scope:
             current = current.parent
         raise ValueError(f"Undefined scope: {name}")
 
-    def get_parent(self) -> Scope:
+    def get_parent(self) -> CodeGeneratorScope:
         if self.parent:
             return self.parent
         else:

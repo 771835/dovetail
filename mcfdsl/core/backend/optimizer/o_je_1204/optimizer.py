@@ -5,18 +5,21 @@ import copy
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from itertools import count
 from typing import NoReturn
 
-from mcfdsl.core.ir.instructions import *
-from mcfdsl.core.ir.ir_builder import IRBuilder, IRBuilderIterator
-from mcfdsl.core.ir.ir_specification import IROptimizerSpec, OptimizationLevel, MinecraftEdition, IROptimizationPass
-from mcfdsl.core.language_enums import ValueType, DataType
+from mcfdsl.core.backend.instructions import *
+from mcfdsl.core.backend.ir_builder import IRBuilder, IRBuilderIterator
+from mcfdsl.core.backend.specification import IROptimizerSpec, OptimizationLevel, MinecraftEdition, \
+    IROptimizationPass, MinecraftVersion
+from mcfdsl.core.language_enums import ValueType, DataType, VariableType
 from mcfdsl.core.symbols import Variable, Reference, Constant, Literal
 
 
 class Optimizer(IROptimizerSpec):
     def __init__(self, builder: IRBuilder,
-                 level: OptimizationLevel = OptimizationLevel.O0):
+                 level: OptimizationLevel = OptimizationLevel.O0, debug: bool = False):
+        self.debug = debug
         self.level = level
         self.initial_builder = builder
         self.builder = copy.deepcopy(builder)  # 防止修改初始状态
@@ -24,8 +27,9 @@ class Optimizer(IROptimizerSpec):
 
     @classmethod
     def is_support(
-            cls, version: tuple[int, int, int, MinecraftEdition]) -> bool:
-        if version[0] == 1 and version[1] == 20 and version[0] == 4 and version[3] == MinecraftEdition.JAVA_EDITION:
+            cls, version: MinecraftVersion) -> bool:
+
+        if version.major == 1 and version.minor == 20 and version.patch == 4 and version.edition == MinecraftEdition.JAVA_EDITION:
             return True
         else:
             return False
@@ -42,16 +46,24 @@ class Optimizer(IROptimizerSpec):
         if self.level >= OptimizationLevel.O2:
             optimization_pass.append(UselessScopeRemovalPass)
         last_hash = hash(tuple(self.builder.get_instructions()))
+        iteration = count()
         while True:
+            if self.debug:
+                print(f"[DEBUG: Optimizer] Optimization iteration {next(iteration)} started.")
+
             for _ in optimization_pass:
-                pass_ = _(self.builder)
+                if self.debug:
+                    print(f"[DEBUG: {_.__name__}] Starting optimization pass...")
+                pass_ = _(self.builder, self.debug)
                 pass_.exec()
+                if self.debug:
+                    print(f"[DEBUG: {_.__name__}] Complete optimization pass...")
+
             now_hash = hash(tuple(self.builder.get_instructions()))
             if now_hash != last_hash:
                 last_hash = now_hash
             else:
                 break
-
 
         return self.builder
 
@@ -73,6 +85,7 @@ class ConstantFoldingPass(IROptimizationPass):
                 SymbolTable: 嵌套的作用域/子语言符号表
         """
         name: str
+        stype: StructureType
         table: dict[str, Reference | ConstantFoldingPass.FoldingFlags | ConstantFoldingPass.SymbolTable] = field(
             default_factory=dict)
         parent: ConstantFoldingPass.SymbolTable | None = None
@@ -93,19 +106,22 @@ class ConstantFoldingPass(IROptimizationPass):
         def add(self, name: str, value: Reference | ConstantFoldingPass.FoldingFlags):
             self.table[name] = value
 
-        def create_child(self, name: str) -> ConstantFoldingPass.SymbolTable:
-            return ConstantFoldingPass.SymbolTable(name, parent=self)
+        def create_child(self, name: str, stype: StructureType) -> ConstantFoldingPass.SymbolTable:
+            return ConstantFoldingPass.SymbolTable(name, parent=self, stype=stype)
 
         def find(self, name: str):
+            if self.stype == StructureType.LOOP:
+                return ConstantFoldingPass.FoldingFlags.UNKNOWN
             if name in self.table:
                 return self.table[name]
             if self.parent is None:
                 return ConstantFoldingPass.FoldingFlags.UNDEFINED
             return self.parent.find(name)
 
-    def __init__(self, builder: IRBuilder):
+    def __init__(self, builder: IRBuilder, debug: bool = False):
         self.builder = builder
-        self.symbol_table = ConstantFoldingPass.SymbolTable("global")
+        self.debug = debug
+        self.symbol_table = ConstantFoldingPass.SymbolTable("global", StructureType.GLOBAL)
         self.current_table: ConstantFoldingPass.SymbolTable = self.symbol_table
 
     def exec(self):
@@ -147,15 +163,16 @@ class ConstantFoldingPass(IROptimizationPass):
         elif value.value_type == ValueType.LITERAL:
             return value
         elif value.value_type in (ValueType.CONSTANT, ValueType.VARIABLE):
-            return self._find(value.name)
+            return self._find(value.get_name())
         else:
             return ConstantFoldingPass.FoldingFlags.UNKNOWN
 
-    def _handle_scope_end(self, iterator: IRBuilderIterator, instr: IRAssign):
+    def _handle_scope_end(self, iterator: IRBuilderIterator, instr: IRScopeEnd):
         self.current_table = self.current_table.parent
 
-    def _handle_scope_begin(self, iterator: IRBuilderIterator, instr: IRAssign):
-        self.current_table: ConstantFoldingPass.SymbolTable = self.current_table.create_child(instr.get_operands()[0])
+    def _handle_scope_begin(self, iterator: IRBuilderIterator, instr: IRScopeBegin):
+        self.current_table: ConstantFoldingPass.SymbolTable = self.current_table.create_child(instr.get_operands()[0],
+                                                                                              instr.get_operands()[1])
 
     def _assign(self, iterator: IRBuilderIterator, instr: IRAssign) -> NoReturn:
         """处理赋值"""
@@ -166,7 +183,7 @@ class ConstantFoldingPass(IROptimizationPass):
             if new_source == ConstantFoldingPass.FoldingFlags.UNKNOWN:
                 pass
             elif new_source == ConstantFoldingPass.FoldingFlags.UNDEFINED:
-                raise RuntimeError(f"未定义的符号{target}")
+                raise RuntimeError(f"未定义的符号{source}")
             else:
                 iterator.set_current(IRAssign(target, new_source))
                 source = new_source
@@ -175,7 +192,7 @@ class ConstantFoldingPass(IROptimizationPass):
 
     def _declare(self, iterator: IRBuilderIterator, instr: IRDeclare):
         var: Variable = instr.get_operands()[0]
-        self.current_table.add(var.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
+        self.current_table.set(var.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
     def _op(self, iterator: IRBuilderIterator, instr: IROp):
         result: Variable = instr.get_operands()[0]
@@ -193,7 +210,7 @@ class ConstantFoldingPass(IROptimizationPass):
             right = right_ref
         else:
             right = self._find(right_ref.get_name())
-        if left == ConstantFoldingPass.FoldingFlags.UNKNOWN or right == ConstantFoldingPass.FoldingFlags.UNKNOWN:
+        if isinstance(left, ConstantFoldingPass.FoldingFlags) or isinstance(right, ConstantFoldingPass.FoldingFlags):
             return
         left: Reference[Literal]
         right: Reference[Literal]
@@ -245,6 +262,14 @@ class ConstantFoldingPass(IROptimizationPass):
                 self._assign(iterator, iterator.current())  # NOQA
             else:
                 pass
+        elif left.get_data_type() == DataType.STRING and right.get_data_type() == DataType.BOOLEAN:
+            if op == BinaryOps.ADD:
+                iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.STRING,
+                                                                                           left.value.value + str(
+                                                                                               right.value.value)))))
+                self._assign(iterator, iterator.current())  # NOQA
+            else:
+                pass
 
     def _compare(self, iterator: IRBuilderIterator, instr: IRCompare):
         result: Variable = instr.get_operands()[0]
@@ -281,7 +306,8 @@ class ConstantFoldingPass(IROptimizationPass):
                                                                                        compare_handlers[op](
                                                                                            left.value.value,
                                                                                            right.value.value)))))
-            self._assign(iterator, iterator.current())  # NOQA
+            self.current_table.set(result.get_name(), iterator.current().get_operands()[1])
+            # self._assign(iterator, iterator.current())  # NOQA
 
     def _unary_op(self, iterator: IRBuilderIterator, instr: IRUnaryOp):
         result: Variable = instr.get_operands()[0]
@@ -312,9 +338,8 @@ class ConstantFoldingPass(IROptimizationPass):
         cond_var: Variable = instr.get_operands()[0]
         true_scope: str = instr.get_operands()[1]
         false_scope: str = instr.get_operands()[2]
-
         value = self._find(cond_var.get_name())
-        if value == ConstantFoldingPass.FoldingFlags.UNKNOWN:
+        if isinstance(value, ConstantFoldingPass.FoldingFlags):
             return
 
         if cond_var.dtype in (DataType.INT, DataType.BOOLEAN):
@@ -331,16 +356,24 @@ class ConstantFoldingPass(IROptimizationPass):
         new_args = []
         for arg_ref in args:
             arg = arg_ref.value
-            arg_value = self._find(arg.get_name())
-            if isinstance(arg_value, ConstantFoldingPass.FoldingFlags):
+
+            if arg_ref.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+                arg_value = self._find(arg.get_name())
+                if isinstance(arg_value, ConstantFoldingPass.FoldingFlags):  # 如果搜不到最终值
+                    new_args.append(arg_ref)
+                else:
+                    new_args.append(arg_value)
+            elif arg_ref.value_type == ValueType.LITERAL:
                 new_args.append(arg_ref)
-                continue
-            new_args.append(arg_value)
+            else:  # 不应该出现，因为传参不可能为类或函数的定义
+                raise
         iterator.set_current(instr.__class__(result, func, new_args))
 
+
 class DeadCodeEliminationPass(IROptimizationPass):
-    def __init__(self, builder: IRBuilder):
+    def __init__(self, builder: IRBuilder, debug: bool = False):
         self.builder = builder
+        self.debug = debug
         self.def_use_graph = {}  # 定义使用图 {var: [uses]}
         self.use_def_graph = {}  # 使用定义图 {var: [defs]}
         self.live_vars = set()  # 活跃变量集合
@@ -365,8 +398,6 @@ class DeadCodeEliminationPass(IROptimizationPass):
             if isinstance(instr, IRAssign):
                 target, source = instr.get_operands()
                 self.def_use_graph[target.name] = []
-
-                # 记录源变量依赖
                 if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
                     if source.get_name() not in self.use_def_graph:
                         self.use_def_graph[source.get_name()] = []
@@ -387,29 +418,40 @@ class DeadCodeEliminationPass(IROptimizationPass):
                         self.def_use_graph[result.get_name()].append(op.get_name())
 
     def _propagate_liveness(self):
-        """传播活跃变量（工作列表算法）"""
         work_list = deque()
-
-        # 初始活跃变量：有副作用的操作涉及的变量
+        current_stype: StructureType = StructureType.GLOBAL
+        # 初始活跃变量：函数参数、返回值、显式声明的变量、for循环的变量
         for instr in self.builder.get_instructions():
-            if self._has_side_effect(instr):
+            if isinstance(instr, IRScopeBegin):
+                current_stype: StructureType = instr.get_operands()[1]
+            elif isinstance(instr, IRDeclare):
+                var = instr.get_operands()[0]
+                if var.var_type in (VariableType.ARGUMENT, VariableType.RETURN):
+                    self.live_vars.add(var.name)
+                    work_list.append(var.name)
+                if current_stype == StructureType.LOOP:  # for循环的变量
+                    self.live_vars.add(var.name)
+                    work_list.append(var.name)
+            elif self._has_side_effect(instr):
                 for op in instr.get_operands():
                     if isinstance(op, Variable):
-                        work_list.append(op.name)
-                        self.live_vars.add(op.name)
-
+                        if op.name not in self.live_vars:
+                            self.live_vars.add(op.name)
+                            work_list.append(op.name)
+            elif isinstance(instr, IRCondJump):
+                cond_var = instr.get_operands()[0]
+                if isinstance(cond_var, Variable):
+                    if cond_var.name not in self.live_vars:
+                        self.live_vars.add(cond_var.name)
+                        work_list.append(cond_var.name)
         # 反向传播活跃性
         while work_list:
             current = work_list.popleft()
-
-            # 如果当前变量定义存在
             if current in self.def_use_graph:
                 for user in self.def_use_graph[current]:
                     if user not in self.live_vars:
                         self.live_vars.add(user)
                         work_list.append(user)
-
-            # 如果当前变量使用存在
             if current in self.use_def_graph:
                 for defin in self.use_def_graph[current]:
                     if defin not in self.live_vars:
@@ -429,7 +471,10 @@ class DeadCodeEliminationPass(IROptimizationPass):
             # 处理赋值指令
             if isinstance(instr, IRAssign):
                 target, source = instr.get_operands()
-                if target.name not in self.live_vars:
+                # 如果变量声明已被删除，则强制删除赋值指令
+                if not self._is_declaration_exists(target.name):
+                    iterator.remove_current()
+                elif target.name not in self.live_vars:
                     iterator.remove_current()
 
             # 处理运算指令
@@ -441,6 +486,13 @@ class DeadCodeEliminationPass(IROptimizationPass):
     def _has_side_effect(self, instr):
         """判断指令是否有副作用"""
         return isinstance(instr, (IRRawCmd, IRFstring, IRReturn, IRCall, IRCallInline))
+
+    def _is_declaration_exists(self, var_name):
+        # 检查变量声明是否存在于IR中
+        for instr in self.builder.get_instructions():
+            if isinstance(instr, IRDeclare) and instr.get_operands()[0].name == var_name:
+                return True
+        return False
 
     def _is_dead_assignment(self, target, source):
         """判断是否是无意义的赋值"""
@@ -455,8 +507,9 @@ class DeadCodeEliminationPass(IROptimizationPass):
 
 
 class DeclareCleanupPass(IROptimizationPass):
-    def __init__(self, builder: IRBuilder):
+    def __init__(self, builder: IRBuilder, debug: bool = False):
         self.builder = builder
+        self.debug = debug
         self.scope_tree = {}  # 作用域树 {scope: parent}
         self.var_scopes = {}  # 变量作用域 {var: scope}
         self.var_references = {}  # 变量引用计数 {var: count}
@@ -490,8 +543,10 @@ class DeclareCleanupPass(IROptimizationPass):
                     scope_stack.pop()
 
     def _analyze_variable_usage(self):
-        """分析变量使用情况"""
+        """增强版变量使用分析"""
         iterator = self.builder.__iter__()
+        scope_stack = []
+        current_scope = "global"
 
         while True:
             try:
@@ -499,20 +554,35 @@ class DeclareCleanupPass(IROptimizationPass):
             except StopIteration:
                 break
 
+            # 作用域跟踪
+            if isinstance(instr, IRScopeBegin):
+                scope_stack.append(instr.get_operands()[0])
+                current_scope = scope_stack[-1]
+            elif isinstance(instr, IRScopeEnd):
+                if scope_stack:
+                    scope_stack.pop()
+                    current_scope = scope_stack[-1] if scope_stack else "global"
+
             # 处理变量声明
             if isinstance(instr, IRDeclare):
                 var = instr.get_operands()[0]
-                self.var_scopes[var.name] = self._current_scope(iterator)
+                self.var_scopes[var.name] = current_scope
 
             # 处理函数参数
             elif isinstance(instr, IRFunction):
                 func = instr.get_operands()[0]
                 for param in func.params:
                     self.root_vars.add(param.name)
+                    # 标记函数参数为已使用
+                    self.var_references[param.name] = self.var_references.get(param.name, 0) + 1
 
             # 处理函数调用
             elif isinstance(instr, IRCall):
-                args = instr.get_operands()[2]  # args参数
+                result_var, func, args = instr.get_operands()
+                # 标记结果变量为使用
+                self.var_references[result_var.name] = self.var_references.get(result_var.name, 0) + 1
+
+                # 标记函数参数使用
                 for arg in args:
                     if isinstance(arg, Reference) and arg.value_type == ValueType.VARIABLE:
                         self.var_references[arg.get_name()] = self.var_references.get(arg.get_name(), 0) + 1
@@ -527,6 +597,27 @@ class DeclareCleanupPass(IROptimizationPass):
             elif isinstance(instr, IRCondJump):
                 cond_var = instr.get_operands()[0]
                 self.var_references[cond_var.name] = self.var_references.get(cond_var.name, 0) + 1
+
+            # 处理赋值操作
+            elif isinstance(instr, IRAssign):
+                target, source = instr.get_operands()
+                # 标记源变量使用
+                if source.value_type == ValueType.VARIABLE:
+                    self.var_references[source.get_name()] = self.var_references.get(source.get_name(), 0) + 1
+                # 标记目标变量为已声明
+                self.var_references[target.name] = self.var_references.get(target.name, 0)
+
+            # 处理运算操作
+            elif isinstance(instr, (IROp, IRCompare, IRUnaryOp)):
+                operands = instr.get_operands()
+                result = operands[0]
+                # 标记结果变量
+                self.var_references[result.name] = self.var_references.get(result.name, 0)
+
+                # 标记所有操作数使用
+                for op in operands[2:]:  # 跳过操作符和结果变量
+                    if isinstance(op, Reference) and op.value_type == ValueType.VARIABLE:
+                        self.var_references[op.get_name()] = self.var_references.get(op.get_name(), 0) + 1
 
     def _remove_dead_declarations(self):
         """删除无效的变量声明"""
@@ -546,8 +637,17 @@ class DeclareCleanupPass(IROptimizationPass):
                 var = instr.get_operands()[0]
                 var_name = var.name
 
+                # 保留条件：
+                # 1. 根变量（参数、返回值等）
+                # 2. 被使用过的变量
+                # 3. 作用域根变量
+                # 4. 在嵌套作用域中被使用的变量
+
                 # 如果是根变量或被使用过，保留
-                if var_name in self.root_vars or self.var_references.get(var_name, 0) > 0:
+                if (var_name in self.root_vars or
+                        self.var_references.get(var_name, 0) > 0 or
+                        self._is_scope_root(var_name, current_scope) or
+                        self._is_used_in_nested_scope(var_name, current_scope)):
                     continue
 
                 # 如果是作用域根变量，保留
@@ -588,8 +688,9 @@ class DeclareCleanupPass(IROptimizationPass):
 
 
 class UselessScopeRemovalPass(IROptimizationPass):
-    def __init__(self, builder: IRBuilder):
+    def __init__(self, builder: IRBuilder, debug: bool = False):
         self.builder = builder
+        self.debug = debug
         self.scope_reachability = {}  # 作用域可达性 {scope_name: is_reachable}
         self.scope_instructions = {}  # 作用域指令映射 {scope_name: [instructions]}
         self.jump_targets = set()  # 所有跳转目标集合
@@ -629,7 +730,8 @@ class UselessScopeRemovalPass(IROptimizationPass):
                 scope_type = instr.get_operands()[1]
 
                 # 所有定义作用域都标记为根作用域
-                if scope_type in (StructureType.FUNCTION, StructureType.LOOP_BODY, StructureType.LOOP, StructureType.LOOP_CHECK, StructureType.CLASS, StructureType.INTERFACE) :
+                if scope_type in (StructureType.FUNCTION, StructureType.LOOP_BODY, StructureType.LOOP,
+                                  StructureType.LOOP_CHECK, StructureType.CLASS, StructureType.INTERFACE):
                     self.root_scopes.add(scope_name)
 
                 scope_stack.append(scope_name)

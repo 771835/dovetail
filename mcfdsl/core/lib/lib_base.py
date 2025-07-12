@@ -4,8 +4,6 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from typing import Callable
 
-from mcfdsl.core._interfaces import ISymbol
-
 
 class Lib(metaclass=ABCMeta):  # TODO:实现完整的lib机制
     @abstractmethod

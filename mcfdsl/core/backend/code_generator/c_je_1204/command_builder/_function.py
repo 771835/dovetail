@@ -2,7 +2,7 @@
 from typing import Literal, Optional
 
 
-class Function:
+class FunctionBuilder:
     """
     Static class for building Minecraft Java Edition function commands.
     """

@@ -59,7 +59,7 @@
 
 ### 1. 变量管理
 
-- 所有临时变量显式声明
+- 所有变量强制显式声明
 - 变量作用域通过SCOPE_BEGIN和SCOPE_END指令显式声明
 
 ### 2. 控制流实现
@@ -89,10 +89,11 @@ COND_JUMP cond_var IF_TRUE IF_FALSE
 #### 传统for循环示例
 
 ```
-for (int i=0;i<3;i++) {
+for (int i=0;i<3;i=i+1) {
     # 循环体
 }
 # 转换成ir层:
+
 SCOPE_BEGIN LOOP loop
    DECLARE i int 0
    SCOPE_BEGIN LOOP_CHECK loop_check
@@ -183,12 +184,13 @@ Literal:
 Variable:
     name: str
     dtype:  DataType|'Class'
-    value: Any (可选)
+    var_type: VariableType
 
 Constant:
     name: str
     dtype:  DataType|'Class'
     value: Any (可选)
+    var_type: VariableType
 
 Function:
     name: str

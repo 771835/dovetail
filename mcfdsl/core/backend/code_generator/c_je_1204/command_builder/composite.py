@@ -1,11 +1,10 @@
-# coding=utf-8
+"""# coding=utf-8
 import uuid
 
-from mcfdsl.core._interfaces import ISymbol
-from mcfdsl.core.command_builder._data import Data
-from mcfdsl.core.command_builder._execute import Execute, ScoreOperation
-from mcfdsl.core.command_builder._scoreboard import Scoreboard
-from mcfdsl.core.command_builder.base import BasicCommands
+from mcfdsl.core.backend.code_generator.c_je_1204.command_builder._data import Data
+from mcfdsl.core.backend.code_generator.c_je_1204.command_builder._execute import Execute, ScoreOperation
+from mcfdsl.core.backend.code_generator.c_je_1204.command_builder._scoreboard import Scoreboard
+from mcfdsl.core.backend.code_generator.c_je_1204.command_builder.base import BasicCommands
 from mcfdsl.core.language_enums import DataType, ValueType, SymbolType
 from mcfdsl.core.result import Result
 
@@ -189,3 +188,4 @@ class Composite:
         elif op == '!=':
             result = left != right
         return True if result else False
+"""

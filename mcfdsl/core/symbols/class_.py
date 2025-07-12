@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from mcfdsl.core.symbols.variable import Variable
 
 
-@dataclass(unsafe_hash=True)
+@dataclass
 class Class(NewSymbol):
     name: str
     methods: list[Function]  # 方法列表（保持有序）
@@ -24,3 +24,7 @@ class Class(NewSymbol):
 
     def get_name(self) -> str:
         return self.name
+
+    def __hash__(self):
+        return hash((self.name, tuple(self.methods), self.interfaces, self.parent, tuple(self.constants),
+                     tuple(self.variables)))

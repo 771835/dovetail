@@ -82,8 +82,9 @@ class UnexpectedError(CompilationError):
         base = super().__str__()
         return (
             f"{base}\n\n"
-            "若你的代码符合规范且语法正确，请提交问题报告：\n"
-            "  GitHub: https://github.com/771835/mcfdsl/issues\n"
+            "  1.确保使用使用最新版本\n"
+            "  2.确定mc版本支持\n"
+            "若以上皆无误请提交问题报告于github issues\n"
             "请附上：\n"
             "  1. 最小化复现代码\n"
             "  2. 完整错误日志"

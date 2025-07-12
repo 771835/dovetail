@@ -12,13 +12,14 @@ from antlr4 import FileStream, CommonTokenStream
 from mcfdsl.core.DSLParser.McFuncDSLLexer import McFuncDSLLexer
 from mcfdsl.core.DSLParser.McFuncDSLParser import McFuncDSLParser
 from mcfdsl.core.DSLParser.McFuncDSLVisitor import McFuncDSLVisitor
+from mcfdsl.core.backend.instructions import *
+from mcfdsl.core.backend.ir_builder import IRBuilder
 from mcfdsl.core.errors import TypeMismatchError, UnexpectedError, CompilerSyntaxError, UndefinedTypeError, \
     CompilerImportError, UndefinedVariableError, InvalidSyntaxError, DuplicateDefinitionError, \
-    ArgumentTypeMismatchError, InvalidControlFlowError, MissingImplementationError, RecursionError, NotCallableError
+    ArgumentTypeMismatchError, InvalidControlFlowError, MissingImplementationError, RecursionError, NotCallableError, \
+    InvalidOperatorError
 from mcfdsl.core.import_manager import ImportManager
-from mcfdsl.core.ir.instructions import *
-from mcfdsl.core.ir.ir_builder import IRBuilder
-from mcfdsl.core.language_enums import StructureType, DataType, ValueType
+from mcfdsl.core.language_enums import StructureType, DataType, ValueType, VariableType
 from mcfdsl.core.result import Result
 from mcfdsl.core.scope import Scope
 from mcfdsl.core.symbols import *
@@ -28,7 +29,7 @@ from mcfdsl.test import print_all_attributes
 class MCGenerator(McFuncDSLVisitor):
     _INT_PATTERN = re.compile(r'^[-+]?\d+$')
 
-    def __init__(self, namespace: str = "mc_func_dsl"):
+    def __init__(self, namespace: str):
         self._current_ctx = None
         self.namespace = namespace
         self.top_scope = Scope(
@@ -161,7 +162,10 @@ class MCGenerator(McFuncDSLVisitor):
             for i in expr_list.expr():
                 expr = self.visit(i)
                 # TODO:考虑未来改为标准库实现(exec)而非语法解析
-                self._add_ir_instruction(IRRawCmd(expr.value))
+                if expr.value.get_data_type() == DataType.STRING:
+                    self._add_ir_instruction(IRRawCmd(expr.value))
+                else:
+                    raise  # TODO:补充报错
 
         return Result.from_literal(None, DataType.NULL)
 
@@ -274,12 +278,12 @@ class MCGenerator(McFuncDSLVisitor):
             for param in params.paramDecl():
                 param_name = param.ID().getText()
                 param_type = self._get_type_definition(param.type_().getText())
-                params_list.append(
-                    Variable(
-                        param_name,
-                        param_type
-                    )
+                var = Variable(
+                    param_name,
+                    param_type,
+                    VariableType.ARGUMENT
                 )
+                params_list.append(var)
 
         func = Function(
             func_name,
@@ -292,6 +296,7 @@ class MCGenerator(McFuncDSLVisitor):
         with self.scoped_environment(func_name, StructureType.FUNCTION) as scope:
             for i in params_list:
                 self.current_scope.add_symbol(i)
+                self._add_ir_instruction(IRDeclare(i))
 
             # 处理函数体
             self.visit(ctx.block())
@@ -313,11 +318,18 @@ class MCGenerator(McFuncDSLVisitor):
         elif value == 'null':
             return Result.from_literal(None, DataType.NULL)
         elif value[0] == 'f':
-            temp_var = Variable(uuid.uuid4().hex, DataType.FSTRING)
+
+            temp_var = Variable(f"fstring_{next(self.cnt)}", DataType.STRING)
             self._add_ir_instruction(IRDeclare(temp_var))
-            self._add_ir_instruction(
-                IRFstring(temp_var, Reference(ValueType.LITERAL, value[2:-1])))
-            return Result(Reference(ValueType.VARIABLE, temp_var))
+            self._add_ir_instruction(IRAssign(temp_var, Reference(ValueType.LITERAL, Literal(DataType.STRING, ""))))
+            # TODO:实现fstring拆分
+            raise MissingImplementationError(
+                "fstring继承",
+                line=ctx.start.line,
+                column=ctx.start.column,
+                filename=self.filename
+            )
+            # return Result(Reference(ValueType.VARIABLE, temp_var))
         elif self._is_number(value):
             return Result.from_literal(int(value), DataType.INT)
         else:
@@ -347,7 +359,7 @@ class MCGenerator(McFuncDSLVisitor):
                        parent=parent,
                        constants=constants,
                        variables=variables)
-
+        self._add_ir_instruction(IRClass(class_))
         self.current_scope.add_symbol(class_)
         with self.scoped_environment(class_name, StructureType.CLASS) as class_scope:
             # 处理继承
@@ -687,10 +699,28 @@ class MCGenerator(McFuncDSLVisitor):
         right = self.visit(ctx.expr(1))
         op = ctx.getChild(1).getText()
 
+        if left.value.get_data_type() != right.value.get_data_type():
+            if (left.value.get_data_type() not in (DataType.BOOLEAN, DataType.INT)
+                    or right.value.get_data_type() not in (DataType.BOOLEAN, DataType.INT)):
+                raise TypeMismatchError(
+                    expected_type=left.value.get_data_type(),
+                    actual_type=right.value.get_data_type(),
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
+                    filename=self.filename
+                )
+        if left.value.get_data_type() == DataType.STRING:
+            raise InvalidOperatorError(
+                op.value,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+
         # 生成唯一结果变量
         result_name = f"calc_{next(self.cnt)}"
         result_var = Variable(result_name,
-                              left.value.get_data_type() or right.value.get_data_type())
+                              left.value.get_data_type())
 
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(IROp(result_var, BinaryOps(op), left.value, right.value))
@@ -701,15 +731,33 @@ class MCGenerator(McFuncDSLVisitor):
             ctx: McFuncDSLParser.AddSubExprContext):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
-        op = ctx.getChild(1).getText()
+        op = BinaryOps(ctx.getChild(1).getText())
+
+        if left.value.get_data_type() != right.value.get_data_type():
+            if (left.value.get_data_type() not in (DataType.BOOLEAN, DataType.INT)
+                    or right.value.get_data_type() not in (DataType.BOOLEAN, DataType.INT)):
+                raise TypeMismatchError(
+                    expected_type=left.value.get_data_type(),
+                    actual_type=right.value.get_data_type(),
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
+                    filename=self.filename
+                )
+        if left.value.get_data_type() == DataType.STRING and op == BinaryOps.SUB:
+            raise InvalidOperatorError(
+                op.value,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
 
         # 生成唯一结果变量
         result_name = f"calc_{next(self.cnt)}"
         result_var = Variable(result_name,
-                              left.value.get_data_type() or right.value.get_data_type())
+                              left.value.get_data_type())
 
         self._add_ir_instruction(IRDeclare(result_var))
-        self._add_ir_instruction(IROp(result_var, BinaryOps(op), left.value, right.value))
+        self._add_ir_instruction(IROp(result_var, op, left.value, right.value))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitDirectFuncCall(
@@ -739,7 +787,7 @@ class MCGenerator(McFuncDSLVisitor):
                             column=arg_expr.start.column,
                             filename=self.filename
                         )
-                if  len(ctx.argumentList().exprList().expr()) != len(func_symbol.params):
+                if len(ctx.argumentList().exprList().expr()) != len(func_symbol.params):
                     raise InvalidSyntaxError(
                         f"参数数量不匹配: 期望 {len(func_symbol.params)} 个参数，实际 {len(ctx.argumentList().exprList().expr())} 个",
                         line=ctx.start.line,
@@ -754,6 +802,7 @@ class MCGenerator(McFuncDSLVisitor):
                         column=ctx.start.column,
                         filename=self.filename
                     )
+            self._add_ir_instruction(IRDeclare(result_var))
             self._add_ir_instruction(IRCall(result_var, func_symbol, args))
         else:
             raise NotCallableError(
@@ -770,6 +819,8 @@ class MCGenerator(McFuncDSLVisitor):
             self,
             ctx: McFuncDSLParser.ReturnStmtContext):
         result_var = self.visit(ctx.expr()).value
+        if isinstance(result_var.value, (Constant, Variable)):
+            result_var.value.var_type = VariableType.RETURN
         self._add_ir_instruction(IRReturn(result_var))
         return Result(None)
 

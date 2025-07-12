@@ -5,7 +5,6 @@ import warnings
 from dataclasses import dataclass
 from typing import Any
 
-from mcfdsl.core._interfaces import IScope
 from mcfdsl.core.language_enums import DataType, ValueType
 from mcfdsl.core.symbols.literal import Literal
 from mcfdsl.core.symbols.reference import Reference
@@ -34,7 +33,7 @@ class Result:
     def __str__(self):
         return self.__repr__()
 
-    def to_symbol(self, scope: IScope = None, name: str = None,
+    def to_symbol(self, scope: 'Scope' = None, name: str = None,
                   objective: str = None):
         warnings.warn("方法已弃用", DeprecationWarning)
 

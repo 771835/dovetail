@@ -54,7 +54,7 @@
 
 #### 2.1 存储位置决策矩阵
 
-| 类型     | 存储位置       | 整数运算                      | 拼接                       | 布尔条件判断                  |
+| 类型     | 存储位置       | 四则运算                      | 拼接                       | 布尔条件判断                  |
 |--------|------------|---------------------------|--------------------------|-------------------------|
 | int    | Scoreboard | 直接使用 Scoreboard operation | 算数运算                     | 使用 execute if score     |
 | bool   | 同int       | 视作0/1的int                 | 同int                     | 同int                    |
@@ -74,7 +74,7 @@
     Operand1 | Operand2 | ResultType
     int      | int      | int
     int      | bool     | int
-    string   | any      | string（自动调用 toString）
+    string   | any      | string（自动调用 __str__）
 
 #### 3.2 临时变量生成策略
 

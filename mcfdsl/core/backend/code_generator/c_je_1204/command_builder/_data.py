@@ -2,7 +2,7 @@
 MINECRAFT_VERSION = ["1.20.4"]
 
 
-class Data:
+class DataBuilder:
     # --------------------------
     # data get 命令
     # --------------------------
@@ -77,7 +77,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "append", source_part)
 
     @staticmethod
@@ -90,7 +90,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "append", source_part)
 
     @staticmethod
@@ -103,7 +103,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "append", source_part)
 
     @staticmethod
@@ -122,7 +122,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "append", source_part)
 
     @staticmethod
@@ -141,7 +141,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "append", source_part)
 
     @staticmethod
@@ -160,7 +160,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "append", source_part)
 
     @staticmethod
@@ -170,7 +170,7 @@ class Data:
             value: str):
         """Appends a specific NBT value to a target block's list."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "append", source_part)
 
     # --- insert ---
@@ -185,7 +185,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block",
             target_pos,
             target_path,
@@ -203,7 +203,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block",
             target_pos,
             target_path,
@@ -221,7 +221,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block",
             target_pos,
             target_path,
@@ -245,7 +245,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block",
             target_pos,
             target_path,
@@ -269,7 +269,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block",
             target_pos,
             target_path,
@@ -293,7 +293,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block",
             target_pos,
             target_path,
@@ -308,7 +308,7 @@ class Data:
             value: str):
         """Inserts a specific NBT value into a target block's list at index."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block",
             target_pos,
             target_path,
@@ -326,7 +326,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "merge", source_part)
 
     @staticmethod
@@ -339,7 +339,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "merge", source_part)
 
     @staticmethod
@@ -352,7 +352,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "merge", source_part)
 
     @staticmethod
@@ -371,7 +371,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "merge", source_part)
 
     @staticmethod
@@ -390,7 +390,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "merge", source_part)
 
     @staticmethod
@@ -409,7 +409,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "merge", source_part)
 
     @staticmethod
@@ -419,7 +419,7 @@ class Data:
             value: str):
         """Merges a specific NBT value into a target block."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "merge", source_part)
 
     # --- prepend ---
@@ -433,7 +433,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "prepend", source_part)
 
     @staticmethod
@@ -446,7 +446,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "prepend", source_part)
 
     @staticmethod
@@ -459,7 +459,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "prepend", source_part)
 
     @staticmethod
@@ -478,7 +478,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "prepend", source_part)
 
     @staticmethod
@@ -497,7 +497,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "prepend", source_part)
 
     @staticmethod
@@ -516,7 +516,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "prepend", source_part)
 
     @staticmethod
@@ -526,7 +526,7 @@ class Data:
             value: str):
         """Prepends a specific NBT value to a target block's list."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "prepend", source_part)
 
     # --- set ---
@@ -540,7 +540,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "set", source_part)
 
     @staticmethod
@@ -553,7 +553,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "set", source_part)
 
     @staticmethod
@@ -566,7 +566,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "set", source_part)
 
     @staticmethod
@@ -585,7 +585,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "set", source_part)
 
     @staticmethod
@@ -604,7 +604,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "set", source_part)
 
     @staticmethod
@@ -623,14 +623,14 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "set", source_part)
 
     @staticmethod
     def modify_block_set_value(target_pos: str, target_path: str, value: str):
         """Sets a specific NBT value to a target block."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "block", target_pos, target_path, "set", source_part)
 
     # --- Entity Modify ---
@@ -646,7 +646,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "append", source_part)
 
     @staticmethod
@@ -659,7 +659,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "append", source_part)
 
     @staticmethod
@@ -672,7 +672,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "append", source_part)
 
     @staticmethod
@@ -691,7 +691,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "append", source_part)
 
     @staticmethod
@@ -710,7 +710,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "append", source_part)
 
     @staticmethod
@@ -729,14 +729,14 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "append", source_part)
 
     @staticmethod
     def modify_entity_append_value(target: str, target_path: str, value: str):
         """Appends a specific NBT value to a target entity's list."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "append", source_part)
 
     # --- insert ---
@@ -751,7 +751,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, f"insert {index}", source_part)
 
     @staticmethod
@@ -765,7 +765,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, f"insert {index}", source_part)
 
     @staticmethod
@@ -779,7 +779,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, f"insert {index}", source_part)
 
     @staticmethod
@@ -799,7 +799,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, f"insert {index}", source_part)
 
     @staticmethod
@@ -819,7 +819,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, f"insert {index}", source_part)
 
     @staticmethod
@@ -839,7 +839,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, f"insert {index}", source_part)
 
     @staticmethod
@@ -850,7 +850,7 @@ class Data:
             value: str):
         """Inserts a specific NBT value into a target entity's list at index."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, f"insert {index}", source_part)
 
     # --- merge ---
@@ -864,7 +864,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "merge", source_part)
 
     @staticmethod
@@ -877,7 +877,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "merge", source_part)
 
     @staticmethod
@@ -890,7 +890,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "merge", source_part)
 
     @staticmethod
@@ -909,7 +909,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "merge", source_part)
 
     @staticmethod
@@ -928,7 +928,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "merge", source_part)
 
     @staticmethod
@@ -947,14 +947,14 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "merge", source_part)
 
     @staticmethod
     def modify_entity_merge_value(target: str, target_path: str, value: str):
         """Merges a specific NBT value into a target entity."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "merge", source_part)
 
     # --- prepend ---
@@ -968,7 +968,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "prepend", source_part)
 
     @staticmethod
@@ -981,7 +981,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "prepend", source_part)
 
     @staticmethod
@@ -994,7 +994,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "prepend", source_part)
 
     @staticmethod
@@ -1013,7 +1013,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "prepend", source_part)
 
     @staticmethod
@@ -1032,7 +1032,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "prepend", source_part)
 
     @staticmethod
@@ -1051,14 +1051,14 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "prepend", source_part)
 
     @staticmethod
     def modify_entity_prepend_value(target: str, target_path: str, value: str):
         """Prepends a specific NBT value to a target entity's list."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "prepend", source_part)
 
     # --- set ---
@@ -1072,7 +1072,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "set", source_part)
 
     @staticmethod
@@ -1085,7 +1085,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "set", source_part)
 
     @staticmethod
@@ -1098,7 +1098,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "set", source_part)
 
     @staticmethod
@@ -1117,7 +1117,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "set", source_part)
 
     @staticmethod
@@ -1136,7 +1136,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "set", source_part)
 
     @staticmethod
@@ -1155,14 +1155,14 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "set", source_part)
 
     @staticmethod
     def modify_entity_set_value(target: str, target_path: str, value: str):
         """Sets a specific NBT value to a target entity."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "entity", target, target_path, "set", source_part)
 
     # --- Storage Modify ---
@@ -1178,7 +1178,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "append", source_part)
 
     @staticmethod
@@ -1191,7 +1191,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "append", source_part)
 
     @staticmethod
@@ -1204,7 +1204,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "append", source_part)
 
     @staticmethod
@@ -1223,7 +1223,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "append", source_part)
 
     @staticmethod
@@ -1242,7 +1242,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "append", source_part)
 
     @staticmethod
@@ -1261,14 +1261,14 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "append", source_part)
 
     @staticmethod
     def modify_storage_append_value(target: str, target_path: str, value: str):
         """Appends a specific NBT value to a target storage's list."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "append", source_part)
 
     # --- insert ---
@@ -1283,7 +1283,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage",
             target,
             target_path,
@@ -1301,7 +1301,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage",
             target,
             target_path,
@@ -1319,7 +1319,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage",
             target,
             target_path,
@@ -1343,7 +1343,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage",
             target,
             target_path,
@@ -1367,7 +1367,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage",
             target,
             target_path,
@@ -1391,7 +1391,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage",
             target,
             target_path,
@@ -1406,7 +1406,7 @@ class Data:
             value: str):
         """Inserts a specific NBT value into a target storage's list at index."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage",
             target,
             target_path,
@@ -1424,7 +1424,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "merge", source_part)
 
     @staticmethod
@@ -1437,7 +1437,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "merge", source_part)
 
     @staticmethod
@@ -1450,7 +1450,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "merge", source_part)
 
     @staticmethod
@@ -1469,7 +1469,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "merge", source_part)
 
     @staticmethod
@@ -1488,7 +1488,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "merge", source_part)
 
     @staticmethod
@@ -1507,14 +1507,14 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "merge", source_part)
 
     @staticmethod
     def modify_storage_merge_value(target: str, target_path: str, value: str):
         """Merges a specific NBT value into a target storage."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "merge", source_part)
 
     # --- prepend ---
@@ -1528,7 +1528,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "prepend", source_part)
 
     @staticmethod
@@ -1541,7 +1541,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "prepend", source_part)
 
     @staticmethod
@@ -1554,7 +1554,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "prepend", source_part)
 
     @staticmethod
@@ -1573,7 +1573,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "prepend", source_part)
 
     @staticmethod
@@ -1592,7 +1592,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "prepend", source_part)
 
     @staticmethod
@@ -1611,7 +1611,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "prepend", source_part)
 
     @staticmethod
@@ -1621,7 +1621,7 @@ class Data:
             value: str):
         """Prepends a specific NBT value to a target storage's list."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "prepend", source_part)
 
     # --- set ---
@@ -1635,7 +1635,7 @@ class Data:
         source_part = f"from block {source_pos}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "set", source_part)
 
     @staticmethod
@@ -1648,7 +1648,7 @@ class Data:
         source_part = f"from entity {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "set", source_part)
 
     @staticmethod
@@ -1661,7 +1661,7 @@ class Data:
         source_part = f"from storage {source}"
         if source_path:
             source_part += f" {source_path}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "set", source_part)
 
     @staticmethod
@@ -1680,7 +1680,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "set", source_part)
 
     @staticmethod
@@ -1699,7 +1699,7 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "set", source_part)
 
     @staticmethod
@@ -1718,14 +1718,14 @@ class Data:
             source_part += f" {start}"
             if end is not None:
                 source_part += f" {end}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "set", source_part)
 
     @staticmethod
     def modify_storage_set_value(target: str, target_path: str, value: str):
         """Sets a specific NBT value to a target storage."""
         source_part = f"value {value}"
-        return Data._build_modify_command(
+        return DataBuilder._build_modify_command(
             "storage", target, target_path, "set", source_part)
 
     # --------------------------
