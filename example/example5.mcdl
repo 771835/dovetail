@@ -1,6 +1,14 @@
-
-func void main2() {
-    while (true == true) {
-
+func int main() {
+    /*boolean cond_var;
+    if (cond_var) {
+    # if块代码
+    } else {
+        # else块代码
     }
+    for (int i=0;i<3;i=i+1) {
+    # 循环体
+    }
+    */
+    int m =1;
+    cmd(f"sawa{m}");
 }

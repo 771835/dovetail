@@ -12,15 +12,16 @@ from mcfdsl.core.backend.instructions import *
 from mcfdsl.core.backend.ir_builder import IRBuilder, IRBuilderIterator
 from mcfdsl.core.backend.specification import IROptimizerSpec, OptimizationLevel, MinecraftEdition, \
     IROptimizationPass, MinecraftVersion
+from mcfdsl.core.generator_config import GeneratorConfig
 from mcfdsl.core.language_enums import ValueType, DataType, VariableType
 from mcfdsl.core.symbols import Variable, Reference, Constant, Literal
 
 
 class Optimizer(IROptimizerSpec):
     def __init__(self, builder: IRBuilder,
-                 level: OptimizationLevel = OptimizationLevel.O0, debug: bool = False):
-        self.debug = debug
-        self.level = level
+                 config: GeneratorConfig):
+        self.debug = config.debug
+        self.level = config.optimization_level
         self.initial_builder = builder
         self.builder = copy.deepcopy(builder)  # 防止修改初始状态
         self.passes = []  # 存储启用的优化通道
@@ -54,6 +55,13 @@ class Optimizer(IROptimizerSpec):
             for _ in optimization_pass:
                 if self.debug:
                     print(f"[DEBUG: {_.__name__}] Starting optimization pass...")
+                    depth = 0
+                    for i in self.builder:
+                        if isinstance(i, IRScopeEnd):
+                            depth -= 1
+                        print(depth * "    " + repr(i))
+                        if isinstance(i, IRScopeBegin):
+                            depth += 1
                 pass_ = _(self.builder, self.debug)
                 pass_.exec()
                 if self.debug:
@@ -138,6 +146,8 @@ class ConstantFoldingPass(IROptimizationPass):
             IRCondJump: self._cond_jump,
             IRCall: self._call,
             IRCallInline: self._call,
+            IRCast: self._cast,
+            IRRawCmd: self._raw_cmd
         }
         while True:
             try:
@@ -145,9 +155,9 @@ class ConstantFoldingPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            handler = instruction_handlers.get(type(instr))  # NOQA
+            handler = instruction_handlers.get(type(instr))
             if handler:
-                handler(iterator, instr)
+                handler(iterator, instr)  # NOQA
 
     def _find(self, name: str) -> Reference[Literal] | FoldingFlags:
         """
@@ -369,6 +379,46 @@ class ConstantFoldingPass(IROptimizationPass):
                 raise
         iterator.set_current(instr.__class__(result, func, new_args))
 
+    def _cast(self, iterator: IRBuilderIterator, instr: IRCast):
+        result: Variable | Constant = instr.get_operands()[0]
+        dtype: DataType | Class = instr.get_operands()[1]
+        value_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+
+        # 操作前将结果设为未知
+        self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
+
+        if value_ref.value_type == ValueType.LITERAL:  # 搜索最终值
+            value = value_ref
+        else:
+            value = self._find(value_ref.get_name())
+        if value == ConstantFoldingPass.FoldingFlags.UNKNOWN:
+            return
+
+        if dtype == value_ref.get_data_type():
+            iterator.set_current(IRAssign(result, value_ref))
+            self._assign(iterator, iterator.current())  # NOQA
+            return  # NOQA
+
+        if dtype == DataType.STRING:
+            if value.get_data_type() in (DataType.INT, DataType.BOOLEAN):
+                self.current_table.set(result.get_name(),
+                                       Reference(ValueType.LITERAL, Literal(DataType.STRING, str(value.value.value))))
+                iterator.set_current(
+                    IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.STRING, str(value.value.value)))))
+                self._assign(iterator, iterator.current())  # NOQA
+
+    def _raw_cmd(self, iterator: IRBuilderIterator, instr: IRRawCmd):
+        command_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[0]
+
+        if command_ref.value_type == ValueType.LITERAL:  # 搜索最终值
+            command = command_ref
+        else:
+            command = self._find(command_ref.get_name())
+        if isinstance(command, ConstantFoldingPass.FoldingFlags):
+            return
+
+        iterator.set_current(IRRawCmd(command))
+
 
 class DeadCodeEliminationPass(IROptimizationPass):
     def __init__(self, builder: IRBuilder, debug: bool = False):
@@ -432,12 +482,18 @@ class DeadCodeEliminationPass(IROptimizationPass):
                 if current_stype == StructureType.LOOP:  # for循环的变量
                     self.live_vars.add(var.name)
                     work_list.append(var.name)
+            elif isinstance(instr, (IRAssign, IROp, IRCompare, IRUnaryOp, IRCast)):
+                for op in instr.get_operands():
+                    if isinstance(op, Reference) and op.value_type == ValueType.VARIABLE:
+                        if op.get_name() not in self.live_vars:
+                            self.live_vars.add(op.get_name())
+                            work_list.append(op.get_name())
             elif self._has_side_effect(instr):
                 for op in instr.get_operands():
-                    if isinstance(op, Variable):
-                        if op.name not in self.live_vars:
-                            self.live_vars.add(op.name)
-                            work_list.append(op.name)
+                    if isinstance(op, Reference) and op.value_type == ValueType.VARIABLE:
+                        if op.get_name() not in self.live_vars:
+                            self.live_vars.add(op.get_name())
+                            work_list.append(op.get_name())
             elif isinstance(instr, IRCondJump):
                 cond_var = instr.get_operands()[0]
                 if isinstance(cond_var, Variable):
@@ -485,7 +541,8 @@ class DeadCodeEliminationPass(IROptimizationPass):
 
     def _has_side_effect(self, instr):
         """判断指令是否有副作用"""
-        return isinstance(instr, (IRRawCmd, IRFstring, IRReturn, IRCall, IRCallInline))
+        return isinstance(instr,
+                          (IRRawCmd, IRCast, IRReturn, IRCall, IRCallInline, IROp, IRCompare, IRUnaryOp, IRAssert))
 
     def _is_declaration_exists(self, var_name):
         # 检查变量声明是否存在于IR中
@@ -618,6 +675,14 @@ class DeclareCleanupPass(IROptimizationPass):
                 for op in operands[2:]:  # 跳过操作符和结果变量
                     if isinstance(op, Reference) and op.value_type == ValueType.VARIABLE:
                         self.var_references[op.get_name()] = self.var_references.get(op.get_name(), 0) + 1
+            elif isinstance(instr, IRCast):
+                target, dtype, source = instr.get_operands()
+                if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
+                    self.var_references[source.get_name()] = self.var_references.get(source.get_name(), 0) + 1
+            elif isinstance(instr, IRRawCmd):
+                source = instr.get_operands()[0]
+                if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
+                    self.var_references[source.get_name()] = self.var_references.get(source.get_name(), 0) + 1
 
     def _remove_dead_declarations(self):
         """删除无效的变量声明"""

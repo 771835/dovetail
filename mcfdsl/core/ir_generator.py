@@ -18,7 +18,8 @@ from mcfdsl.core.errors import TypeMismatchError, UnexpectedError, CompilerSynta
     CompilerImportError, UndefinedVariableError, InvalidSyntaxError, DuplicateDefinitionError, \
     ArgumentTypeMismatchError, InvalidControlFlowError, MissingImplementationError, RecursionError, NotCallableError, \
     InvalidOperatorError
-from mcfdsl.core.import_manager import ImportManager
+from mcfdsl.core.generator_config import GeneratorConfig
+from mcfdsl.core.include_manager import ImportManager
 from mcfdsl.core.language_enums import StructureType, DataType, ValueType, VariableType
 from mcfdsl.core.result import Result
 from mcfdsl.core.scope import Scope
@@ -29,9 +30,10 @@ from mcfdsl.test import print_all_attributes
 class MCGenerator(McFuncDSLVisitor):
     _INT_PATTERN = re.compile(r'^[-+]?\d+$')
 
-    def __init__(self, namespace: str):
+    def __init__(self, config: GeneratorConfig):
         self._current_ctx = None
-        self.namespace = namespace
+        self.namespace = config.namespace
+        self.debug = config.debug
         self.top_scope = Scope(
             "global",
             None,
@@ -97,6 +99,101 @@ class MCGenerator(McFuncDSLVisitor):
     def get_generate_ir(self) -> IRBuilder:
         return self.ir_builder
 
+    @staticmethod
+    def _parse_fstring(s: str) -> tuple[str, ...]:
+        parts: list[str] = []  # 存储解析结果（交替为文本和变量）
+        current_text = ''  # 当前累积的普通文本
+        i = 0  # 当前字符索引
+
+        while i < len(s):
+            # 处理双花括号转义
+            if i + 1 < len(s) and s[i] == '{' and s[i + 1] == '{':
+                current_text += '{'
+                i += 2
+            elif i + 1 < len(s) and s[i] == '}' and s[i + 1] == '}':
+                current_text += '}'
+                i += 2
+            elif s[i] == '{':
+                # 遇到单花括号，开始变量解析
+                parts.append(current_text)
+                current_text = ''
+                start = i + 1
+                end = start
+                while end < len(s) and s[end] != '}':
+                    end += 1
+                variable = s[start:end]
+                parts.append(variable)
+                i = end + 1
+            else:
+                # 普通字符，添加到 current_text
+                current_text += s[i]
+                i += 1
+
+        # 添加最后剩余的普通文本
+        if current_text:
+            parts.append(current_text)
+        return tuple(parts)
+
+    def _process_fstring(self, value: str) -> Result:
+        """处理格式化字符串的解析和IR生成"""
+        # 解析字符串结构
+        parts = self._parse_fstring(value[2:-1])  # 去掉前缀和首尾引号
+
+        # 初始化结果变量
+        result_var = self._create_temp_var(DataType.STRING, "fstring")
+        self._add_ir_instruction(IRDeclare(result_var))
+        self._add_ir_instruction(IRAssign(result_var, Reference(ValueType.LITERAL,
+                                                                Literal(DataType.STRING, ""))))
+
+        # 逐段处理字符串内容
+        for i, part in enumerate(parts):
+            if i % 2 == 0:  # 文本段
+                result_var = self._append_text_to_result(result_var, part)
+            else:  # 变量段
+                result_var = self._append_variable_to_result(result_var, part)
+
+        return Result(Reference(ValueType.VARIABLE, result_var))
+
+    def _create_temp_var(self, dtype: DataType, prefix: str) -> Variable:
+        """创建带唯一编号的临时变量"""
+        temp_var = Variable(f"{prefix}_{next(self.cnt)}", dtype)
+        self.current_scope.add_symbol(temp_var)
+        return temp_var
+
+    def _append_text_to_result(self, current_var: Variable, text: str) -> Variable:
+        """将文本内容追加到结果字符串"""
+        new_var = self._create_temp_var(DataType.STRING, "fstring")
+        self._add_ir_instruction(IRDeclare(new_var))
+        self._add_ir_instruction(IROp(new_var, BinaryOps.ADD,
+                                      Reference(ValueType.VARIABLE, current_var),
+                                      Reference(ValueType.LITERAL,
+                                                Literal(DataType.STRING, text))))
+        return new_var
+
+    def _append_variable_to_result(self, current_var: Variable, var_name: str) -> Variable:
+        """将变量内容追加到结果字符串"""
+        try:
+            # 解析变量符号
+            var_symbol = self.current_scope.resolve_symbol(var_name)
+            if not isinstance(var_symbol, (Variable, Constant)):
+                raise UndefinedVariableError(var_name, self._get_current_line(), self._get_current_column())
+        except ValueError:
+            raise UndefinedVariableError(var_name, self._get_current_line(), self._get_current_column())
+
+        # 创建类型转换临时变量
+        cast_var = self._create_temp_var(DataType.STRING, "cast")
+        self._add_ir_instruction(IRDeclare(cast_var))
+        self._add_ir_instruction(IRCast(cast_var, DataType.STRING,
+                                        Reference(ValueType.VARIABLE, var_symbol)))
+
+        # 拼接字符串
+        new_var = self._create_temp_var(DataType.STRING, "fstring")
+        self._add_ir_instruction(IRDeclare(new_var))
+        self._add_ir_instruction(IROp(new_var, BinaryOps.ADD,
+                                      Reference(ValueType.VARIABLE, current_var),
+                                      Reference(ValueType.VARIABLE, cast_var)))
+        return new_var
+
     def _resolve_type_symbol(self, type_name: str) -> Class | None:
         """解析类型名称对应的符号（仅限类/类型定义）"""
         try:
@@ -146,13 +243,14 @@ class MCGenerator(McFuncDSLVisitor):
         return -1
 
     def visit(self, tree) -> Result:
+        previous_ctx = self._current_ctx
         self._current_ctx = tree
         result = tree.accept(self)
         if not isinstance(result, Result) and not isinstance(
                 tree, McFuncDSLParser.ProgramContext):
             print_all_attributes(tree)
             raise UnexpectedError(f"意外的错误:result结果为{type(result)},需要{Result}")
-
+        self._current_ctx = previous_ctx
         return result
 
     def visitCommandExpr(self, ctx: McFuncDSLParser.CommandExprContext):
@@ -186,8 +284,8 @@ class MCGenerator(McFuncDSLVisitor):
                 raise TypeMismatchError(
                     expected_type=var_type,
                     actual_type=result.value.get_data_type(),
-                    line=ctx.start.line,
-                    column=ctx.start.column,
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
                     filename=self.filename
                 )
 
@@ -197,16 +295,16 @@ class MCGenerator(McFuncDSLVisitor):
             if var_type == DataType.ANY:
                 raise CompilerSyntaxError(
                     f"Variable '{var_name}' must be initialized as type cannot be inferred",
-                    line=ctx.start.line,
-                    column=ctx.start.column,
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
                     filename=self.filename
                 )
 
         if not self._type_exists(var_type):  # 判断所给类型是否存在
             raise UndefinedTypeError(
                 var_type.name,
-                line=ctx.start.line,
-                column=ctx.start.column
+                line=self._get_current_line(),
+                column=self._get_current_column()
             )
 
         var = Variable(
@@ -217,7 +315,8 @@ class MCGenerator(McFuncDSLVisitor):
         self.current_scope.add_symbol(var)
 
         self._add_ir_instruction(IRDeclare(var))
-        self._add_ir_instruction(IRAssign(var, var_value))
+        if var_value:
+            self._add_ir_instruction(IRAssign(var, var_value))
 
         return Result(Reference(ValueType.VARIABLE, var))
 
@@ -233,8 +332,8 @@ class MCGenerator(McFuncDSLVisitor):
             raise TypeMismatchError(
                 expected_type=dtype,
                 actual_type=result.value.get_data_type(),
-                line=ctx.start.line,
-                column=ctx.start.column,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
                 filename=self.filename
             )
 
@@ -242,8 +341,8 @@ class MCGenerator(McFuncDSLVisitor):
         if not self._type_exists(dtype):  # 判断所给类型是否存在
             raise UndefinedTypeError(
                 dtype.name,
-                line=ctx.start.line,
-                column=ctx.start.column
+                line=self._get_current_line(),
+                column=self._get_current_column()
             )
 
         constant = Constant(
@@ -267,8 +366,8 @@ class MCGenerator(McFuncDSLVisitor):
         if self.current_scope.has_symbol(func_name):
             raise DuplicateDefinitionError(
                 func_name,
-                line=ctx.start.line,
-                column=ctx.start.column,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
                 filename=self.filename
             )
 
@@ -319,17 +418,7 @@ class MCGenerator(McFuncDSLVisitor):
             return Result.from_literal(None, DataType.NULL)
         elif value[0] == 'f':
 
-            temp_var = Variable(f"fstring_{next(self.cnt)}", DataType.STRING)
-            self._add_ir_instruction(IRDeclare(temp_var))
-            self._add_ir_instruction(IRAssign(temp_var, Reference(ValueType.LITERAL, Literal(DataType.STRING, ""))))
-            # TODO:实现fstring拆分
-            raise MissingImplementationError(
-                "fstring继承",
-                line=ctx.start.line,
-                column=ctx.start.column,
-                filename=self.filename
-            )
-            # return Result(Reference(ValueType.VARIABLE, temp_var))
+            return self._process_fstring(value)
         elif self._is_number(value):
             return Result.from_literal(int(value), DataType.INT)
         else:
@@ -366,16 +455,16 @@ class MCGenerator(McFuncDSLVisitor):
             if parent:
                 raise MissingImplementationError(
                     "类继承",
-                    line=ctx.start.line,
-                    column=ctx.start.column,
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
                     filename=self.filename
                 )  # TODO:处理继承
 
             if interface:
                 raise MissingImplementationError(
                     "接口实现",
-                    line=ctx.start.line,
-                    column=ctx.start.column,
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
                     filename=self.filename
                 )  # TODO:接口实现
 
@@ -405,8 +494,8 @@ class MCGenerator(McFuncDSLVisitor):
                                      McFuncDSLParser.LogicalAndExprContext, McFuncDSLParser.LogicalNotExprContext)):
                 raise InvalidSyntaxError(
                     ctx.expr().getText(),
-                    line=ctx.start.line,
-                    column=ctx.start.column,
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
                     filename=self.filename
                 )
 
@@ -461,8 +550,8 @@ class MCGenerator(McFuncDSLVisitor):
                         else:
                             raise InvalidSyntaxError(
                                 ctx.expr().getText(),
-                                line=ctx.start.line,
-                                column=ctx.start.column
+                                line=self._get_current_line(),
+                                column=self._get_current_column()
                             )
                     else:
                         condition_var = Reference(
@@ -481,8 +570,8 @@ class MCGenerator(McFuncDSLVisitor):
         else:  # 增强for循环
             raise MissingImplementationError(
                 "增强for循环",
-                line=ctx.start.line,
-                column=ctx.start.column,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
                 filename=self.filename
             )  # TODO:增强for循环实现
         return Result(None)
@@ -505,15 +594,15 @@ class MCGenerator(McFuncDSLVisitor):
                 raise TypeMismatchError(
                     expected_type=DataType.BOOLEAN,
                     actual_type=condition_expr.value.get_data_type(),
-                    line=ctx.start.line,
-                    column=ctx.start.column,
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
                     filename=self.filename
                 )
         else:
             raise InvalidSyntaxError(
                 ctx.expr().getText(),
-                line=ctx.start.line,
-                column=ctx.start.column,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
                 filename=self.filename
             )
 
@@ -544,8 +633,8 @@ class MCGenerator(McFuncDSLVisitor):
             raise TypeMismatchError(
                 expected_type=left.get_data_type(),
                 actual_type=right.get_data_type(),
-                line=ctx.start.line,
-                column=ctx.start.column,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
                 filename=self.filename
             )
         # 生成唯一结果变量
@@ -639,15 +728,15 @@ class MCGenerator(McFuncDSLVisitor):
             if not isinstance(symbol, (Variable, Constant)):
                 raise UnexpectedError(
                     f"符号 '{var_name}' 不是变量或常量",
-                    line=ctx.start.line,
-                    column=ctx.start.column,
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
                     filename=self.filename
                 )
         except ValueError:
             raise UndefinedVariableError(
                 var_name,
-                line=ctx.start.line,
-                column=ctx.start.column,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
                 filename=self.filename
             )
         return Result(Reference(ValueType.VARIABLE, symbol))
@@ -663,15 +752,15 @@ class MCGenerator(McFuncDSLVisitor):
             if isinstance(var, Constant):
                 raise CompilerSyntaxError(
                     f"不能修改常量 '{var_name}'",
-                    line=ctx.start.line,
-                    column=ctx.start.column,
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
                     filename=self.filename
                 )
             elif not isinstance(var, Variable):
                 raise UnexpectedError(
                     f"符号 '{var_name}' 不是变量",
-                    line=ctx.start.line,
-                    column=ctx.start.column,
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
                     filename=self.filename
                 )
             # 类型检查
@@ -686,8 +775,8 @@ class MCGenerator(McFuncDSLVisitor):
         except ValueError:
             raise UndefinedVariableError(
                 var_name,
-                line=ctx.start.line,
-                column=ctx.start.column
+                line=self._get_current_line(),
+                column=self._get_current_column()
             )
 
         self._add_ir_instruction(IRAssign(var, expr_result.value))
@@ -718,9 +807,7 @@ class MCGenerator(McFuncDSLVisitor):
             )
 
         # 生成唯一结果变量
-        result_name = f"calc_{next(self.cnt)}"
-        result_var = Variable(result_name,
-                              left.value.get_data_type())
+        result_var = self._create_temp_var(left.value.get_data_type(), "calc")
 
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(IROp(result_var, BinaryOps(op), left.value, right.value))
@@ -752,9 +839,7 @@ class MCGenerator(McFuncDSLVisitor):
             )
 
         # 生成唯一结果变量
-        result_name = f"calc_{next(self.cnt)}"
-        result_var = Variable(result_name,
-                              left.value.get_data_type())
+        result_var = self._create_temp_var(left.value.get_data_type(), "calc")
 
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(IROp(result_var, op, left.value, right.value))
@@ -766,11 +851,10 @@ class MCGenerator(McFuncDSLVisitor):
         func_name = ctx.ID().getText()
 
         # 调用函数
-        result_name = f"result_{next(self.cnt)}"
 
         func_symbol: NewSymbol = self.current_scope.resolve_symbol(func_name)
         if isinstance(func_symbol, Function):
-            result_var = Variable(result_name, func_symbol.return_type)
+            result_var = self._create_temp_var(func_symbol.return_type, "result")
 
             args: list[Reference] = []
             if ctx.argumentList().exprList():
@@ -790,16 +874,16 @@ class MCGenerator(McFuncDSLVisitor):
                 if len(ctx.argumentList().exprList().expr()) != len(func_symbol.params):
                     raise InvalidSyntaxError(
                         f"参数数量不匹配: 期望 {len(func_symbol.params)} 个参数，实际 {len(ctx.argumentList().exprList().expr())} 个",
-                        line=ctx.start.line,
-                        column=ctx.start.column,
+                        line=self._get_current_line(),
+                        column=self._get_current_column(),
                         filename=self.filename
                     )
             else:
                 if len(func_symbol.params) != 0:
                     raise InvalidSyntaxError(
                         f"意外的实参",
-                        line=ctx.start.line,
-                        column=ctx.start.column,
+                        line=self._get_current_line(),
+                        column=self._get_current_column(),
                         filename=self.filename
                     )
             self._add_ir_instruction(IRDeclare(result_var))
@@ -808,8 +892,8 @@ class MCGenerator(McFuncDSLVisitor):
             raise NotCallableError(
                 func_name,
                 func_symbol.__class__.__name__,
-                line=ctx.start.line,
-                column=ctx.start.column,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
                 filename=self.filename
             )
 
@@ -828,26 +912,26 @@ class MCGenerator(McFuncDSLVisitor):
             self,
             ctx: McFuncDSLParser.IncludeStmtContext):
 
-        import_path: Reference[Literal] = self.visit(ctx.literal()).value
-        if import_path.get_data_type() != DataType.STRING:
+        include_path: Reference[Literal] = self.visit(ctx.literal()).value
+        if include_path.get_data_type() != DataType.STRING:
             raise TypeMismatchError(DataType.STRING,
-                                    import_path.get_data_type(),
+                                    include_path.get_data_type(),
                                     self._get_current_line(),
                                     self._get_current_column(),
                                     self.filename)
-        import_path: str = import_path.value.value
+        include_path: str = include_path.value.value
         # 检查是否已经导入过
-        if self.import_manager.has_imported(import_path):
+        if self.import_manager.has_imported(include_path):
             return Result(None)
 
         # 标记已导入
-        self.import_manager.execute_import(import_path)
+        self.import_manager.execute_import(include_path)
 
         # 处理导入的文件
         try:
             o_filename = self.filename
-            self.filename = os.path.abspath(import_path)
-            input_stream = FileStream(import_path, encoding='utf-8')
+            self.filename = os.path.abspath(include_path)
+            input_stream = FileStream(include_path, encoding='utf-8')
             lexer = McFuncDSLLexer(input_stream)
             stream = CommonTokenStream(lexer)
             parser = McFuncDSLParser(stream)
@@ -858,7 +942,7 @@ class MCGenerator(McFuncDSLVisitor):
             self.filename = o_filename
         except Exception as e:
             raise CompilerImportError(
-                import_path,
+                include_path,
                 e.__repr__(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
@@ -870,8 +954,8 @@ class MCGenerator(McFuncDSLVisitor):
         if not self._is_in_loop():
             raise InvalidControlFlowError(
                 "break 语句只能在循环结构中使用",
-                line=ctx.start.line,
-                column=ctx.start.column,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
                 filename=self.filename
             )
         self._add_ir_instruction(IRContinue())
@@ -881,8 +965,8 @@ class MCGenerator(McFuncDSLVisitor):
         if not self._is_in_loop():
             raise InvalidControlFlowError(
                 "break 语句只能在循环结构中使用",
-                line=ctx.start.line,
-                column=ctx.start.column,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
                 filename=self.filename
             )
         self._add_ir_instruction(IRBreak())

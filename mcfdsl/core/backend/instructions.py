@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Any
 
-from mcfdsl.core.language_enums import StructureType, CompareOps, BinaryOps, UnaryOps
+from mcfdsl.core.language_enums import StructureType, CompareOps, BinaryOps, UnaryOps, DataType
 from mcfdsl.core.safe_enum import SafeEnum
 from mcfdsl.core.symbols import Literal
 from mcfdsl.core.symbols.class_ import Class
@@ -32,6 +32,7 @@ class IROpCode(SafeEnum):
     UNARY_OP = 0x23  # 一元运算
     OP = 0x24  # 二元运算
     COMPARE = 0x25  # 比较运算
+    CAST = 0x26  # 显式类型转换
     # 预留 0x27-0x3F 用于变量操作扩展
 
     # ===== 面向对象指令 (0x40-0x5F) =====
@@ -42,9 +43,10 @@ class IROpCode(SafeEnum):
     CALL_METHOD = 0x44  # 方法调用
     # 预留 0x45-0x5F 用于OOP扩展
 
-    # ===== 命令生成指令 (0x60-0x7F) =====
+    # ===== 特殊指令 (0x60-0x7F) =====
     RAW_CMD = 0x60  # 原始命令输出
-    FSTRING = 0x61  # 格式化字符串
+    DEBUG_INFO = 0x61  # 调试元数据
+    ASSERT = 0x62  # 断言检查
 
     # 预留 0x62-0x7F 用于命令扩展
 
@@ -95,10 +97,12 @@ class IRJump(IRInstruction):
 
 
 class IRCondJump(IRInstruction):
-    def __init__(self, cond_var: Variable, true_scope: str, false_scope: str = None, line: int = -1, column: int = -1,
+    def __init__(self, cond: Variable, true_scope: str, false_scope: str = None, line: int = -1, column: int = -1,
                  filename: str = None):
+        assert cond.dtype == DataType.BOOLEAN
+
         operands = [
-            cond_var,
+            cond,
             true_scope,
             false_scope
         ]
@@ -207,7 +211,7 @@ class IRAssign(IRInstruction):
 
 
 class IRUnaryOp(IRInstruction):
-    def __init__(self, result: Variable, op: UnaryOps, operand: Reference[Variable | Constant | Literal],
+    def __init__(self, result: Variable | Constant, op: UnaryOps, operand: Reference[Variable | Constant | Literal],
                  line: int = -1,
                  column: int = -1,
                  filename: str = None):
@@ -220,7 +224,7 @@ class IRUnaryOp(IRInstruction):
 
 
 class IROp(IRInstruction):
-    def __init__(self, result: Variable, op: BinaryOps, left: Reference[Variable | Constant | Literal],
+    def __init__(self, result: Variable | Constant, op: BinaryOps, left: Reference[Variable | Constant | Literal],
                  right: Reference[Variable | Constant | Literal], line: int = -1, column: int = -1,
                  filename: str = None):
         operands = [
@@ -233,7 +237,7 @@ class IROp(IRInstruction):
 
 
 class IRCompare(IRInstruction):
-    def __init__(self, result: Variable, op: CompareOps, left: Reference[Variable | Constant | Literal],
+    def __init__(self, result: Variable | Constant, op: CompareOps, left: Reference[Variable | Constant | Literal],
                  right: Reference[Variable | Constant | Literal], line: int = -1, column: int = -1,
                  filename: str = None):
         operands = [
@@ -243,6 +247,18 @@ class IRCompare(IRInstruction):
             right
         ]
         super().__init__(IROpCode.COMPARE, operands, line, column, filename)
+
+
+class IRCast(IRInstruction):
+    def __init__(self, result: Variable | Constant, dtype: DataType | Class,
+                 value: Reference[Variable | Constant | Literal], line: int = -1,
+                 column: int = -1, filename: str = None):
+        operands = [
+            result,
+            dtype,
+            value
+        ]
+        super().__init__(IROpCode.CAST, operands, line, column, filename)
 
 
 class IRClass(IRInstruction):
@@ -312,11 +328,20 @@ class IRRawCmd(IRInstruction):
         super().__init__(IROpCode.RAW_CMD, operands, line, column, filename)
 
 
-class IRFstring(IRInstruction):
-    def __init__(self, result: Variable, fstring: Reference[Constant | Literal], line: int = -1, column: int = -1,
+class IRDebugInfo(IRInstruction):
+    def __init__(self, line: int = -1, column: int = -1,
                  filename: str = None):
         operands = [
-            result,
-            fstring
         ]
-        super().__init__(IROpCode.FSTRING, operands, line, column, filename)
+        super().__init__(IROpCode.DEBUG_INFO, operands, line, column, filename)
+
+
+class IRAssert(IRInstruction):
+    def __init__(self, cond: Variable, msg: str, line: int = -1, column: int = -1,
+                 filename: str = None):
+        assert cond.dtype == DataType.BOOLEAN
+        operands = [
+            cond,
+            msg
+        ]
+        super().__init__(IROpCode.ASSERT, operands, line, column, filename)

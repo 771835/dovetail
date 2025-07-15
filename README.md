@@ -1,4 +1,4 @@
-# MCFDSL
+# Dovetail
 
 > Minecraft数据包编译语言 | 面向对象的Minecraft DSL  
 > 该项目部分参考了[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)

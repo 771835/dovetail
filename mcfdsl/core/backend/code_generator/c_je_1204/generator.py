@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Callable
 
 from mcfdsl.core.backend.code_generator.c_je_1204.code_generator_scope import CodeGeneratorScope
-from mcfdsl.core.backend.code_generator.c_je_1204.command_builder import FunctionBuilder, DataBuilder, ScoreboardBuilder
+from mcfdsl.core.backend.code_generator.c_je_1204.command_builder import FunctionBuilder, BasicCommands, Execute
 from mcfdsl.core.backend.instructions import IROpCode, IRInstruction
 from mcfdsl.core.backend.ir_builder import IRBuilder
 from mcfdsl.core.backend.specification import CodeGeneratorSpec, MinecraftVersion, MinecraftEdition
@@ -66,7 +66,6 @@ class CodeGenerator(CodeGeneratorSpec):
 
             # ===== 命令生成指令 (0x60-0x7F) =====
             IROpCode.RAW_CMD: self._raw_command,  # 0x60
-            IROpCode.FSTRING: self._format_string,  # 0x61
         }
         for instr in iterator:
             handler = handlers.get(instr.opcode, lambda instr: None)
@@ -87,6 +86,12 @@ class CodeGenerator(CodeGeneratorSpec):
     def _scope_end(self, instr: IRInstruction):
         self.current_scope = self.current_scope.parent
 
+    def _break(self, instr: IRInstruction):
+        ...
+
+    def _continue(self, instr: IRInstruction):
+        ...
+
     def _function(self, instr: IRInstruction):
         ...
 
@@ -103,8 +108,20 @@ class CodeGenerator(CodeGeneratorSpec):
 
     def _cond_jump(self, instr: IRInstruction):
         cond_var: Variable = instr.get_operands()[0]
-        true_scope: str = instr.get_operands()[1]
-        false_scope: str = instr.get_operands()[2]
+        true_scope_name: str = instr.get_operands()[1]
+        false_scope_name: str = instr.get_operands()[2]
+        if true_scope_name:
+            true_jump_scope = self.current_scope.resolve_scope(true_scope_name)
+            self.current_scope.add_command(
+                Execute.execute().if_score_matches(self.current_scope.get_symbol_path(cond_var.get_name()),
+                                                   self.var_objective, "1").run(
+                    FunctionBuilder.run(true_jump_scope.get_minecraft_function_path())))
+        if false_scope_name:
+            false_jump_scope = self.current_scope.resolve_scope(false_scope_name)
+            self.current_scope.add_command(
+                Execute.execute().unless_score_matches(self.current_scope.get_symbol_path(cond_var.get_name()),
+                                                       self.var_objective, "1").run(
+                    FunctionBuilder.run(false_jump_scope.get_minecraft_function_path())))
 
     def _call(self, instr: IRInstruction):
         result: Variable | Constant = instr.get_operands()[0]
@@ -119,37 +136,18 @@ class CodeGenerator(CodeGeneratorSpec):
     def _assign(self, instr: IRInstruction):
         target: Variable | Constant = instr.get_operands()[0]
         source: Reference[Variable | Constant | Literal] = instr.get_operands()[1]
-        if source.value_type == ValueType.LITERAL:
-            match target.dtype:
-                case DataType.STRING:
-                    self.current_scope.add_command(
-                        DataBuilder.modify_storage_set_value(f"{self.namespace}:{self.var_objective}",
-                                                             self.current_scope.get_symbol_path(target.get_name()),
-                                                             str(source.value.value)))
-                case DataType.INT | DataType.BOOLEAN:
-                    self.current_scope.add_command(
-                        ScoreboardBuilder.set_score(self.current_scope.get_symbol_path(target.get_name()),
-                                                    self.var_objective, int(source.value.value)))
-                case cls if isinstance(cls, Class):
-                    pass  # TODO:实现类赋值
-        elif source.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
-            match target.dtype:
-                case DataType.STRING:
-                    self.current_scope.add_command(
-                        DataBuilder.modify_storage_set_from_storage(f"{self.namespace}:{self.var_objective}",
-                                                                    self.current_scope.get_symbol_path(
-                                                                        target.get_name()),
-                                                                    f"{self.namespace}:{self.var_objective}",
-                                                                    self.current_scope.get_symbol_path(
-                                                                        source.get_name())))
-                case DataType.INT | DataType.BOOLEAN:
-                    self.current_scope.add_command(
-                        ScoreboardBuilder.set_op(self.current_scope.get_symbol_path(target.get_name()),
-                                                 self.var_objective,
-                                                 self.current_scope.get_symbol_path(target.get_name()),
-                                                 self.var_objective))
-                case cls if isinstance(cls, Class):
-                    pass  # TODO:实现类赋值
+        if isinstance(target.dtype, DataType):
+            if source.value_type == ValueType.LITERAL:
+                BasicCommands.Copy.copy_literal_base_type(target, self.current_scope, self.var_objective, source.value)
+            elif source.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+                BasicCommands.Copy.copy_variable_base_type(source.value, self.current_scope, self.var_objective, target,
+                                                           self.current_scope, self.var_objective)
+        else:  # Class
+            assert isinstance(target.dtype, Class)
+            pass  # TODO:实现类的赋值
+
+    def _unary_op(self, instr: IRInstruction):
+        pass  # 因该dsl内不存在直接性的位运算，故不实现，
 
     def _declare(self, instr: IRInstruction):
         self.current_scope.add_symbol(instr.get_operands()[0])
@@ -161,6 +159,3 @@ class CodeGenerator(CodeGeneratorSpec):
         else:
             self.current_scope.add_command(
                 FunctionBuilder.run_with_source(f"{self.namespace}:builtins/exec", "storage", ...))  # TODO
-
-    def _format_string(self, instr: IRInstruction):
-        pass

@@ -2,7 +2,7 @@
 from mcfdsl.core.backend.code_generator.c_je_1204.code_generator_scope import CodeGeneratorScope
 from mcfdsl.core.backend.code_generator.c_je_1204.command_builder import DataBuilder, ScoreboardBuilder
 from mcfdsl.core.language_enums import DataType
-from mcfdsl.core.symbols import Variable, Class, Constant, Literal
+from mcfdsl.core.symbols import Variable, Constant, Literal
 
 
 class BasicCommands:
@@ -35,31 +35,34 @@ class BasicCommands:
 
     class Copy:
         @staticmethod
-        def copy_variable(from_: Variable | Constant, from_scope: CodeGeneratorScope, from_objective: str, to: Variable,
-                          to_scope: CodeGeneratorScope, to_objective: str):
-            if from_.dtype == DataType.STRING:
+        def copy_variable_base_type(source: Variable | Constant, source_scope: CodeGeneratorScope,
+                                    source_objective: str, target: Variable,
+                                    target_scope: CodeGeneratorScope, target_objective: str):
+            if source.dtype == DataType.STRING:
                 return DataBuilder.modify_storage_set_from_storage(
-                    f"{to_scope.namespace}:{to_objective}",
-                    to_scope.get_symbol_path(to.get_name()),
-                    f"{from_scope.namespace}:{from_objective}",
-                    from_scope.get_symbol_path(from_.get_name()))
-            elif from_.dtype in (DataType.INT, DataType.BOOLEAN):
+                    f"{target_scope.namespace}:{target_objective}",
+                    target_scope.get_symbol_path(target.get_name()),
+                    f"{source_scope.namespace}:{source_objective}",
+                    source_scope.get_symbol_path(source.get_name()))
+            elif source.dtype in (DataType.INT, DataType.BOOLEAN):
                 return ScoreboardBuilder.set_op(
-                    to_scope.get_symbol_path(to.get_name()),
-                    to_objective,
-                    from_scope.get_symbol_path(from_.get_name()),
-                    from_objective)
+                    target_scope.get_symbol_path(target.get_name()),
+                    target_objective,
+                    source_scope.get_symbol_path(source.get_name()),
+                    source_objective)
             else:  # Class
-                return None  # TODO: 类复制，此处暂不实现
+                return None
 
         @staticmethod
-        def copy_literal(to: Variable | Constant, to_scope: CodeGeneratorScope, to_objective: str, value: Literal):
+        def copy_literal_base_type(target: Variable | Constant, target_scope: CodeGeneratorScope, target_objective: str,
+                                   source: Literal):
 
-            if to.dtype == DataType.STRING:
+            if target.dtype == DataType.STRING:
                 return DataBuilder.modify_storage_set_value(
-                    f"{to_scope.namespace}:{to_objective}", to_scope.get_symbol_path(to.get_name()), f"\"{value.value}\"")
-            elif to.dtype in (DataType.INT, DataType.BOOLEAN):
+                    f"{target_scope.namespace}:{target_objective}", target_scope.get_symbol_path(target.get_name()),
+                    f"\"{source.value}\"")
+            elif target.dtype in (DataType.INT, DataType.BOOLEAN):
                 return ScoreboardBuilder.set_score(
-                    to_scope.get_symbol_path(to.get_name()), to_objective, int(value.value))
-            else:
-                return None # TODO: 类复制，此处暂不实现
+                    target_scope.get_symbol_path(target.get_name()), target_objective, int(source.value))
+            else:  # Class
+                return None

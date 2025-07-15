@@ -15,8 +15,9 @@ from mcfdsl.core.DSLParser import McFuncDSLLexer
 from mcfdsl.core.DSLParser import McFuncDSLParser
 from mcfdsl.core.backend.instructions import IRScopeBegin, IRScopeEnd
 from mcfdsl.core.backend.optimizer.o_je_1204 import Optimizer
-from mcfdsl.core.backend.specification import OptimizationLevel, MinecraftEdition, MinecraftVersion
+from mcfdsl.core.backend.specification import OptimizationLevel, MinecraftVersion
 from mcfdsl.core.errors import CompilationError
+from mcfdsl.core.generator_config import GeneratorConfig
 from mcfdsl.core.ir_generator import MCGenerator
 
 
@@ -61,12 +62,10 @@ class ThrowingErrorListener(ErrorListener):
 
 
 def compile_mcdl(source_path, target_path,
-                 optimization_level: OptimizationLevel, debug=False,
-                 minecraft_version=MinecraftVersion(1, 20, 4, MinecraftEdition.JAVA_EDITION),
-                 namespace: str = None):
+                 config: GeneratorConfig):
     source_path = os.path.abspath(source_path)
     target_path = os.path.abspath(target_path)
-    namespace = namespace or "example"
+    namespace = config.namespace
     with contextlib.chdir(os.path.dirname(source_path)):
         start_time = time.time()
         input_stream = FileStream(source_path, "utf-8")
@@ -112,17 +111,17 @@ def compile_mcdl(source_path, target_path,
             if listener.error:
                 sys.stderr.write(listener.buffer.getvalue())
                 return 1
-            generator = MCGenerator(namespace)
+            generator = MCGenerator(config)
             generator.visit(tree)
             # 输出到target目录
             ir_builder = generator.get_generate_ir()
-            ir_builder = Optimizer(ir_builder, optimization_level, debug).optimize()
+            ir_builder = Optimizer(ir_builder, config).optimize()
             # CodeGenerator(ir_builder, target_path, debug, namespace).generate_commands()
             depth = 0
             for i in ir_builder:
                 if isinstance(i, IRScopeEnd):
                     depth -= 1
-                sys.stdout.write(depth * "\t" + repr(i) + "\n")
+                sys.stdout.write(depth * "    " + repr(i) + "\n")
                 if isinstance(i, IRScopeBegin):
                     depth += 1
 
@@ -133,7 +132,7 @@ def compile_mcdl(source_path, target_path,
             print_error_info()
             time.sleep(0.1)
             sys.stderr.write(e.__repr__())
-            if debug:
+            if config.debug:
                 # 重新抛出异常显示错误详情
                 raise
         except Exception:
@@ -169,12 +168,12 @@ if __name__ == "__main__":
 
     parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2], default=1,
                         help='优化级别')
+    parser.add_argument('--enable-recursion', action='store_true', help='启用递归(需后端支持)')
     parser.add_argument('--debug', action='store_true',
                         help='启用调试模式')
 
     args = parser.parse_args()
-
-    sys.exit(compile_mcdl(source_path=args.input, target_path=args.output or "target",
-                          optimization_level=OptimizationLevel(args.O), debug=args.debug,
-                          minecraft_version=MinecraftVersion.from_str(args.minecraft_version, "je"),
-                          namespace=args.namespace))
+    sys.exit(compile_mcdl(args.input, args.output or "target",
+                          GeneratorConfig(args.namespace, OptimizationLevel(args.O),
+                                          MinecraftVersion.from_str(args.minecraft_version), args.debug, False,
+                                          args.enable_recursion, False)))
