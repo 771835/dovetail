@@ -11,14 +11,15 @@ import time
 from antlr4 import FileStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 
-from mcfdsl.core.DSLParser import McFuncDSLLexer
-from mcfdsl.core.DSLParser import McFuncDSLParser
-from mcfdsl.core.backend.instructions import IRScopeBegin, IRScopeEnd
-from mcfdsl.core.backend.optimizer.o_je_1204 import Optimizer
-from mcfdsl.core.backend.specification import OptimizationLevel, MinecraftVersion
-from mcfdsl.core.errors import CompilationError
-from mcfdsl.core.generator_config import GeneratorConfig
-from mcfdsl.core.ir_generator import MCGenerator
+from transpiler.core.backend.code_generator.c_je_1204 import CodeGenerator
+from transpiler.core.parser import transpilerLexer
+from transpiler.core.parser import transpilerParser
+from transpiler.core.instructions import IRScopeBegin, IRScopeEnd
+from transpiler.core.backend.optimizer.o_je_1204 import Optimizer
+from transpiler.core.backend.specification import OptimizationLevel, MinecraftVersion
+from transpiler.core.errors import CompilationError
+from transpiler.core.generator_config import GeneratorConfig
+from transpiler.core.ir_generator import MCGenerator
 
 
 class ThrowingErrorListener(ErrorListener):
@@ -69,12 +70,12 @@ def compile_mcdl(source_path, target_path,
     with contextlib.chdir(os.path.dirname(source_path)):
         start_time = time.time()
         input_stream = FileStream(source_path, "utf-8")
-        lexer = McFuncDSLLexer.McFuncDSLLexer(input_stream)
+        lexer = transpilerLexer.transpilerLexer(input_stream)
         lexer.removeErrorListeners()
         listener = ThrowingErrorListener()
         lexer.addErrorListener(listener)
         stream = CommonTokenStream(lexer)
-        parser = McFuncDSLParser.McFuncDSLParser(stream)
+        parser = transpilerParser.transpilerParser(stream)
         parser.removeErrorListeners()
         parser.addErrorListener(listener)
 
@@ -116,7 +117,7 @@ def compile_mcdl(source_path, target_path,
             # 输出到target目录
             ir_builder = generator.get_generate_ir()
             ir_builder = Optimizer(ir_builder, config).optimize()
-            # CodeGenerator(ir_builder, target_path, debug, namespace).generate_commands()
+            CodeGenerator(ir_builder, target_path, config).generate_commands()
             depth = 0
             for i in ir_builder:
                 if isinstance(i, IRScopeEnd):
@@ -174,6 +175,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     sys.exit(compile_mcdl(args.input, args.output or "target",
-                          GeneratorConfig(args.namespace, OptimizationLevel(args.O),
+                          GeneratorConfig(args.namespace or "namespace", OptimizationLevel(args.O),
                                           MinecraftVersion.from_str(args.minecraft_version), args.debug, False,
                                           args.enable_recursion, False)))

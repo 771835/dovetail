@@ -22,8 +22,8 @@
 | CALL_INLINE | result func [args...]             | 函数内联调用提示（建议编译器优化）   |
 | SCOPE_BEGIN | name <type                        | 作用域开始标记（可标记为函数、循环等） |
 | SCOPE_END   | -                                 | 作用域结束标记             |
-| BREAK       | -                                 | 跳出指定循环              |
-| CONTINUE    | -                                 | 终止当前循环迭代，继续下次迭代     |
+| BREAK       | scope_name                        | 跳出指定循环              |
+| CONTINUE    | scope_name                        | 终止当前循环迭代，继续下次迭代     |
 
 ##### 因为内联调用需要看优化模块的实际情况和mc的原生支持性，因此计划移除CALL_INLINE指令
 

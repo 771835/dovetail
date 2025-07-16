@@ -1,9 +1,13 @@
+*.exe
 *.py[cod]
 *.so
 *.egg
 *.interp
 *.tokens
 *.iml
+main.build/
+main.dist/
+main.onefile-build/
 .idea/*
 .vscode/
 __pycache__/

@@ -1,14 +1,23 @@
 func int main() {
-    /*boolean cond_var;
+    /*
+    boolean cond_var;
     if (cond_var) {
-    # if块代码
+        # if块代码
     } else {
         # else块代码
     }
-    for (int i=0;i<3;i=i+1) {
-    # 循环体
-    }
-    */
     int m =1;
     cmd(f"sawa{m}");
+    */
+    /*
+    for (int i=0;i<3;i=i+1) {
+        # 循环体
+    }
+    */
+    while (1==1) {
+        continue;
+    }
+    func int a(int abc){
+    }
+
 }
