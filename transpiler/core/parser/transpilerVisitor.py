@@ -144,6 +144,11 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by transpilerParser#TermExpr.
+    def visitTermExpr(self, ctx:transpilerParser.TermExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by transpilerParser#LogicalOrExpr.
     def visitLogicalOrExpr(self, ctx:transpilerParser.LogicalOrExprContext):
         return self.visitChildren(ctx)
@@ -151,11 +156,6 @@ class transpilerVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by transpilerParser#DirectFuncCall.
     def visitDirectFuncCall(self, ctx:transpilerParser.DirectFuncCallContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by transpilerParser#MulDivExpr.
-    def visitMulDivExpr(self, ctx:transpilerParser.MulDivExprContext):
         return self.visitChildren(ctx)
 
 
@@ -184,11 +184,6 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by transpilerParser#AddSubExpr.
-    def visitAddSubExpr(self, ctx:transpilerParser.AddSubExprContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by transpilerParser#LogicalAndExpr.
     def visitLogicalAndExpr(self, ctx:transpilerParser.LogicalAndExprContext):
         return self.visitChildren(ctx)
@@ -196,6 +191,11 @@ class transpilerVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by transpilerParser#MethodCall.
     def visitMethodCall(self, ctx:transpilerParser.MethodCallContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by transpilerParser#FactorExpr.
+    def visitFactorExpr(self, ctx:transpilerParser.FactorExprContext):
         return self.visitChildren(ctx)
 
 
@@ -216,11 +216,6 @@ class transpilerVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by transpilerParser#NewObjectExpr.
     def visitNewObjectExpr(self, ctx:transpilerParser.NewObjectExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by transpilerParser#TypeCastExpr.
-    def visitTypeCastExpr(self, ctx:transpilerParser.TypeCastExprContext):
         return self.visitChildren(ctx)
 
 

@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 from transpiler.core.backend.ir_builder import IRBuilder
-from transpiler.core.generator_config import OptimizationLevel, MinecraftVersion, GeneratorConfig
+from transpiler.core.generator_config import MinecraftVersion, GeneratorConfig
 
 
 class IROptimizerSpec(ABC):

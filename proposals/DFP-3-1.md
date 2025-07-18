@@ -136,36 +136,42 @@ GET_FIELD result_var temp_var "value"
 ### 原始代码
 
 ```
-func add(a:int, b:int) -> int {
-    return a + b
-}
+func main() -> int {
+    func add(a:int, b:int) -> int {
+        return a + b
+    }
 
-cmd f"say ${add(1, 2)}"
+    int r = add(1, 2);
+    cmd(f"say ${r}")
+}
 ```
 
 ### 生成IR
 
 ```
-FUNCTION add a:int b:int
-SCOPE_BEGIN add function
-OP $t0 + a b
-RETURN $t0
-SCOPE_END add
-
-# 主程序
-DECLARE arg0 int 1
-DECLARE arg1 int 2
-CALL temp1 add arg0 arg1
-FSTRING cmd_str "say ${temp1}"
-RAW_CMD cmd_str
-```
-
-### 优化后IR
-
-```
-# 常量折叠优化后
-FSTRING cmd_str "say 3"
-RAW_CMD cmd_str
+IROpCode.SCOPE_BEGIN(op='main', op=<StructureType.FUNCTION: 'function'>)
+    IROpCode.SCOPE_BEGIN(op='add', op=<StructureType.FUNCTION: 'function'>)
+        IROpCode.DECLARE(op=Variable(name='a', dtype=<DataType.INT: 'int'>, var_type=<VariableType.ARGUMENT: 'argument'>))
+        IROpCode.DECLARE(op=Variable(name='b', dtype=<DataType.INT: 'int'>, var_type=<VariableType.ARGUMENT: 'argument'>))
+        IROpCode.DECLARE(op=Variable(name='calc_0', dtype=<DataType.INT: 'int'>, var_type=<VariableType.RETURN: 'return'>))
+        IROpCode.OP(op=Variable(name='calc_0', dtype=<DataType.INT: 'int'>, var_type=<VariableType.RETURN: 'return'>), op=<BinaryOps.ADD: '+'>, op=Reference(value_type=<ValueType.VARIABLE: 'variable'>, value=Variable(name='a', dtype=<DataType.INT: 'int'>, var_type=<VariableType.ARGUMENT: 'argument'>)), op=Reference(value_type=<ValueType.VARIABLE: 'variable'>, value=Variable(name='b', dtype=<DataType.INT: 'int'>, var_type=<VariableType.ARGUMENT: 'argument'>)))
+        IROpCode.RETURN(op=Reference(value_type=<ValueType.VARIABLE: 'variable'>, value=Variable(name='calc_0', dtype=<DataType.INT: 'int'>, var_type=<VariableType.RETURN: 'return'>)))
+    IROpCode.SCOPE_END()
+    IROpCode.FUNCTION(op=Function(name='add', params=[Variable(name='a', dtype=<DataType.INT: 'int'>, var_type=<VariableType.ARGUMENT: 'argument'>), Variable(name='b', dtype=<DataType.INT: 'int'>, var_type=<VariableType.ARGUMENT: 'argument'>)], return_type=<DataType.INT: 'int'>))
+    IROpCode.DECLARE(op=Variable(name='result_1', dtype=<DataType.INT: 'int'>, var_type=<VariableType.GENERAL: 'general'>))
+    IROpCode.CALL(op=Variable(name='result_1', dtype=<DataType.INT: 'int'>, var_type=<VariableType.GENERAL: 'general'>), op=Function(name='add', params=[Variable(name='a', dtype=<DataType.INT: 'int'>, var_type=<VariableType.ARGUMENT: 'argument'>), Variable(name='b', dtype=<DataType.INT: 'int'>, var_type=<VariableType.ARGUMENT: 'argument'>)], return_type=<DataType.INT: 'int'>), op=[Reference(value_type=<ValueType.LITERAL: 'literal'>, value=Literal(dtype=<DataType.INT: 'int'>, value=1)), Reference(value_type=<ValueType.LITERAL: 'literal'>, value=Literal(dtype=<DataType.INT: 'int'>, value=2))])
+    IROpCode.DECLARE(op=Variable(name='r', dtype=<DataType.INT: 'int'>, var_type=<VariableType.GENERAL: 'general'>))
+    IROpCode.ASSIGN(op=Variable(name='r', dtype=<DataType.INT: 'int'>, var_type=<VariableType.GENERAL: 'general'>), op=Reference(value_type=<ValueType.VARIABLE: 'variable'>, value=Variable(name='result_1', dtype=<DataType.INT: 'int'>, var_type=<VariableType.GENERAL: 'general'>)))
+    IROpCode.DECLARE(op=Variable(name='fstring_2', dtype=<DataType.STRING: 'string'>, var_type=<VariableType.GENERAL: 'general'>))
+    IROpCode.DECLARE(op=Variable(name='fstring_3', dtype=<DataType.STRING: 'string'>, var_type=<VariableType.GENERAL: 'general'>))
+    IROpCode.ASSIGN(op=Variable(name='fstring_3', dtype=<DataType.STRING: 'string'>, var_type=<VariableType.GENERAL: 'general'>), op=Reference(value_type=<ValueType.LITERAL: 'literal'>, value=Literal(dtype=<DataType.STRING: 'string'>, value='say $')))
+    IROpCode.DECLARE(op=Variable(name='cast_4', dtype=<DataType.STRING: 'string'>, var_type=<VariableType.GENERAL: 'general'>))
+    IROpCode.CAST(op=Variable(name='cast_4', dtype=<DataType.STRING: 'string'>, var_type=<VariableType.GENERAL: 'general'>), op=<DataType.STRING: 'string'>, op=Reference(value_type=<ValueType.VARIABLE: 'variable'>, value=Variable(name='r', dtype=<DataType.INT: 'int'>, var_type=<VariableType.GENERAL: 'general'>)))
+    IROpCode.DECLARE(op=Variable(name='fstring_5', dtype=<DataType.STRING: 'string'>, var_type=<VariableType.GENERAL: 'general'>))
+    IROpCode.OP(op=Variable(name='fstring_5', dtype=<DataType.STRING: 'string'>, var_type=<VariableType.GENERAL: 'general'>), op=<BinaryOps.ADD: '+'>, op=Reference(value_type=<ValueType.VARIABLE: 'variable'>, value=Variable(name='fstring_3', dtype=<DataType.STRING: 'string'>, var_type=<VariableType.GENERAL: 'general'>)), op=Reference(value_type=<ValueType.VARIABLE: 'variable'>, value=Variable(name='cast_4', dtype=<DataType.STRING: 'string'>, var_type=<VariableType.GENERAL: 'general'>)))
+    IROpCode.RAW_CMD(op=Reference(value_type=<ValueType.VARIABLE: 'variable'>, value=Variable(name='fstring_5', dtype=<DataType.STRING: 'string'>, var_type=<VariableType.GENERAL: 'general'>)))
+IROpCode.SCOPE_END()
+IROpCode.FUNCTION(op=Function(name='main', params=[], return_type=<DataType.INT: 'int'>))
 ```
 
 ## 优点

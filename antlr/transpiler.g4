@@ -5,7 +5,9 @@ program
     : (includeStmt)*
       (classDecl
       | interfaceDecl
-      | statement)* EOF
+      | functionDecl
+      | varDecl
+      | constDecl)* EOF
     ;
 
 includeStmt
@@ -187,8 +189,8 @@ expr
     | primary                               # PrimaryExpr        // 基础表达式
     | '-' expr                              # NegExpr            // 负号
     | '!' expr                         #LogicalNotExpr             // not运算符
-    | expr (MUL|DIV) expr                   # MulDivExpr         // 算术运算
-    | expr (ADD|SUB) expr                   # AddSubExpr
+    | expr (MUL|DIV|MOD) expr                   # FactorExpr         // 算术运算
+    | expr (ADD|SUB) expr                   # TermExpr
     | expr ('>' | '<' | '==' | '!=' | '<=' | '>=') expr # CompareExpr      // 比较运算
     | expr AND expr                   #LogicalAndExpr             // and运算符
     | expr OR expr                   #LogicalOrExpr              // or运算符
@@ -274,6 +276,7 @@ DOUBLE_COLON: '::';
 NOT : '!';
 MUL : '*';
 DIV : '/';
+MOD : '%';
 ADD : '+';
 SUB : '-';
 GT  : '>';

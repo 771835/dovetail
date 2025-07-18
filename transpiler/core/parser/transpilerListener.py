@@ -251,6 +251,15 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by transpilerParser#TermExpr.
+    def enterTermExpr(self, ctx:transpilerParser.TermExprContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#TermExpr.
+    def exitTermExpr(self, ctx:transpilerParser.TermExprContext):
+        pass
+
+
     # Enter a parse tree produced by transpilerParser#LogicalOrExpr.
     def enterLogicalOrExpr(self, ctx:transpilerParser.LogicalOrExprContext):
         pass
@@ -266,15 +275,6 @@ class transpilerListener(ParseTreeListener):
 
     # Exit a parse tree produced by transpilerParser#DirectFuncCall.
     def exitDirectFuncCall(self, ctx:transpilerParser.DirectFuncCallContext):
-        pass
-
-
-    # Enter a parse tree produced by transpilerParser#MulDivExpr.
-    def enterMulDivExpr(self, ctx:transpilerParser.MulDivExprContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#MulDivExpr.
-    def exitMulDivExpr(self, ctx:transpilerParser.MulDivExprContext):
         pass
 
 
@@ -323,15 +323,6 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by transpilerParser#AddSubExpr.
-    def enterAddSubExpr(self, ctx:transpilerParser.AddSubExprContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#AddSubExpr.
-    def exitAddSubExpr(self, ctx:transpilerParser.AddSubExprContext):
-        pass
-
-
     # Enter a parse tree produced by transpilerParser#LogicalAndExpr.
     def enterLogicalAndExpr(self, ctx:transpilerParser.LogicalAndExprContext):
         pass
@@ -347,6 +338,15 @@ class transpilerListener(ParseTreeListener):
 
     # Exit a parse tree produced by transpilerParser#MethodCall.
     def exitMethodCall(self, ctx:transpilerParser.MethodCallContext):
+        pass
+
+
+    # Enter a parse tree produced by transpilerParser#FactorExpr.
+    def enterFactorExpr(self, ctx:transpilerParser.FactorExprContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#FactorExpr.
+    def exitFactorExpr(self, ctx:transpilerParser.FactorExprContext):
         pass
 
 
@@ -383,15 +383,6 @@ class transpilerListener(ParseTreeListener):
 
     # Exit a parse tree produced by transpilerParser#NewObjectExpr.
     def exitNewObjectExpr(self, ctx:transpilerParser.NewObjectExprContext):
-        pass
-
-
-    # Enter a parse tree produced by transpilerParser#TypeCastExpr.
-    def enterTypeCastExpr(self, ctx:transpilerParser.TypeCastExprContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#TypeCastExpr.
-    def exitTypeCastExpr(self, ctx:transpilerParser.TypeCastExprContext):
         pass
 
 

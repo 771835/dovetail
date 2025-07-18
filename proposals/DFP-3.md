@@ -56,7 +56,7 @@
 
 | 类型     | 存储位置       | 四则运算                      | 拼接                       | 布尔条件判断                  |
 |--------|------------|---------------------------|--------------------------|-------------------------|
-| int    | Scoreboard | 直接使用 Scoreboard operation | 算数运算                     | 使用 execute if score     |
+| int    | Scoreboard | 直接使用 Scoreboard operation | 不支持                      | 使用 execute if score     |
 | bool   | 同int       | 视作0/1的int                 | 同int                     | 同int                    |
 | string | Storage    | 不支持                       | 通过 storage 的 append 操作实现 | 需转存为 0/1 的 Scoreboard 值 |
 
@@ -95,7 +95,6 @@
 | string/int | `==` `!=`         | string/int | 不相等                                                                                                                                        |
 | class      | `==` `!=`         | any        | 由class的__eq__方法决定,不存在则不相等                                                                                                                  |
 | class      | `<` `<=` `>` `>=` | any        | 由class的指定魔法方法决定,不存在则不相等                                                                                                                    | 
-| builtins   | `==` `!=`         | any        | 由内置代码决定                                                                                                                                    |
 
 ### 4. 控制流实现
 

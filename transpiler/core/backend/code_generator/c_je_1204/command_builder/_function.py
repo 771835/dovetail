@@ -31,7 +31,7 @@ class FunctionBuilder:
 
         Example:
             Function.run_with_arguments("demo", "normal", "has space")
-            -> "function demo normal "has space""
+            -> 'function demo normal "has space"'
         """
 
         def process_arg(arg: str) -> str:

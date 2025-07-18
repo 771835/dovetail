@@ -6,18 +6,21 @@ func int main() {
     } else {
         # else块代码
     }
+
     int m =1;
     cmd(f"sawa{m}");
     */
-    /*
     for (int i=0;i<3;i=i+1) {
         # 循环体
+        cmd(f"say for_{i}");
     }
-    */
-    while (1==1) {
-        continue;
-    }
-    func int a(int abc){
+/*
+
+    func add(a:int, b:int) -> int {
+        return a + b
     }
 
+    int r = add(1, 2);
+    cmd(f"say ${r}")
+    */
 }

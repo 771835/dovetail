@@ -12,14 +12,14 @@ from antlr4 import FileStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 
 from transpiler.core.backend.code_generator.c_je_1204 import CodeGenerator
+from transpiler.core.backend.optimizer.o_je_1204 import Optimizer
+from transpiler.core.backend.specification import MinecraftVersion
+from transpiler.core.errors import CompilationError
+from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel
+from transpiler.core.instructions import IRScopeBegin, IRScopeEnd
+from transpiler.core.ir_generator import MCGenerator
 from transpiler.core.parser import transpilerLexer
 from transpiler.core.parser import transpilerParser
-from transpiler.core.instructions import IRScopeBegin, IRScopeEnd
-from transpiler.core.backend.optimizer.o_je_1204 import Optimizer
-from transpiler.core.backend.specification import OptimizationLevel, MinecraftVersion
-from transpiler.core.errors import CompilationError
-from transpiler.core.generator_config import GeneratorConfig
-from transpiler.core.ir_generator import MCGenerator
 
 
 class ThrowingErrorListener(ErrorListener):

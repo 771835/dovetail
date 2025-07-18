@@ -206,10 +206,18 @@ class MCGenerator(transpilerVisitor):
 
     def _get_type_definition(
             self,
-            type_name: str) -> DataType | Class:
-        """获取类型的具体定义（内置类型返回DataType，类返回Class实例）"""
+            type_name: str,
+            allow_void=False) -> DataType | Class:
+        """获取类型的具体定义（内置类型返回DataType，类返回Class实例）void特殊处理"""
         try:
             if builtin_type := DataType.get_by_value(type_name):
+                if builtin_type == DataType.VOID and not allow_void:
+                    raise UndefinedTypeError(
+                        type_name,
+                        line=self._get_current_line(),
+                        column=self._get_current_column(),
+                        filename=self.filename
+                    )
                 return builtin_type
         except ValueError:
             pass  # DataType不存在此类型,去寻找符号
@@ -315,10 +323,10 @@ class MCGenerator(transpilerVisitor):
 
         var = Variable(
             var_name,
-            var_type,
+            var_type
         )
 
-        if not self.current_scope.add_symbol(var): # 添加符号失败
+        if not self.current_scope.add_symbol(var):  # 添加符号失败
             raise DuplicateDefinitionError(
                 var_name,
                 line=self._get_current_line(),
@@ -379,7 +387,7 @@ class MCGenerator(transpilerVisitor):
             self,
             ctx: transpilerParser.FunctionDeclContext):
         func_name = ctx.ID().getText()
-        return_type = self._get_type_definition(ctx.type_().getText())
+        return_type = self._get_type_definition(ctx.type_().getText(), True)
 
         if self.current_scope.has_symbol(func_name):
             raise DuplicateDefinitionError(
@@ -415,6 +423,7 @@ class MCGenerator(transpilerVisitor):
                 column=self._get_current_column(),
                 filename=self.filename
             )
+        self._add_ir_instruction(IRFunction(func))
 
         with self.scoped_environment(func_name, StructureType.FUNCTION) as scope:
             for i in params_list:
@@ -430,7 +439,6 @@ class MCGenerator(transpilerVisitor):
             # 处理函数体
             self.visit(ctx.block())
 
-        self._add_ir_instruction(IRFunction(func))
         return Result(Reference(ValueType.FUNCTION, func))
 
     # 处理代码块
@@ -480,13 +488,15 @@ class MCGenerator(transpilerVisitor):
                        constants=constants,
                        variables=variables)
 
-        if self.current_scope.add_symbol(class_):
+        if not self.current_scope.add_symbol(class_):
             raise DuplicateDefinitionError(
                 class_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filename
             )
+        self._add_ir_instruction(IRClass(class_))
+
         with self.scoped_environment(class_name, StructureType.CLASS) as class_scope:
             # 处理继承
             if parent:
@@ -515,7 +525,7 @@ class MCGenerator(transpilerVisitor):
 
             for method in ctx.methodDecl():
                 methods.append(self.visit(method).value.value)
-        self._add_ir_instruction(IRClass(class_))
+
         return Result(Reference(ValueType.CLASS, class_))
 
     def visitWhileStmt(
@@ -602,7 +612,9 @@ class MCGenerator(transpilerVisitor):
                         IRCondJump(
                             condition_var.value,
                             loop_check.name))
-
+                self._add_ir_instruction(
+                    IRJump(loop_check.name)
+                )
             self._add_ir_instruction(IRJump(loop.name))
         else:  # 增强for循环
             raise MissingImplementationError(
@@ -800,7 +812,7 @@ class MCGenerator(transpilerVisitor):
 
         return Result(Reference(ValueType.VARIABLE, var))
 
-    def visitMulDivExpr(self, ctx: transpilerParser.MulDivExprContext):
+    def visitFactorExpr(self, ctx: transpilerParser.FactorExprContext):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
         op = ctx.getChild(1).getText()
@@ -830,9 +842,9 @@ class MCGenerator(transpilerVisitor):
         self._add_ir_instruction(IROp(result_var, BinaryOps(op), left.value, right.value))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
-    def visitAddSubExpr(
+    def visitTermExpr(
             self,
-            ctx: transpilerParser.AddSubExprContext):
+            ctx: transpilerParser.TermExprContext):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
         op = BinaryOps(ctx.getChild(1).getText())
@@ -847,7 +859,7 @@ class MCGenerator(transpilerVisitor):
                     column=self._get_current_column(),
                     filename=self.filename
                 )
-        if left.value.get_data_type() == DataType.STRING and op == BinaryOps.SUB:
+        if left.value.get_data_type() == DataType.STRING:
             raise InvalidOperatorError(
                 op.value,
                 line=self._get_current_line(),
@@ -870,7 +882,7 @@ class MCGenerator(transpilerVisitor):
         # 调用函数
         func_symbol: NewSymbol = self.current_scope.resolve_symbol(func_name)
         if isinstance(func_symbol, Function):
-            if not self.config.enable_recursion: # 未启用递归
+            if not self.config.enable_recursion:  # 未启用递归
                 current = self.current_scope
                 while current:
                     if current.get_name() == func_name and current.type == StructureType.FUNCTION:
@@ -880,8 +892,7 @@ class MCGenerator(transpilerVisitor):
                             column=self._get_current_column(),
                             filename=self.filename
                         )
-                    current=current.parent
-
+                    current = current.parent
 
             result_var = self._create_temp_var(func_symbol.return_type, "result")
 

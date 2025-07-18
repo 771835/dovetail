@@ -1,191 +1,292 @@
-"""# coding=utf-8
+# coding=utf-8
 import uuid
 
-from transpiler.core.backend.code_generator.c_je_1204.command_builder._data import Data
-from transpiler.core.backend.code_generator.c_je_1204.command_builder._execute import Execute, ScoreOperation
-from transpiler.core.backend.code_generator.c_je_1204.command_builder._scoreboard import Scoreboard
-from transpiler.core.backend.code_generator.c_je_1204.command_builder.base import BasicCommands
-from transpiler.core.language_enums import DataType, ValueType, SymbolType
-from transpiler.core.result import Result
+from ..code_generator_scope import CodeGeneratorScope
+from . import BasicCommands, FunctionBuilder
+from ._data import DataBuilder
+from ._execute import Execute
+from ._scoreboard import ScoreboardBuilder
+from transpiler.core.language_enums import DataType, ValueType, CompareOps, BinaryOps
+from transpiler.core.symbols import Constant, Variable, Reference, Literal
+import typing
 
 
 class Composite:
     @staticmethod
-    def var_init(var: ISymbol, value: int | str = None):
-        if var.data_type == DataType.INT:
-            if value is not None:
-                value = 0
-            if var.data_type == DataType.BOOLEAN:
-                value = 1 if value else 0
-            return Scoreboard.set_score(
-                var.get_unique_name(), var.objective, int(value))
-        elif var.data_type == DataType.STRING:
-            if value is not None:
-                value = ''
-            return Data.modify_storage_set_value(
-                var.get_unique_name(), var.get_storage_path(), str(value))
-        else:
-            return None
+    def var_compare_base_type(left: Reference[Variable | Constant | Literal], left_scope: CodeGeneratorScope,
+                              left_objective: str, op: CompareOps, right: Reference[Variable | Constant | Literal],
+                              right_scope: CodeGeneratorScope, right_objective: str, result: Variable | Constant,
+                              result_scope: CodeGeneratorScope, result_objective: str) -> list[str] | None:
 
-    @staticmethod
-    def var_assignment(var: ISymbol, expr: ISymbol | Result) -> str | None:
-        if isinstance(expr, Result):
-            var2 = expr.to_symbol(objective=var.objective)
-            if var2 is None:
-                return None
-        else:
-            assert isinstance(expr, ISymbol)
-            var2: ISymbol = expr
+        commands = []
 
-        if var2.value_type == ValueType.LITERAL:
-            return BasicCommands.Copy.copy_literal(var, var2.value)
-        elif var2.value_type == ValueType.VARIABLE:
-            return BasicCommands.Copy.copy_variable(var2, var)
-        return None
+        op_value: typing.Literal["=", "<", "<=", ">", ">="]
+        op_value = op.value  # NOQA
 
-    @staticmethod
-    def var_compare(
-            left: ISymbol | Result,
-            op: str,
-            right: ISymbol | Result,
-            result_var: ISymbol,
-            objective: str = None
-    ):
-        if isinstance(left, Result) and isinstance(
-                right, ISymbol):  # 如果left是Result且right是ISymbol
-            left = left.to_symbol(objective=right.objective)
-        # 如果right是Result且left是ISymbol
-        elif isinstance(right, Result) and isinstance(left, ISymbol):
-            right = right.to_symbol(objective=left.objective)
-        elif isinstance(left, Result) and isinstance(right, Result):
-            if objective:
-                left = left.to_symbol(objective=objective)
-                right = right.to_symbol(objective=objective)
-            else:
-                return None
+        result_path = result_scope.get_symbol_path(result.get_name())
+
         # 自动将==替换为游戏支持的=
-        if op == "==":
-            op = "="
+        if op.value == "==":
+            op_value = "="
 
-        if left.data_type in (
-                DataType.INT,
-                DataType.BOOLEAN) and right.data_type in (
-                DataType.INT,
-                DataType.BOOLEAN):
-            if left.value_type == ValueType.VARIABLE and right.value_type == ValueType.VARIABLE:  # 左右都是变量引用
-                return [
-                    Composite._variable_compare(
-                        left, op, right, result_var)]
-            elif left.value_type == ValueType.LITERAL and right.value_type == ValueType.LITERAL:  # 左右都是字面量
-                assert isinstance(left.value, (int, bool))
-                assert isinstance(right.value, (int, bool))
-                return [
-                    Scoreboard.set_score(
-                        result_var.get_unique_name(),
-                        result_var.objective,
-                        1 if Composite._literal_compare(
-                            left.value,
-                            op,
-                            right.value) else 0)]
-            else:  # 左右有任意一边是变量引用
-                cmd = []
-                temp = '#' + uuid.uuid4().hex
-                if left.value_type == ValueType.LITERAL:
-                    assert isinstance(left.value, (int, bool))
-                    cmd.append(
-                        Scoreboard.set_score(temp,
-                                             left.objective, left.value
-                                             )
-                    )
-                    left = Symbol(
-                        temp,
-                        SymbolType.VARIABLE,
-                        None,
-                        left.data_type,
-                        left.objective,
-                        left.value,
-                        ValueType.VARIABLE)
-                elif right.value_type == ValueType.LITERAL:
-                    assert isinstance(right.value, (int, bool))
-                    cmd.append(
-                        Scoreboard.set_score(temp,
-                                             right.objective, right.value)
-                    )
-                    right = Symbol(
-                        temp,
-                        SymbolType.VARIABLE,
-                        None,
-                        right.data_type,
-                        right.objective,
-                        right.value,
-                        ValueType.VARIABLE)
-                else:
-                    return None
-                cmd.append(
-                    Composite._variable_compare(
-                        left, op, right, result_var))
-                cmd.append(Scoreboard.reset_score(temp, result_var.objective))
-                return cmd
-        elif left.data_type == DataType.STRING and right.data_type == DataType.STRING:
-            cmd = []
-            # TODO: 依然待实现
-            return cmd
-        elif isinstance(left.data_type, DataType) and isinstance(right.data_type, DataType):
-            return [
-                Scoreboard.set_score(
-                    result_var.get_unique_name(),
-                    result_var.objective,
-                    0)]
-        else:  # 其他
-            return None
+        if left.get_data_type() != right.get_data_type():
+            return [BasicCommands.Copy.copy_literal_base_type(result, result_scope, result_objective,
+                                                              Literal(DataType.BOOLEAN, False))]
+
+        if left.get_data_type() in (DataType.INT, DataType.BOOLEAN):
+            if left.value_type == ValueType.LITERAL:  # 左为字面量
+                left_name = uuid.uuid4().hex
+                left_path = left_scope.get_symbol_path(left_name)
+                commands.append(ScoreboardBuilder.set_score(left_path, left_objective, left.value.value))
+            else:
+                left_path = left_scope.get_symbol_path(left.get_name())
+
+            if right.value_type == ValueType.LITERAL:  # 右为字面量
+                right_name = uuid.uuid4().hex
+                right_path = right_scope.get_symbol_path(right_name)
+                commands.append(ScoreboardBuilder.set_score(right_path, right_objective, right.value.value))
+            else:
+                right_path = right_scope.get_symbol_path(right.get_name())
+
+            commands.append(Execute.execute().if_score_compare(left_path, left_objective,
+                                                               op_value if op_value != "!=" else "=", right_path,
+                                                               right_objective).run(
+                ScoreboardBuilder.set_score(result_path, result_objective,
+                                            1 if op_value != "!=" else 0)))
+            commands.append(
+                Execute.execute().unless_score_compare(left_path, left_objective,
+                                                       op_value if op_value != "!=" else "=", right_path,
+                                                       right_objective).run(
+                    ScoreboardBuilder.set_score(result_path, result_objective,
+                                                0 if op_value != "!=" else 1)))
+        elif left.get_data_type() == DataType.STRING:
+            if left.value_type == ValueType.LITERAL:  # 左为字面量
+                left_name = uuid.uuid4().hex
+                left_path = left_scope.get_symbol_path(left_name)
+                commands.append(DataBuilder.modify_storage_set_value(left_path, left_objective, left.value.value))
+            else:
+                left_path = left_scope.get_symbol_path(left.get_name())
+
+            if right.value_type == ValueType.LITERAL:  # 右为字面量
+                right_name = uuid.uuid4().hex
+                right_path = right_scope.get_symbol_path(right_name)
+                commands.append(DataBuilder.modify_storage_set_value(right_path, right_objective, right.value.value))
+            else:
+                right_path = right_scope.get_symbol_path(right.get_name())
+
+            temp_path = left_scope.get_symbol_path(uuid.uuid4().hex)
+            commands.append(
+                DataBuilder.modify_storage_set_from_storage(left_objective, temp_path, left_objective, left_path))
+            commands.append(Execute.execute().store_success_score(result_path, result_objective).run(
+                DataBuilder.modify_storage_set_from_storage(left_objective, temp_path, right_objective, right_path)))
+            if op_value == "==":
+                commands.append(Execute.execute().if_score_matches(result_path, result_objective, "1").run(
+                    ScoreboardBuilder.set_score(result_path, result_objective, 0)))
+                commands.append(Execute.execute().unless_score_matches(result_path, result_objective, "1").run(
+                    ScoreboardBuilder.set_score(result_path, result_objective, 1)))
+
+        return commands
 
     @staticmethod
-    def _variable_compare(
-            left: ISymbol,
-            op: str,
-            right: ISymbol,
-            result_var: ISymbol):
-        ops = ["=", "<", "<=", ">", ">="]
-        if op in ops:
-            op: ScoreOperation
-            return Execute.execute().if_score_compare(
-                left.get_unique_name(),
-                left.objective,
-                op,
-                right.get_unique_name(),
-                right.objective).run(
-                Scoreboard.set_score(
-                    result_var.get_unique_name(),
-                    result_var.objective,
-                    1))
-        elif op == "!=":
-            return Execute.execute().unless_score_compare(
-                left.get_unique_name(),
-                left.objective,
-                "=",
-                right.get_unique_name(),
-                right.objective).run(
-                Scoreboard.set_score(
-                    result_var.get_unique_name(),
-                    result_var.objective,
-                    1))
-        else:
-            return None
+    def op_base_type(result: Variable | Constant, result_scope: CodeGeneratorScope, result_objective: str,
+                     op: BinaryOps, left: Reference[Variable | Constant | Literal],
+                     left_scope: CodeGeneratorScope, left_objective: str,
+                     right: Reference[Variable | Constant | Literal], right_scope: CodeGeneratorScope,
+                     right_objective: str,
+                     namespace: str = "") -> list[str] | None:
+        result_path = result_scope.get_symbol_path(result.get_name())
+        handlers = {
+            BinaryOps.ADD: lambda target_scope, target, target_obj, source_scope, source, source_obj:
+            ScoreboardBuilder.add_op(
+                target_scope.get_symbol_path(target.get_name()),
+                target_obj,
+                source_scope.get_symbol_path(source.get_name()),
+                source_obj
+            ),
+            BinaryOps.SUB: lambda target_scope, target, target_obj, source_scope, source, source_obj:
+            ScoreboardBuilder.sub_op(
+                target_scope.get_symbol_path(target.get_name()),
+                target_obj,
+                source_scope.get_symbol_path(source.get_name()),
+                source_obj
+            ),
+            BinaryOps.MUL: lambda target_scope, target, target_obj, source_scope, source, source_obj:
+            ScoreboardBuilder.mul_op(
+                target_scope.get_symbol_path(target.get_name()),
+                target_obj,
+                source_scope.get_symbol_path(source.get_name()),
+                source_obj
+            ),
+            BinaryOps.DIV: lambda target_scope, target, target_obj, source_scope, source, source_obj:
+            ScoreboardBuilder.div_op(
+                target_scope.get_symbol_path(target.get_name()),
+                target_obj,
+                source_scope.get_symbol_path(source.get_name()),
+                source_obj
+            ),
+            BinaryOps.MOD: lambda target_scope, target, target_obj, source_scope, source, source_obj:
+            ScoreboardBuilder.mod_op(
+                target_scope.get_symbol_path(target.get_name()),
+                target_obj,
+                source_scope.get_symbol_path(source.get_name()),
+                source_obj
+            ),
+            BinaryOps.MIN: lambda target_scope, target, target_obj, source_scope, source, source_obj:
+            ScoreboardBuilder.min_op(
+                target_scope.get_symbol_path(target.get_name()),
+                target_obj,
+                source_scope.get_symbol_path(source.get_name()),
+                source_obj
+            ),
+            BinaryOps.MAX: lambda target_scope, target, target_obj, source_scope, source, source_obj:
+            ScoreboardBuilder.max_op(
+                target_scope.get_symbol_path(target.get_name()),
+                target_obj,
+                source_scope.get_symbol_path(source.get_name()),
+                source_obj
+            )
+        }
+        if right.value == result:
+            right, left = left, right
+            left_scope, right_scope = right_scope, left_scope
+            left_objective, right_objective = right_objective, left_objective
+        if result.dtype in (DataType.INT, DataType.BOOLEAN):
+            if left.value == result:  # 因为该比较，所以left绝对为Variable 或 Constant
+                if right.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+                    return [handlers[op](left_scope, left, left_objective, right_scope, right, right_objective)]
+                else:  # right=literal
+                    literal_handlers = {
+                        # 加法操作
+                        BinaryOps.ADD: lambda target_scope, target, target_objective, score:
+                        ScoreboardBuilder.add_score(
+                            target_scope.get_symbol_path(target.get_name()),
+                            target_objective,
+                            score
+                        ),
 
-    @staticmethod
-    def _literal_compare(left: int | bool, op: str, right: int | bool):
-        result = False
-        if op == '<':
-            result = left < right
-        elif op == '>':
-            result = left > right
-        elif op == '<=':
-            result = left <= right
-        elif op == '>=':
-            result = left >= right
-        elif op == '=' or op == '==':
-            result = left == right
-        elif op == '!=':
-            result = left != right
-        return True if result else False
-"""
+                        # 减法操作
+                        BinaryOps.SUB: lambda target_scope, target, target_objective, score:
+                        ScoreboardBuilder.sub_score(
+                            target_scope.get_symbol_path(target.get_name()),
+                            target_objective,
+                            score
+                        ),
+
+                        # 乘法操作
+                        BinaryOps.MUL: lambda target_scope, target, target_objective, score:
+                        ScoreboardBuilder.mul_score(
+                            target_scope.get_symbol_path(target.get_name()),
+                            target_objective,
+                            score
+                        ),
+
+                        # 除法操作
+                        BinaryOps.DIV: lambda target_scope, target, target_objective, score:
+                        ScoreboardBuilder.div_score(
+                            target_scope.get_symbol_path(target.get_name()),
+                            target_objective,
+                            score
+                        ),
+
+                        # 取模操作
+                        BinaryOps.MOD: lambda target_scope, target, target_objective, score:
+                        ScoreboardBuilder.mod_score(
+                            target_scope.get_symbol_path(target.get_name()),
+                            target_objective,
+                            score
+                        ),
+                        # 取最大值操作
+                        BinaryOps.MAX: lambda target_scope, target, target_objective, score:
+                        ScoreboardBuilder.max_score(
+                            target_scope.get_symbol_path(target.get_name()),
+                            target_objective,
+                            score
+                        ),
+                        # 取最小值操作
+                        BinaryOps.MIN: lambda target_scope, target, target_objective, score:
+                        ScoreboardBuilder.min_score(
+                            target_scope.get_symbol_path(target.get_name()),
+                            target_objective,
+                            score
+                        ),
+                    }
+
+                    return literal_handlers[op](left_scope, left, left_objective, right.value.value)
+            elif left.value_type == ValueType.LITERAL and right.value_type == ValueType.LITERAL:
+                # 此处理论上应该是重复的，因为正常情况下这一步会被常量折叠优化(谁那么闲不开优化啊)
+                literal_handlers = {BinaryOps.ADD: lambda a, b: ScoreboardBuilder.set_score(
+                    result_path, result_objective, a + b),
+                                    BinaryOps.SUB: lambda a, b: ScoreboardBuilder.set_score(
+                                        result_path, result_objective, a - b),
+                                    BinaryOps.MUL: lambda a, b: ScoreboardBuilder.set_score(
+                                        result_path, result_objective, a * b),
+                                    BinaryOps.DIV: lambda a, b: ScoreboardBuilder.set_score(
+                                        result_path, result_objective, a / b),
+                                    BinaryOps.MOD: lambda a, b: ScoreboardBuilder.set_score(
+                                        result_path, result_objective, a % b),
+                                    BinaryOps.BIT_AND: lambda a, b: ScoreboardBuilder.set_score(
+                                        result_path, result_objective, a & b),
+                                    BinaryOps.BIT_OR: lambda a, b: ScoreboardBuilder.set_score(
+                                        result_path, result_objective, a | b),
+                                    BinaryOps.BIT_XOR: lambda a, b: ScoreboardBuilder.set_score(
+                                        result_path, result_objective, a ^ b),
+                                    BinaryOps.SHL: lambda a, b: ScoreboardBuilder.set_score(
+                                        result_path, result_objective, a << b),
+                                    BinaryOps.SHR: lambda a, b: ScoreboardBuilder.set_score(
+                                        result_path, result_objective, a >> b),
+                                    BinaryOps.MIN: lambda a, b: ScoreboardBuilder.set_score(
+                                        result_path, result_objective, min(a, b)),
+                                    BinaryOps.MAX: lambda a, b: ScoreboardBuilder.set_score(
+                                        result_path, result_objective, max(a, b))
+                                    }
+                return [literal_handlers[op](left.value.value, left.value.value)]
+            elif left.value_type == ValueType.LITERAL or right.value_type == ValueType.LITERAL:
+                commands = []
+                if right.value_type == ValueType.LITERAL:
+                    right, left = left, right
+                    left_scope, right_scope = right_scope, left_scope
+                    left_objective, right_objective = right_objective, left_objective
+                commands.append(ScoreboardBuilder.set_score(result_path, result_objective, left.value.value))
+                commands.append(
+                    handlers[op](result_scope, result, result_objective, right_scope, right, right_objective))
+                return commands
+            else:  # 两操作数均为变量或从常量
+                commands = [
+                    ScoreboardBuilder.set_op(result_path, result_objective, left_scope.get_symbol_path(left.get_name()),
+                                             left_objective)]
+
+                commands.extend(
+                    handlers[op](result_scope, result, result_objective, right_scope, right, right_objective))
+                return commands
+        elif result.dtype == DataType.STRING:
+            commands = []
+            args_path = f"builtins.strcat.args" + uuid.uuid4().hex
+
+            if left.value_type == ValueType.LITERAL:
+                commands.append(DataBuilder.modify_storage_set_value("var", args_path + ".dest", str(left.value.value)))
+            else:
+                commands.append(DataBuilder.modify_storage_set_from_storage("var", args_path + ".dest", left_objective,
+                                                                            left_scope.get_symbol_path(
+                                                                                left.get_name())))
+
+            if right.value_type == ValueType.LITERAL:
+                commands.append(
+                    DataBuilder.modify_storage_set_value("var", args_path + ".dest", str(right.value.value)))
+            else:
+                commands.append(
+                    DataBuilder.modify_storage_set_from_storage("var", args_path + ".src", right_objective,
+                                                                right_scope.get_symbol_path(right.get_name())))
+
+            commands.append(
+                DataBuilder.modify_storage_set_from_storage("var", args_path + ".target", right_objective,
+                                                            result_objective))
+            commands.append(
+                DataBuilder.modify_storage_set_from_storage("var", args_path + ".target_path", right_objective,
+                                                            result_path))
+
+            commands.append(FunctionBuilder.run_with_source(f"{namespace}:builtins/strcat", "storage", args_path))
+
+            return commands
+
+
+        return None

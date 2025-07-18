@@ -1,5 +1,6 @@
 # coding=utf-8
 from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import IntEnum, auto
 from typing import NamedTuple

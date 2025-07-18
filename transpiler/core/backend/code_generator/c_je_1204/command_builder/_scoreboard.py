@@ -13,16 +13,20 @@ class ScoreboardBuilder:
         return f"scoreboard objectives remove {objective}"
 
     @staticmethod
+    def get_score(target: str, objective: str):
+        return f"scoreboard players get {target} {objective}"
+
+    @staticmethod
     def set_score(targets: str, objective: str, score: int):
         return f"scoreboard players set {targets} {objective} {score}"
 
     @staticmethod
-    def add_score(targets: str, objective: str, score: int):
-        return f"scoreboard players add {targets} {objective} {score}"
+    def add_score(targets: str, objective: str, score: int) -> list[str]:
+        return [f"scoreboard players add {targets} {objective} {score}"]
 
     @staticmethod
-    def sub_score(targets: str, objective: str, score: int):
-        return f"scoreboard players remove {targets} {objective} {score}"
+    def sub_score(targets: str, objective: str, score: int) -> list[str]:
+        return [f"scoreboard players remove {targets} {objective} {score}"]
 
     @staticmethod
     def reset_score(targets: str, objective: str = ""):

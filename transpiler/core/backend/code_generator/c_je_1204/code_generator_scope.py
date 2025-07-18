@@ -16,8 +16,11 @@ class CodeGeneratorScope:
         self.children: list[CodeGeneratorScope] = list()  # 子作用域
         self.commands: list[str] = list()
 
-    def add_command(self, command: str):
-        self.commands.append(command)
+    def add_command(self, commands: str | list[str]):
+        if isinstance(commands, str):
+            self.commands.append(commands)
+        else:
+            self.commands.extend(commands)
 
     def get_name(self):
         return self.name

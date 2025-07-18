@@ -2,19 +2,21 @@
 from __future__ import annotations
 
 import os
-from os import write
+import uuid
 from pathlib import Path
 from typing import Callable
 
-from transpiler.core.backend.code_generator.c_je_1204.code_generator_scope import CodeGeneratorScope
-from transpiler.core.backend.code_generator.c_je_1204.command_builder import FunctionBuilder, BasicCommands, Execute, \
-    ScoreboardBuilder
-from transpiler.core.instructions import IROpCode, IRInstruction
+from .builtins_func import builtins_func
+from .code_generator_scope import CodeGeneratorScope
+from .command_builder import FunctionBuilder, BasicCommands, Execute, \
+    ScoreboardBuilder, DataBuilder
 from transpiler.core.backend.ir_builder import IRBuilder
-from transpiler.core.backend.specification import CodeGeneratorSpec, MinecraftVersion
+from transpiler.core.backend.specification import CodeGeneratorSpec
 from transpiler.core.generator_config import MinecraftEdition, GeneratorConfig
-from transpiler.core.language_enums import StructureType, ValueType, DataType
+from transpiler.core.instructions import IROpCode, IRInstruction
+from transpiler.core.language_enums import StructureType, ValueType, DataType, CompareOps, BinaryOps
 from transpiler.core.symbols import Variable, Constant, Function, Literal, Reference, Class
+from .command_builder.composite import Composite
 
 
 class CodeGenerator(CodeGeneratorSpec):
@@ -23,6 +25,7 @@ class CodeGenerator(CodeGeneratorSpec):
         self.config = config
         self.builder = builder
         self.namespace = config.namespace
+        self.uuid_namespace = uuid.uuid4()
         self.top_scope = CodeGeneratorScope(
             "global",
             None,
@@ -34,9 +37,6 @@ class CodeGenerator(CodeGeneratorSpec):
         self.current_scope.add_command(ScoreboardBuilder.add_objective(self.var_objective, "dummy", "Variables"))
         self.current_scope.add_command(ScoreboardBuilder.add_objective(self.statement_objective, "dummy", "Statement"))
         self.function_table: dict[Function, CodeGeneratorScope] = {}
-    @staticmethod
-    def check_config(config: GeneratorConfig) -> bool:
-        pass
 
     @staticmethod
     def is_support(config: GeneratorConfig) -> bool:
@@ -48,7 +48,6 @@ class CodeGenerator(CodeGeneratorSpec):
         if config.enable_recursion or config.enable_experimental:
             return False
         return True
-
 
     def generate_commands(self):
         iterator = self.builder.__iter__()
@@ -70,9 +69,9 @@ class CodeGenerator(CodeGeneratorSpec):
             IROpCode.VAR_RELEASE: self._var_release,  # 0x21
             IROpCode.ASSIGN: self._assign,  # 0x22
             IROpCode.UNARY_OP: self._unary_op,  # 0x23
-            # IROpCode.OP: self._op,  # 0x24
-            # IROpCode.COMPARE: self._compare,  # 0x25
-            # IROpCode.CAST: self._cast,  ## 0x26
+            IROpCode.OP: self._op,  # 0x24
+            IROpCode.COMPARE: self._compare,  # 0x25
+            IROpCode.CAST: self._cast,  ## 0x26
 
             # ===== 面向对象指令 (0x40-0x5F) =====
             # IROpCode.CLASS: self._class_def,  # 0x40
@@ -109,6 +108,11 @@ class CodeGenerator(CodeGeneratorSpec):
                 stack.extend(reversed(current.children))
 
         _generate_commands(self.target.__str__(), self.top_scope)
+        for file_path in builtins_func:
+            path = os.path.join(self.target, self.namespace, "functions", f"{file_path}.mcfunction")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(builtins_func[file_path])
 
     def _scope_begin(self, instr: IRInstruction):
         name: str = instr.get_operands()[0]
@@ -143,11 +147,45 @@ class CodeGenerator(CodeGeneratorSpec):
             current = current.parent
 
     def _function(self, instr: IRInstruction):
-        function: Function = instr.get_operands()[0]
-        self.function_table[function] = self.current_scope.resolve_scope(function.get_name())
+        ...
 
     def _return(self, instr: IRInstruction):
-        ...
+        value: Reference[Variable | Constant | Literal] = instr.get_operands()[0]
+        current = self.current_scope
+        while True:
+            current = current.parent
+            if current.type == StructureType.FUNCTION:
+                break
+
+        return_var = Variable("return_" + uuid.uuid5(uuid.uuid4(), current.get_unique_name(".")).hex,
+                              value.get_data_type())
+        current.add_symbol(return_var)
+
+        if value:  # 如果存在返回值
+            if isinstance(value.get_data_type(), DataType):
+                if value.value_type == ValueType.LITERAL:
+                    self.current_scope.add_command(
+                        BasicCommands.Copy.copy_literal_base_type(return_var, self.current_scope, self.var_objective,
+                                                                  value.value))
+                elif value.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+                    self.current_scope.add_command(
+                        BasicCommands.Copy.copy_variable_base_type(return_var, self.current_scope, self.var_objective,
+                                                                   value.value,
+                                                                   self.current_scope, self.var_objective)
+                    )
+            else:  # Class
+                assert isinstance(value.get_data_type(), Class)
+                pass  # TODO:实现类的赋值
+
+        name = "#return_" + self.current_scope.get_unique_name(".")
+        self.current_scope.add_command(ScoreboardBuilder.set_score(name, self.statement_objective, 1))
+        current = self.current_scope
+        while True:
+            current.add_command(
+                Execute.execute().if_score_matches(name, self.statement_objective, "1").run("return"))
+            current = current.parent
+            if current.type == StructureType.FUNCTION:
+                break
 
     def _var_release(self, instr: IRInstruction):
         pass  # 懒得清理，反正不清理也占不了多少内存
@@ -179,9 +217,26 @@ class CodeGenerator(CodeGeneratorSpec):
         func: Function = instr.get_operands()[1]
         args: list[Reference[Variable | Constant | Literal]] = instr.get_operands()[2]
         jump_scope = self.current_scope.resolve_scope(func.name)
-        # TODO:..
-        for arg in args:
-            pass
+
+        for i, (arg, param) in enumerate(zip(args, func.params)):
+            if isinstance(arg.get_data_type(), DataType):
+                if arg.value_type == ValueType.LITERAL:
+                    self.current_scope.add_command(
+                        BasicCommands.Copy.copy_literal_base_type(param, jump_scope, self.var_objective,
+                                                                  arg.value))
+                elif arg.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+                    BasicCommands.Copy.copy_variable_base_type(param, jump_scope, self.var_objective, arg.value,
+                                                               self.current_scope, self.var_objective)
+            else:  # Class
+                assert isinstance(arg.get_data_type(), Class)
+                pass  # TODO:实现类的赋值
+        if isinstance(func.return_type, DataType):
+            BasicCommands.Copy.copy_variable_base_type(result, self.current_scope, self.var_objective, Variable(
+                "return_" + uuid.uuid5(uuid.uuid4(), jump_scope.get_unique_name(".")).hex, func.return_type),
+                                                       self.current_scope, self.var_objective)
+        else:  # Class
+            assert isinstance(func.return_type, Class)
+            pass  # TODO:实现类的赋值
         self.current_scope.add_command(FunctionBuilder.run(jump_scope.get_minecraft_function_path()))
 
     def _assign(self, instr: IRInstruction):
@@ -189,16 +244,63 @@ class CodeGenerator(CodeGeneratorSpec):
         source: Reference[Variable | Constant | Literal] = instr.get_operands()[1]
         if isinstance(target.dtype, DataType):
             if source.value_type == ValueType.LITERAL:
-                BasicCommands.Copy.copy_literal_base_type(target, self.current_scope, self.var_objective, source.value)
+                self.current_scope.add_command(
+                    BasicCommands.Copy.copy_literal_base_type(target, self.current_scope, self.var_objective,
+                                                              source.value))
             elif source.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
-                BasicCommands.Copy.copy_variable_base_type(source.value, self.current_scope, self.var_objective, target,
-                                                           self.current_scope, self.var_objective)
+                self.current_scope.add_command(
+                    BasicCommands.Copy.copy_variable_base_type(target, self.current_scope, self.var_objective,
+                                                               source.value, self.current_scope, self.var_objective))
         else:  # Class
             assert isinstance(target.dtype, Class)
             pass  # TODO:实现类的赋值
 
     def _unary_op(self, instr: IRInstruction):
         pass  # 因该dsl内不存在直接性的位运算，故不实现
+
+    def _op(self, instr: IRInstruction):
+        result: Variable | Constant = instr.get_operands()[0]
+        op: BinaryOps = instr.get_operands()[1]
+        left_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+        right_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
+        if isinstance(result.dtype, DataType):
+            self.current_scope.add_command(
+                Composite.op_base_type(result, self.current_scope, self.var_objective, op, left_ref, self.current_scope,
+                                       self.var_objective, right_ref, self.current_scope, self.var_objective,
+                                       self.namespace))
+        else:  # TODO:实现类的比较？
+            assert isinstance(result.dtype, Class)
+            pass
+
+    def _compare(self, instr: IRInstruction):
+        result: Variable | Constant = instr.get_operands()[0]
+        op: CompareOps = instr.get_operands()[1]
+        left: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+        right: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
+        if isinstance(left.get_data_type(), DataType):
+            self.current_scope.add_command(
+                Composite.var_compare_base_type(left, self.current_scope, self.var_objective, op, right,
+                                                self.current_scope, self.var_objective, result, self.current_scope,
+                                                self.var_objective))
+
+    def _cast(self, instr: IRInstruction):
+        result: Variable | Constant = instr.get_operands()[0]
+        dtype: DataType | Class = instr.get_operands()[1]
+        value: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+        if value.value_type == Literal:
+            raise
+        # int -> string
+        if dtype == DataType.STRING and value.get_data_type() == DataType.INT:
+            args_path = f"builtins.int2str.args" + uuid.uuid4().hex
+            self.current_scope.add_command(
+                DataBuilder.modify_storage_set_value(self.var_objective, args_path + ".target",
+                                                     self.var_objective))
+            self.current_scope.add_command(DataBuilder.modify_storage_set_value(self.var_objective, args_path+".target_path", self.current_scope.get_symbol_path(result.get_name())))
+            self.current_scope.add_command(Execute.execute().store_result_storage(self.var_objective, args_path + ".value", "int", 1.0).run(ScoreboardBuilder.get_score(self.var_objective, self.current_scope.get_symbol_path(value.get_name()))))
+            self.current_scope.add_command(
+                FunctionBuilder.run_with_source(f"{self.namespace}:builtins/int2str", "storage",
+                                                args_path))
+
 
     def _declare(self, instr: IRInstruction):
         self.current_scope.add_symbol(instr.get_operands()[0])
@@ -208,6 +310,11 @@ class CodeGenerator(CodeGeneratorSpec):
         if command.value_type == ValueType.LITERAL:
             self.current_scope.add_command(str(command.value.value))
         else:
+            args_path = f"builtins.exec.args" + uuid.uuid4().hex
+            self.current_scope.add_command(
+                DataBuilder.modify_storage_set_from_storage(self.var_objective, args_path + ".command",
+                                                            self.var_objective,
+                                                            self.current_scope.get_symbol_path(command.get_name())))
             self.current_scope.add_command(
                 FunctionBuilder.run_with_source(f"{self.namespace}:builtins/exec", "storage",
-                                                self.current_scope.get_symbol_path(command.get_name())))  # TODO:内置函数真正实现
+                                                args_path))  # TODO:内置函数实现

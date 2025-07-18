@@ -1,6 +1,6 @@
 # coding=utf-8
-from transpiler.core.backend.code_generator.c_je_1204.code_generator_scope import CodeGeneratorScope
-from transpiler.core.backend.code_generator.c_je_1204.command_builder import DataBuilder, ScoreboardBuilder
+from ..code_generator_scope import CodeGeneratorScope
+from . import DataBuilder, ScoreboardBuilder
 from transpiler.core.language_enums import DataType
 from transpiler.core.symbols import Variable, Constant, Literal
 
@@ -35,9 +35,10 @@ class BasicCommands:
 
     class Copy:
         @staticmethod
-        def copy_variable_base_type(source: Variable | Constant, source_scope: CodeGeneratorScope,
-                                    source_objective: str, target: Variable,
-                                    target_scope: CodeGeneratorScope, target_objective: str):
+        def copy_variable_base_type(target: Variable,
+                                    target_scope: CodeGeneratorScope, target_objective: str,
+                                    source: Variable | Constant, source_scope: CodeGeneratorScope,
+                                    source_objective: str):
             if source.dtype == DataType.STRING:
                 return DataBuilder.modify_storage_set_from_storage(
                     f"{target_scope.namespace}:{target_objective}",

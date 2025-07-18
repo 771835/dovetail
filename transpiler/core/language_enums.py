@@ -56,7 +56,6 @@ class DataType(SafeEnum):
     """基础数据类型：表示变量的存储类型"""
     INT = 'int'
     STRING = 'string'
-    FSTRING = 'fstring'  # 特殊类型，将在编译时改为STRING
     BOOLEAN = 'boolean'
     VOID = 'void'
     NULL = 'null'  # 特殊类型，不可为声明变量时的类型
@@ -93,3 +92,4 @@ class VariableType(SafeEnum):
     ARGUMENT = "argument"
     GENERAL = "general"
     RETURN = "return"
+    DEBUG = "debug"

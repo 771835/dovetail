@@ -8,11 +8,11 @@ from enum import Enum, auto
 from itertools import count
 from typing import NoReturn
 
-from transpiler.core.instructions import *
 from transpiler.core.backend.ir_builder import IRBuilder, IRBuilderIterator
-from transpiler.core.backend.specification import IROptimizerSpec, OptimizationLevel, \
+from transpiler.core.backend.specification import IROptimizerSpec, \
     IROptimizationPass, MinecraftVersion
-from transpiler.core.generator_config import GeneratorConfig, MinecraftEdition
+from transpiler.core.generator_config import GeneratorConfig, MinecraftEdition, OptimizationLevel
+from transpiler.core.instructions import *
 from transpiler.core.language_enums import ValueType, DataType, VariableType
 from transpiler.core.symbols import Variable, Reference, Constant, Literal
 
@@ -358,6 +358,7 @@ class ConstantFoldingPass(IROptimizationPass):
                 iterator.set_current(IRJump(jump_scope))
             else:
                 iterator.remove_current()
+
     def _call(self, iterator: IRBuilderIterator, instr: IRCall):
         result: Variable | Constant = instr.get_operands()[0]
         func: Function = instr.get_operands()[1]
