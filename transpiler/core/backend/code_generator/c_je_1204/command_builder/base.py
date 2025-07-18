@@ -41,9 +41,9 @@ class BasicCommands:
                                     source_objective: str):
             if source.dtype == DataType.STRING:
                 return DataBuilder.modify_storage_set_from_storage(
-                    f"{target_scope.namespace}:{target_objective}",
+                    f"{target_objective}",
                     target_scope.get_symbol_path(target.get_name()),
-                    f"{source_scope.namespace}:{source_objective}",
+                    f"{source_objective}",
                     source_scope.get_symbol_path(source.get_name()))
             elif source.dtype in (DataType.INT, DataType.BOOLEAN):
                 return ScoreboardBuilder.set_op(
@@ -60,7 +60,7 @@ class BasicCommands:
 
             if target.dtype == DataType.STRING:
                 return DataBuilder.modify_storage_set_value(
-                    f"{target_scope.namespace}:{target_objective}", target_scope.get_symbol_path(target.get_name()),
+                    f"{target_objective}", target_scope.get_symbol_path(target.get_name()),
                     f"\"{source.value}\"")
             elif target.dtype in (DataType.INT, DataType.BOOLEAN):
                 return ScoreboardBuilder.set_score(

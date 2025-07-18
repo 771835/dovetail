@@ -292,15 +292,21 @@ class CodeGenerator(CodeGeneratorSpec):
         # int -> string
         if dtype == DataType.STRING and value.get_data_type() == DataType.INT:
             args_path = f"builtins.int2str.args" + uuid.uuid4().hex
+            self.current_scope.add_command(DataBuilder.modify_storage_set_value("var", args_path, "{}"))
+
             self.current_scope.add_command(
                 DataBuilder.modify_storage_set_value(self.var_objective, args_path + ".target",
                                                      self.var_objective))
-            self.current_scope.add_command(DataBuilder.modify_storage_set_value(self.var_objective, args_path+".target_path", self.current_scope.get_symbol_path(result.get_name())))
-            self.current_scope.add_command(Execute.execute().store_result_storage(self.var_objective, args_path + ".value", "int", 1.0).run(ScoreboardBuilder.get_score(self.var_objective, self.current_scope.get_symbol_path(value.get_name()))))
+            self.current_scope.add_command(
+                DataBuilder.modify_storage_set_value(self.var_objective, args_path + ".target_path",
+                                                     self.current_scope.get_symbol_path(result.get_name())))
+            self.current_scope.add_command(
+                Execute.execute().store_result_storage(self.var_objective, args_path + ".value", "int", 1.0).run(
+                    ScoreboardBuilder.get_score(self.current_scope.get_symbol_path(value.get_name()),
+                                                self.var_objective)))
             self.current_scope.add_command(
                 FunctionBuilder.run_with_source(f"{self.namespace}:builtins/int2str", "storage",
-                                                args_path))
-
+                                                f"{self.var_objective} " + args_path))
 
     def _declare(self, instr: IRInstruction):
         self.current_scope.add_symbol(instr.get_operands()[0])
@@ -311,10 +317,11 @@ class CodeGenerator(CodeGeneratorSpec):
             self.current_scope.add_command(str(command.value.value))
         else:
             args_path = f"builtins.exec.args" + uuid.uuid4().hex
+
             self.current_scope.add_command(
                 DataBuilder.modify_storage_set_from_storage(self.var_objective, args_path + ".command",
                                                             self.var_objective,
                                                             self.current_scope.get_symbol_path(command.get_name())))
             self.current_scope.add_command(
                 FunctionBuilder.run_with_source(f"{self.namespace}:builtins/exec", "storage",
-                                                args_path))  # TODO:内置函数实现
+                                                f"{self.var_objective} " + args_path))  # TODO:内置函数实现

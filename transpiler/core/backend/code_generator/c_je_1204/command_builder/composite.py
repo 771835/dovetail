@@ -262,6 +262,8 @@ class Composite:
             commands = []
             args_path = f"builtins.strcat.args" + uuid.uuid4().hex
 
+            commands.append(DataBuilder.modify_storage_set_value("var", args_path, "{}"))
+
             if left.value_type == ValueType.LITERAL:
                 commands.append(DataBuilder.modify_storage_set_value("var", args_path + ".dest", str(left.value.value)))
             else:
@@ -278,15 +280,13 @@ class Composite:
                                                                 right_scope.get_symbol_path(right.get_name())))
 
             commands.append(
-                DataBuilder.modify_storage_set_from_storage("var", args_path + ".target", right_objective,
-                                                            result_objective))
+                DataBuilder.modify_storage_set_value("var", args_path + ".target", result_objective))
             commands.append(
-                DataBuilder.modify_storage_set_from_storage("var", args_path + ".target_path", right_objective,
-                                                            result_path))
+                DataBuilder.modify_storage_set_value("var", args_path + ".target_path", result_path))
 
-            commands.append(FunctionBuilder.run_with_source(f"{namespace}:builtins/strcat", "storage", args_path))
+            commands.append(
+                FunctionBuilder.run_with_source(f"{namespace}:builtins/strcat", "storage", "var " + args_path))
 
             return commands
-
 
         return None
