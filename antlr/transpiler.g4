@@ -51,19 +51,20 @@ interfaceMethodDecl
 /* 4. 类型系统(阉割版) */
 type
     : ID
-    | primitiveType
+    //| primitiveType
     ;
 
 typeList
     :type (',' type)*
     ;
-
+/*
 primitiveType
     : TYPE_INT     // 32位整型
     | TYPE_STRING  // 字符串类型
     | TYPE_BOOLEAN // 布尔类型
     | TYPE_VOID    // 无返回值类型
     ;
+*/
 
 functionDecl
     : annotation* FUNC ID
@@ -99,8 +100,7 @@ block
 
 /* 6. 流程控制 */
 statement
-    : commandExpr SEMI?                          // 命令表达式
-    | varDecl                               // 变量声明
+    : varDecl                               // 变量声明
     | constDecl                             // 常量声明
     | forStmt                               // for循环
     | whileStmt                             // while循环
@@ -202,11 +202,7 @@ primary
     | literal                               # LiteralExpr        // 字面量
     | LPAREN expr RPAREN                          # ParenExpr          // 括号
     | NEW ID argumentList                 # NewObjectExpr      // 显式对象创建
-    ;
-
-/* 命令与插值 */
-commandExpr
-    : CMD argumentList
+    //| LPAREN type RPAREN expr                     #TypeCastExpr        // 强制类型转换
     ;
 
 
@@ -230,13 +226,12 @@ literal
     ;
 
 // 词法规则
-
+/*
 TYPE_INT     : 'int';
 TYPE_STRING  : 'string';
 TYPE_BOOLEAN : 'boolean';
 TYPE_VOID    : 'void';
-TYPE_ANY     : 'any';
-
+*/
 // 分隔符（定义在ID之前）
 LPAREN : '(';
 RPAREN : ')';

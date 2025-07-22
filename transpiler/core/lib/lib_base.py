@@ -1,32 +1,46 @@
 # coding=utf-8
-from __future__ import annotations
-
 from abc import ABCMeta, abstractmethod
 from typing import Callable
 
+from transpiler.core.instructions import IRInstruction
+from transpiler.core.symbols import Constant, Class, Function, Reference
 
-class Lib(metaclass=ABCMeta):  # TODO:实现完整的lib机制
+
+class Library(metaclass=ABCMeta):
     @abstractmethod
     def __str__(self) -> str:
+        """返回库的描述性字符串"""
         pass
 
+    @staticmethod
     @abstractmethod
-    def method(self) -> list[Callable[..., list[str]]]:
+    def load() -> list[IRInstruction]:
+        """加载库资源（如初始化状态、加载依赖等）"""
         pass
 
+    @staticmethod
     @abstractmethod
-    def const(self) -> list[ISymbol]:
+    def get_functions() -> dict[Function, Callable[..., list[IRInstruction]]]:
+        """获取函数及其处理函数的映射"""
         pass
 
+    @staticmethod
     @abstractmethod
-    def load(self) -> None:
+    def get_constants() -> dict[Constant, Reference]:
+        """获取库中定义的所有常量"""
         pass
 
-    def events(self) -> dict[str, Callable[..., None]] | None:
-        pass
+    @staticmethod
+    def get_events() -> dict[str, Callable[..., list[IRInstruction]]]:
+        """获取事件及其处理函数的映射"""
+        return {}
 
-    def annotations(self) -> dict[str, Callable[..., None]] | None:
-        pass
+    @staticmethod
+    def get_annotations() -> dict[str, Callable[..., list[IRInstruction]]]:
+        """获取注解及其处理函数的映射"""
+        return {}
 
-    def implements(self) -> list[ISymbol]:
-        pass
+    @staticmethod
+    def get_classes() -> list[Class]:
+        """获取库中定义的所有类"""
+        return []

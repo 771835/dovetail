@@ -3,8 +3,8 @@ func foo():int{
 }
 func bar():int{
     if (foo()==0) {
-        cmd("say 1");
+        exec("say 1");
     }else {
-        cmd("say 2");
+        exec("say 2");
     }
 }

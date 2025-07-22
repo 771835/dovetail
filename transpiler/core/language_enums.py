@@ -5,9 +5,8 @@ from transpiler.core.safe_enum import SafeEnum
 
 
 class FunctionType(SafeEnum):
-    NORMAL = "function"
-    METHOD = "method"
-    CONSTRUCTOR = "constructor"
+    GENERAL = "general"
+    BUILTIN = "built-in"
 
 
 class UnaryOps(SafeEnum):
@@ -59,7 +58,6 @@ class DataType(SafeEnum):
     BOOLEAN = 'boolean'
     VOID = 'void'
     NULL = 'null'  # 特殊类型，不可为声明变量时的类型
-    ANY = 'any'  # 特殊类型，用于类型推断
 
 
 class StructureType(SafeEnum):

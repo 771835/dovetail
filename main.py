@@ -66,7 +66,6 @@ def compile_mcdl(source_path, target_path,
                  config: GeneratorConfig):
     source_path = os.path.abspath(source_path)
     target_path = os.path.abspath(target_path)
-    namespace = config.namespace
     with contextlib.chdir(os.path.dirname(source_path)):
         start_time = time.time()
         input_stream = FileStream(source_path, "utf-8")
@@ -167,7 +166,7 @@ if __name__ == "__main__":
         type=str,
         help='输出数据包命名空间')
 
-    parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2], default=1,
+    parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=1,
                         help='优化级别')
     parser.add_argument('--enable-recursion', action='store_true', help='启用递归(需后端支持)')
     parser.add_argument('--debug', action='store_true',

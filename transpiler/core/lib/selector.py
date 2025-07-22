@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Callable
 
-from transpiler.core.lib.lib_base import Lib
+from transpiler.core.lib.lib_base import Library
 from transpiler.core.safe_enum import SafeEnum
 from transpiler.core.symbols import Constant
 
@@ -15,7 +15,7 @@ class TargetSelectorVariables(SafeEnum):
     NEAREST_ENTITY = "@n"
 
 
-class Selector(Lib):
+class Selector(Library):
     def const(self) -> list[Constant]:
         pass
 

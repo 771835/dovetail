@@ -45,8 +45,12 @@ class Optimizer(IROptimizerSpec):
             optimization_pass.append(ConstantFoldingPass)
             optimization_pass.append(DeadCodeEliminationPass)
             optimization_pass.append(DeclareCleanupPass)
+            optimization_pass.append(UnreachableCodeRemovalPass)
         if self.level >= OptimizationLevel.O2:
             optimization_pass.append(UselessScopeRemovalPass)
+            optimization_pass.append(EmptyScopeRemovalPass)
+        if self.level >= OptimizationLevel.O3:  # 测试性优化
+            pass
         last_hash = hash(tuple(self.builder.get_instructions()))
         iteration = count()
         while True:
@@ -541,7 +545,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
     def _has_side_effect(self, instr):
         """判断指令是否有副作用"""
         return isinstance(instr,
-                          (IRRawCmd, IRCast, IRReturn, IRCall, IRCallInline, IROp, IRCompare, IRUnaryOp, IRAssert))
+                          (IRRawCmd, IRCast, IRReturn, IRCall, IRCallInline, IROp, IRCompare, IRUnaryOp))
 
     def _is_declaration_exists(self, var_name):
         # 检查变量声明是否存在于IR中
@@ -880,3 +884,123 @@ class UselessScopeRemovalPass(IROptimizationPass):
                     iterator.remove_current()
             except StopIteration:
                 pass
+
+
+class EmptyScopeRemovalPass(IROptimizationPass):
+    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+        self.builder = builder
+        self.scope_instructions = {}  # 作用域 -> 指令列表
+        self.empty_scopes = set()  # 空作用域集合
+
+    def exec(self):
+        """执行空作用域及跳转指令删除优化"""
+        self._build_scope_structure()
+        self._detect_empty_scopes()
+        self._remove_jump_to_empty_scopes()
+        self._remove_empty_scope_declarations()
+
+    def _build_scope_structure(self):
+        """构建作用域结构，记录每个作用域内的指令"""
+        iterator = self.builder.__iter__()
+        current_scope = "global"
+        scope_stack = []
+
+        while True:
+            try:
+                instr = next(iterator)
+            except StopIteration:
+                break
+
+            if isinstance(instr, IRScopeBegin):
+                scope_name = instr.get_operands()[0]
+                scope_stack.append(scope_name)
+                current_scope = scope_name
+                self.scope_instructions[scope_name] = []
+            elif isinstance(instr, IRScopeEnd):
+                if scope_stack:
+                    scope_stack.pop()
+                    current_scope = scope_stack[-1] if scope_stack else "global"
+            else:
+                # 仅记录非作用域指令
+                if current_scope in self.scope_instructions:
+                    self.scope_instructions[current_scope].append(instr)
+
+    def _detect_empty_scopes(self):
+        """检测空作用域（作用域内没有任何非作用域结构的指令）"""
+        for scope, instructions in self.scope_instructions.items():
+            # 若指令列表为空，或仅包含作用域结构（如IRScopeBegin/IRScopeEnd），则视为空
+            if not instructions:
+                self.empty_scopes.add(scope)
+
+    def _remove_jump_to_empty_scopes(self):
+        """删除所有跳转到空作用域的指令"""
+        iterator = self.builder.__iter__()
+        while True:
+            try:
+                instr = next(iterator)
+            except StopIteration:
+                break
+
+            if isinstance(instr, (IRJump, IRCondJump)):
+                targets = [op for op in instr.get_operands() if isinstance(op, str)]
+                for target in targets:
+                    if target in self.empty_scopes:
+                        iterator.remove_current()
+                        break
+
+    def _remove_empty_scope_declarations(self):
+        """删除空作用域的IRScopeBegin和IRScopeEnd指令"""
+        iterator = self.builder.__iter__()
+        deleting_scope = None
+
+        while True:
+            try:
+                instr = next(iterator)
+            except StopIteration:
+                break
+
+            if isinstance(instr, IRScopeBegin):
+                scope_name = instr.get_operands()[0]
+                if scope_name in self.empty_scopes:
+                    iterator.remove_current()
+                    deleting_scope = scope_name
+            elif isinstance(instr, IRScopeEnd):
+                if deleting_scope is not None:
+                    iterator.remove_current()
+                    deleting_scope = None
+            else:
+                if deleting_scope is not None:
+                    iterator.remove_current()
+
+
+class UnreachableCodeRemovalPass(IROptimizationPass):
+    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+        self.builder = builder
+        self.config = config
+
+    def exec(self):
+        iterator = self.builder.__iter__()
+        in_unreachable = False
+        level = 0
+        while True:
+            try:
+                instr = next(iterator)
+            except StopIteration:
+                break
+
+            if in_unreachable:
+                if isinstance(instr, IRScopeBegin):
+                    level += 1
+                elif isinstance(instr, IRScopeEnd):
+                    if level == 0:
+                        in_unreachable = False
+                        break
+
+                    level -= 1
+                # 删除当前指令
+                iterator.remove_current()
+                continue
+
+            # 检查是否进入不可达模式
+            if isinstance(instr, (IRReturn, IRBreak, IRContinue)):
+                in_unreachable = True

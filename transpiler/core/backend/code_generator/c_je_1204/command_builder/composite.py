@@ -1,14 +1,14 @@
 # coding=utf-8
+import typing
 import uuid
 
-from ..code_generator_scope import CodeGeneratorScope
+from transpiler.core.language_enums import DataType, ValueType, CompareOps, BinaryOps
+from transpiler.core.symbols import Constant, Variable, Reference, Literal
 from . import BasicCommands, FunctionBuilder
 from ._data import DataBuilder
 from ._execute import Execute
 from ._scoreboard import ScoreboardBuilder
-from transpiler.core.language_enums import DataType, ValueType, CompareOps, BinaryOps
-from transpiler.core.symbols import Constant, Variable, Reference, Literal
-import typing
+from ..code_generator_scope import CodeGeneratorScope
 
 
 class Composite:
@@ -261,8 +261,6 @@ class Composite:
         elif result.dtype == DataType.STRING:
             commands = []
             args_path = f"builtins.strcat.args" + uuid.uuid4().hex
-
-            commands.append(DataBuilder.modify_storage_set_value("var", args_path, "{}"))
 
             if left.value_type == ValueType.LITERAL:
                 commands.append(DataBuilder.modify_storage_set_value("var", args_path + ".dest", str(left.value.value)))

@@ -34,7 +34,6 @@ class IROptimizationPass(ABC):
 
     @abstractmethod
     def exec(self):
-        """执行优化"""
         pass
 
 

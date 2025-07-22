@@ -6,6 +6,7 @@ import re
 import uuid
 from contextlib import contextmanager
 from itertools import count
+from typing import Callable
 
 from antlr4 import FileStream, CommonTokenStream
 
@@ -15,9 +16,11 @@ from transpiler.core.errors import TypeMismatchError, UnexpectedError, CompilerS
     ArgumentTypeMismatchError, InvalidControlFlowError, MissingImplementationError, RecursionError, NotCallableError, \
     InvalidOperatorError
 from transpiler.core.generator_config import GeneratorConfig
-from transpiler.core.include_manager import ImportManager
+from transpiler.core.include_manager import IncludeManager
 from transpiler.core.instructions import *
-from transpiler.core.language_enums import StructureType, DataType, ValueType, VariableType
+from transpiler.core.language_enums import StructureType, DataType, ValueType, VariableType, FunctionType
+from transpiler.core.lib.builtins import Builtins
+from transpiler.core.lib.lib_base import Library
 from transpiler.core.parser.transpilerLexer import transpilerLexer
 from transpiler.core.parser.transpilerParser import transpilerParser
 from transpiler.core.parser.transpilerVisitor import transpilerVisitor
@@ -38,12 +41,28 @@ class MCGenerator(transpilerVisitor):
             None,
             StructureType.GLOBAL)
         self.current_scope = self.top_scope
-        self.import_manager = ImportManager()  # 引用管理器
+        self.include_manager = IncludeManager()  # 包含管理器
+        self.builtin_func_table: dict[str, Callable[..., list[IRInstruction]]] = {}
         self.uuid_namespace = uuid.uuid4()
         self.scope_stack = [self.top_scope]
         self.cnt = count()  # 保证for loop和if else唯一性
         self.filename = "<main>"
         self.ir_builder: IRBuilder = IRBuilder()
+
+        #  加载内置库
+        builtins = Builtins(self.ir_builder)
+        self.load_library(builtins)
+
+    def load_library(self, library: Library):
+        library.load()
+        for function, handler in library.get_functions().items():
+            self.current_scope.add_symbol(function)
+            self.builtin_func_table[function.get_name()] = handler
+        for constant, value in library.get_constants().items():
+            self.current_scope.add_symbol(constant)
+            self._add_ir_instruction(IRDeclare(constant))
+            self._add_ir_instruction(IRAssign(constant, value))
+        # TODO: 实现其他加载
 
     @contextmanager
     def scoped_environment(self, name: str, scope_type: StructureType):
@@ -261,26 +280,6 @@ class MCGenerator(transpilerVisitor):
         self._current_ctx = previous_ctx
         return result
 
-    def visitCommandExpr(self, ctx: transpilerParser.CommandExprContext):
-        argument_list: transpilerParser.ArgumentListContext = ctx.argumentList()
-        expr_list: transpilerParser.ExprListContext = argument_list.exprList()
-        if expr_list:
-            for i in expr_list.expr():
-                expr = self.visit(i)
-                # TODO:考虑未来改为标准库实现(exec)函数而非语法解析
-                if expr.value.get_data_type() == DataType.STRING:
-                    self._add_ir_instruction(IRRawCmd(expr.value))
-                else:
-                    raise TypeMismatchError(
-                        expected_type=DataType.STRING,
-                        actual_type=expr.value.get_data_type(),
-                        line=self._get_current_line(),
-                        column=self._get_current_column(),
-                        filename=self.filename
-                    )
-
-        return Result.from_literal(None, DataType.NULL)
-
     # 处理变量声明
     def visitVarDeclaration(
             self,
@@ -288,11 +287,8 @@ class MCGenerator(transpilerVisitor):
         var_name = ctx.ID().getText()
         var_type = self._get_type_definition(ctx.type_().getText())
         var_value: Reference | None = None
-        if ctx.expr():
+        if ctx.expr():  # 如果存在初始值
             result = self.visit(ctx.expr())  # 处理初始化表达式
-            # 类型推断
-            if var_type == DataType.ANY:
-                var_type = result.value.get_data_type()
             # 类型检查
             if var_type != result.value.get_data_type():
                 raise TypeMismatchError(
@@ -305,20 +301,12 @@ class MCGenerator(transpilerVisitor):
 
             var_value = result.value
 
-        else:  # 没有初始值
-            if var_type == DataType.ANY:
-                raise CompilerSyntaxError(
-                    f"Variable '{var_name}' must be initialized as type cannot be inferred",
-                    line=self._get_current_line(),
-                    column=self._get_current_column(),
-                    filename=self.filename
-                )
-
         if not self._type_exists(var_type):  # 判断所给类型是否存在
             raise UndefinedTypeError(
                 var_type.name,
                 line=self._get_current_line(),
-                column=self._get_current_column()
+                column=self._get_current_column(),
+                filename=self.filename
             )
 
         var = Variable(
@@ -344,9 +332,6 @@ class MCGenerator(transpilerVisitor):
         name = ctx.ID().getText()
         dtype = self._get_type_definition(ctx.type_().getText())
         result = self.visit(ctx.expr())  # 处理初始化表达式
-        # 类型推断
-        if dtype == DataType.ANY:
-            dtype = result.value.get_data_type()
         # 类型检查
         if dtype != result.value.get_data_type():
             raise TypeMismatchError(
@@ -628,7 +613,6 @@ class MCGenerator(transpilerVisitor):
     def visitIfStmt(self, ctx: transpilerParser.IfStmtContext):
         # 生成唯一ID
         if_id = next(self.cnt)
-        condition_expr: Result | None = None
         if isinstance(  # 判断expr是否为CompareExpr
                 ctx.expr(),
                 (transpilerParser.CompareExprContext, transpilerParser.LogicalOrExprContext,
@@ -894,8 +878,6 @@ class MCGenerator(transpilerVisitor):
                         )
                     current = current.parent
 
-            result_var = self._create_temp_var(func_symbol.return_type, "result")
-
             args: list[Reference] = []
             if ctx.argumentList().exprList():
                 for i, (arg_expr, param) in enumerate(
@@ -926,8 +908,12 @@ class MCGenerator(transpilerVisitor):
                         column=self._get_current_column(),
                         filename=self.filename
                     )
-            self._add_ir_instruction(IRDeclare(result_var))
-            self._add_ir_instruction(IRCall(result_var, func_symbol, args))
+            if func_symbol.function_type != FunctionType.BUILTIN:
+                result_var = self._create_temp_var(func_symbol.return_type, "result")
+                self._add_ir_instruction(IRDeclare(result_var))
+                self._add_ir_instruction(IRCall(result_var, func_symbol, args))
+            else:
+                result_var = self.builtin_func_table[func_symbol.get_name()](*args)
         else:
             raise NotCallableError(
                 func_name,
@@ -951,7 +937,7 @@ class MCGenerator(transpilerVisitor):
     def visitIncludeStmt(
             self,
             ctx: transpilerParser.IncludeStmtContext):
-
+        # TODO:更完善的错误处理
         include_path: Reference[Literal] = self.visit(ctx.literal()).value
         if include_path.get_data_type() != DataType.STRING:
             raise TypeMismatchError(DataType.STRING,
@@ -961,11 +947,11 @@ class MCGenerator(transpilerVisitor):
                                     self.filename)
         include_path: str = include_path.value.value
         # 检查是否已经导入过
-        if self.import_manager.has_imported(include_path):
+        if self.include_manager.has_imported(include_path):
             return Result(None)
 
         # 标记已导入
-        self.import_manager.execute_import(include_path)
+        self.include_manager.execute_import(include_path)
 
         # 处理导入的文件
         try:

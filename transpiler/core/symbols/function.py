@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, NoReturn
 
+from transpiler.core.language_enums import FunctionType
 from transpiler.core.symbols.base import NewSymbol
 
 if TYPE_CHECKING:
@@ -17,6 +18,7 @@ class Function(NewSymbol):
     name: str
     params: list[Variable]
     return_type: DataType | 'Class'
+    function_type: FunctionType = FunctionType.GENERAL
 
     def get_name(self) -> NoReturn:
         return self.name

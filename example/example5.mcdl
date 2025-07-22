@@ -1,26 +1,18 @@
+/* 这样的写法仅有1/3的指令数量用于say
 func int main() {
-    /*
-    boolean cond_var;
-    if (cond_var) {
-        # if块代码
-    } else {
-        # else块代码
+    while (1==1) {
+        break;
+        exec("say 123");
     }
-
-    int m =1;
-    cmd(f"sawa{m}");
-    */
-    for (int i=0;i<3;i=i+1) {
-        # 循环体
-        cmd(f"say for_{i}");
+    if (1==1) {
+        exec("say 123");
     }
-/*
-
-    func add(a:int, b:int) -> int {
-        return a + b
-    }
-
-    int r = add(1, 2);
-    cmd(f"say ${r}")
-    */
+    jump("main");// 正常情况请勿使用
 }
+*/
+/* 这样的写法能达到1/2 */
+func int main() {
+    exec("say 123");
+    jump("main");// 正常情况请勿使用
+}
+/* jump在使用合理时比for loop或while更高效，但是有变量被覆盖的风险，且优化器无法识别，会导致运算出现问题*/

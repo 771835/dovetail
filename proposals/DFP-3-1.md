@@ -55,9 +55,8 @@
 |------------|----------------|-----------------|
 | RAW_CMD    | command_string | 输出原生Minecraft命令 |
 | DEBUG_INFO | -              | 调试元数据           |
-| ASSERT     | cond msg       | 断言检查            |
 
-##### DEBUG_INFO和ASSERT仅在debug情况下编译生成实际指令
+##### DEBUG_INFO仅在debug情况下编译生成实际指令
 
 ## 关键实现细节
 

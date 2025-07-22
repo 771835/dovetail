@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 
-class ImportManager:
+class IncludeManager:
     def __init__(self):
         self._search_paths = set()
         self._import_registry = set()  # 存储实际导入的路径

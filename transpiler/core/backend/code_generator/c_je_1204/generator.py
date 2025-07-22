@@ -6,16 +6,16 @@ import uuid
 from pathlib import Path
 from typing import Callable
 
-from .builtins_func import builtins_func
-from .code_generator_scope import CodeGeneratorScope
-from .command_builder import FunctionBuilder, BasicCommands, Execute, \
-    ScoreboardBuilder, DataBuilder
 from transpiler.core.backend.ir_builder import IRBuilder
 from transpiler.core.backend.specification import CodeGeneratorSpec
 from transpiler.core.generator_config import MinecraftEdition, GeneratorConfig
 from transpiler.core.instructions import IROpCode, IRInstruction
 from transpiler.core.language_enums import StructureType, ValueType, DataType, CompareOps, BinaryOps
 from transpiler.core.symbols import Variable, Constant, Function, Literal, Reference, Class
+from .builtins_func import builtins_func
+from .code_generator_scope import CodeGeneratorScope
+from .command_builder import FunctionBuilder, BasicCommands, Execute, \
+    ScoreboardBuilder, DataBuilder
 from .command_builder.composite import Composite
 
 
@@ -83,7 +83,6 @@ class CodeGenerator(CodeGeneratorSpec):
             # ===== 命令生成指令 (0x60-0x7F) =====
             IROpCode.RAW_CMD: self._raw_command,  # 0x60
             # IROpCode.DEBUG_INFO: self._debug_info,  # 0x61
-            # IROpCode.ASSERT: self._assert,  # 0x62
         }
         for instr in iterator:
             handler = handlers.get(instr.opcode, lambda i: None)
@@ -292,7 +291,6 @@ class CodeGenerator(CodeGeneratorSpec):
         # int -> string
         if dtype == DataType.STRING and value.get_data_type() == DataType.INT:
             args_path = f"builtins.int2str.args" + uuid.uuid4().hex
-            self.current_scope.add_command(DataBuilder.modify_storage_set_value("var", args_path, "{}"))
 
             self.current_scope.add_command(
                 DataBuilder.modify_storage_set_value(self.var_objective, args_path + ".target",
@@ -306,7 +304,22 @@ class CodeGenerator(CodeGeneratorSpec):
                                                 self.var_objective)))
             self.current_scope.add_command(
                 FunctionBuilder.run_with_source(f"{self.namespace}:builtins/int2str", "storage",
-                                                f"{self.var_objective} " + args_path))
+                                                f"{self.var_objective} {args_path}"))
+        elif dtype == DataType.INT and value.get_data_type() == DataType.STRING:  # string -> int
+            args_path = f"builtins.str2int.args" + uuid.uuid4().hex
+            self.current_scope.add_command(
+                DataBuilder.modify_storage_set_value(self.var_objective, args_path + ".objective",
+                                                     self.var_objective))
+            self.current_scope.add_command(
+                DataBuilder.modify_storage_set_value(self.var_objective, args_path + ".target_path",
+                                                     self.current_scope.get_symbol_path(result.get_name())))
+            self.current_scope.add_command(
+                Execute.execute().store_result_storage(self.var_objective, args_path + ".value", "int", 1.0).run(
+                    ScoreboardBuilder.get_score(self.current_scope.get_symbol_path(value.get_name()),
+                                                self.var_objective)))
+            self.current_scope.add_command(
+                FunctionBuilder.run_with_source(f"{self.namespace}:builtins/str2int", "storage",
+                                                f"{self.var_objective} {args_path}"))
 
     def _declare(self, instr: IRInstruction):
         self.current_scope.add_symbol(instr.get_operands()[0])

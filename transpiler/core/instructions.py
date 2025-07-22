@@ -46,7 +46,6 @@ class IROpCode(SafeEnum):
     # ===== 特殊指令 (0x60-0x7F) =====
     RAW_CMD = 0x60  # 原始命令输出
     DEBUG_INFO = 0x61  # 调试元数据
-    ASSERT = 0x62  # 断言检查
 
     # 预留 0x62-0x7F 用于命令扩展
 
@@ -336,14 +335,3 @@ class IRDebugInfo(IRInstruction):
         operands = [
         ]
         super().__init__(IROpCode.DEBUG_INFO, operands, line, column, filename)
-
-
-class IRAssert(IRInstruction):
-    def __init__(self, cond: Variable, msg: str, line: int = -1, column: int = -1,
-                 filename: str = None):
-        assert cond.dtype == DataType.BOOLEAN
-        operands = [
-            cond,
-            msg
-        ]
-        super().__init__(IROpCode.ASSERT, operands, line, column, filename)

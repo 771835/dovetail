@@ -1,8 +1,8 @@
 # coding=utf-8
-from ..code_generator_scope import CodeGeneratorScope
-from . import DataBuilder, ScoreboardBuilder
 from transpiler.core.language_enums import DataType
 from transpiler.core.symbols import Variable, Constant, Literal
+from . import DataBuilder, ScoreboardBuilder
+from ..code_generator_scope import CodeGeneratorScope
 
 
 class BasicCommands:
