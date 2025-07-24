@@ -1,3 +1,5 @@
 class foo {
-
+    method int a(foo self,string abc){
+        print(abc)
+    }
 }

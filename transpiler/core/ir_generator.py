@@ -18,7 +18,7 @@ from transpiler.core.errors import TypeMismatchError, UnexpectedError, CompilerS
 from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.include_manager import IncludeManager
 from transpiler.core.instructions import *
-from transpiler.core.language_enums import StructureType, DataType, ValueType, VariableType, FunctionType
+from transpiler.core.language_enums import StructureType, DataType, ValueType, VariableType, FunctionType, ClassType
 from transpiler.core.lib.builtins import Builtins
 from transpiler.core.lib.lib_base import Library
 from transpiler.core.parser.transpilerLexer import transpilerLexer
@@ -151,7 +151,7 @@ class MCGenerator(transpilerVisitor):
             parts.append(current_text)
         return tuple(parts)
 
-    def _process_fstring(self, value: str) -> Result:
+    def _process_fstring(self, value: str) -> Reference[Variable]:
         """处理格式化字符串的解析和IR生成"""
         # 解析字符串结构
         parts = self._parse_fstring(value[2:-1])  # 去掉前缀和首尾引号
@@ -169,7 +169,7 @@ class MCGenerator(transpilerVisitor):
             else:  # 变量段
                 result_var = self._append_variable_to_result(result_var, part)
 
-        return Result(Reference(ValueType.VARIABLE, result_var))
+        return Reference(ValueType.VARIABLE, result_var)
 
     def _create_temp_var(self, dtype: DataType, prefix: str) -> Variable:
         """创建带唯一编号的临时变量"""
@@ -426,27 +426,62 @@ class MCGenerator(transpilerVisitor):
 
         return Result(Reference(ValueType.FUNCTION, func))
 
-    # 处理代码块
-    def visitBlock(self, ctx: transpilerParser.BlockContext):
-        # 遍历子节点
-        self.visitChildren(ctx)
-        return Result(None)
+    def visitMethodDecl(self, ctx:transpilerParser.MethodDeclContext):
+        func_name = ctx.ID().getText()
+        return_type = self._get_type_definition(ctx.type_().getText(), True)
 
-    def visitLiteral(
-            self,
-            ctx: transpilerParser.LiteralContext):
-        value = ctx.getText()
-        if value == 'true' or value == 'false':
-            return Result.from_literal(bool(value), DataType.BOOLEAN)
-        elif value == 'null':
-            return Result.from_literal(None, DataType.NULL)
-        elif value[0] == 'f':
+        if self.current_scope.has_symbol(func_name):
+            raise DuplicateDefinitionError(
+                func_name,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
 
-            return self._process_fstring(value)
-        elif self._is_number(value):
-            return Result.from_literal(int(value), DataType.INT)
-        else:
-            return Result.from_literal(value[1:-1], DataType.STRING)
+        params_list: list[Variable] = []
+        params: transpilerParser.ParamListContext = ctx.paramList()
+        if params.paramDecl():
+            for param in params.paramDecl():
+                param_name = param.ID().getText()
+                param_type = self._get_type_definition(param.type_().getText())
+                var = Variable(
+                    param_name,
+                    param_type,
+                    VariableType.ARGUMENT
+                )
+                params_list.append(var)
+
+        func = Function(
+            func_name,
+            params_list,
+            return_type,
+            FunctionType.METHOD
+        )
+
+        if not self.current_scope.add_symbol(func):
+            raise DuplicateDefinitionError(
+                func_name,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        self._add_ir_instruction(IRFunction(func))
+
+        with self.scoped_environment(func_name, StructureType.FUNCTION) as scope:
+            for i in params_list:
+                if not self.current_scope.add_symbol(i):
+                    raise DuplicateDefinitionError(
+                        i.get_name(),
+                        line=self._get_current_line(),
+                        column=self._get_current_column(),
+                        filename=self.filename
+                    )
+                self._add_ir_instruction(IRDeclare(i))
+
+            # 处理函数体
+            self.visit(ctx.block())
+
+        return Result(Reference(ValueType.FUNCTION, func))
 
     def visitClassDecl(
             self,
@@ -512,6 +547,67 @@ class MCGenerator(transpilerVisitor):
                 methods.append(self.visit(method).value.value)
 
         return Result(Reference(ValueType.CLASS, class_))
+
+    def visitInterfaceDecl(self, ctx: transpilerParser.InterfaceDeclContext):
+        class_name = ctx.ID().getText()
+        extends = self._get_type_definition(ctx.type_().getText())
+        constants: set[Reference[Constant]] = set()
+        variables: list[Reference[Variable]] = []
+        methods: list[Function] = []
+
+        class_ = Class(class_name,
+                       methods=methods,
+                       interfaces=None,
+                       parent=extends,
+                       constants=constants,
+                       variables=variables,
+                       type=ClassType.INTERFACE)
+
+        if not self.current_scope.add_symbol(class_):
+            raise DuplicateDefinitionError(
+                class_name,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        self._add_ir_instruction(IRClass(class_))
+
+        with self.scoped_environment(class_name, StructureType.CLASS) as class_scope:
+            # 处理继承
+            if extends:
+                raise MissingImplementationError(
+                    "类继承",
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
+                    filename=self.filename
+                )  # TODO:处理继承
+            # 处理字段和方法
+            for method in ctx.methodDecl():
+                methods.append(self.visit(method).value.value)
+
+        return Result(Reference(ValueType.CLASS, class_))
+
+    # 处理代码块
+    def visitBlock(self, ctx: transpilerParser.BlockContext):
+        # 遍历子节点
+        self.visitChildren(ctx)
+        return Result(None)
+
+    def visitLiteral(
+            self,
+            ctx: transpilerParser.LiteralContext):
+        value = ctx.getText()
+        if value == 'true' or value == 'false':
+            return Result.from_literal(bool(value), DataType.BOOLEAN)
+        elif value == 'null':
+            return Result.from_literal(None, DataType.NULL)
+        elif value[0] == 'f':
+
+            return Result(self._process_fstring(value))
+        elif self._is_number(value):
+            return Result.from_literal(int(value), DataType.INT)
+        else:
+            return Result.from_literal(value[1:-1], DataType.STRING)
 
     def visitWhileStmt(
             self,

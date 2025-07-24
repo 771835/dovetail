@@ -108,7 +108,11 @@ class ConstantFoldingPass(IROptimizationPass):
                 self.table[name] = value
                 return True
             if self.parent is None:
-                return False
+                if depth > 1:
+                    return False
+                else:
+                    self.table[name] = value
+                    return True
             success = self.parent.set(name, value, depth + 1)
             if not success and depth == 1:
                 self.table[name] = value

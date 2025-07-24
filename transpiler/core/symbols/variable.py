@@ -12,7 +12,7 @@ from transpiler.core.symbols.class_ import Class
 class Variable(NewSymbol):
     name: str
     dtype: DataType | 'Class'
-    var_type: VariableType = VariableType.GENERAL
+    var_type: VariableType = VariableType.COMMON
 
     def get_name(self) -> str:
         return self.name

@@ -5,8 +5,9 @@ from transpiler.core.safe_enum import SafeEnum
 
 
 class FunctionType(SafeEnum):
-    GENERAL = "general"
+    FUNCTION = "function"
     BUILTIN = "built-in"
+    METHOD = "method"
 
 
 class UnaryOps(SafeEnum):
@@ -78,7 +79,6 @@ class ValueType(SafeEnum):
     LITERAL = "literal"  # 字面量
     CONSTANT = "constant"
     VARIABLE = "variable"  # 变量
-    # COMPOSITE = "composite"  # 复合表达式结果
     FUNCTION = "function"  # 函数
     CLASS = "class"
     ERROR = "error"  # 错误
@@ -88,6 +88,11 @@ class ValueType(SafeEnum):
 class VariableType(SafeEnum):
     """变量类型"""
     ARGUMENT = "argument"
-    GENERAL = "general"
+    COMMON = "common"
     RETURN = "return"
     DEBUG = "debug"
+
+class ClassType(SafeEnum):
+    """类类型"""
+    CLASS = "class"
+    INTERFACE = "interface"

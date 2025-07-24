@@ -18,7 +18,7 @@ class Function(NewSymbol):
     name: str
     params: list[Variable]
     return_type: DataType | 'Class'
-    function_type: FunctionType = FunctionType.GENERAL
+    function_type: FunctionType = FunctionType.FUNCTION
 
     def get_name(self) -> NoReturn:
         return self.name

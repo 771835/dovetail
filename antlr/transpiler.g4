@@ -38,15 +38,11 @@ interfaceDecl
     : annotation* INTERFACE ID
       (EXTENDS type)?                  // 接口单继承
       LBRACE 
-        (interfaceMethodDecl
-        )* 
+        (methodDecl)*
       RBRACE
     ;
 
 
-interfaceMethodDecl
-    : annotation* METHOD ID paramList (':' type) SEMI?
-    ;
 
 /* 4. 类型系统(阉割版) */
 type
@@ -95,6 +91,7 @@ paramDecl
 
 block
     : LBRACE statement* RBRACE              // 代码块，包含多个语句
+    | SEMI // 空的代码块
     ;
 
 
@@ -124,7 +121,7 @@ continueStmt
 
 forStmt
     : FOR LPAREN forControl RPAREN block        // 传统for循环
-    | FOR LPAREN ID ':' expr RPAREN block       // 增强for循环 (expr需为可迭代class)
+    | FOR LPAREN type ID ':' expr RPAREN block       // 增强for循环 (expr需为可迭代class)
     ;
 
 

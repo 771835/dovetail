@@ -63,13 +63,13 @@ class Builtins(Library):
                 FunctionType.BUILTIN
             ): self._strcat,
             Function(
-                "jump",
+                "_call",
                 [
                     Variable("scope", DataType.STRING),
                 ],
                 DataType.INT,
                 FunctionType.BUILTIN
-            ): self._jump,
+            ): self._call,
 
         }
 
@@ -91,12 +91,12 @@ class Builtins(Library):
 
         if msg.value_type == ValueType.LITERAL:
             self.builder.insert(
-                IRRawCmd(Reference(ValueType.LITERAL, Literal(DataType.STRING, f"tellraw \"{msg.value.value}\""))))
+                IRRawCmd(Reference(ValueType.LITERAL, Literal(DataType.STRING, f"tellraw @a \"{msg.value.value}\""))))
         else:
             temp_var = Variable(uuid.uuid4().hex, DataType.STRING)
             self.builder.insert(IRDeclare(temp_var))
             self.builder.insert(
-                IRAssign(temp_var, Reference(ValueType.LITERAL, Literal(DataType.STRING, "tellraw \""))))
+                IRAssign(temp_var, Reference(ValueType.LITERAL, Literal(DataType.STRING, "tellraw @a \""))))
             temp_var2 = Variable(uuid.uuid4().hex, DataType.STRING)
             self.builder.insert(IRDeclare(temp_var2))
             self.builder.insert(
@@ -104,7 +104,7 @@ class Builtins(Library):
             temp_var3 = Variable(uuid.uuid4().hex, DataType.STRING)
             self.builder.insert(IRDeclare(temp_var3))
             self.builder.insert(
-                IROp(temp_var3, BinaryOps.ADD, Reference(ValueType.VARIABLE, temp_var3),
+                IROp(temp_var3, BinaryOps.ADD, Reference(ValueType.VARIABLE, temp_var2),
                      Reference(ValueType.LITERAL, Literal(DataType.STRING, "\""))))
             self.builder.insert(IRRawCmd(Reference(ValueType.VARIABLE, temp_var3)))
 
@@ -117,7 +117,7 @@ class Builtins(Library):
         self.builder.insert(IROp(var, BinaryOps.ADD, dest, src))
         return var
 
-    def _jump(self, scope: Reference[Literal]):
+    def _call(self, scope: Reference[Literal]):
         if scope.value_type != ValueType.LITERAL:
             raise CompilerSyntaxError(
                 "跳转目标必须是字面量字符串"
@@ -134,6 +134,8 @@ class Builtins(Library):
                 f"跳转目标作用域 '{scope.value.value}' 不存在"
             )
 
+    def _type_of(self, value):
+        return Literal(DataType.STRING, repr(value))
     def __str__(self) -> str:
         return "built-in"
 

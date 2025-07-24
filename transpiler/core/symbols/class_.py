@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
+from transpiler.core.language_enums import ClassType
 from transpiler.core.symbols.base import NewSymbol
 from transpiler.core.symbols.reference import Reference
 
@@ -16,11 +17,12 @@ if TYPE_CHECKING:
 @dataclass
 class Class(NewSymbol):
     name: str
-    methods: list[Function]  # 方法列表（保持有序）
+    methods: list[Function]  # 方法列表
     interfaces: Optional[Class]
     parent: Optional[Class]
     constants: set[Reference[Constant]]
     variables: list[Reference[Variable]]
+    type: ClassType = ClassType.CLASS
 
     def get_name(self) -> str:
         return self.name
