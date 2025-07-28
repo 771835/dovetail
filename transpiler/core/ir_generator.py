@@ -14,7 +14,7 @@ from transpiler.core.backend.ir_builder import IRBuilder
 from transpiler.core.errors import TypeMismatchError, UnexpectedError, CompilerSyntaxError, UndefinedTypeError, \
     CompilerImportError, UndefinedVariableError, InvalidSyntaxError, DuplicateDefinitionError, \
     ArgumentTypeMismatchError, InvalidControlFlowError, MissingImplementationError, RecursionError, NotCallableError, \
-    InvalidOperatorError, SymbolCategoryError
+    InvalidOperatorError, SymbolCategoryError, UnimplementedInterfaceMethodsError, FunctionNameConflictError
 from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.include_manager import IncludeManager
 from transpiler.core.instructions import *
@@ -422,9 +422,19 @@ class MCGenerator(transpilerVisitor):
 
         if not self.config.enable_same_name_function_nesting:
             current = self.current_scope
+            # 使用列表记录作用域路径，便于错误提示
+            scope_path = []
             while current:
+                scope_path.append(current.get_name())
                 if current.get_name() == func_name:
-                    raise  # TODO
+                    # 构建作用域链字符串
+                    raise FunctionNameConflictError(
+                        name=func_name,
+                        scope_name=current.get_name(),
+                        line=self._get_current_line(),
+                        column=self._get_current_column(),
+                        filename=self.filename
+                    )
                 current = current.parent
 
         params_list: list[Variable] = []
@@ -592,7 +602,12 @@ class MCGenerator(transpilerVisitor):
 
                 pending_implementation_methods = self.check_subset(interfaces_method, [m.get_name() for m in methods])
                 if len(pending_implementation_methods[1])!=0:
-                    raise # TODO:报错有接口的方法未实现
+                    raise UnimplementedInterfaceMethodsError(
+                        missing_methods=pending_implementation_methods[1],
+                        line=self._get_current_line(),
+                        column=self._get_current_column(),
+                        filename=self.filename
+                    )
 
         return Result(Reference(ValueType.CLASS, class_))
 

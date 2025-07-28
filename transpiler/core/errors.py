@@ -231,3 +231,36 @@ class SymbolCategoryError(TypeMismatchError):
         """覆盖父类方法以提供更具体的错误信息"""
         base = super()._format_message()
         return f"{base}\n  期望类别: {self.expected_category}\n  实际类别: {self.actual_category}"
+
+
+class UnimplementedInterfaceMethodsError(CompilationError):
+    """未实现接口要求的方法"""
+
+    def __init__(self, missing_methods: list[str], line: int = None,
+                 column: int = None, filename: str = None):
+        self.missing_methods = missing_methods
+        methods_str = ', '.join(map(str, missing_methods))  # 明确列出缺失方法
+        msg = (
+            f"类未实现接口要求的{len(missing_methods)}个方法\n"
+            f"缺失方法: {methods_str}\n"
+            "请在类中实现这些必需的方法"
+        )
+        super().__init__(msg, line=line, column=column, filename=filename)
+
+
+class FunctionNameConflictError(CompilationError):
+    """函数名与作用域名冲突的错误"""
+
+    def __init__(self, name: str, scope_name: str,
+                 line: int = None, column: int = None, filename: str = None):
+        msg = (
+            f"函数名称 '{name}' 与嵌套作用域 '{scope_name}' 冲突\n"
+            f"这种冲突可能导致作用域解析混乱\n"
+            f"解决方案：\n"
+            f"  1. 重命名函数\n"
+            f"  2. 启用同名函数嵌套支持 (--enable-same-name-function-nesting)\n"
+            f"  3. 修改冲突的作用域名"
+        )
+        super().__init__(msg, line=line, column=column, filename=filename)
+        self.func_name = name
+        self.scope_name = scope_name
