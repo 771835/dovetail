@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class Class(NewSymbol):
     name: str
     methods: list[Function]  # 方法列表
-    interfaces: Optional[Class]
+    interface: Optional[Class]
     parent: Optional[Class]
     constants: set[Reference[Constant]]
     variables: list[Reference[Variable]]
@@ -28,5 +28,5 @@ class Class(NewSymbol):
         return self.name
 
     def __hash__(self):
-        return hash((self.name, tuple(self.methods), self.interfaces, self.parent, tuple(self.constants),
-                     tuple(self.variables)))
+        return hash((self.name, tuple(self.methods), id(self.interface), id(self.parent), tuple(self.constants),
+                     tuple(self.variables), self.type))

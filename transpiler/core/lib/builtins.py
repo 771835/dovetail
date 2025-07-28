@@ -7,7 +7,7 @@ from transpiler.core.errors import CompilerSyntaxError, InvalidControlFlowError
 from transpiler.core.instructions import IRInstruction, IRRawCmd, IRCast, IRDeclare, IRAssign, IROp, IRScopeBegin, \
     IRJump
 from transpiler.core.language_enums import DataType, ValueType, BinaryOps, FunctionType
-from transpiler.core.lib.lib_base import Library
+from transpiler.core.lib.library import Library
 from transpiler.core.symbols import Constant, Class, Function, Reference, Variable, Literal
 
 

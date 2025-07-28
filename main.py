@@ -62,7 +62,7 @@ class ThrowingErrorListener(ErrorListener):
         pass
 
 
-def compile_mcdl(source_path, target_path,
+def compile_file(source_path, target_path,
                  config: GeneratorConfig):
     source_path = os.path.abspath(source_path)
     target_path = os.path.abspath(target_path)
@@ -110,13 +110,14 @@ def compile_mcdl(source_path, target_path,
             tree = parser.program()
             if listener.error:
                 sys.stderr.write(listener.buffer.getvalue())
-                return 1
+                return -1
             generator = MCGenerator(config)
             generator.visit(tree)
             # 输出到target目录
             ir_builder = generator.get_generate_ir()
             ir_builder = Optimizer(ir_builder, config).optimize()
-            CodeGenerator(ir_builder, target_path, config).generate_commands()
+            if not config.no_generate_commands:
+                CodeGenerator(ir_builder, target_path, config).generate_commands()
             depth = 0
             for i in ir_builder:
                 if isinstance(i, IRScopeEnd):
@@ -135,6 +136,7 @@ def compile_mcdl(source_path, target_path,
             if config.debug:
                 # 重新抛出异常显示错误详情
                 raise
+            return -1
         except Exception:
             time.sleep(0.1)
 
@@ -151,12 +153,12 @@ def compile_mcdl(source_path, target_path,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="mcDSL")
     parser.add_argument('input', type=str, help='输入文件路径')
-    parser.add_argument('--minecraft_version', '-mcv', metavar='version', type=str, help='生成游戏版本',
+    parser.add_argument('--minecraft_version', '-mcv', metavar='version', type=str, help='游戏版本',
                         default="1.20.4")
     parser.add_argument(
         '--output',
         '-o',
-        metavar='output',
+        metavar='path',
         type=str,
         help='输出文件路径')
     parser.add_argument(
@@ -168,12 +170,19 @@ if __name__ == "__main__":
 
     parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=1,
                         help='优化级别')
+    parser.add_argument('--no-generate-commands', action='store_true', help='不生成指令')
     parser.add_argument('--enable-recursion', action='store_true', help='启用递归(需后端支持)')
+    parser.add_argument('--enable-same-name-function-nesting', action='store_true', help='启用同名函数嵌套')
+    parser.add_argument('--enable-experimental', action='store_true', help='启用扩展模式')
+
     parser.add_argument('--debug', action='store_true',
                         help='启用调试模式')
 
     args = parser.parse_args()
-    sys.exit(compile_mcdl(args.input, args.output or "target",
+    sys.exit(compile_file(args.input, args.output or "target",
                           GeneratorConfig(args.namespace or "namespace", OptimizationLevel(args.O),
-                                          MinecraftVersion.from_str(args.minecraft_version), args.debug, False,
-                                          args.enable_recursion, False)))
+                                          MinecraftVersion.from_str(args.minecraft_version), args.debug,
+                                          args.no_generate_commands,
+                                          args.enable_recursion,
+                                          args.enable_same_name_function_nesting,
+                                          args.enable_experimental)))

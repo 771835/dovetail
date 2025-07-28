@@ -48,18 +48,18 @@ class Optimizer(IROptimizerSpec):
             optimization_pass.append(UnreachableCodeRemovalPass)
         if self.level >= OptimizationLevel.O2:
             optimization_pass.append(UselessScopeRemovalPass)
-            optimization_pass.append(EmptyScopeRemovalPass)
+
         if self.level >= OptimizationLevel.O3:  # 测试性优化
-            pass
+            # TODO:当函数嵌套且名称重复时会出现删除错误,故临时放在测试性优化，等待修复
+            optimization_pass.append(EmptyScopeRemovalPass)
         last_hash = hash(tuple(self.builder.get_instructions()))
         iteration = count()
         while True:
+
             if self.debug:
                 print(f"[DEBUG: Optimizer] Optimization iteration {next(iteration)} started.")
-
             for _ in optimization_pass:
                 if self.debug:
-                    print(f"[DEBUG: {_.__name__}] Starting optimization pass...")
                     depth = 0
                     for i in self.builder:
                         if isinstance(i, IRScopeEnd):
@@ -67,6 +67,7 @@ class Optimizer(IROptimizerSpec):
                         print(depth * "    " + repr(i))
                         if isinstance(i, IRScopeBegin):
                             depth += 1
+                    print(f"[DEBUG: {_.__name__}] Starting optimization pass...")
                 pass_ = _(self.builder, self.config)
                 pass_.exec()
                 if self.debug:
@@ -153,7 +154,6 @@ class ConstantFoldingPass(IROptimizationPass):
             IRUnaryOp: self._unary_op,
             IRCondJump: self._cond_jump,
             IRCall: self._call,
-            IRCallInline: self._call,
             IRCast: self._cast,
             IRRawCmd: self._raw_cmd
         }
@@ -549,7 +549,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
     def _has_side_effect(self, instr):
         """判断指令是否有副作用"""
         return isinstance(instr,
-                          (IRRawCmd, IRCast, IRReturn, IRCall, IRCallInline, IROp, IRCompare, IRUnaryOp))
+                          (IRRawCmd, IRCast, IRReturn, IRCall, IROp, IRCompare, IRUnaryOp))
 
     def _is_declaration_exists(self, var_name):
         # 检查变量声明是否存在于IR中
@@ -577,6 +577,7 @@ class DeclareCleanupPass(IROptimizationPass):
         self.var_scopes = {}  # 变量作用域 {var: scope}
         self.var_references = {}  # 变量引用计数 {var: count}
         self.root_vars = set()  # 根变量集合（参数、返回值等）
+        self.scope_instructions = {}  # 作用域 -> 指令列表
 
     def exec(self):
         """执行增强版声明清理"""
@@ -619,12 +620,17 @@ class DeclareCleanupPass(IROptimizationPass):
 
             # 作用域跟踪
             if isinstance(instr, IRScopeBegin):
-                scope_stack.append(instr.get_operands()[0])
+                scope_name = instr.get_operands()[0]
+                scope_stack.append(scope_name)
                 current_scope = scope_stack[-1]
+                self.scope_instructions[scope_name] = []
             elif isinstance(instr, IRScopeEnd):
                 if scope_stack:
                     scope_stack.pop()
                     current_scope = scope_stack[-1] if scope_stack else "global"
+
+            if current_scope in self.scope_instructions:
+                self.scope_instructions[current_scope].append(instr)
 
             # 处理变量声明
             if isinstance(instr, IRDeclare):
@@ -753,8 +759,20 @@ class DeclareCleanupPass(IROptimizationPass):
         return False
 
     def _is_var_used_in_scope(self, var_name, scope):
-        """判断变量是否在特定作用域中被使用"""
-        # 实现作用域内变量使用检测
+        """
+        判断变量是否在特定作用域中被使用。
+
+        :param var_name: 要检查的变量名称
+        :param scope: 作用域名称
+        :return: 如果变量在该作用域中被使用，返回 True，否则返回 False
+        """
+        if scope not in self.scope_instructions:
+            return False
+
+        for instr in self.scope_instructions[scope]:
+            for operand in instr.get_operands():
+                if isinstance(operand, Reference) and operand.get_name() == var_name:
+                    return True
         return False
 
 
@@ -891,6 +909,7 @@ class UselessScopeRemovalPass(IROptimizationPass):
 
 
 class EmptyScopeRemovalPass(IROptimizationPass):
+
     def __init__(self, builder: IRBuilder, config: GeneratorConfig):
         self.builder = builder
         self.scope_instructions = {}  # 作用域 -> 指令列表

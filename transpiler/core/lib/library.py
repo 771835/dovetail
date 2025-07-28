@@ -2,45 +2,44 @@
 from abc import ABCMeta, abstractmethod
 from typing import Callable
 
+from transpiler.core.backend.ir_builder import IRBuilder
 from transpiler.core.instructions import IRInstruction
-from transpiler.core.symbols import Constant, Class, Function, Reference
+from transpiler.core.symbols import Constant, Class, Function, Reference, Variable, Literal
 
 
 class Library(metaclass=ABCMeta):
+    @abstractmethod
+    def __init__(self, builder: IRBuilder):
+        pass
+
     @abstractmethod
     def __str__(self) -> str:
         """返回库的描述性字符串"""
         pass
 
-    @staticmethod
     @abstractmethod
-    def load() -> list[IRInstruction]:
+    def load(self) -> list[IRInstruction]:
         """加载库资源（如初始化状态、加载依赖等）"""
         pass
 
-    @staticmethod
     @abstractmethod
-    def get_functions() -> dict[Function, Callable[..., list[IRInstruction]]]:
+    def get_functions(self) -> dict[Function, Callable[..., Variable | Constant | Literal]]:
         """获取函数及其处理函数的映射"""
         pass
 
-    @staticmethod
     @abstractmethod
-    def get_constants() -> dict[Constant, Reference]:
+    def get_constants(self) -> dict[Constant, Reference]:
         """获取库中定义的所有常量"""
         pass
 
-    @staticmethod
-    def get_events() -> dict[str, Callable[..., list[IRInstruction]]]:
+    def get_events(self) -> dict[str, Callable[..., list[IRInstruction]]]:
         """获取事件及其处理函数的映射"""
         return {}
 
-    @staticmethod
-    def get_annotations() -> dict[str, Callable[..., list[IRInstruction]]]:
+    def get_annotations(self) -> dict[str, Callable[..., list[IRInstruction]]]:
         """获取注解及其处理函数的映射"""
         return {}
 
-    @staticmethod
-    def get_classes() -> list[Class]:
+    def get_classes(self) -> list[Class]:
         """获取库中定义的所有类"""
         return []

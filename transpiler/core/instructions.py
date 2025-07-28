@@ -17,13 +17,12 @@ class IROpCode(SafeEnum):
     COND_JUMP = 0x01  # 条件跳转
     FUNCTION = 0x02  # 函数定义
     CALL = 0x03  # 函数调用
-    CALL_INLINE = 0x04  # 内联函数调用
-    RETURN = 0x05  # 函数返回
-    SCOPE_BEGIN = 0x06  # 作用域开始
-    SCOPE_END = 0x07  # 作用域结束
-    BREAK = 0x08  # 跳出循环
-    CONTINUE = 0x09  # 继续循环
-    # 预留 0x0C-0x1F 用于控制流扩展
+    RETURN = 0x04  # 函数返回
+    SCOPE_BEGIN = 0x05  # 作用域开始
+    SCOPE_END = 0x06  # 作用域结束
+    BREAK = 0x07  # 跳出循环
+    CONTINUE = 0x08  # 继续循环
+    # 预留 0x09-0x1F 用于控制流扩展
 
     # ===== 变量操作指令 (0x20-0x3F) =====
     DECLARE = 0x20  # 变量声明
@@ -75,8 +74,7 @@ class IRInstruction:
             f"{self.opcode}({ops})"
 
     def __hash__(self):
-        a = tuple(self.operands)
-        return hash((self.opcode, a))
+        return hash((self.opcode, tuple(self.operands)))
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -141,13 +139,6 @@ class IRCall(IRInstruction):
 
     def __hash__(self):
         return hash((self.operands[0], self.operands[1], tuple(self.operands[2])))
-
-
-class IRCallInline(IRCall):
-    def __init__(self, result: Variable | Constant, func: Function,
-                 args: list[Reference[Variable | Constant | Literal]] = None, line: int = -1, column: int = -1,
-                 filename: str = None):
-        super().__init__(result, func, args, line, column, filename, IROpCode.CALL_INLINE)
 
 
 class IRScopeBegin(IRInstruction):

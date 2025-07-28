@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Callable
 
-from transpiler.core.lib.lib_base import Library
+from transpiler.core.lib.library import Library
 from transpiler.core.safe_enum import SafeEnum
 from transpiler.core.symbols import Constant
 

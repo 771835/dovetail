@@ -210,3 +210,24 @@ class NotCallableError(TypeMismatchError):
             "可调用类型", actual_type,
             line=line, column=column, filename=filename,
             msg=msg)
+
+
+class SymbolCategoryError(TypeMismatchError):
+    """符号类别错误（期望是某种类型的符号但实际是其他类型）"""
+
+    def __init__(self, msg: str, expected: str, actual: str,
+                 line: int = None, column: int = None, filename: str = None):
+        """
+        @param expected: 期望的符号类型描述（如 "Variable", "Function" 等）
+        @param actual: 实际的符号类型
+        """
+        self.msg = msg
+        self.expected_category = expected
+        self.actual_category = actual
+        super().__init__(expected, actual, line=line, column=column, filename=filename, msg=msg)
+
+
+    def _format_message(self) -> str:
+        """覆盖父类方法以提供更具体的错误信息"""
+        base = super()._format_message()
+        return f"{base}\n  期望类别: {self.expected_category}\n  实际类别: {self.actual_category}"

@@ -14,13 +14,13 @@ from transpiler.core.backend.ir_builder import IRBuilder
 from transpiler.core.errors import TypeMismatchError, UnexpectedError, CompilerSyntaxError, UndefinedTypeError, \
     CompilerImportError, UndefinedVariableError, InvalidSyntaxError, DuplicateDefinitionError, \
     ArgumentTypeMismatchError, InvalidControlFlowError, MissingImplementationError, RecursionError, NotCallableError, \
-    InvalidOperatorError
+    InvalidOperatorError, SymbolCategoryError
 from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.include_manager import IncludeManager
 from transpiler.core.instructions import *
 from transpiler.core.language_enums import StructureType, DataType, ValueType, VariableType, FunctionType, ClassType
-from transpiler.core.lib.builtins import Builtins
-from transpiler.core.lib.lib_base import Library
+from transpiler.core.lib.library import Library
+from transpiler.core.lib.std_builtin_mapping import StdBuiltinMapping
 from transpiler.core.parser.transpilerLexer import transpilerLexer
 from transpiler.core.parser.transpilerParser import transpilerParser
 from transpiler.core.parser.transpilerVisitor import transpilerVisitor
@@ -42,7 +42,7 @@ class MCGenerator(transpilerVisitor):
             StructureType.GLOBAL)
         self.current_scope = self.top_scope
         self.include_manager = IncludeManager()  # 包含管理器
-        self.builtin_func_table: dict[str, Callable[..., list[IRInstruction]]] = {}
+        self.builtin_func_table: dict[str, Callable[..., Variable | Constant | Literal]] = {}
         self.uuid_namespace = uuid.uuid4()
         self.scope_stack = [self.top_scope]
         self.cnt = count()  # 保证for loop和if else唯一性
@@ -50,8 +50,9 @@ class MCGenerator(transpilerVisitor):
         self.ir_builder: IRBuilder = IRBuilder()
 
         #  加载内置库
-        builtins = Builtins(self.ir_builder)
-        self.load_library(builtins)
+        self.load_library(StdBuiltinMapping.get("builtins", self.ir_builder))
+        if self.config.enable_experimental:
+            self.load_library(StdBuiltinMapping.get("experimental", self.ir_builder))
 
     def load_library(self, library: Library):
         library.load()
@@ -269,6 +270,43 @@ class MCGenerator(transpilerVisitor):
             return self._current_ctx.start.column
         return -1
 
+    @staticmethod
+    def check_subset(list_primary, list_candidate) -> tuple[bool, set]:
+        """
+        检查主列表是否为候选列表的子集并返回缺失元素
+
+        函数将验证 list_primary 的所有元素是否都存在于 list_candidate 中
+        （不考虑元素顺序和重复值）。如果不是子集，则返回缺失元素集合。
+
+        Parameters:
+            list_primary (list): 待检查的主列表（可能是子集）
+            list_candidate (list): 作为候选超集的列表
+
+        Returns:
+            tuple: 包含两个元素的元组
+                - bool: 子集验证结果，True表示主列表是子集
+                - set: 缺失元素集合（当是子集时返回空集合）
+
+        Example:
+            >>> MCGenerator.check_subset(['苹果', '香蕉'], ['苹果', '香蕉', '橙子'])
+            (True, set())
+
+            >>> MCGenerator.check_subset(['苹果', '葡萄'], ['苹果', '香蕉'])
+            (False, {'葡萄'})
+
+        Note:
+            1. 由于使用集合操作，重复元素会被自动去重
+            2. 结果中的元素顺序可能与原列表不同
+            3. 缺失元素集合使用set类型保证元素唯一性
+        """
+        set_primary = set(list_primary)
+        set_candidate = set(list_candidate)
+
+        is_subset_result = set_primary.issubset(set_candidate)
+        missing_elements = set_primary - set_candidate if not is_subset_result else set()
+
+        return is_subset_result, missing_elements
+
     def visit(self, tree) -> Result:
         previous_ctx = self._current_ctx
         self._current_ctx = tree
@@ -382,6 +420,13 @@ class MCGenerator(transpilerVisitor):
                 filename=self.filename
             )
 
+        if not self.config.enable_same_name_function_nesting:
+            current = self.current_scope
+            while current:
+                if current.get_name() == func_name:
+                    raise  # TODO
+                current = current.parent
+
         params_list: list[Variable] = []
         params: transpilerParser.ParamListContext = ctx.paramList()
         if params.paramDecl():
@@ -426,7 +471,7 @@ class MCGenerator(transpilerVisitor):
 
         return Result(Reference(ValueType.FUNCTION, func))
 
-    def visitMethodDecl(self, ctx:transpilerParser.MethodDeclContext):
+    def visitMethodDecl(self, ctx: transpilerParser.MethodDeclContext):
         func_name = ctx.ID().getText()
         return_type = self._get_type_definition(ctx.type_().getText(), True)
 
@@ -503,7 +548,7 @@ class MCGenerator(transpilerVisitor):
 
         class_ = Class(class_name,
                        methods=methods,
-                       interfaces=interface,
+                       interface=interface,
                        parent=parent,
                        constants=constants,
                        variables=variables)
@@ -527,14 +572,6 @@ class MCGenerator(transpilerVisitor):
                     filename=self.filename
                 )  # TODO:处理继承
 
-            if interface:
-                raise MissingImplementationError(
-                    "接口实现",
-                    line=self._get_current_line(),
-                    column=self._get_current_column(),
-                    filename=self.filename
-                )  # TODO:接口实现
-
             # 处理字段和方法
 
             for const in ctx.constDecl():
@@ -545,6 +582,17 @@ class MCGenerator(transpilerVisitor):
 
             for method in ctx.methodDecl():
                 methods.append(self.visit(method).value.value)
+
+            if interface:
+                current_interface = interface
+                interfaces_method = []
+                while interface:
+                    interfaces_method += interface.methods
+                    interface = interface.interface
+
+                pending_implementation_methods = self.check_subset(interfaces_method, [m.get_name() for m in methods])
+                if len(pending_implementation_methods[1])!=0:
+                    raise # TODO:报错有接口的方法未实现
 
         return Result(Reference(ValueType.CLASS, class_))
 
@@ -557,7 +605,7 @@ class MCGenerator(transpilerVisitor):
 
         class_ = Class(class_name,
                        methods=methods,
-                       interfaces=None,
+                       interface=None,
                        parent=extends,
                        constants=constants,
                        variables=variables,
@@ -835,8 +883,10 @@ class MCGenerator(transpilerVisitor):
         try:
             symbol: NewSymbol = self.current_scope.resolve_symbol(var_name)
             if not isinstance(symbol, (Variable, Constant)):
-                raise UnexpectedError(
-                    f"符号 '{var_name}' 不是变量或常量",
+                raise SymbolCategoryError(
+                    f"符号 '{var_name}' 必须是变量或常量",
+                    expected="Variable/Constant",
+                    actual=symbol.__class__.__name__,
                     line=self._get_current_line(),
                     column=self._get_current_column(),
                     filename=self.filename
@@ -866,12 +916,15 @@ class MCGenerator(transpilerVisitor):
                     filename=self.filename
                 )
             elif not isinstance(var, Variable):
-                raise UnexpectedError(
-                    f"符号 '{var_name}' 不是变量",
+                raise SymbolCategoryError(
+                    f"符号 '{var_name}' 必须是变量才能赋值",
+                    expected="Variable",
+                    actual=var.__class__.__name__,
                     line=self._get_current_line(),
                     column=self._get_current_column(),
                     filename=self.filename
                 )
+
             # 类型检查
             if var.dtype != expr_result.value.get_data_type():
                 raise TypeMismatchError(
@@ -957,7 +1010,7 @@ class MCGenerator(transpilerVisitor):
     def visitDirectFuncCall(
             self,
             ctx: transpilerParser.DirectFuncCallContext):
-        func_name = ctx.ID().getText()
+        func_name: str = ctx.ID().getText()
 
         # 调用函数
         func_symbol: NewSymbol = self.current_scope.resolve_symbol(func_name)
@@ -965,7 +1018,8 @@ class MCGenerator(transpilerVisitor):
             if not self.config.enable_recursion:  # 未启用递归
                 current = self.current_scope
                 while current:
-                    if current.get_name() == func_name and current.type == StructureType.FUNCTION:
+                    if current.get_name() == func_name and current.type == StructureType.FUNCTION and current.get_parent().find_symbol(
+                            func_name) is func_symbol:
                         raise RecursionError(
                             f"函数 '{func_name}' 检测到递归调用，但递归支持未启用，启用递归请使用参数--enable-recursion",
                             line=self._get_current_line(),

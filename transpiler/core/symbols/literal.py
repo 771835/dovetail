@@ -17,4 +17,4 @@ class Literal(NewSymbol):
         ...
 
     def __hash__(self):
-        return hash((self.dtype, self.value))
+        return hash((id(self.dtype), self.value))

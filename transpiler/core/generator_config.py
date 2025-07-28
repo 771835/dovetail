@@ -43,8 +43,9 @@ class GeneratorConfig:
     optimization_level: OptimizationLevel
     minecraft_version: MinecraftVersion
     debug: bool = False
-    no_generator_commands: bool = False
+    no_generate_commands: bool = False
     enable_recursion: bool = False
+    enable_same_name_function_nesting: bool = False
     enable_experimental: bool = False
 
     def __post_init__(self):

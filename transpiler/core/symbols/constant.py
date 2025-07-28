@@ -21,4 +21,4 @@ class Constant(NewSymbol):
         return self.name
 
     def __hash__(self):
-        return hash((self.name, self.dtype, self.var_type))
+        return hash((self.name, id(self.dtype), self.var_type))

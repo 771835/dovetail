@@ -24,4 +24,4 @@ class Function(NewSymbol):
         return self.name
 
     def __hash__(self):
-        return hash((self.name, tuple(self.params), self.return_type))
+        return hash((self.name, tuple(self.params), id(self.return_type)))

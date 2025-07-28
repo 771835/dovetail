@@ -31,6 +31,7 @@ class CodeGenerator(CodeGeneratorSpec):
             None,
             StructureType.GLOBAL,
             self.namespace)
+        self.scope_stack = [self.top_scope]
         self.current_scope = self.top_scope
         self.var_objective = "var"  # 存储变量记分板
         self.statement_objective = "stmt"  # 存储变量记分板
@@ -57,12 +58,11 @@ class CodeGenerator(CodeGeneratorSpec):
             IROpCode.COND_JUMP: self._cond_jump,  # 0x01
             IROpCode.FUNCTION: self._function,  # 0x02
             IROpCode.CALL: self._call,  # 0x03
-            IROpCode.CALL_INLINE: self._call,  # 0x04 - 复用CALL处理
-            IROpCode.RETURN: self._return,  # 0x05
-            IROpCode.SCOPE_BEGIN: self._scope_begin,  # 0x06
-            IROpCode.SCOPE_END: self._scope_end,  # 0x07
-            IROpCode.BREAK: self._break,  # 0x08
-            IROpCode.CONTINUE: self._continue,  # 0x09
+            IROpCode.RETURN: self._return,  # 0x04
+            IROpCode.SCOPE_BEGIN: self._scope_begin,  # 0x05
+            IROpCode.SCOPE_END: self._scope_end,  # 0x06
+            IROpCode.BREAK: self._break,  # 0x07
+            IROpCode.CONTINUE: self._continue,  # 0x08
 
             # ===== 变量操作指令 (0x20-0x3F) =====
             IROpCode.DECLARE: self._declare,  # 0x20
@@ -82,7 +82,7 @@ class CodeGenerator(CodeGeneratorSpec):
 
             # ===== 命令生成指令 (0x60-0x7F) =====
             IROpCode.RAW_CMD: self._raw_command,  # 0x60
-            # IROpCode.DEBUG_INFO: self._debug_info,  # 0x61
+            IROpCode.DEBUG_INFO: self._debug_info,  # 0x61
         }
         for instr in iterator:
             handler = handlers.get(instr.opcode, lambda i: None)
@@ -117,9 +117,11 @@ class CodeGenerator(CodeGeneratorSpec):
         name: str = instr.get_operands()[0]
         stype: StructureType = instr.get_operands()[1]
         self.current_scope = self.current_scope.create_child(name, stype)
+        self.scope_stack.append(self.current_scope)
 
     def _scope_end(self, instr: IRInstruction):
         self.current_scope = self.current_scope.parent
+        self.scope_stack.pop()
 
     def _break(self, instr: IRInstruction):
         loop_check_scope = self.current_scope.resolve_scope(instr.get_operands()[0])
@@ -338,3 +340,6 @@ class CodeGenerator(CodeGeneratorSpec):
             self.current_scope.add_command(
                 FunctionBuilder.run_with_source(f"{self.namespace}:builtins/exec", "storage",
                                                 f"{self.var_objective} " + args_path))  # TODO:内置函数实现
+
+    def _debug_info(self, instr: IRInstruction):
+        self.current_scope.add_command(f'tellraw @a "{".".join(i.name for i in self.scope_stack)}"')
