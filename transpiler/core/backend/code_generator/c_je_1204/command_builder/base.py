@@ -1,5 +1,5 @@
 # coding=utf-8
-from transpiler.core.language_enums import DataType
+from transpiler.core.enums import DataType
 from transpiler.core.symbols import Variable, Constant, Literal
 from . import DataBuilder, ScoreboardBuilder
 from ..code_generator_scope import CodeGeneratorScope

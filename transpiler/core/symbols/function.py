@@ -4,19 +4,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, NoReturn
 
-from transpiler.core.language_enums import FunctionType
+from transpiler.core.enums import FunctionType
+from transpiler.core.symbols.parameter import Parameter
 from transpiler.core.symbols.base import NewSymbol
 
 if TYPE_CHECKING:
-    from transpiler.core.language_enums import DataType
-    from transpiler.core.symbols.variable import Variable
+    from transpiler.core.enums import DataType
     from transpiler.core.symbols.class_ import Class
 
 
 @dataclass
 class Function(NewSymbol):
     name: str
-    params: list[Variable]
+    params: list[Parameter]
     return_type: DataType | 'Class'
     function_type: FunctionType = FunctionType.FUNCTION
 

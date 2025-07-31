@@ -2,7 +2,7 @@
 import typing
 import uuid
 
-from transpiler.core.language_enums import DataType, ValueType, CompareOps, BinaryOps
+from transpiler.core.enums import DataType, ValueType, CompareOps, BinaryOps
 from transpiler.core.symbols import Constant, Variable, Reference, Literal
 from . import BasicCommands, FunctionBuilder
 from ._data import DataBuilder

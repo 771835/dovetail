@@ -6,6 +6,7 @@ from transpiler.core.safe_enum import SafeEnum
 
 class FunctionType(SafeEnum):
     FUNCTION = "function"
+    LIBRARY = "library"
     BUILTIN = "built-in"
     METHOD = "method"
 
@@ -87,10 +88,11 @@ class ValueType(SafeEnum):
 
 class VariableType(SafeEnum):
     """变量类型"""
-    ARGUMENT = "argument"
+    PARAMETER = "parameter"
     COMMON = "common"
     RETURN = "return"
     DEBUG = "debug"
+
 
 class ClassType(SafeEnum):
     """类类型"""

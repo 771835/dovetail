@@ -2,8 +2,8 @@
 from typing import Callable
 
 from transpiler.core.backend.ir_builder import IRBuilder
+from transpiler.core.enums import DataType, FunctionType
 from transpiler.core.instructions import IRInstruction, IRDebugInfo
-from transpiler.core.language_enums import DataType, FunctionType
 from transpiler.core.lib.library import Library
 from transpiler.core.symbols import Constant, Reference, Function, Variable, Literal
 
@@ -20,7 +20,7 @@ class Experimental(Library):
 
                 ],
                 DataType.INT,
-                FunctionType.BUILTIN
+                FunctionType.LIBRARY
 
             ): self._print_debug_info,
         }

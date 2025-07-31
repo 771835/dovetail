@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from transpiler.core.language_enums import DataType, VariableType
+from transpiler.core.enums import DataType, VariableType
 from transpiler.core.symbols.base import NewSymbol
 from transpiler.core.symbols.class_ import Class
 

@@ -1,7 +1,7 @@
 # coding=utf-8
 from __future__ import annotations
 
-from transpiler.core.language_enums import StructureType
+from transpiler.core.enums import StructureType
 from transpiler.core.symbols.base import NewSymbol
 
 

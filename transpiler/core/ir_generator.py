@@ -5,12 +5,13 @@ import os.path
 import re
 import uuid
 from contextlib import contextmanager
-from itertools import count
+from itertools import count, zip_longest
 from typing import Callable
 
 from antlr4 import FileStream, CommonTokenStream
 
 from transpiler.core.backend.ir_builder import IRBuilder
+from transpiler.core.enums import ValueType, VariableType, FunctionType, ClassType
 from transpiler.core.errors import TypeMismatchError, UnexpectedError, CompilerSyntaxError, UndefinedTypeError, \
     CompilerImportError, UndefinedVariableError, InvalidSyntaxError, DuplicateDefinitionError, \
     ArgumentTypeMismatchError, InvalidControlFlowError, MissingImplementationError, RecursionError, NotCallableError, \
@@ -18,7 +19,6 @@ from transpiler.core.errors import TypeMismatchError, UnexpectedError, CompilerS
 from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.include_manager import IncludeManager
 from transpiler.core.instructions import *
-from transpiler.core.language_enums import StructureType, DataType, ValueType, VariableType, FunctionType, ClassType
 from transpiler.core.lib.library import Library
 from transpiler.core.lib.std_builtin_mapping import StdBuiltinMapping
 from transpiler.core.parser.transpilerLexer import transpilerLexer
@@ -437,7 +437,7 @@ class MCGenerator(transpilerVisitor):
                     )
                 current = current.parent
 
-        params_list: list[Variable] = []
+        params_list: list[Parameter] = []
         params: transpilerParser.ParamListContext = ctx.paramList()
         if params.paramDecl():
             for param in params.paramDecl():
@@ -446,9 +446,9 @@ class MCGenerator(transpilerVisitor):
                 var = Variable(
                     param_name,
                     param_type,
-                    VariableType.ARGUMENT
+                    VariableType.PARAMETER
                 )
-                params_list.append(var)
+                params_list.append(Parameter(var))
 
         func = Function(
             func_name,
@@ -465,7 +465,7 @@ class MCGenerator(transpilerVisitor):
             )
         self._add_ir_instruction(IRFunction(func))
 
-        with self.scoped_environment(func_name, StructureType.FUNCTION) as scope:
+        with self.scoped_environment(func_name, StructureType.FUNCTION):
             for i in params_list:
                 if not self.current_scope.add_symbol(i):
                     raise DuplicateDefinitionError(
@@ -474,7 +474,7 @@ class MCGenerator(transpilerVisitor):
                         column=self._get_current_column(),
                         filename=self.filename
                     )
-                self._add_ir_instruction(IRDeclare(i))
+                self._add_ir_instruction(IRDeclare(i.var))
 
             # 处理函数体
             self.visit(ctx.block())
@@ -493,7 +493,7 @@ class MCGenerator(transpilerVisitor):
                 filename=self.filename
             )
 
-        params_list: list[Variable] = []
+        params_list: list[Parameter] = []
         params: transpilerParser.ParamListContext = ctx.paramList()
         if params.paramDecl():
             for param in params.paramDecl():
@@ -502,9 +502,9 @@ class MCGenerator(transpilerVisitor):
                 var = Variable(
                     param_name,
                     param_type,
-                    VariableType.ARGUMENT
+                    VariableType.PARAMETER
                 )
-                params_list.append(var)
+                params_list.append(Parameter(var))
 
         func = Function(
             func_name,
@@ -522,7 +522,7 @@ class MCGenerator(transpilerVisitor):
             )
         self._add_ir_instruction(IRFunction(func))
 
-        with self.scoped_environment(func_name, StructureType.FUNCTION) as scope:
+        with self.scoped_environment(func_name, StructureType.FUNCTION):
             for i in params_list:
                 if not self.current_scope.add_symbol(i):
                     raise DuplicateDefinitionError(
@@ -531,7 +531,7 @@ class MCGenerator(transpilerVisitor):
                         column=self._get_current_column(),
                         filename=self.filename
                     )
-                self._add_ir_instruction(IRDeclare(i))
+                self._add_ir_instruction(IRDeclare(i.var))
 
             # 处理函数体
             self.visit(ctx.block())
@@ -572,7 +572,7 @@ class MCGenerator(transpilerVisitor):
             )
         self._add_ir_instruction(IRClass(class_))
 
-        with self.scoped_environment(class_name, StructureType.CLASS) as class_scope:
+        with self.scoped_environment(class_name, StructureType.CLASS):
             # 处理继承
             if parent:
                 raise MissingImplementationError(
@@ -597,11 +597,11 @@ class MCGenerator(transpilerVisitor):
                 current_interface = interface
                 interfaces_method = []
                 while interface:
-                    interfaces_method += interface.methods
-                    interface = interface.interface
+                    interfaces_method += current_interface.methods
+                    current_interface = current_interface.interface
 
                 pending_implementation_methods = self.check_subset(interfaces_method, [m.get_name() for m in methods])
-                if len(pending_implementation_methods[1])!=0:
+                if len(pending_implementation_methods[1]) != 0:
                     raise UnimplementedInterfaceMethodsError(
                         missing_methods=pending_implementation_methods[1],
                         line=self._get_current_line(),
@@ -635,7 +635,7 @@ class MCGenerator(transpilerVisitor):
             )
         self._add_ir_instruction(IRClass(class_))
 
-        with self.scoped_environment(class_name, StructureType.CLASS) as class_scope:
+        with self.scoped_environment(class_name, StructureType.CLASS):
             # 处理继承
             if extends:
                 raise MissingImplementationError(
@@ -897,7 +897,7 @@ class MCGenerator(transpilerVisitor):
         var_name = ctx.ID().getText()
         try:
             symbol: NewSymbol = self.current_scope.resolve_symbol(var_name)
-            if not isinstance(symbol, (Variable, Constant)):
+            if not isinstance(symbol, (Variable, Constant, Parameter)):
                 raise SymbolCategoryError(
                     f"符号 '{var_name}' 必须是变量或常量",
                     expected="Variable/Constant",
@@ -906,6 +906,9 @@ class MCGenerator(transpilerVisitor):
                     column=self._get_current_column(),
                     filename=self.filename
                 )
+
+            if isinstance(symbol, Parameter):
+                symbol = symbol.var
         except ValueError:
             raise UndefinedVariableError(
                 var_name,
@@ -1044,23 +1047,35 @@ class MCGenerator(transpilerVisitor):
                     current = current.parent
 
             args: list[Reference] = []
+            min_args: int = sum(param.optional for param in func_symbol.params)
             if ctx.argumentList().exprList():
                 for i, (arg_expr, param) in enumerate(
-                        zip(ctx.argumentList().exprList().expr(), func_symbol.params)):
-                    arg_result = self.visit(arg_expr)
-                    args.append(arg_result.value)
-                    if param.dtype != arg_result.value.get_data_type():
+                        zip_longest(ctx.argumentList().exprList().expr(), func_symbol.params)):
+                    if arg_expr:
+                        arg_value = self.visit(arg_expr).value
+                        args.append(arg_value)
+                    else:
+                        if not param.optional:
+                            raise InvalidSyntaxError(
+                                f"参数数量不匹配: 期望 {min_args} 个参数，实际 {i} 个",
+                                line=self._get_current_line(),
+                                column=self._get_current_column(),
+                                filename=self.filename
+                            )
+                        arg_value = param.default
+                        args.append(arg_value)
+                    if param.get_data_type() != arg_value.get_data_type():
                         raise ArgumentTypeMismatchError(
-                            param_name=param.name,
-                            expected=param.dtype.name,
-                            actual=arg_result.value.get_data_type().name,
+                            param_name=param.get_name(),
+                            expected=param.get_data_type().name,
+                            actual=arg_value.get_data_type().name,
                             line=arg_expr.start.line,
                             column=arg_expr.start.column,
                             filename=self.filename
                         )
-                if len(ctx.argumentList().exprList().expr()) != len(func_symbol.params):
+                if len(ctx.argumentList().exprList().expr()) < min_args < len(func_symbol.params):
                     raise InvalidSyntaxError(
-                        f"参数数量不匹配: 期望 {len(func_symbol.params)} 个参数，实际 {len(ctx.argumentList().exprList().expr())} 个",
+                        f"参数数量不匹配: 期望 {min_args} 个参数，实际 {len(ctx.argumentList().exprList().expr())} 个",
                         line=self._get_current_line(),
                         column=self._get_current_column(),
                         filename=self.filename
@@ -1073,12 +1088,14 @@ class MCGenerator(transpilerVisitor):
                         column=self._get_current_column(),
                         filename=self.filename
                     )
-            if func_symbol.function_type != FunctionType.BUILTIN:
+
+
+            if func_symbol.function_type == FunctionType.LIBRARY:
+                result_var = self.builtin_func_table[func_symbol.get_name()](*args)
+            else:
                 result_var = self._create_temp_var(func_symbol.return_type, "result")
                 self._add_ir_instruction(IRDeclare(result_var))
                 self._add_ir_instruction(IRCall(result_var, func_symbol, args))
-            else:
-                result_var = self.builtin_func_table[func_symbol.get_name()](*args)
         else:
             raise NotCallableError(
                 func_name,

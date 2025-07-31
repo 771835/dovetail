@@ -11,9 +11,9 @@ from typing import NoReturn
 from transpiler.core.backend.ir_builder import IRBuilder, IRBuilderIterator
 from transpiler.core.backend.specification import IROptimizerSpec, \
     IROptimizationPass, MinecraftVersion
+from transpiler.core.enums import ValueType, VariableType
 from transpiler.core.generator_config import GeneratorConfig, MinecraftEdition, OptimizationLevel
 from transpiler.core.instructions import *
-from transpiler.core.language_enums import ValueType, DataType, VariableType
 from transpiler.core.symbols import Variable, Reference, Constant, Literal
 
 
@@ -58,6 +58,7 @@ class Optimizer(IROptimizerSpec):
 
             if self.debug:
                 print(f"[DEBUG: Optimizer] Optimization iteration {next(iteration)} started.")
+
             for _ in optimization_pass:
                 if self.debug:
                     depth = 0
@@ -483,7 +484,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
                 current_stype: StructureType = instr.get_operands()[1]
             elif isinstance(instr, IRDeclare):
                 var = instr.get_operands()[0]
-                if var.var_type in (VariableType.ARGUMENT, VariableType.RETURN):
+                if var.var_type in (VariableType.PARAMETER, VariableType.RETURN):
                     self.live_vars.add(var.name)
                     work_list.append(var.name)
                 if current_stype == StructureType.LOOP:  # for循环的变量
@@ -639,11 +640,11 @@ class DeclareCleanupPass(IROptimizationPass):
 
             # 处理函数参数
             elif isinstance(instr, IRFunction):
-                func = instr.get_operands()[0]
+                func: Function = instr.get_operands()[0]
                 for param in func.params:
-                    self.root_vars.add(param.name)
+                    self.root_vars.add(param.get_name())
                     # 标记函数参数为已使用
-                    self.var_references[param.name] = self.var_references.get(param.name, 0) + 1
+                    self.var_references[param.get_name()] = self.var_references.get(param.get_name(), 0) + 1
 
             # 处理函数调用
             elif isinstance(instr, IRCall):
@@ -737,11 +738,6 @@ class DeclareCleanupPass(IROptimizationPass):
 
                 # 否则删除声明
                 iterator.remove_current()
-
-    def _current_scope(self, iterator):
-        """获取当前作用域"""
-        # 实现作用域定位逻辑
-        return "global"
 
     def _is_scope_root(self, var_name, scope):
         """判断变量是否是作用域根变量"""
@@ -1017,7 +1013,7 @@ class UnreachableCodeRemovalPass(IROptimizationPass):
                 elif isinstance(instr, IRScopeEnd):
                     if level == 0:
                         in_unreachable = False
-                        break
+                        continue
 
                     level -= 1
                 # 删除当前指令

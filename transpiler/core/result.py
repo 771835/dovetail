@@ -1,11 +1,10 @@
 # coding=utf-8
 from __future__ import annotations
 
-import warnings
 from dataclasses import dataclass
 from typing import Any
 
-from transpiler.core.language_enums import DataType, ValueType
+from transpiler.core.enums import DataType, ValueType
 from transpiler.core.symbols.literal import Literal
 from transpiler.core.symbols.reference import Reference
 
@@ -32,10 +31,6 @@ class Result:
 
     def __str__(self):
         return self.__repr__()
-
-    def to_symbol(self, scope: 'Scope' = None, name: str = None,
-                  objective: str = None):
-        warnings.warn("方法已弃用", DeprecationWarning)
 
     @classmethod
     def from_literal(cls, value: Any, dtype: DataType):

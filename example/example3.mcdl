@@ -2,12 +2,5 @@ class foo {
     method int a(foo self, string abc){
         print(abc)
     }
+
 }
-/*以下写法会触发优化器bug
-func main():void{
-    func main():void{
-        func main():void{
-        }
-    }
-}
-*/

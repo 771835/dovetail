@@ -6,6 +6,7 @@ from .function import Function
 from .literal import Literal
 from .reference import Reference
 from .variable import Variable
+from .parameter import Parameter
 
 __all__ = [
     'Class',
@@ -14,4 +15,6 @@ __all__ = [
     'Reference',
     'Literal',
     'Constant',
-    'Function']
+    'Function',
+    'Parameter'
+]

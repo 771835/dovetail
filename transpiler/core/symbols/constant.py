@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from transpiler.core.language_enums import DataType, VariableType
+from transpiler.core.enums import DataType, VariableType
 from transpiler.core.symbols.base import NewSymbol
 
 if TYPE_CHECKING:

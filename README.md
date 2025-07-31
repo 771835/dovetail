@@ -40,7 +40,7 @@ A: 你可以在github上开启一个issue提交这个问题
 Q: 明明我的代码没有错误，生成出的指令却无法正确执行  
 A: 请先尝试添加参数 `-O0` ，若是再次生成的指令正确执行，请以`ir优化错误`为issue标题前缀,否则以`未知错误`作为标题前缀    
 Q: 生成出来的指令执行到一半就中止  
-A: 请尝试使用gamerule指令适当提高maxCommandChainLength规则的数量  
+A: 请尝试使用gamerule指令适当提高maxCommandChainLength规则的数量
 
 ## 许可证
 

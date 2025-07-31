@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from transpiler.core.language_enums import DataType
+from transpiler.core.enums import DataType
 from transpiler.core.symbols.base import NewSymbol
 
 

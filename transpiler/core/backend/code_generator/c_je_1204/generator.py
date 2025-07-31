@@ -8,9 +8,9 @@ from typing import Callable
 
 from transpiler.core.backend.ir_builder import IRBuilder
 from transpiler.core.backend.specification import CodeGeneratorSpec
+from transpiler.core.enums import StructureType, ValueType, DataType, CompareOps, BinaryOps
 from transpiler.core.generator_config import MinecraftEdition, GeneratorConfig
 from transpiler.core.instructions import IROpCode, IRInstruction
-from transpiler.core.language_enums import StructureType, ValueType, DataType, CompareOps, BinaryOps
 from transpiler.core.symbols import Variable, Constant, Function, Literal, Reference, Class
 from .builtins_func import builtins_func
 from .code_generator_scope import CodeGeneratorScope
@@ -100,9 +100,9 @@ class CodeGenerator(CodeGeneratorSpec):
 
             while stack:
                 current: CodeGeneratorScope = stack.pop()
-                path = os.path.join(output_dir, current.get_file_path())
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                with open(path, 'w', encoding='utf-8') as f:
+                file_path = os.path.join(output_dir, current.get_file_path())
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                with open(file_path, 'w', encoding='utf-8') as f:
                     f.write('\n'.join(current.commands))
                 stack.extend(reversed(current.children))
 
@@ -154,9 +154,9 @@ class CodeGenerator(CodeGeneratorSpec):
         value: Reference[Variable | Constant | Literal] = instr.get_operands()[0]
         current = self.current_scope
         while True:
-            current = current.parent
             if current.type == StructureType.FUNCTION:
                 break
+            current = current.parent
 
         return_var = Variable("return_" + uuid.uuid5(uuid.uuid4(), current.get_unique_name(".")).hex,
                               value.get_data_type())
@@ -184,9 +184,10 @@ class CodeGenerator(CodeGeneratorSpec):
         while True:
             current.add_command(
                 Execute.execute().if_score_matches(name, self.statement_objective, "1").run("return"))
-            current = current.parent
+
             if current.type == StructureType.FUNCTION:
                 break
+            current = current.parent
 
     def _var_release(self, instr: IRInstruction):
         pass  # 懒得清理，反正不清理也占不了多少内存
@@ -223,10 +224,10 @@ class CodeGenerator(CodeGeneratorSpec):
             if isinstance(arg.get_data_type(), DataType):
                 if arg.value_type == ValueType.LITERAL:
                     self.current_scope.add_command(
-                        BasicCommands.Copy.copy_literal_base_type(param, jump_scope, self.var_objective,
+                        BasicCommands.Copy.copy_literal_base_type(param.var, jump_scope, self.var_objective,
                                                                   arg.value))
                 elif arg.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
-                    BasicCommands.Copy.copy_variable_base_type(param, jump_scope, self.var_objective, arg.value,
+                    BasicCommands.Copy.copy_variable_base_type(param.var, jump_scope, self.var_objective, arg.value,
                                                                self.current_scope, self.var_objective)
             else:  # Class
                 assert isinstance(arg.get_data_type(), Class)

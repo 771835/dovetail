@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, TypeVar, Generic
 from transpiler.core.symbols.base import NewSymbol
 
 if TYPE_CHECKING:
-    from transpiler.core.language_enums import ValueType, DataType
+    from transpiler.core.enums import ValueType, DataType
     from transpiler.core.symbols import Class, Constant, Literal, Variable, Function
 T = TypeVar(
     'T',

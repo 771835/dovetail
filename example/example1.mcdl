@@ -1,9 +1,10 @@
 func foo():int{
-    return 0;
+    return 404259;
 }
 func bar():int{
-    if (foo()==0) {
+    if (foo()==404259/1) {
         exec("say 1");
+
     }else {
         exec("say 2");
     }

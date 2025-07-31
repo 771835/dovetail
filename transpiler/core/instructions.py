@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Any
 
-from transpiler.core.language_enums import StructureType, CompareOps, BinaryOps, UnaryOps, DataType
+from transpiler.core.enums import StructureType, CompareOps, BinaryOps, UnaryOps, DataType
 from transpiler.core.safe_enum import SafeEnum
 from transpiler.core.symbols import Literal
 from transpiler.core.symbols.class_ import Class

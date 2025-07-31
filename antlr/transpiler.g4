@@ -79,12 +79,12 @@ methodDecl
     ;
 
 paramList
-    : LPAREN (paramDecl (',' paramDecl)*) RPAREN
+    : LPAREN (paramDecl (',' paramDecl)*)? RPAREN
     | '()'
     ;
 
 paramDecl
-    : ID (':' type)  // 强制类型标注
+    : ID (':' type)   // 强制类型标注
     | type ID
     ;
 

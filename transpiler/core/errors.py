@@ -1,5 +1,5 @@
 # coding=utf-8
-from transpiler.core.language_enums import DataType
+from transpiler.core.enums import DataType
 
 
 class CompilationError(Exception):
@@ -226,7 +226,6 @@ class SymbolCategoryError(TypeMismatchError):
         self.actual_category = actual
         super().__init__(expected, actual, line=line, column=column, filename=filename, msg=msg)
 
-
     def _format_message(self) -> str:
         """覆盖父类方法以提供更具体的错误信息"""
         base = super()._format_message()
@@ -236,7 +235,7 @@ class SymbolCategoryError(TypeMismatchError):
 class UnimplementedInterfaceMethodsError(CompilationError):
     """未实现接口要求的方法"""
 
-    def __init__(self, missing_methods: list[str], line: int = None,
+    def __init__(self, missing_methods: set[str], line: int = None,
                  column: int = None, filename: str = None):
         self.missing_methods = missing_methods
         methods_str = ', '.join(map(str, missing_methods))  # 明确列出缺失方法

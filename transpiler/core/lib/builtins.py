@@ -3,12 +3,12 @@ import uuid
 from typing import Callable
 
 from transpiler.core.backend.ir_builder import IRBuilder
+from transpiler.core.enums import DataType, ValueType, BinaryOps, FunctionType
 from transpiler.core.errors import CompilerSyntaxError, InvalidControlFlowError
 from transpiler.core.instructions import IRInstruction, IRRawCmd, IRCast, IRDeclare, IRAssign, IROp, IRScopeBegin, \
     IRJump
-from transpiler.core.language_enums import DataType, ValueType, BinaryOps, FunctionType
 from transpiler.core.lib.library import Library
-from transpiler.core.symbols import Constant, Class, Function, Reference, Variable, Literal
+from transpiler.core.symbols import Constant, Class, Function, Reference, Variable, Literal, Parameter
 
 
 class Builtins(Library):
@@ -24,53 +24,52 @@ class Builtins(Library):
             Function(
                 "exec",
                 [
-                    Variable("command", DataType.STRING)
+                    Parameter(Variable("command", DataType.STRING))
                 ],
                 DataType.INT,
-                FunctionType.BUILTIN
+                FunctionType.LIBRARY
             ): self._exec,
             Function(
                 "int",
                 [
-                    Variable("value", DataType.STRING)
+                    Parameter(Variable("value", DataType.STRING))
                 ],
                 DataType.INT,
-                FunctionType.BUILTIN
+                FunctionType.LIBRARY
             ): self._int,
             Function(
                 "str",
                 [
-                    Variable("value", DataType.INT)
+                    Parameter(Variable("value", DataType.INT))
                 ],
                 DataType.STRING,
-                FunctionType.BUILTIN
+                FunctionType.LIBRARY
             ): self._exec,
             Function(
                 "print",
                 [
-                    Variable("msg", DataType.STRING)
+                    Parameter(Variable("msg", DataType.STRING))
                 ],
                 DataType.INT,
-                FunctionType.BUILTIN
+                FunctionType.LIBRARY
             ): self._print,
             Function(
                 "strcat",
                 [
-                    Variable("dest", DataType.STRING),
-                    Variable("src", DataType.STRING)
+                    Parameter(Variable("dest", DataType.STRING)),
+                    Parameter(Variable("src", DataType.STRING))
                 ],
                 DataType.STRING,
-                FunctionType.BUILTIN
+                FunctionType.LIBRARY
             ): self._strcat,
             Function(
                 "_call",
                 [
-                    Variable("scope", DataType.STRING),
+                    Parameter(Variable("scope", DataType.STRING)),
                 ],
                 DataType.INT,
-                FunctionType.BUILTIN
+                FunctionType.LIBRARY
             ): self._call,
-
         }
 
     def _exec(self, command: Reference[Variable | Constant | Literal]) -> Literal:
@@ -88,7 +87,7 @@ class Builtins(Library):
         return result
 
     def _print(self, msg: Reference[Variable | Constant | Literal]) -> Literal:
-
+        pass
         if msg.value_type == ValueType.LITERAL:
             self.builder.insert(
                 IRRawCmd(Reference(ValueType.LITERAL, Literal(DataType.STRING, f"tellraw @a \"{msg.value.value}\""))))
@@ -134,8 +133,9 @@ class Builtins(Library):
                 f"跳转目标作用域 '{scope.value.value}' 不存在"
             )
 
-    def _type_of(self, value):
-        return Literal(DataType.STRING, repr(value))
+    def _type_of(self, value: Reference[Variable | Constant | Literal]):
+        return Literal(DataType.STRING, str(value.get_data_type()))
+
     def __str__(self) -> str:
         return "built-in"
 
