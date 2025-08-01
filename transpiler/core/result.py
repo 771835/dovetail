@@ -1,21 +1,22 @@
 # coding=utf-8
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
+
+from attrs import define, field, validators
 
 from transpiler.core.enums import DataType, ValueType
 from transpiler.core.symbols.literal import Literal
 from transpiler.core.symbols.reference import Reference
 
 
-@dataclass
+@define(slots=True,frozen=True)
 class Result:
     """表达式求值结果容器"""
-    value: Reference | None  # 实际值
-    error: bool = False  # 是否错误结果
-    error_type: str | None = None  # 错误类型标识
-    error_message: str = None
+    value: Reference | None = field(validator=validators.instance_of(Reference | None))
+    error: bool = field(validator=validators.instance_of(bool), default=False)
+    error_type: str | None = field(validator=validators.instance_of(str | None), default=None)
+    error_message: str | None = field(validator=validators.instance_of(str | None), default=None)
 
     def OK(self, function: callable):
         """成功时处理"""

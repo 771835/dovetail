@@ -553,8 +553,8 @@ class MCGenerator(transpilerVisitor):
                 types[0].getText()) if not ctx.EXTENDS() and ctx.IMPLEMENTS() else None
         )
         constants: set[Reference[Constant]] = set()
-        variables: list[Reference[Variable]] = []
-        methods: list[Function] = []
+        variables: set[Reference[Variable]] = set()
+        methods: set[Function] = set()
 
         class_ = Class(class_name,
                        methods=methods,
@@ -588,10 +588,10 @@ class MCGenerator(transpilerVisitor):
                 constants.add(self.visit(const).value)
 
             for var in ctx.varDecl():
-                variables.append(self.visit(var).value)
+                variables.add(self.visit(var).value)
 
             for method in ctx.methodDecl():
-                methods.append(self.visit(method).value.value)
+                methods.add(self.visit(method).value.value)
 
             if interface:
                 current_interface = interface
@@ -615,8 +615,8 @@ class MCGenerator(transpilerVisitor):
         class_name = ctx.ID().getText()
         extends = self._get_type_definition(ctx.type_().getText())
         constants: set[Reference[Constant]] = set()
-        variables: list[Reference[Variable]] = []
-        methods: list[Function] = []
+        variables: set[Reference[Variable]] = set()
+        methods: set[Function] = set()
 
         class_ = Class(class_name,
                        methods=methods,
@@ -646,7 +646,7 @@ class MCGenerator(transpilerVisitor):
                 )  # TODO:处理继承
             # 处理字段和方法
             for method in ctx.methodDecl():
-                methods.append(self.visit(method).value.value)
+                methods.add(self.visit(method).value.value)
 
         return Result(Reference(ValueType.CLASS, class_))
 

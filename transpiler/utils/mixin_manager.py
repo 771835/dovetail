@@ -161,19 +161,19 @@ class MixinManager:
             # 创建注入包装函数
             def create_injected_method(cg, cancel_flag, orig_method_raw):
                 @wraps(orig_method_raw)
-                def injected_method(self, *args, **kwargs):
+                def injected_method(*args, **kwargs):
                     ci = CallbackInfoReturnable() if cancel_flag else CallbackInfo()
 
                     # 处理HEAD注入 (使用正确的回调分组)
                     for cb in cg:
                         if cb['at'].location == At.HEAD:
-                            cb['handler'](self, ci, *args,
-                                          **kwargs)
+                            cb['handler'](ci, *args, **kwargs)
+
                             if ci.cancelled and cancel_flag:
                                 return ci.return_value
 
                     # 执行原始方法
-                    result = orig_method_raw(self, *args, **kwargs) if not ci.cancelled else ci.return_value
+                    result = orig_method_raw(*args, **kwargs) if not ci.cancelled else ci.return_value
 
                     # 设置返回值
                     if cancel_flag and not ci.cancelled:
@@ -183,8 +183,7 @@ class MixinManager:
                     if not ci.cancelled:
                         for cb in cg:
                             if cb['at'].location == At.TAIL:
-                                cb['handler'](self, ci, *args,
-                                              **kwargs)
+                                cb['handler'](ci, *args, **kwargs)
                                 if ci.cancelled and cancel_flag:
                                     return ci.return_value
 
@@ -192,8 +191,7 @@ class MixinManager:
                     if not ci.cancelled and cancel_flag:
                         for cb in cg:
                             if cb['at'].location == At.RETURN:
-                                cb['handler'](self, ci, *args,
-                                              **kwargs)
+                                cb['handler'](ci, *args, **kwargs)  # 普通函数用原始参数
 
                         if ci.return_set:
                             result = ci.return_value

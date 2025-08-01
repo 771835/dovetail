@@ -1,20 +1,15 @@
 # coding=utf-8
-from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
+from attrs import define, field, validators
 
 from transpiler.core.enums import DataType
-from transpiler.core.symbols.base import NewSymbol
+from .base import NewSymbol
 
 
-@dataclass
+@define(slots=True, frozen=True)
 class Literal(NewSymbol):
-    dtype: DataType
-    value: Any
+    dtype: DataType = field(validator=validators.instance_of(DataType))
+    value: str | int | bool | None = field(validator=validators.instance_of(str | int | bool | None))
 
     def get_name(self) -> str:
         ...
-
-    def __hash__(self):
-        return hash((id(self.dtype), self.value))

@@ -1,28 +1,27 @@
 # coding=utf-8
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
+from typing import TYPE_CHECKING
 
-from transpiler.core.enums import ClassType
-from transpiler.core.symbols.base import NewSymbol
-from transpiler.core.symbols.reference import Reference
+from attrs import define, field, validators
+
+from transpiler.core.enums import ClassType, DataTypeBase
+from .base import NewSymbol
 
 if TYPE_CHECKING:
-    from transpiler.core.symbols.constant import Constant
-    from transpiler.core.symbols.function import Function
-    from transpiler.core.symbols.variable import Variable
+    from . import Reference,Constant,Function,Variable
 
 
-@dataclass
-class Class(NewSymbol):
-    name: str
-    methods: list[Function]  # 方法列表
-    interface: Optional[Class]
-    parent: Optional[Class]
-    constants: set[Reference[Constant]]
-    variables: list[Reference[Variable]]
-    type: ClassType = ClassType.CLASS
+@define(slots=True)
+class Class(NewSymbol, DataTypeBase):
+    name: str = field(validator=validators.instance_of(str))
+    methods: set[Function] = field(validator=validators.instance_of(set))
+    interface: Optional[Class] = field(validator=validators.instance_of(Optional[DataTypeBase]))
+    parent: Optional[Class] = field(validator=validators.instance_of(Optional[DataTypeBase]))
+    constants: set[Reference[Constant]] = field(validator=validators.instance_of(set))
+    variables: set[Reference[Variable]] = field(validator=validators.instance_of(set))
+    type: ClassType = field(default=ClassType.CLASS, validator=validators.instance_of(ClassType))
 
     def get_name(self) -> str:
         return self.name

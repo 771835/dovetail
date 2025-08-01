@@ -1,28 +1,29 @@
 # coding=utf-8
 from __future__ import annotations
 
-import warnings
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypeVar, Generic
 
-from transpiler.core.symbols.base import NewSymbol
+from attrs import define, field, validators
+
+from transpiler.core.enums import ValueType, DataType
+from .base import NewSymbol
 
 if TYPE_CHECKING:
-    from transpiler.core.enums import ValueType, DataType
-    from transpiler.core.symbols import Class, Constant, Literal, Variable, Function
+    from . import Class
 T = TypeVar(
     'T',
     'Variable', 'Constant', 'Literal', 'Function', 'Class'  # 使用字符串前向引用
 )
 
 
-@dataclass(unsafe_hash=True)
+@define(slots=True, hash=True)
 class Reference(NewSymbol, Generic[T]):
-    value_type: ValueType
-    value: T
+    value_type: ValueType = field(validator=validators.instance_of(ValueType))
+    value: T = field(validator=validators.instance_of(NewSymbol))
 
-    def __post_init__(self):
+    def __attrs_post_init__(self):
         if isinstance(self.value, Reference):
+            import warnings
             warnings.warn("多重引用")
             self.value_type = self.value.value_type
             self.value = self.value.value
@@ -31,20 +32,9 @@ class Reference(NewSymbol, Generic[T]):
         return self.value.get_name()
 
     def get_data_type(self) -> DataType | Class:
-        from transpiler.core.symbols.function import Function
-        from transpiler.core.symbols.class_ import Class
-
-        if isinstance(self.value, Function):
+        if self.value_type == ValueType.FUNCTION:
             return self.value.return_type
-        elif isinstance(self.value, Class):
+        elif self.value_type == ValueType.CLASS:
             return self.value
         else:
-            from transpiler.core.symbols.variable import Variable
-            from transpiler.core.symbols.constant import Constant
-            from transpiler.core.symbols.literal import Literal
-
-            # 确保类型安全（避免mypy错误）
-            if isinstance(self.value, (Variable, Constant, Literal)):
-                return self.value.dtype
-            else:
-                raise TypeError("Unsupported value type")
+            return self.value.dtype

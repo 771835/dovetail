@@ -1,9 +1,10 @@
 # coding=utf-8
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import IntEnum, auto
 from typing import NamedTuple
+
+from attrs import define, field, validators
 
 from transpiler.core.safe_enum import SafeEnum
 
@@ -37,18 +38,13 @@ class MinecraftVersion(NamedTuple):
         return cls(version_[0], version_[1], version_[2] if len(version_) > 2 else 0, minecraft_edition)
 
 
-@dataclass
+@define(slots=True, frozen=True)
 class GeneratorConfig:
-    namespace: str
-    optimization_level: OptimizationLevel
-    minecraft_version: MinecraftVersion
-    debug: bool = False
-    no_generate_commands: bool = False
-    enable_recursion: bool = False
-    enable_same_name_function_nesting: bool = False
-    enable_experimental: bool = False
-
-    def __post_init__(self):
-        if not isinstance(self.optimization_level, OptimizationLevel) or not isinstance(self.minecraft_version,
-                                                                                        MinecraftVersion):
-            raise ValueError("Invalid optimization level")
+    namespace: str = field(validator=validators.instance_of(str))
+    optimization_level: OptimizationLevel = field(validator=validators.instance_of(OptimizationLevel))
+    minecraft_version: MinecraftVersion = field(validator=validators.instance_of(MinecraftVersion))
+    debug: bool = field(validator=validators.instance_of(bool), default=False)
+    no_generate_commands: bool = field(validator=validators.instance_of(bool), default=False)
+    enable_recursion: bool = field(validator=validators.instance_of(bool), default=False)
+    enable_same_name_function_nesting: bool = field(validator=validators.instance_of(bool), default=False)
+    enable_experimental: bool = field(validator=validators.instance_of(bool), default=False)

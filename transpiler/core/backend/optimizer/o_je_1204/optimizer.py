@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import copy
 from collections import deque
-from dataclasses import dataclass, field
 from enum import Enum, auto
 from itertools import count
 from typing import NoReturn
+
+from attrs import define, field, validators
 
 from transpiler.core.backend.ir_builder import IRBuilder, IRBuilderIterator
 from transpiler.core.backend.specification import IROptimizerSpec, \
@@ -88,7 +89,7 @@ class ConstantFoldingPass(IROptimizationPass):
         UNKNOWN = auto()  # 未知/无法追踪变量
         UNDEFINED = auto()  # 未定义的变量
 
-    @dataclass
+    @define(slots=True)
     class SymbolTable:
         """
             符号表实现，使用嵌套字典结构
@@ -99,11 +100,11 @@ class ConstantFoldingPass(IROptimizationPass):
                 Reference: 变量/函数的直接引用
                 SymbolTable: 嵌套的作用域/子语言符号表
         """
-        name: str
-        stype: StructureType
+        name: str = field(validator=validators.instance_of(str))
+        stype: StructureType = field(validator=validators.instance_of(StructureType))
         table: dict[str, Reference | ConstantFoldingPass.FoldingFlags | ConstantFoldingPass.SymbolTable] = field(
-            default_factory=dict)
-        parent: ConstantFoldingPass.SymbolTable | None = None
+            validator=validators.instance_of(dict), factory=dict)
+        parent: ConstantFoldingPass.SymbolTable | None = field(default=None)
 
         def set(self, name: str, value: Reference | ConstantFoldingPass.FoldingFlags, depth=1) -> bool:
             if name in self.table:

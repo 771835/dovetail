@@ -52,14 +52,19 @@ class CompareOps(SafeEnum):
     GT = '>'  # 大于: a > b
     GE = '>='  # 大于等于: a >= b
 
+class DataTypeBase:
+    def get_name(self) -> str:
+        ...
 
-class DataType(SafeEnum):
+class DataType(DataTypeBase, SafeEnum):
     """基础数据类型：表示变量的存储类型"""
     INT = 'int'
     STRING = 'string'
     BOOLEAN = 'boolean'
     VOID = 'void'
     NULL = 'null'  # 特殊类型，不可为声明变量时的类型
+    def get_name(self) -> str:
+        return self.name
 
 
 class StructureType(SafeEnum):

@@ -1,24 +1,23 @@
 # coding=utf-8
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, NoReturn
 
-from transpiler.core.enums import FunctionType
-from transpiler.core.symbols.parameter import Parameter
-from transpiler.core.symbols.base import NewSymbol
+from attrs import define, field, validators
+
+from transpiler.core.enums import FunctionType, DataTypeBase, DataType
+from .base import NewSymbol
 
 if TYPE_CHECKING:
-    from transpiler.core.enums import DataType
-    from transpiler.core.symbols.class_ import Class
+    from . import Parameter, Class
 
 
-@dataclass
+@define(slots=True)
 class Function(NewSymbol):
-    name: str
-    params: list[Parameter]
-    return_type: DataType | 'Class'
-    function_type: FunctionType = FunctionType.FUNCTION
+    name: str = field(validator=validators.instance_of(str))
+    params: list[Parameter] = field(validator=validators.instance_of(list))
+    return_type: DataType | 'Class' = field(validator=validators.instance_of(DataTypeBase))
+    function_type: FunctionType = field(validator=validators.instance_of(FunctionType), default=FunctionType.FUNCTION)
 
     def get_name(self) -> NoReturn:
         return self.name

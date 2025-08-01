@@ -1,18 +1,22 @@
 # coding=utf-8
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from transpiler.core.enums import DataType, VariableType
-from transpiler.core.symbols.base import NewSymbol
-from transpiler.core.symbols.class_ import Class
+from attrs import define, field, validators
+
+from transpiler.core.enums import DataType, VariableType, DataTypeBase
+from .base import NewSymbol
+
+if TYPE_CHECKING:
+    from .class_ import Class
 
 
-@dataclass
+@define(slots=True)
 class Variable(NewSymbol):
-    name: str
-    dtype: DataType | 'Class'
-    var_type: VariableType = VariableType.COMMON
+    name: str = field(validator=validators.instance_of(str))
+    dtype: DataType | Class = field(validator=validators.instance_of(DataTypeBase))
+    var_type: VariableType = field(validator=validators.instance_of(VariableType), default=VariableType.COMMON)
 
     def get_name(self) -> str:
         return self.name
