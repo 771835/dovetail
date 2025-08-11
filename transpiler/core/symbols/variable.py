@@ -6,14 +6,14 @@ from typing import TYPE_CHECKING
 from attrs import define, field, validators
 
 from transpiler.core.enums import DataType, VariableType, DataTypeBase
-from .base import NewSymbol
+from .base import Symbol
 
 if TYPE_CHECKING:
     from .class_ import Class
 
 
 @define(slots=True)
-class Variable(NewSymbol):
+class Variable(Symbol):
     name: str = field(validator=validators.instance_of(str))
     dtype: DataType | Class = field(validator=validators.instance_of(DataTypeBase))
     var_type: VariableType = field(validator=validators.instance_of(VariableType), default=VariableType.COMMON)

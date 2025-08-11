@@ -2,6 +2,6 @@
 from abc import ABC, abstractmethod
 
 
-class NewSymbol(ABC):
+class Symbol(ABC):
     @abstractmethod
     def get_name(self) -> str: ...

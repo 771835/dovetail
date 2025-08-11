@@ -1,6 +1,15 @@
 func int main() {
-    for (int i=0;i<3;i=i+1) {
-        # 循环体
-    }
+    int a = 99999
 
+    for (int i =0;i<a;i=i+1) {
+        print(str(i))
+    }
+   /*
+
+    func int a(){
+        exec("say 1")
+        _call("a")
+    }
+    a()
+     */
 }

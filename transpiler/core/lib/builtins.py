@@ -5,8 +5,8 @@ from typing import Callable
 from transpiler.core.backend.ir_builder import IRBuilder
 from transpiler.core.enums import DataType, ValueType, BinaryOps, FunctionType
 from transpiler.core.errors import CompilerSyntaxError, InvalidControlFlowError
-from transpiler.core.instructions import IRInstruction, IRRawCmd, IRCast, IRDeclare, IRAssign, IROp, IRScopeBegin, \
-    IRJump
+from transpiler.core.instructions import IRInstruction, IRCast, IRDeclare, IROp, IRScopeBegin, \
+    IRJump, IRCall
 from transpiler.core.lib.library import Library
 from transpiler.core.symbols import Constant, Class, Function, Reference, Variable, Literal, Parameter
 
@@ -22,14 +22,6 @@ class Builtins(Library):
         }
         self._functions: dict[Function, Callable[..., Variable | Constant | Literal]] = {
             Function(
-                "exec",
-                [
-                    Parameter(Variable("command", DataType.STRING))
-                ],
-                DataType.INT,
-                FunctionType.LIBRARY
-            ): self._exec,
-            Function(
                 "int",
                 [
                     Parameter(Variable("value", DataType.STRING))
@@ -44,7 +36,7 @@ class Builtins(Library):
                 ],
                 DataType.STRING,
                 FunctionType.LIBRARY
-            ): self._exec,
+            ): self._str,
             Function(
                 "print",
                 [
@@ -70,11 +62,219 @@ class Builtins(Library):
                 DataType.INT,
                 FunctionType.LIBRARY
             ): self._call,
+            Function(
+                "exec",
+                [
+                    Parameter(Variable("command", DataType.STRING))
+                ],
+                DataType.VOID,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "tellraw_text",
+                [
+                    Parameter(Variable("target", DataType.STRING)),
+                    Parameter(Variable("msg", DataType.STRING)),
+                ],
+                DataType.VOID,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "tellraw_json",
+                [
+                    Parameter(Variable("target", DataType.STRING)),
+                    Parameter(Variable("json", DataType.STRING)),
+                ],
+                DataType.VOID,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "randint",
+                [
+                    Parameter(Variable("min", DataType.INT)),
+                    Parameter(Variable("max", DataType.INT)),
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "setblock",
+                [
+                    Parameter(Variable("x", DataType.INT)),
+                    Parameter(Variable("y", DataType.INT)),
+                    Parameter(Variable("z", DataType.INT)),
+                    Parameter(Variable("block_id", DataType.STRING)),
+                    Parameter(Variable("mode", DataType.STRING), optional=True,default=Reference.literal("destroy")),
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "is_block",
+                [
+                    Parameter(Variable("x", DataType.INT)),
+                    Parameter(Variable("y", DataType.INT)),
+                    Parameter(Variable("z", DataType.INT)),
+                    Parameter(Variable("block_id", DataType.STRING))
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "item_spawn",
+                [
+                    Parameter(Variable("x", DataType.INT)),
+                    Parameter(Variable("y", DataType.INT)),
+                    Parameter(Variable("z", DataType.INT)),
+                    Parameter(Variable("item_id", DataType.STRING)),
+                    Parameter(Variable("count", DataType.INT), True)
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "tp",
+                [
+                    Parameter(Variable("player", DataType.STRING)),
+                    Parameter(Variable("x", DataType.INT)),
+                    Parameter(Variable("y", DataType.INT)),
+                    Parameter(Variable("z", DataType.INT))
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "give",
+                [
+                    Parameter(Variable("player", DataType.STRING)),
+                    Parameter(Variable("item_id", DataType.STRING)),
+                    Parameter(Variable("count", DataType.INT), True)
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "summon",
+                [
+                    Parameter(Variable("entity_id", DataType.STRING)),
+                    Parameter(Variable("x", DataType.INT)),
+                    Parameter(Variable("y", DataType.INT)),
+                    Parameter(Variable("z", DataType.INT)),
+                    Parameter(Variable("nbt", DataType.STRING), True)
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "kill",
+                [Parameter(Variable("target", DataType.STRING))],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "time_set",
+                [Parameter(Variable("value", DataType.INT))],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "weather",
+                [Parameter(Variable("type", DataType.STRING))],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "difficulty",
+                [Parameter(Variable("level", DataType.STRING))],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "gamerule",
+                [
+                    Parameter(Variable("rule", DataType.STRING)),
+                    Parameter(Variable("value", DataType.STRING))
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "fill",
+                [
+                    Parameter(Variable("x1", DataType.INT)),
+                    Parameter(Variable("y1", DataType.INT)),
+                    Parameter(Variable("z1", DataType.INT)),
+                    Parameter(Variable("x2", DataType.INT)),
+                    Parameter(Variable("y2", DataType.INT)),
+                    Parameter(Variable("z2", DataType.INT)),
+                    Parameter(Variable("block", DataType.STRING))
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "effect",
+                [
+                    Parameter(Variable("target", DataType.STRING)),
+                    Parameter(Variable("effect", DataType.STRING)),
+                    Parameter(Variable("duration", DataType.INT), True),
+                    Parameter(Variable("amplifier", DataType.INT), True)
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "attribute",
+                [
+                    Parameter(Variable("target", DataType.STRING)),
+                    Parameter(Variable("attr", DataType.STRING)),
+                    Parameter(Variable("value", DataType.STRING), True)
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "tag",
+                [
+                    Parameter(Variable("target", DataType.STRING)),
+                    Parameter(Variable("action", DataType.STRING)),
+                    Parameter(Variable("tag", DataType.STRING))
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "damage",
+                [
+                    Parameter(Variable("target", DataType.STRING)),
+                    Parameter(Variable("amount", DataType.INT)),
+                    Parameter(Variable("source", DataType.STRING), True)
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "scoreboard",
+                [
+                    Parameter(Variable("op", DataType.STRING)),
+                    Parameter(Variable("target", DataType.STRING)),
+                    Parameter(Variable("objective", DataType.STRING)),
+                    Parameter(Variable("value", DataType.STRING), True)
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
+            Function(
+                "bossbar",
+                [
+                    Parameter(Variable("op", DataType.STRING)),
+                    Parameter(Variable("id", DataType.STRING)),
+                    Parameter(Variable("value", DataType.STRING), True)
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
         }
-
-    def _exec(self, command: Reference[Variable | Constant | Literal]) -> Literal:
-        self.builder.insert(IRRawCmd(command))
-        return Literal(DataType.INT, 0)
 
     def _int(self, value: Reference[Variable | Constant | Literal]) -> Variable:
         result: Variable = Variable(uuid.uuid4().hex, DataType.INT)
@@ -87,27 +287,17 @@ class Builtins(Library):
         return result
 
     def _print(self, msg: Reference[Variable | Constant | Literal]) -> Literal:
-        pass
-        if msg.value_type == ValueType.LITERAL:
-            self.builder.insert(
-                IRRawCmd(Reference(ValueType.LITERAL, Literal(DataType.STRING, f"tellraw @a \"{msg.value.value}\""))))
-        else:
-            temp_var = Variable(uuid.uuid4().hex, DataType.STRING)
-            self.builder.insert(IRDeclare(temp_var))
-            self.builder.insert(
-                IRAssign(temp_var, Reference(ValueType.LITERAL, Literal(DataType.STRING, "tellraw @a \""))))
-            temp_var2 = Variable(uuid.uuid4().hex, DataType.STRING)
-            self.builder.insert(IRDeclare(temp_var2))
-            self.builder.insert(
-                IROp(temp_var2, BinaryOps.ADD, Reference(ValueType.VARIABLE, temp_var), msg))
-            temp_var3 = Variable(uuid.uuid4().hex, DataType.STRING)
-            self.builder.insert(IRDeclare(temp_var3))
-            self.builder.insert(
-                IROp(temp_var3, BinaryOps.ADD, Reference(ValueType.VARIABLE, temp_var2),
-                     Reference(ValueType.LITERAL, Literal(DataType.STRING, "\""))))
-            self.builder.insert(IRRawCmd(Reference(ValueType.VARIABLE, temp_var3)))
-
-        return Literal(DataType.INT, 0)
+        self.builder.insert(
+            IRCall(
+                None,
+                next((function for function in self._functions if function.name == "tellraw_text"), None),
+                {
+                    "target": Reference(ValueType.LITERAL, Literal(DataType.STRING, "@a")),
+                    "msg": msg
+                }
+            )
+        )
+        return Literal(DataType.VOID, None)
 
     def _strcat(self, dest: Reference[Variable | Constant | Literal],
                 src: Reference[Variable | Constant | Literal]) -> Variable:
@@ -132,6 +322,7 @@ class Builtins(Library):
             raise InvalidControlFlowError(
                 f"跳转目标作用域 '{scope.value.value}' 不存在"
             )
+        return Literal(DataType.INT, 1)
 
     def _type_of(self, value: Reference[Variable | Constant | Literal]):
         return Literal(DataType.STRING, str(value.get_data_type()))

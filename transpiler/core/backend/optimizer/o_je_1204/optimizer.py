@@ -5,14 +5,13 @@ import copy
 from collections import deque
 from enum import Enum, auto
 from itertools import count
-from typing import NoReturn
 
 from attrs import define, field, validators
 
 from transpiler.core.backend.ir_builder import IRBuilder, IRBuilderIterator
 from transpiler.core.backend.specification import IROptimizerSpec, \
     IROptimizationPass, MinecraftVersion
-from transpiler.core.enums import ValueType, VariableType
+from transpiler.core.enums import ValueType, VariableType, DataTypeBase
 from transpiler.core.generator_config import GeneratorConfig, MinecraftEdition, OptimizationLevel
 from transpiler.core.instructions import *
 from transpiler.core.symbols import Variable, Reference, Constant, Literal
@@ -85,6 +84,80 @@ class Optimizer(IROptimizerSpec):
 
 
 class ConstantFoldingPass(IROptimizationPass):
+    BINARY_OP_HANDLERS: dict[BinaryOps, dict[tuple[DataTypeBase, DataTypeBase], ...]] = {
+        BinaryOps.ADD: {
+            (DataType.INT, DataType.INT): lambda a, b: a + b,
+            (DataType.STRING, DataType.STRING): lambda a, b: a + b,
+            (DataType.STRING, DataType.INT): lambda a, b: a + str(b)
+        },
+        BinaryOps.SUB: {
+            (DataType.INT, DataType.INT): lambda a, b: a - b
+        },
+        BinaryOps.MUL: {
+            (DataType.INT, DataType.INT): lambda a, b: a * b
+        },
+        BinaryOps.DIV: {
+            (DataType.INT, DataType.INT): lambda a, b: a / b
+        },
+        BinaryOps.MOD: {
+            (DataType.INT, DataType.INT): lambda a, b: a % b
+        },
+        BinaryOps.MIN: {
+            (DataType.INT, DataType.INT): lambda a, b: min(a, b)
+        },
+        BinaryOps.MAX: {
+            (DataType.INT, DataType.INT): lambda a, b: max(a, b)
+        },
+        BinaryOps.BIT_AND: {
+            (DataType.INT, DataType.INT): lambda a, b: a & b
+        },
+        BinaryOps.BIT_OR: {
+            (DataType.INT, DataType.INT): lambda a, b: a | b
+        },
+        BinaryOps.BIT_XOR: {
+            (DataType.INT, DataType.INT): lambda a, b: a ^ b
+        },
+        BinaryOps.SHL: {
+            (DataType.INT, DataType.INT): lambda a, b: a << b
+        },
+        BinaryOps.SHR: {
+            (DataType.INT, DataType.INT): lambda a, b: a >> b
+        }
+    }
+    COMPARE_OP_HANDLERS: dict[CompareOps, dict[tuple[DataTypeBase, DataTypeBase], ...]] = {
+        CompareOps.EQ: {
+            (DataType.INT, DataType.INT): lambda a, b: a == b,
+            (DataType.STRING, DataType.STRING): lambda a, b: a == b,
+        },
+        CompareOps.NE: {
+            (DataType.INT, DataType.INT): lambda a, b: a != b,
+            (DataType.STRING, DataType.STRING): lambda a, b: a != b,
+        },
+        CompareOps.LT: {
+            (DataType.INT, DataType.INT): lambda a, b: a < b,
+        },
+        CompareOps.LE: {
+            (DataType.INT, DataType.INT): lambda a, b: a <= b,
+        },
+        CompareOps.GT: {
+            (DataType.INT, DataType.INT): lambda a, b: a > b,
+        },
+        CompareOps.GE: {
+            (DataType.INT, DataType.INT): lambda a, b: a >= b,
+        },
+    }
+    UNARY_OP_HANDLERS: dict[UnaryOps, dict[DataTypeBase, ...]] = {
+        UnaryOps.NEG: {
+            DataType.INT: lambda a: -a,
+        },
+        UnaryOps.NOT: {
+            DataType.INT: lambda a: not a,
+        },
+        UnaryOps.BIT_NOT: {
+            DataType.INT: lambda a: ~a,
+        },
+    }
+
     class FoldingFlags(Enum):
         UNKNOWN = auto()  # 未知/无法追踪变量
         UNDEFINED = auto()  # 未定义的变量
@@ -130,7 +203,7 @@ class ConstantFoldingPass(IROptimizationPass):
             return ConstantFoldingPass.SymbolTable(name, parent=self, stype=stype)
 
         def find(self, name: str):
-            if self.stype == StructureType.LOOP:
+            if self.stype == StructureType.LOOP_CHECK:
                 return ConstantFoldingPass.FoldingFlags.UNKNOWN
             if name in self.table:
                 return self.table[name]
@@ -157,7 +230,6 @@ class ConstantFoldingPass(IROptimizationPass):
             IRCondJump: self._cond_jump,
             IRCall: self._call,
             IRCast: self._cast,
-            IRRawCmd: self._raw_cmd
         }
         while True:
             try:
@@ -169,13 +241,18 @@ class ConstantFoldingPass(IROptimizationPass):
             if handler:
                 handler(iterator, instr)  # NOQA
 
-    def _find(self, name: str) -> Reference[Literal] | FoldingFlags:
+    def _find(self, name: Variable | Literal | Constant | Reference) -> Reference[Literal] | FoldingFlags:
         """
         从符号表搜索符号的最终值
         :param name: 符号名称
         :return: 符号的最终值
         """
-        value = self.current_table.find(name)
+        if isinstance(name, Literal):
+            return Reference(ValueType.LITERAL, name)
+        if isinstance(name, Reference) and name.value_type == ValueType.LITERAL:
+            return name
+
+        value = self.current_table.find(name.get_name())
         if value == ConstantFoldingPass.FoldingFlags.UNKNOWN:
             return value
         elif value == ConstantFoldingPass.FoldingFlags.UNDEFINED:
@@ -183,9 +260,20 @@ class ConstantFoldingPass(IROptimizationPass):
         elif value.value_type == ValueType.LITERAL:
             return value
         elif value.value_type in (ValueType.CONSTANT, ValueType.VARIABLE):
-            return self._find(value.get_name())
+            return self._find(value)
         else:
             return ConstantFoldingPass.FoldingFlags.UNKNOWN
+
+    def _resolve_ref(self, ref: Reference[Variable | Constant | Literal]) -> Reference[
+                                                                                 Literal] | ConstantFoldingPass.FoldingFlags:
+        if ref.value_type == ValueType.LITERAL:
+            return ref
+        else:
+            return self._find(ref)
+
+    @staticmethod
+    def _is_literal(ref: Reference[Literal] | ConstantFoldingPass.FoldingFlags):
+        return False if isinstance(ref, ConstantFoldingPass.FoldingFlags) else ref.value_type == ValueType.LITERAL
 
     def _handle_scope_end(self, iterator: IRBuilderIterator, instr: IRScopeEnd):
         self.current_table = self.current_table.parent
@@ -194,12 +282,12 @@ class ConstantFoldingPass(IROptimizationPass):
         self.current_table: ConstantFoldingPass.SymbolTable = self.current_table.create_child(instr.get_operands()[0],
                                                                                               instr.get_operands()[1])
 
-    def _assign(self, iterator: IRBuilderIterator, instr: IRAssign) -> NoReturn:
+    def _assign(self, iterator: IRBuilderIterator, instr: IRAssign) -> None:
         """处理赋值"""
         target: Variable = instr.get_operands()[0]
         source: Reference[Variable | Constant | Literal] = instr.get_operands()[1]
         if source.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
-            new_source = self._find(source.get_name())
+            new_source = self._find(source)
             if new_source == ConstantFoldingPass.FoldingFlags.UNKNOWN:
                 pass
             elif new_source == ConstantFoldingPass.FoldingFlags.UNDEFINED:
@@ -222,74 +310,21 @@ class ConstantFoldingPass(IROptimizationPass):
         # 操作前将结果设为未知
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
-        if left_ref.value_type == ValueType.LITERAL:  # 搜索left符号的最终值
-            left = left_ref
-        else:
-            left = self._find(left_ref.get_name())
-        if right_ref.value_type == ValueType.LITERAL:  # 搜索right符号的最终值
-            right = right_ref
-        else:
-            right = self._find(right_ref.get_name())
-        if isinstance(left, ConstantFoldingPass.FoldingFlags) or isinstance(right, ConstantFoldingPass.FoldingFlags):
+        left = self._resolve_ref(left_ref)
+        right = self._resolve_ref(right_ref)
+        if not self._is_literal(left) or not self._is_literal(right):
             return
         left: Reference[Literal]
         right: Reference[Literal]
-        # 针对int/bool的优化
-        if left.get_data_type() in (DataType.INT, DataType.BOOLEAN) and right.get_data_type() in (DataType.INT,
-                                                                                                  DataType.BOOLEAN):
-            match op:
-                case BinaryOps.ADD:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               int(left.value.value + right.value.value)))))
-                case BinaryOps.SUB:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               int(left.value.value - right.value.value)))))
-                case BinaryOps.MUL:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               int(left.value.value * right.value.value)))))
-                case BinaryOps.DIV:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               int(left.value.value / right.value.value)))))
-                case BinaryOps.MOD:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               int(left.value.value % right.value.value)))))
-                case BinaryOps.MIN:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               left.value.value if left.value.value < right.value.value else right.value.value))))
-                case BinaryOps.MAX:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               left.value.value if left.value.value > right.value.value else right.value.value))))
-                case BinaryOps.BIT_AND:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               int(left.value.value & right.value.value)))))
-                case BinaryOps.BIT_OR:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               int(left.value.value | right.value.value)))))
-                case BinaryOps.BIT_XOR:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               int(left.value.value ^ right.value.value)))))
-                case BinaryOps.SHL:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               int(left.value.value << right.value.value)))))
-                case BinaryOps.SHR:
-                    iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.INT,
-                                                                                               int(left.value.value >> right.value.value)))))
-            self._assign(iterator, iterator.current())  # NOQA
-        elif left.get_data_type() == DataType.STRING and left.get_data_type() == right.get_data_type():
-            if op == BinaryOps.ADD:
-                iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.STRING,
-                                                                                           left.value.value + right.value.value))))
-                self._assign(iterator, iterator.current())  # NOQA
-            else:
-                pass
-        elif left.get_data_type() == DataType.STRING and right.get_data_type() == DataType.BOOLEAN:
-            if op == BinaryOps.ADD:
-                iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.STRING,
-                                                                                           left.value.value + str(
-                                                                                               right.value.value)))))
-                self._assign(iterator, iterator.current())  # NOQA
-            else:
-                pass
+        handlers = self.BINARY_OP_HANDLERS.get(op, {})
+        handler = handlers.get((DataType.INT if left.get_data_type() == DataType.BOOLEAN else left.get_data_type(),
+                                DataType.INT if right.get_data_type() == DataType.BOOLEAN else right.get_data_type()))
+
+        if handler:
+            folded_value = handler(left.value.value, right.value.value)
+            new_instr = IRAssign(result, Reference.literal(folded_value))
+            iterator.set_current(new_instr)
+            self._assign(iterator, new_instr)
 
     def _compare(self, iterator: IRBuilderIterator, instr: IRCompare):
         result: Variable = instr.get_operands()[0]
@@ -299,35 +334,21 @@ class ConstantFoldingPass(IROptimizationPass):
         # 操作前将结果设为未知
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
-        if left_ref.value_type == ValueType.LITERAL:  # 搜索left符号的最终值
-            left = left_ref
-        else:
-            left = self._find(left_ref.get_name())
-        if right_ref.value_type == ValueType.LITERAL:  # 搜索right符号的最终值
-            right = right_ref
-        else:
-            right = self._find(right_ref.get_name())
-        if isinstance(left, ConstantFoldingPass.FoldingFlags) or isinstance(right, ConstantFoldingPass.FoldingFlags):
+        left = self._resolve_ref(left_ref)
+        right = self._resolve_ref(right_ref)
+        if not self._is_literal(left) or not self._is_literal(right):
             return
         left: Reference[Literal]
         right: Reference[Literal]
-        # 对于int/bool优化
-        if left.get_data_type() in (DataType.INT, DataType.BOOLEAN) and right.get_data_type() in (DataType.INT,
-                                                                                                  DataType.BOOLEAN):
-            compare_handlers = {
-                CompareOps.EQ: lambda left_value, right_value: left_value == right_value,
-                CompareOps.NE: lambda left_value, right_value: left_value != right_value,
-                CompareOps.LT: lambda left_value, right_value: left_value < right_value,
-                CompareOps.LE: lambda left_value, right_value: left_value <= right_value,
-                CompareOps.GT: lambda left_value, right_value: left_value > right_value,
-                CompareOps.GE: lambda left_value, right_value: left_value >= right_value
-            }
-            iterator.set_current(IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.BOOLEAN,
-                                                                                       compare_handlers[op](
-                                                                                           left.value.value,
-                                                                                           right.value.value)))))
-            self.current_table.set(result.get_name(), iterator.current().get_operands()[1])
-            # self._assign(iterator, iterator.current())  # NOQA
+        handlers = self.COMPARE_OP_HANDLERS.get(op, {})
+        handler = handlers.get((DataType.INT if left.get_data_type() == DataType.BOOLEAN else left.get_data_type(),
+                                DataType.INT if right.get_data_type() == DataType.BOOLEAN else right.get_data_type()))
+
+        if handler:
+            folded_value = handler(left.value.value, right.value.value)
+            new_instr = IRAssign(result, Reference.literal(folded_value))
+            iterator.set_current(new_instr)
+            self._assign(iterator, new_instr)
 
     def _unary_op(self, iterator: IRBuilderIterator, instr: IRUnaryOp):
         result: Variable = instr.get_operands()[0]
@@ -336,29 +357,24 @@ class ConstantFoldingPass(IROptimizationPass):
         # 操作前将结果设为未知
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
-        if operand_ref.value_type == ValueType.LITERAL:  # 搜索最终值
-            operand = operand_ref
-        else:
-            operand = self._find(operand_ref.get_name())
-        if operand == ConstantFoldingPass.FoldingFlags.UNKNOWN:
+        operand = self._resolve_ref(operand_ref)
+        if not self._is_literal(operand):
             return
 
-        # 对于int/bool优化
-        if operand.get_data_type() in (DataType.INT, DataType.BOOLEAN):
-            unary_handlers = {
-                UnaryOps.NEG: lambda value: -value,
-                UnaryOps.NOT: lambda value: not value,
-                UnaryOps.BIT_NOT: lambda value: ~value
-            }
-            iterator.set_current(
-                IRAssign(result, Reference(ValueType.LITERAL, unary_handlers[op](operand.value.value))))
-            self._assign(iterator, iterator.current())  # NOQA
+        handlers = self.UNARY_OP_HANDLERS.get(op, {})
+        handler = handlers.get(DataType.INT if operand.get_data_type() == DataType.BOOLEAN else operand.get_data_type())
+
+        if handler:
+            folded_value = handler(operand.value.value)
+            new_instr = IRAssign(result, Reference.literal(folded_value))
+            iterator.set_current(new_instr)
+            self._assign(iterator, new_instr)
 
     def _cond_jump(self, iterator: IRBuilderIterator, instr: IRCondJump):
         cond_var: Variable = instr.get_operands()[0]
         true_scope: str = instr.get_operands()[1]
         false_scope: str = instr.get_operands()[2]
-        value = self._find(cond_var.get_name())
+        value = self._find(cond_var)
         if isinstance(value, ConstantFoldingPass.FoldingFlags):
             return
 
@@ -372,19 +388,19 @@ class ConstantFoldingPass(IROptimizationPass):
     def _call(self, iterator: IRBuilderIterator, instr: IRCall):
         result: Variable | Constant = instr.get_operands()[0]
         func: Function = instr.get_operands()[1]
-        args: list[Reference[Variable | Constant | Literal]] = instr.get_operands()[2]
-        new_args = []
-        for arg_ref in args:
+        args: dict[str, Reference[Variable | Constant | Literal]] = instr.get_operands()[2]
+        new_args: dict[str, Reference[Variable | Constant | Literal]] = {}
+        for param_name, arg_ref in args.items():
             arg = arg_ref.value
 
             if arg_ref.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
-                arg_value = self._find(arg.get_name())
+                arg_value = self._find(arg)
                 if isinstance(arg_value, ConstantFoldingPass.FoldingFlags):  # 如果搜不到最终值
-                    new_args.append(arg_ref)
+                    new_args[param_name] = arg_ref
                 else:
-                    new_args.append(arg_value)
+                    new_args[param_name] = arg_value
             elif arg_ref.value_type == ValueType.LITERAL:
-                new_args.append(arg_ref)
+                new_args[param_name] = arg_ref
             else:  # 不应该出现，因为传参不可能为类或函数的定义
                 raise
         iterator.set_current(instr.__class__(result, func, new_args))
@@ -400,7 +416,7 @@ class ConstantFoldingPass(IROptimizationPass):
         if value_ref.value_type == ValueType.LITERAL:  # 搜索最终值
             value = value_ref
         else:
-            value = self._find(value_ref.get_name())
+            value = self._find(value_ref)
         if value == ConstantFoldingPass.FoldingFlags.UNKNOWN:
             return
 
@@ -416,18 +432,6 @@ class ConstantFoldingPass(IROptimizationPass):
                 iterator.set_current(
                     IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.STRING, str(value.value.value)))))
                 self._assign(iterator, iterator.current())  # NOQA
-
-    def _raw_cmd(self, iterator: IRBuilderIterator, instr: IRRawCmd):
-        command_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[0]
-
-        if command_ref.value_type == ValueType.LITERAL:  # 搜索最终值
-            command = command_ref
-        else:
-            command = self._find(command_ref.get_name())
-        if isinstance(command, ConstantFoldingPass.FoldingFlags):
-            return
-
-        iterator.set_current(IRRawCmd(command))
 
 
 class DeadCodeEliminationPass(IROptimizationPass):
@@ -478,25 +482,13 @@ class DeadCodeEliminationPass(IROptimizationPass):
 
     def _propagate_liveness(self):
         work_list = deque()
-        current_stype: StructureType = StructureType.GLOBAL
-        # 初始活跃变量：函数参数、返回值、显式声明的变量、for循环的变量
+        # 初始活跃变量：函数参数、返回值
         for instr in self.builder.get_instructions():
-            if isinstance(instr, IRScopeBegin):
-                current_stype: StructureType = instr.get_operands()[1]
-            elif isinstance(instr, IRDeclare):
+            if isinstance(instr, IRDeclare):
                 var = instr.get_operands()[0]
                 if var.var_type in (VariableType.PARAMETER, VariableType.RETURN):
                     self.live_vars.add(var.name)
                     work_list.append(var.name)
-                if current_stype == StructureType.LOOP:  # for循环的变量
-                    self.live_vars.add(var.name)
-                    work_list.append(var.name)
-            elif isinstance(instr, (IRAssign, IROp, IRCompare, IRUnaryOp, IRCast)):
-                for op in instr.get_operands():
-                    if isinstance(op, Reference) and op.value_type == ValueType.VARIABLE:
-                        if op.get_name() not in self.live_vars:
-                            self.live_vars.add(op.get_name())
-                            work_list.append(op.get_name())
             elif self._has_side_effect(instr):
                 for op in instr.get_operands():
                     if isinstance(op, Reference) and op.value_type == ValueType.VARIABLE:
@@ -551,7 +543,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
     def _has_side_effect(self, instr):
         """判断指令是否有副作用"""
         return isinstance(instr,
-                          (IRRawCmd, IRCast, IRReturn, IRCall, IROp, IRCompare, IRUnaryOp))
+                          (IRAssign, IRCast, IRReturn, IRCall, IROp, IRCompare, IRUnaryOp))
 
     def _is_declaration_exists(self, var_name):
         # 检查变量声明是否存在于IR中
@@ -651,12 +643,14 @@ class DeclareCleanupPass(IROptimizationPass):
             elif isinstance(instr, IRCall):
                 result_var, func, args = instr.get_operands()
                 # 标记结果变量为使用
-                self.var_references[result_var.name] = self.var_references.get(result_var.name, 0) + 1
+                if result_var:
+                    self.var_references[result_var.name] = self.var_references.get(result_var.name, 0) + 1
 
                 # 标记函数参数使用
-                for arg in args:
-                    if isinstance(arg, Reference) and arg.value_type == ValueType.VARIABLE:
-                        self.var_references[arg.get_name()] = self.var_references.get(arg.get_name(), 0) + 1
+                for param_name, arg_ref in args.items():
+                    if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
+                        self.var_references[arg_ref.get_name()] = self.var_references.get(arg_ref.get_name(), 0) + 1
+
 
             # 处理返回值
             elif isinstance(instr, IRReturn):
@@ -667,7 +661,8 @@ class DeclareCleanupPass(IROptimizationPass):
             # 处理条件跳转
             elif isinstance(instr, IRCondJump):
                 cond_var = instr.get_operands()[0]
-                self.var_references[cond_var.name] = self.var_references.get(cond_var.name, 0) + 1
+                if isinstance(cond_var, (Variable, Constant)):
+                    self.var_references[cond_var.name] = self.var_references.get(cond_var.name, 0) + 1
 
             # 处理赋值操作
             elif isinstance(instr, IRAssign):
@@ -693,10 +688,7 @@ class DeclareCleanupPass(IROptimizationPass):
                 target, dtype, source = instr.get_operands()
                 if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
                     self.var_references[source.get_name()] = self.var_references.get(source.get_name(), 0) + 1
-            elif isinstance(instr, IRRawCmd):
-                source = instr.get_operands()[0]
-                if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
-                    self.var_references[source.get_name()] = self.var_references.get(source.get_name(), 0) + 1
+
 
     def _remove_dead_declarations(self):
         """删除无效的变量声明"""
@@ -816,7 +808,7 @@ class UselessScopeRemovalPass(IROptimizationPass):
                 scope_type = instr.get_operands()[1]
 
                 # 所有定义作用域都标记为根作用域
-                if scope_type in (StructureType.FUNCTION, StructureType.LOOP_BODY, StructureType.LOOP,
+                if scope_type in (StructureType.FUNCTION, StructureType.LOOP_BODY,
                                   StructureType.LOOP_CHECK, StructureType.CLASS, StructureType.INTERFACE):
                     self.root_scopes.add(scope_name)
 

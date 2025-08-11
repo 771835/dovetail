@@ -27,7 +27,6 @@ from transpiler.core.parser.transpilerVisitor import transpilerVisitor
 from transpiler.core.result import Result
 from transpiler.core.scope import Scope
 from transpiler.core.symbols import *
-from transpiler.test import print_all_attributes
 
 
 class MCGenerator(transpilerVisitor):
@@ -71,7 +70,7 @@ class MCGenerator(transpilerVisitor):
         try:
             yield scope
         finally:
-            self._exit_scope()
+            self._exit_scope(name, scope_type)
 
     # 作用域管理辅助方法
     def _enter_scope(self, name: str, scope_type: StructureType):
@@ -87,14 +86,14 @@ class MCGenerator(transpilerVisitor):
                 column=self._get_current_column(),
                 filename=self.filename
             )
-        self._add_ir_instruction(IRScopeBegin(name=name, stype=scope_type))
+        self._add_ir_instruction(IRScopeBegin(name, scope_type))
         return new_scope
 
-    def _exit_scope(self):
+    def _exit_scope(self, name: str, scope_type: StructureType):
         if self.current_scope.exist_parent():
             self.current_scope = self.current_scope.get_parent()
             self.scope_stack.pop()
-            self._add_ir_instruction(IRScopeEnd())
+            self._add_ir_instruction(IRScopeEnd(name, scope_type))
 
     def _add_ir_instruction(
             self, instructions: IRInstruction | list[IRInstruction]):
@@ -313,7 +312,6 @@ class MCGenerator(transpilerVisitor):
         result = tree.accept(self)
         if not isinstance(result, Result) and not isinstance(
                 tree, transpilerParser.ProgramContext):
-            print_all_attributes(tree)
             raise UnexpectedError(f"意外的错误:result结果为{type(result)},需要{Result}")
         self._current_ctx = previous_ctx
         return result
@@ -665,7 +663,6 @@ class MCGenerator(transpilerVisitor):
         elif value == 'null':
             return Result.from_literal(None, DataType.NULL)
         elif value[0] == 'f':
-
             return Result(self._process_fstring(value))
         elif self._is_number(value):
             return Result.from_literal(int(value), DataType.INT)
@@ -682,7 +679,8 @@ class MCGenerator(transpilerVisitor):
                 self.visit(ctx.block())
             # 评估条件表达式
             if not isinstance(cond, (transpilerParser.CompareExprContext, transpilerParser.LogicalOrExprContext,
-                                     transpilerParser.LogicalAndExprContext, transpilerParser.LogicalNotExprContext)):
+                                     transpilerParser.LogicalAndExprContext, transpilerParser.LogicalNotExprContext,
+                                     transpilerParser.PrimaryExprContext)):
                 raise InvalidSyntaxError(
                     ctx.expr().getText(),
                     line=self._get_current_line(),
@@ -708,58 +706,45 @@ class MCGenerator(transpilerVisitor):
         for_control: transpilerParser.ForControlContext = ctx.forControl()
         if for_control:  # 传统for循环
             loop_id = next(self.cnt)
-            with self.scoped_environment(f"for_{loop_id}", StructureType.LOOP) as loop:
-                for_control_init: transpilerParser.ForLoopVarDeclContext = for_control.forLoopVarDecl()
-                for_control_cond: transpilerParser.CompareExprContext = for_control.expr()
-                # 处理初始化表达式
-                if for_control_init:
-                    self.visit(for_control_init)
-                # 创建循环检查作用域
-                with self.scoped_environment(f"for_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
+            for_control_init: transpilerParser.ForLoopVarDeclContext = for_control.forLoopVarDecl()
+            for_control_cond: transpilerParser.CompareExprContext = for_control.expr()
+            # 处理初始化表达式
+            if for_control_init:
+                self.visit(for_control_init)
+            # 创建循环检查作用域
+            with self.scoped_environment(f"for_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
+                with self.scoped_environment(f"for_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
 
-                    # 创建循环体作用域
-                    with self.scoped_environment(f"for_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
+                    # 处理循环体
+                    self.visit(ctx.block())
 
-                        # 处理循环体
-                        self.visit(ctx.block())
+                    # 处理更新表达式
+                    if ctx.forControl().assignment():
+                        self.visit(ctx.forControl().assignment())
 
-                        # 处理更新表达式
-                        if ctx.forControl().assignment():
-                            self.visit(ctx.forControl().assignment())
+                # 评估条件表达式
+                if for_control_cond:
+                    if isinstance(for_control_cond,
+                                  (transpilerParser.CompareExprContext, transpilerParser.LogicalOrExprContext,
+                                   transpilerParser.LogicalAndExprContext, transpilerParser.LogicalNotExprContext)):
+                        # 从检查函数调用循环体
+                        condition_expr = self.visit(for_control_cond)
+                        condition_ref = condition_expr.value
 
-                        # 添加返回检查的递归调用
-                        self._add_ir_instruction(IRJump(loop_check.name))
 
-                    # 评估条件表达式
-                    if for_control_cond:
-                        if isinstance(for_control_cond,
-                                      (transpilerParser.CompareExprContext, transpilerParser.LogicalOrExprContext,
-                                       transpilerParser.LogicalAndExprContext, transpilerParser.LogicalNotExprContext)):
-                            # 从检查函数调用循环体
-                            condition_expr = self.visit(for_control_cond)
-                            condition_var = condition_expr.value
-                        else:
-                            raise InvalidSyntaxError(
-                                ctx.expr().getText(),
-                                line=self._get_current_line(),
-                                column=self._get_current_column()
-                            )
                     else:
-                        condition_var = Reference(
-                            ValueType.LITERAL, Literal(
-                                DataType.BOOLEAN, True))
-                    self._add_ir_instruction(
-                        IRCondJump(
-                            condition_var.value,
-                            loop_body.name))
-                    self._add_ir_instruction(
-                        IRCondJump(
-                            condition_var.value,
-                            loop_check.name))
-                self._add_ir_instruction(
-                    IRJump(loop_check.name)
-                )
-            self._add_ir_instruction(IRJump(loop.name))
+                        raise InvalidSyntaxError(
+                            ctx.expr().getText(),
+                            line=self._get_current_line(),
+                            column=self._get_current_column()
+                        )
+                else:
+                    condition_ref = Reference(ValueType.LITERAL,Literal(DataType.BOOLEAN,True))
+
+                self._add_ir_instruction(IRCondJump(condition_ref.value,loop_body.name))
+                self._add_ir_instruction(IRCondJump(condition_ref.value, loop_check.name))
+
+            self._add_ir_instruction(IRJump(loop_check.name))
         else:  # 增强for循环
             raise MissingImplementationError(
                 "增强for循环",
@@ -772,10 +757,11 @@ class MCGenerator(transpilerVisitor):
     def visitIfStmt(self, ctx: transpilerParser.IfStmtContext):
         # 生成唯一ID
         if_id = next(self.cnt)
-        if isinstance(  # 判断expr是否为CompareExpr
+        if isinstance(  # 判断expr是否为比较表达式
                 ctx.expr(),
                 (transpilerParser.CompareExprContext, transpilerParser.LogicalOrExprContext,
-                 transpilerParser.LogicalAndExprContext, transpilerParser.LogicalNotExprContext)):
+                 transpilerParser.LogicalAndExprContext, transpilerParser.LogicalNotExprContext,
+                 transpilerParser.PrimaryExprContext)):
             # 计算条件表达式
             condition_expr = self.visit(ctx.expr())
         elif isinstance(
@@ -896,7 +882,7 @@ class MCGenerator(transpilerVisitor):
             ctx: transpilerParser.VarExprContext):
         var_name = ctx.ID().getText()
         try:
-            symbol: NewSymbol = self.current_scope.resolve_symbol(var_name)
+            symbol: Symbol = self.current_scope.resolve_symbol(var_name)
             if not isinstance(symbol, (Variable, Constant, Parameter)):
                 raise SymbolCategoryError(
                     f"符号 '{var_name}' 必须是变量或常量",
@@ -925,7 +911,7 @@ class MCGenerator(transpilerVisitor):
         expr_result = self.visit(ctx.expr())
 
         try:
-            var: NewSymbol = self.current_scope.resolve_symbol(var_name)
+            var: Symbol = self.current_scope.resolve_symbol(var_name)
             if isinstance(var, Constant):
                 raise CompilerSyntaxError(
                     f"不能修改常量 '{var_name}'",
@@ -1010,9 +996,9 @@ class MCGenerator(transpilerVisitor):
                     column=self._get_current_column(),
                     filename=self.filename
                 )
-        if left.value.get_data_type() == DataType.STRING:
+        if left.value.get_data_type() == DataType.STRING and op != BinaryOps.ADD:
             raise InvalidOperatorError(
-                op.value,
+                str(op.value),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filename
@@ -1031,7 +1017,7 @@ class MCGenerator(transpilerVisitor):
         func_name: str = ctx.ID().getText()
 
         # 调用函数
-        func_symbol: NewSymbol = self.current_scope.resolve_symbol(func_name)
+        func_symbol: Symbol = self.current_scope.resolve_symbol(func_name)
         if isinstance(func_symbol, Function):
             if not self.config.enable_recursion:  # 未启用递归
                 current = self.current_scope
@@ -1046,24 +1032,26 @@ class MCGenerator(transpilerVisitor):
                         )
                     current = current.parent
 
-            args: list[Reference] = []
+            args_dict: dict[str, Reference] = {}
             min_args: int = sum(param.optional for param in func_symbol.params)
             if ctx.argumentList().exprList():
                 for i, (arg_expr, param) in enumerate(
                         zip_longest(ctx.argumentList().exprList().expr(), func_symbol.params)):
                     if arg_expr:
                         arg_value = self.visit(arg_expr).value
-                        args.append(arg_value)
+                        args_dict[param.get_name()] = arg_value
                     else:
-                        if not param.optional:
+                        if param.optional:
+                            arg_value = param.default
+                            args_dict[param.get_name()] = arg_value
+                        else:
                             raise InvalidSyntaxError(
                                 f"参数数量不匹配: 期望 {min_args} 个参数，实际 {i} 个",
                                 line=self._get_current_line(),
                                 column=self._get_current_column(),
                                 filename=self.filename
                             )
-                        arg_value = param.default
-                        args.append(arg_value)
+
                     if param.get_data_type() != arg_value.get_data_type():
                         raise ArgumentTypeMismatchError(
                             param_name=param.get_name(),
@@ -1089,13 +1077,12 @@ class MCGenerator(transpilerVisitor):
                         filename=self.filename
                     )
 
-
             if func_symbol.function_type == FunctionType.LIBRARY:
-                result_var = self.builtin_func_table[func_symbol.get_name()](*args)
+                result_var = self.builtin_func_table[func_symbol.get_name()](**args_dict)
             else:
                 result_var = self._create_temp_var(func_symbol.return_type, "result")
                 self._add_ir_instruction(IRDeclare(result_var))
-                self._add_ir_instruction(IRCall(result_var, func_symbol, args))
+                self._add_ir_instruction(IRCall(result_var, func_symbol, args_dict))
         else:
             raise NotCallableError(
                 func_name,

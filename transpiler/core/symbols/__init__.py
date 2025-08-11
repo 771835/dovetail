@@ -1,5 +1,5 @@
 # coding=utf-8
-from .base import NewSymbol
+from .base import Symbol
 from .class_ import Class
 from .constant import Constant
 from .function import Function
@@ -10,7 +10,7 @@ from .variable import Variable
 
 __all__ = [
     'Class',
-    'NewSymbol',
+    'Symbol',
     'Variable',
     'Reference',
     'Literal',

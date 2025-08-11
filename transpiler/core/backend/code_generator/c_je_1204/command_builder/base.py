@@ -1,11 +1,29 @@
 # coding=utf-8
+import uuid
+
 from transpiler.core.enums import DataType
 from transpiler.core.symbols import Variable, Constant, Literal
-from . import DataBuilder, ScoreboardBuilder
+from . import DataBuilder, ScoreboardBuilder, FunctionBuilder, Execute
 from ..code_generator_scope import CodeGeneratorScope
 
 
 class BasicCommands:
+    @staticmethod
+    def call_macros_function(func_name: str, objective: str, param: dict[str, tuple[bool, str, str | None]]) -> list[
+        str]:
+        args_path = f"args.{uuid.uuid4().hex}"
+        commands: list[str] = []
+        for name, _ in param.items():
+            if name is None:
+                continue
+            if _[0]:
+                commands.append(
+                    DataBuilder.modify_storage_set_from_storage(objective, f"{args_path}.{name}", _[2], _[1]))
+            else:
+                commands.append(DataBuilder.modify_storage_set_value(objective, f"{args_path}.{name}", _[1]))
+        commands.append(FunctionBuilder.run_with_source(func_name, "storage", f"{objective} {args_path}"))
+        return commands
+
     @staticmethod
     def comment(message: str) -> list[str]:
         """
@@ -51,8 +69,7 @@ class BasicCommands:
                     target_objective,
                     source_scope.get_symbol_path(source.get_name()),
                     source_objective)
-            else:  # Class
-                return None
+            return None
 
         @staticmethod
         def copy_literal_base_type(target: Variable | Constant, target_scope: CodeGeneratorScope, target_objective: str,
@@ -65,5 +82,8 @@ class BasicCommands:
             elif target.dtype in (DataType.INT, DataType.BOOLEAN):
                 return ScoreboardBuilder.set_score(
                     target_scope.get_symbol_path(target.get_name()), target_objective, int(source.value))
-            else:  # Class
-                return None
+            return None
+
+        @staticmethod
+        def copy_score_to_storage(target: Variable | Constant, target_scope: CodeGeneratorScope, target_objective: str):
+            return Execute.execute().store_result_storage(target_objective, target_scope.get_symbol_path(target.get_name()),'int',1.0).run(ScoreboardBuilder.get_score(target_scope.get_symbol_path(target.get_name()), target_objective))

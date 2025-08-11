@@ -48,12 +48,9 @@
 
 ### 特殊指令
 
-| 指令         | 参数             | 备注              |
-|------------|----------------|-----------------|
-| RAW_CMD    | command_string | 输出原生Minecraft命令 |
-| DEBUG_INFO | -              | 调试元数据           |
-
-##### DEBUG_INFO仅在debug情况下编译生成实际指令
+| 指令      | 参数             | 备注                   |
+|---------|----------------|----------------------|
+| RAW_CMD | command_string | 输出原生Minecraft命令(已弃用) |
 
 ## 关键实现细节
 
@@ -79,7 +76,6 @@ SCOPE_END()
 SCOPE_BEGIN(op='else_0', op=<StructureType.CONDITIONAL: 'conditional'>)
 SCOPE_END()
 COND_JUMP(op=Variable(name='cond_var', dtype=<DataType.BOOLEAN: 'boolean'>, var_type=<VariableType.GENERAL: 'general'>), op='if_0', op='else_0')
-
 ```
 
 #### 传统for循环示例

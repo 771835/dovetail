@@ -1,6 +1,4 @@
 # coding=utf-8
-from __future__ import annotations
-
 import argparse
 import contextlib
 import io
@@ -9,6 +7,7 @@ import sys
 import time
 
 start_time = time.time()
+
 from transpiler.core.errors import CompilationError
 from transpiler.core.ir_generator import MCGenerator
 
@@ -22,48 +21,22 @@ from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel
 from transpiler.core.instructions import IRScopeBegin, IRScopeEnd
 from transpiler.core.parser import transpilerLexer
 from transpiler.core.parser import transpilerParser
+from transpiler.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
 
-print(time.time() - start_time)
+print(f"导库所用时间：{time.time() - start_time}")
 
 
-class ThrowingErrorListener(ErrorListener):
+@Mixin(ErrorListener)  # 相比于正常继承，使用mixin会慢0.001-0.01左右，但是可以减少代码量，而且好酷qwq
+class ErrorListenerMixin:
     buffer = io.StringIO()
     error = False
 
-    def syntaxError(self, recognizer, offending_symbol, line, column, msg, e):
-        self.error = True
-        self.buffer.write(f"Syntax error at line {line}:{column} - {msg} \n")
-
-    def reportAmbiguity(
-            self,
-            recognizer,
-            dfa,
-            start_index,
-            stop_index,
-            exact,
-            ambig_alts,
-            configs):
-        pass
-
-    def reportAttemptingFullContext(
-            self,
-            recognizer,
-            dfa,
-            start_index,
-            stop_index,
-            conflicting_alts,
-            configs):
-        pass
-
-    def reportContextSensitivity(
-            self,
-            recognizer,
-            dfa,
-            start_index,
-            stop_index,
-            prediction,
-            configs):
-        pass
+    @staticmethod
+    @Inject("syntaxError", At(At.HEAD), cancellable=True)
+    def syntaxError(ci: CallbackInfoReturnable, self, recognizer, offending_symbol, line, column, msg, e):
+        ErrorListenerMixin.error = True
+        ErrorListenerMixin.buffer.write(f"Syntax error at line {line}:{column} - {msg} \n")
+        ci.cancel()
 
 
 def compile_file(source_path, target_path,
@@ -73,13 +46,8 @@ def compile_file(source_path, target_path,
     with contextlib.chdir(os.path.dirname(source_path)):
         input_stream = FileStream(source_path, "utf-8")
         lexer = transpilerLexer.transpilerLexer(input_stream)
-        lexer.removeErrorListeners()
-        listener = ThrowingErrorListener()
-        lexer.addErrorListener(listener)
         stream = CommonTokenStream(lexer)
         parser = transpilerParser.transpilerParser(stream)
-        parser.removeErrorListeners()
-        parser.addErrorListener(listener)
 
         def print_error_info():
             # 定义作用域树打印函数
@@ -111,8 +79,8 @@ def compile_file(source_path, target_path,
 
         try:
             tree = parser.program()
-            if listener.error:
-                sys.stderr.write(listener.buffer.getvalue())
+            if ErrorListenerMixin.error:
+                sys.stderr.write(ErrorListenerMixin.buffer.getvalue())
                 return -1
 
             generator = MCGenerator(config)
@@ -130,8 +98,7 @@ def compile_file(source_path, target_path,
                 if isinstance(i, IRScopeBegin):
                     depth += 1
 
-            print(f""" 耗时{time.time() - start_time}
-原始生成指令{len(ir_builder.get_instructions())}条""")
+            print(f"耗时{time.time() - start_time}")
         except CompilationError as e:
             time.sleep(0.1)  # 保证前面的输出完成
             print_error_info()
@@ -185,9 +152,9 @@ if __name__ == "__main__":
 
     if args.fuck_mixin:
         import transpiler.easter_egg
-        import transpiler.utils.mixin_manager
 
-        transpiler.utils.mixin_manager.enable_mixins()
+        transpiler.easter_egg.main()
+
     sys.exit(compile_file(args.input, args.output or "target",
                           GeneratorConfig(args.namespace or "namespace", OptimizationLevel(args.O),
                                           MinecraftVersion.from_str(args.minecraft_version), args.debug,

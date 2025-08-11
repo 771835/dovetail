@@ -2,6 +2,33 @@
 import inspect
 import uuid
 from functools import wraps
+from threading import RLock
+
+
+# ==== 公用函数定义 ====
+def _set_attr(target_cls, name, value, force=False):
+    if force:
+        if isinstance(target_cls, type):
+            # 使用 type 原生方法绕过元类限制
+            type.__setattr__(target_cls, name, value)
+        else:
+            object.__setattr__(target_cls, name, value)
+    else:
+        setattr(target_cls, name, value)
+
+
+def _get_attr(target_cls, name, default=None, force=False):
+    if force:
+        # 使用 type 原生方法绕过元类限制
+        try:
+            if isinstance(target_cls, type):
+                return type.__getattribute__(target_cls, name)
+            else:
+                return object.__getattribute__(target_cls, name)
+        except AttributeError:
+            return default
+    else:
+        return getattr(target_cls, name, default)
 
 
 # ==== 核心注解定义 ====
@@ -29,9 +56,10 @@ class MixinMeta(type):
 
 class CallbackInfo:
     """回调基本信息"""
-    __slots__ = ('cancelled',)
+    __slots__ = ('cancelled', 'return_value')
 
-    def __init__(self):
+    def __init__(self, initial_value=None):
+        self.return_value = initial_value
         self.cancelled = False
 
     def cancel(self):
@@ -41,13 +69,11 @@ class CallbackInfo:
 
 class CallbackInfoReturnable(CallbackInfo):
     """支持返回值操作的回调类"""
-    __slots__ = ('return_value', 'return_set', 'uuid')
+    __slots__ = ('return_set',)
 
     def __init__(self, initial_value=None):
-        super().__init__()
-        self.return_value = initial_value
+        super().__init__(initial_value)
         self.return_set = False
-        self.uuid = uuid.uuid4()
 
     def set_return_value(self, value):
         """设置返回值并取消原操作"""
@@ -60,41 +86,44 @@ class _Accessor:
     """访问器描述符，用于访问私有字段"""
     __slots__ = ('field_name',)
 
+    METADATA_ATTRS = {
+        '__mixin_target__',
+        '__mixin_force__',
+        '__class__',
+        '__dict__'
+    }
+
     def __init__(self, field_name):
         self.field_name = field_name
 
     def __get__(self, instance, owner):
         if instance is None:
-            return self
-        return getattr(instance, self.field_name)
+            return self  # 访问类属性时返回描述符自己
+
+            # 关键突破点：元数据直接裸奔访问！
+        return object.__getattribute__(instance, self.field_name)
 
     def __set__(self, instance, value):
-        setattr(instance, self.field_name, value)
+        # 元数据特殊处理
+        object.__setattr__(instance, self.field_name, value)
 
 
 class MixinManager:
     """Mixin注册管理器"""
-    _mixin_classes = []
-    _is_applied = False  # 添加状态标记
+    _lock = RLock()
 
     @classmethod
     def register_mixin(cls, mixin_cls):
         """注册Mixin类"""
-        if mixin_cls not in cls._mixin_classes:
-            cls._mixin_classes.append(mixin_cls)
-
-    @classmethod
-    def apply_all(cls):
-        """应用所有注册的Mixin"""
-        if not cls._is_applied:
-            for mixin_cls in cls._mixin_classes[:]:
-                cls.apply_mixin(mixin_cls)
-            cls._is_applied = True
+        with cls._lock:
+            cls.apply_mixin(mixin_cls)
 
     @classmethod
     def apply_mixin(cls, mixin_cls):
         """将单个Mixin应用到目标类"""
-        target_class = getattr(mixin_cls, '__mixin_target__', None)
+
+        target_class = object.__getattribute__(mixin_cls, '__mixin_target__')
+        force_mixin = object.__getattribute__(mixin_cls, '__mixin_force__')
         if not target_class:
             return
 
@@ -106,7 +135,7 @@ class MixinManager:
 
         # 添加访问器到目标类
         for attr_name, accessor in accessors.items():
-            setattr(target_class, attr_name, accessor)
+            _set_attr(target_class, attr_name, accessor, True)
 
         # 收集注入方法
         callbacks = []
@@ -116,10 +145,10 @@ class MixinManager:
 
         for attr_name in dir(mixin_cls):
             # 跳过特殊方法和保留属性
-            if attr_name.startswith('__') and attr_name.endswith('__'):
+            if attr_name.startswith("__") and attr_name.endswith("__"):
                 continue
 
-            attr = getattr(mixin_cls, attr_name)
+            attr = _get_attr(mixin_cls, attr_name, force=force_mixin)
 
             # 1. 收集Inject方法
             if hasattr(attr, '__mixin_inject__'):
@@ -140,7 +169,7 @@ class MixinManager:
                 continue
 
             # 绑定方法到目标类
-            setattr(target_class, method_name, method)
+            _set_attr(target_class, method_name, method, force_mixin)
 
         # 按目标方法分组
         method_map = {}
@@ -152,20 +181,22 @@ class MixinManager:
 
         # 应用方法注入
         for method_name, callbacks in method_map.items():
-            orig_method = getattr(target_class, method_name, None)
+            orig_method = _get_attr(target_class, method_name, force=force_mixin)
             if not orig_method:
                 continue
 
             cancellable = any(cb['cancellable'] for cb in callbacks)
 
             # 创建注入包装函数
-            def create_injected_method(cg, cancel_flag, orig_method_raw):
+            def create_injected_method(callbacks_group, cancel_flag, orig_method_raw):
+                local_callbacks = callbacks_group
+
                 @wraps(orig_method_raw)
                 def injected_method(*args, **kwargs):
                     ci = CallbackInfoReturnable() if cancel_flag else CallbackInfo()
-
                     # 处理HEAD注入 (使用正确的回调分组)
-                    for cb in cg:
+                    for cb in local_callbacks:
+
                         if cb['at'].location == At.HEAD:
                             cb['handler'](ci, *args, **kwargs)
 
@@ -181,20 +212,20 @@ class MixinManager:
 
                     # 处理TAIL注入
                     if not ci.cancelled:
-                        for cb in cg:
+                        for cb in local_callbacks:
                             if cb['at'].location == At.TAIL:
                                 cb['handler'](ci, *args, **kwargs)
                                 if ci.cancelled and cancel_flag:
                                     return ci.return_value
 
                     # 处理RETURN注入
-                    if not ci.cancelled and cancel_flag:
-                        for cb in cg:
-                            if cb['at'].location == At.RETURN:
-                                cb['handler'](ci, *args, **kwargs)  # 普通函数用原始参数
+                    if not ci.cancelled:
+                        return_callbacks = [cb for cb in local_callbacks
+                                            if cb['at'].location == At.RETURN]
 
-                        if ci.return_set:
-                            result = ci.return_value
+                        if return_callbacks:
+                            for cb in return_callbacks:
+                                cb['handler'](ci, *args, **kwargs)
 
                     return result
 
@@ -202,29 +233,36 @@ class MixinManager:
 
             # 设置新的注入方法
             injected_wrapper = create_injected_method(callbacks, cancellable, orig_method)
-            setattr(target_class, method_name, injected_wrapper)
+            _set_attr(target_class, method_name, injected_wrapper, force_mixin)
 
         # 添加Invoker到目标类
         for method_name, handler in invokers.items():
-            # 使用invoker_前缀避免命名冲突
-            handler_name = f"invoker_{method_name}"
+            # 添加前缀避免命名冲突
+            handler_name = f"_mixin_invoker_{method_name}_{uuid.uuid4().hex[:8]}"
             if hasattr(target_class, handler_name):
                 continue
 
-            # 创建invoker包装
-            @wraps(handler)
-            def invoker(self, *args, **kwargs):
-                return handler(self, *args, **kwargs)
+            def make_invoker(handler_func):
+                def invoker(self, *args, **kwargs):
+                    return handler_func(self, *args, **kwargs)
 
-            setattr(target_class, handler_name, invoker)
+                return invoker
+
+            invoker_func = make_invoker(handler)
+            _set_attr(target_class, handler_name, invoker_func, force_mixin)
 
 
 # ==== 用户可用的公共API ====
-def Mixin(target_class):
+def Mixin(target_class, force=False):
     """类装饰器，声明Mixin目标类"""
 
     def apply_mixin(cls):
-        cls.__mixin_target__ = target_class
+        if force:
+            type.__setattr__(cls, "__mixin_target__", target_class)
+            type.__setattr__(cls, "__mixin_force__", force)
+        else:
+            cls.__mixin_target__ = target_class
+            cls.__mixin_force__ = force
         MixinManager.register_mixin(cls)
         return cls
 
@@ -261,29 +299,37 @@ def Invoker():
     return decorator
 
 
-def MethodRedirect(old_class: type, old_method: str, new_class: type, new_method: str):
+def MethodRedirect(old_class: type, old_method: str, new_class: type, new_method: str, force: bool = False):
     """
     方法重定向器
     :param old_class: 原始方法所在类
     :param old_method: 原始方法名
     :param new_class: 新方法所在类
     :param new_method: 新方法名
+    :param force: 是否强制修改
     """
-    new_func = getattr(new_class, new_method, None)
+    new_func = _get_attr(new_class, new_method, force=force)
     if new_func:
-        setattr(old_class, old_method, new_func)
-
-
-# ==== 自动初始化 ====
-def enable_mixins():
-    """启用Mixin系统（在模块最后调用）"""
-    MixinManager.apply_all()
+        _set_attr(old_class, old_method, new_func, force)
 
 
 # ====== 测试代码 ======
 if __name__ == "__main__":
     # ====== Player类定义 ======
-    class Player:
+    class FreezeClassMeta(type):
+        """元类：冻结类定义，禁止动态添加/修改类属性和方法"""
+
+        def __init__(cls, name, bases, attrs):
+            super().__init__(name, bases, attrs)
+            cls._frozen = True  # 标记类已冻结
+
+        def __setattr__(cls, name, value):
+            if getattr(cls, '_frozen', False):
+                raise AttributeError(f"Cannot modify frozen class '{cls.__name__}'")
+            super().__setattr__(name, value)
+
+
+    class Player(metaclass=FreezeClassMeta):
         def __init__(self, name):
             self.name = name
             self._health = 100
@@ -315,7 +361,7 @@ if __name__ == "__main__":
 
 
     # ====== Mixin扩展 ======
-    @Mixin(Player)
+    @Mixin(Player, force=True)
     class PlayerExtensions:
 
         # 访问器
@@ -324,20 +370,20 @@ if __name__ == "__main__":
         admin_status = Accessor('_is_admin')
 
         # 注入点
+        @staticmethod
         @Inject("take_damage", At(At.HEAD), cancellable=True)
-        def damage_injection(self, ci):
+        def damage_injection(ci, self, amount):
             if self.admin_status:
                 ci.cancel()
                 print(f"⚡ {self.name} is immune to damage!")
 
-        # Invoker方法
-        @Invoker()
         def add_items(self, items):
             """批量添加物品"""
             print(f"Adding {len(items)} items...")
             return [self.add_item(item) for item in items]
 
         # 新增方法
+
         def heal(self, amount):
             """治疗玩家"""
             self.health += amount
@@ -347,6 +393,35 @@ if __name__ == "__main__":
             """瞬移到指定位置"""
             print(f"🔥 {self.name} teleported to ({x}, {y}, {z})")
             self.position = (x, y, z)
+
+
+    @Mixin(Player, force=True)
+    class PlayerExtensions2:
+        admin_status = Accessor('_is_admin')
+
+        @staticmethod
+        @Inject("__init__", At(At.HEAD))
+        def post_init(ci, self, name):
+            self._is_ban = False
+
+        # 注入点
+        @staticmethod
+        @Inject("take_damage", At(At.HEAD), cancellable=True)
+        def damage_injection(ci, self, amount):
+            if self.is_ban():
+                ci.cancel()
+                print(f"⚡ {self.name} 已经被ban了，你无法对其造成伤害!")
+
+        @staticmethod
+        def is_ban(player):
+            return player._is_ban
+
+        @staticmethod
+        def ban(player):
+            if not player.admin_status:
+                player._is_ban = True
+            else:
+                print("你不能ban一个管理员")
 
 
     # ====== 方法重定向 ======
@@ -366,11 +441,9 @@ if __name__ == "__main__":
         old_class=Player,
         old_method="show_inventory",
         new_class=CustomInventorySystem,
-        new_method="formatted_inventory"
+        new_method="formatted_inventory",
+        force=True
     )
-
-    # ==== 应用所有Mixin ====
-    enable_mixins()
 
     print("===== Player Mixin Demo =====")
 
@@ -380,7 +453,7 @@ if __name__ == "__main__":
     # 创建管理员玩家
     admin_player = Player("Admin")
     admin_player.admin_status = True
-
+    admin_player.position = (114, 514, 1919)
     # 测试功能
     print("\n--- Testing Normal Player ---")
     player.take_damage(10)
@@ -388,7 +461,7 @@ if __name__ == "__main__":
     player.teleport(100, 64, 200)
 
     print("\n--- Adding Items ---")
-    player.invoker_add_items(["Sword", "Shield", "Apple"])
+    player.add_items(["Sword", "Shield", "Apple"])
 
     print("\n--- Show Inventory ---")
     player.show_inventory()
@@ -398,6 +471,12 @@ if __name__ == "__main__":
 
     print("\n--- Testing Admin Player ---")
     admin_player.take_damage(50)  # 应该免疫伤害
-    admin_player.invoker_add_items(["Diamond Sword", "Golden Apple"])
+    admin_player.add_items(["Diamond Sword", "Golden Apple"])
 
+    print("\n--- Testing Ban Player ---")
+    player.ban()
+    player.take_damage(1)
+    admin_player.ban()
+    player.take_damage(1)
+    player.take_damage(114)
     print("\n===== Demo Completed =====")

@@ -2,8 +2,7 @@
 from typing import Callable
 
 from transpiler.core.backend.ir_builder import IRBuilder
-from transpiler.core.enums import DataType, FunctionType
-from transpiler.core.instructions import IRInstruction, IRDebugInfo
+from transpiler.core.instructions import IRInstruction
 from transpiler.core.lib.library import Library
 from transpiler.core.symbols import Constant, Reference, Function, Variable, Literal
 
@@ -14,20 +13,7 @@ class Experimental(Library):
         self._constants = {
         }
         self._functions: dict[Function, Callable[..., Variable | Constant | Literal]] = {
-            Function(
-                "print_debug_info",
-                [
-
-                ],
-                DataType.INT,
-                FunctionType.LIBRARY
-
-            ): self._print_debug_info,
         }
-
-    def _print_debug_info(self):
-        self.builder.insert(IRDebugInfo())
-        return Literal(DataType.INT, 0)
 
     def __str__(self) -> str:
         return "experimental"

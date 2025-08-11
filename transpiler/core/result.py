@@ -1,7 +1,6 @@
 # coding=utf-8
-from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 from attrs import define, field, validators
 
@@ -10,7 +9,7 @@ from transpiler.core.symbols.literal import Literal
 from transpiler.core.symbols.reference import Reference
 
 
-@define(slots=True,frozen=True)
+@define(slots=True, frozen=True)
 class Result:
     """表达式求值结果容器"""
     value: Reference | None = field(validator=validators.instance_of(Reference | None))
@@ -18,13 +17,13 @@ class Result:
     error_type: str | None = field(validator=validators.instance_of(str | None), default=None)
     error_message: str | None = field(validator=validators.instance_of(str | None), default=None)
 
-    def OK(self, function: callable):
+    def OK(self, function: Callable):
         """成功时处理"""
         if not self.error:
             function(self)
         return self
 
-    def ERR(self, function: callable):
+    def ERR(self, function: Callable):
         """错误时处理"""
         if self.error:
             function(self)

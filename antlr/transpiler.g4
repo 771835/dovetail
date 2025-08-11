@@ -47,25 +47,16 @@ interfaceDecl
 /* 4. 类型系统(阉割版) */
 type
     : ID
-    //| primitiveType
     ;
 
 typeList
     :type (',' type)*
     ;
-/*
-primitiveType
-    : TYPE_INT     // 32位整型
-    | TYPE_STRING  // 字符串类型
-    | TYPE_BOOLEAN // 布尔类型
-    | TYPE_VOID    // 无返回值类型
-    ;
-*/
 
 functionDecl
     : annotation* FUNC ID
       ( paramList)
-      ((':'|'->') type)       // 返回类型标注
+      ((':'|'->'|'fuck') type)       // 返回类型标注
       block
     | annotation* FUNC type ID
       ( paramList)
@@ -74,13 +65,13 @@ functionDecl
 
 
 methodDecl
-    : annotation* METHOD ID paramList (':'|'->') type block
+    : annotation* METHOD ID paramList (':'|'->'|'fuck') type block
     | annotation* METHOD type ID paramList block
     ;
 
 paramList
     : LPAREN (paramDecl (',' paramDecl)*)? RPAREN
-    | '()'
+    | PAREN
     ;
 
 paramDecl
@@ -135,14 +126,14 @@ whileStmt
     ;
 
 constDecl
-    : 'const' ID (':' type) ('=' expr) SEMI?  // 常量声明
-    | 'const' type ID ('=' expr) SEMI?
+    : CONST ID (':' type) (ASSIGN expr) SEMI?  // 常量声明
+    | CONST type ID (ASSIGN expr) SEMI?
     ;
 
 // 公共规则
 varDeclaration
-    : ID (':' type) ('?')? ('=' expr)?
-    | type ID ('?')? ('=' expr)? // 更符合大多数人习惯的变量声明
+    : ID (':' type) ('?')? (ASSIGN expr)?
+    | type ID ('?')? (ASSIGN expr)? // 更符合大多数人习惯的变量声明
     ;
 
 // 变量声明（带分号）
@@ -158,7 +149,7 @@ forLoopVarDecl
     ;
 
 assignment
-    : ID '=' expr                     // 变量赋值，如：count = 10
+    : ID ASSIGN expr                     // 变量赋值，如：count = 10
     // | expr '.' ID '=' expr 暂不实现
     ;
 
@@ -176,7 +167,6 @@ expr
     :
     //| lambdaExpr                            # LambdaExpression   // Lambda
     //| methodReference                       # MethodRefExpr      // 方法引用
-    //| <assoc=right> expr '!'                # NotNullAssertion   // 非空断言
     //| expr '?' '.' ID                       # SafeNavigation     // 安全导航
      expr '.' ID argumentList         # MethodCall         // 方法调用
     | expr '.' ID                           # MemberAccess       // 成员访问
@@ -184,11 +174,11 @@ expr
     //| expr argumentList                # FunctionCall       // 函数调用
     | ID argumentList                  # DirectFuncCall     // 直接调用
     | primary                               # PrimaryExpr        // 基础表达式
-    | '-' expr                              # NegExpr            // 负号
-    | '!' expr                         #LogicalNotExpr             // not运算符
+    | SUB expr                              # NegExpr            // 负号
+    | NOT expr                         #LogicalNotExpr             // not运算符
     | expr (MUL|DIV|MOD) expr                   # FactorExpr         // 算术运算
     | expr (ADD|SUB) expr                   # TermExpr
-    | expr ('>' | '<' | '==' | '!=' | '<=' | '>=') expr # CompareExpr      // 比较运算
+    | expr (GT | LT | EQ | NEQ | '<=' | '>=') expr # CompareExpr      // 比较运算
     | expr AND expr                   #LogicalAndExpr             // and运算符
     | expr OR expr                   #LogicalOrExpr              // or运算符
     ;
@@ -198,8 +188,6 @@ primary
     :ID                                    # VarExpr            // 变量
     | literal                               # LiteralExpr        // 字面量
     | LPAREN expr RPAREN                          # ParenExpr          // 括号
-    | NEW ID argumentList                 # NewObjectExpr      // 显式对象创建
-    //| LPAREN type RPAREN expr                     #TypeCastExpr        // 强制类型转换
     ;
 
 
@@ -207,11 +195,11 @@ primary
 
 argumentList
     : LPAREN exprList? RPAREN
-    | '()'
+    | PAREN
     ;
 
 exprList
-    : expr (',' expr)*                      // 表达式列表
+    : expr (COMMA expr)*                      // 表达式列表
     ;
 
 literal
@@ -223,13 +211,9 @@ literal
     ;
 
 // 词法规则
-/*
-TYPE_INT     : 'int';
-TYPE_STRING  : 'string';
-TYPE_BOOLEAN : 'boolean';
-TYPE_VOID    : 'void';
-*/
+
 // 分隔符（定义在ID之前）
+PAREN : '()';
 LPAREN : '(';
 RPAREN : ')';
 LBRACE : '{';
@@ -246,6 +230,7 @@ INTERFACE: 'interface';
 EXTENDS: 'extends';
 IMPLEMENTS: 'implements';
 VAR: 'var';
+CONST: 'const';
 RETURN: 'return';
 FOR: 'for';
 WHILE: 'while';
@@ -258,9 +243,6 @@ NULL: 'null';
 IN: 'in';
 BREAK: 'break';
 CONTINUE: 'continue';
-CMD: 'cmd'
-   | 'command'
-   ;
 ARROW: '->';
 DOUBLE_COLON: '::';
 

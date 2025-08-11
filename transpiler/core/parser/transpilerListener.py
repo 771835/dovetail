@@ -322,14 +322,6 @@ class transpilerListener(ParseTreeListener):
     def exitParenExpr(self, ctx: transpilerParser.ParenExprContext):
         pass
 
-    # Enter a parse tree produced by transpilerParser#NewObjectExpr.
-    def enterNewObjectExpr(self, ctx: transpilerParser.NewObjectExprContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#NewObjectExpr.
-    def exitNewObjectExpr(self, ctx: transpilerParser.NewObjectExprContext):
-        pass
-
     # Enter a parse tree produced by transpilerParser#argumentList.
     def enterArgumentList(self, ctx: transpilerParser.ArgumentListContext):
         pass

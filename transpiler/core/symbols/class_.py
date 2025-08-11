@@ -7,14 +7,14 @@ from typing import TYPE_CHECKING
 from attrs import define, field, validators
 
 from transpiler.core.enums import ClassType, DataTypeBase
-from .base import NewSymbol
+from .base import Symbol
 
 if TYPE_CHECKING:
-    from . import Reference,Constant,Function,Variable
+    from . import Reference, Constant, Function, Variable
 
 
 @define(slots=True)
-class Class(NewSymbol, DataTypeBase):
+class Class(Symbol, DataTypeBase):
     name: str = field(validator=validators.instance_of(str))
     methods: set[Function] = field(validator=validators.instance_of(set))
     interface: Optional[Class] = field(validator=validators.instance_of(Optional[DataTypeBase]))

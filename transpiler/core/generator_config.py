@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from enum import IntEnum, auto
-from typing import NamedTuple
 
 from attrs import define, field, validators
 
@@ -22,11 +21,12 @@ class MinecraftEdition(SafeEnum):
     BEDROCK_EDITION = auto()  # 基岩版 (BE)
 
 
-class MinecraftVersion(NamedTuple):
-    major: int
-    minor: int
-    patch: int
-    edition: MinecraftEdition
+@define(frozen=True, slots=True, eq=True)
+class MinecraftVersion:
+    major: int = field(converter=int)
+    minor: int = field(converter=int)
+    patch: int = field(converter=int)
+    edition: MinecraftEdition = field(validator=validators.instance_of(MinecraftEdition))
 
     @classmethod
     def from_str(cls, version: str, edition: str = "java_edition") -> MinecraftVersion:
@@ -35,7 +35,12 @@ class MinecraftVersion(NamedTuple):
             minecraft_edition = MinecraftEdition.BEDROCK_EDITION
 
         version_ = list(map(int, version.split(".")))
-        return cls(version_[0], version_[1], version_[2] if len(version_) > 2 else 0, minecraft_edition)
+        return cls(
+            major=version_[0],
+            minor=version_[1],
+            patch=version_[2] if len(version_) > 2 else 0,
+            edition=minecraft_edition
+        )
 
 
 @define(slots=True, frozen=True)

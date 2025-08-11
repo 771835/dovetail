@@ -3,12 +3,7 @@ from typing import Any
 
 from transpiler.core.enums import StructureType, CompareOps, BinaryOps, UnaryOps, DataType
 from transpiler.core.safe_enum import SafeEnum
-from transpiler.core.symbols import Literal
-from transpiler.core.symbols.class_ import Class
-from transpiler.core.symbols.constant import Constant
-from transpiler.core.symbols.function import Function
-from transpiler.core.symbols.reference import Reference
-from transpiler.core.symbols.variable import Variable
+from transpiler.core.symbols import Literal, Class, Constant, Function, Reference, Variable
 
 
 class IROpCode(SafeEnum):
@@ -43,10 +38,8 @@ class IROpCode(SafeEnum):
     # 预留 0x45-0x5F 用于OOP扩展
 
     # ===== 特殊指令 (0x60-0x7F) =====
-    RAW_CMD = 0x60  # 原始命令输出
-    DEBUG_INFO = 0x61  # 调试元数据
 
-    # 预留 0x62-0x7F 用于命令扩展
+    # 预留 0x60-0x7F 用于命令扩展
 
     # ==== 扩展指令集 (0x80-0xFF) ====
     # 预留 0x80-0xFF 用于未来补充
@@ -60,13 +53,12 @@ class IROpCode(SafeEnum):
 
 class IRInstruction:
     def __init__(self, opcode: IROpCode,
-                 operands: list[Any], line: int = -1, column: int = -1, filename: str = None, debug: bool = False):
+                 operands: list[Any], line: int = -1, column: int = -1, filename: str = None):
         self.filename = filename
         self.column = column
         self.line = line
         self.operands = operands
         self.opcode = opcode
-        self.debug = debug
 
     def __repr__(self):
         ops = ", ".join(f"{op=}" for op in self.operands)
@@ -125,8 +117,8 @@ class IRReturn(IRInstruction):
 
 
 class IRCall(IRInstruction):
-    def __init__(self, result: Variable | Constant, func: Function,
-                 args: list[Reference[Variable | Constant | Literal]] = None, line: int = -1, column: int = -1,
+    def __init__(self, result: Variable | Constant | None, func: Function,
+                 args: dict[str, Reference[Variable | Constant | Literal]] = None, line: int = -1, column: int = -1,
                  filename: str = None, opcode: IROpCode = None):
         if args is None:
             args = []
@@ -152,8 +144,10 @@ class IRScopeBegin(IRInstruction):
 
 
 class IRScopeEnd(IRInstruction):
-    def __init__(self, line: int = -1, column: int = -1, filename: str = None):
+    def __init__(self, name: str, stype: StructureType, line: int = -1, column: int = -1, filename: str = None):
         operands = [
+            name,
+            stype
         ]
         super().__init__(IROpCode.SCOPE_END, operands, line, column, filename)
 
@@ -300,7 +294,7 @@ class IRSetField(IRInstruction):
 
 class IRCallMethod(IRInstruction):
     def __init__(self, result: Variable, obj: Reference[Variable | Constant], method: Function,
-                 args: list[Reference] = None, line: int = -1,
+                 args: dict[str, Reference] = None, line: int = -1,
                  column: int = -1, filename: str = None):
         operands = [
             result,
@@ -310,19 +304,3 @@ class IRCallMethod(IRInstruction):
         ]
         super().__init__(IROpCode.CALL_METHOD, operands, line, column, filename)
 
-
-class IRRawCmd(IRInstruction):
-    def __init__(self, command: Reference[Variable | Constant | Literal], line: int = -1, column: int = -1,
-                 filename: str = None):
-        operands = [
-            command
-        ]
-        super().__init__(IROpCode.RAW_CMD, operands, line, column, filename)
-
-
-class IRDebugInfo(IRInstruction):
-    def __init__(self, line: int = -1, column: int = -1,
-                 filename: str = None):
-        operands = [
-        ]
-        super().__init__(IROpCode.DEBUG_INFO, operands, line, column, filename)

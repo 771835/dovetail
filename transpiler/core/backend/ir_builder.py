@@ -114,3 +114,8 @@ class IRBuilderIterator:
             self.instructions.append(instruction)
         else:
             self.instructions.insert(insert_index, instruction)
+
+    def insert_and_continue_with(self, instruction: IRInstruction) -> None:
+        """插入指令并让迭代器继续从该指令开始"""
+        self.insert_here(instruction)
+        self.rollback()

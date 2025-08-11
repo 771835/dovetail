@@ -34,10 +34,6 @@ class BinaryOps(SafeEnum):
     SHL = '<<'  # 左移: a<<b
     SHR = '>>'  # 右移 (逻辑): a>>b
 
-    #    # 逻辑运算 (需布尔操作数)
-    #    AND = '&&'  # 逻辑与: a&&b
-    #    OR = '||'  # 逻辑或: a||b
-
     # 特殊功能
     MIN = 'min'  # 最小值: min(a,b)
     MAX = 'max'  # 最大值: max(a,b)
@@ -52,9 +48,11 @@ class CompareOps(SafeEnum):
     GT = '>'  # 大于: a > b
     GE = '>='  # 大于等于: a >= b
 
+
 class DataTypeBase:
     def get_name(self) -> str:
         ...
+
 
 class DataType(DataTypeBase, SafeEnum):
     """基础数据类型：表示变量的存储类型"""
@@ -63,6 +61,8 @@ class DataType(DataTypeBase, SafeEnum):
     BOOLEAN = 'boolean'
     VOID = 'void'
     NULL = 'null'  # 特殊类型，不可为声明变量时的类型
+    Function = 'function'
+
     def get_name(self) -> str:
         return self.name
 

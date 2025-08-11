@@ -167,10 +167,6 @@ class transpilerVisitor(ParseTreeVisitor):
     def visitParenExpr(self, ctx: transpilerParser.ParenExprContext):
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by transpilerParser#NewObjectExpr.
-    def visitNewObjectExpr(self, ctx: transpilerParser.NewObjectExprContext):
-        return self.visitChildren(ctx)
-
     # Visit a parse tree produced by transpilerParser#argumentList.
     def visitArgumentList(self, ctx: transpilerParser.ArgumentListContext):
         return self.visitChildren(ctx)

@@ -61,10 +61,7 @@ class SysMixin:
     def exit_injection(ci: CallbackInfoReturnable, exitcode):
         ci.cancel()  # 完全阻止正常退出
         print("\n✨✧･ﾟ: *✧･ﾟ:* 𝓔𝓧𝓘𝓣 𝓘𝓢 𝓝𝓞𝓣 𝓐𝓝 𝓞𝓟𝓣𝓘𝓞𝓝! \n        …ᘛ⁐̤ᕐᐷ 帮我按 Ctrl+C！")
-        try:
-            time.sleep(10)
-        except KeyboardInterrupt:
-            quit(exitcode)
+        time.sleep(10)
         quit(42)
 
 
@@ -190,7 +187,7 @@ class TimeWarpProgressMixin:
         if seconds < 0.5:
             return
         ci.cancel()
-        TimeWarpProgressMixin.animated_progress_bar(seconds * random.uniform(0.9, 1.2))
+        TimeWarpProgressMixin.animated_progress_bar(seconds * random.uniform(0.8, 1.14))  # 不是我喜欢的时间，直接篡改qwq
 
 
 @Mixin(sys.stdout)
@@ -231,17 +228,20 @@ class StdoutMixin:
             emojis = ["🚀", "🌈", "✨", "🎯", "🎮", "🧩"]
             if random.random() < 0.2 and text.strip():
                 new_text += random.choice(emojis)
-
-            sys.__stdout__.write(new_text)
             ci.cancel()  # 取消原始写入
+            sys.__stdout__.write(new_text)
 
 
 @Mixin(CompilationError)
 class CompilationErrorMixin:
+    @staticmethod
     @Inject("__repr__", At(At.RETURN), cancellable=True)
-    def repr_injection(self, ci):
+    def repr_injection(ci, self):
         # 随机替换错误消息
         import random
         if random.random() < 0.3:  # 30%概率
-            return ci.set_return_value("错误被吃掉啦~")
-        return ci.return_value
+            ci.set_return_value("错误被吃掉啦~")
+
+
+def main():
+    print("Hello world!")

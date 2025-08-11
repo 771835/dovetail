@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from transpiler.core.enums import StructureType
-from transpiler.core.symbols import NewSymbol
+from transpiler.core.symbols import Symbol
 
 
 class CodeGeneratorScope:
@@ -12,7 +12,7 @@ class CodeGeneratorScope:
         self.name = name
         self.parent = parent
         self.type = structure_type
-        self.symbols: dict[str, NewSymbol] = dict()  # 符号表（变量/函数/类）
+        self.symbols: dict[str, Symbol] = dict()  # 符号表（变量/函数/类）
         self.children: list[CodeGeneratorScope] = list()  # 子作用域
         self.commands: list[str] = list()
 
@@ -53,7 +53,7 @@ class CodeGeneratorScope:
         self.children.append(child)
         return child
 
-    def add_symbol(self, symbol: NewSymbol, force=False):
+    def add_symbol(self, symbol: Symbol, force=False):
         if symbol.get_name() in self.symbols and not force:
             raise NameError(
                 f"Symbol {symbol.get_name()} already exists in this scope")
@@ -62,13 +62,13 @@ class CodeGeneratorScope:
     def has_symbol(self, name: str):
         return name in self.symbols
 
-    def set_symbol(self, symbol: NewSymbol, force=False):
+    def set_symbol(self, symbol: Symbol, force=False):
         if symbol.get_name() not in self.symbols and not force:
             raise NameError(
                 f"Symbol {symbol.get_name()} does not exist in this scope")
         self.symbols[symbol.get_name()] = symbol
 
-    def resolve_symbol(self, name: str) -> NewSymbol:
+    def resolve_symbol(self, name: str) -> Symbol:
         """逐级向上查找符号"""
         name = str(name)
         current = self
@@ -78,7 +78,7 @@ class CodeGeneratorScope:
             current = current.parent
         raise ValueError(f"Undefined symbol: {name}")
 
-    def find_symbol(self, name: str) -> NewSymbol:
+    def find_symbol(self, name: str) -> Symbol:
         """只在单层查找符号"""
         name = str(name)
         if name in self.symbols:

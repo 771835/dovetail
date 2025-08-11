@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from transpiler.core.enums import StructureType
-from transpiler.core.symbols.base import NewSymbol
+from transpiler.core.symbols.base import Symbol
 
 
 class Scope:
@@ -11,7 +11,7 @@ class Scope:
         self.name = name
         self.parent = parent
         self.type = structure_type
-        self.symbols: dict[str, NewSymbol] = dict()  # 符号表（变量/函数/类）
+        self.symbols: dict[str, Symbol] = dict()  # 符号表（变量/函数/类）
         self.children: list[Scope] = list()  # 子作用域
 
     def get_name(self):
@@ -27,7 +27,7 @@ class Scope:
         self.children.append(child)
         return child
 
-    def add_symbol(self, symbol: NewSymbol, force=False) -> bool:
+    def add_symbol(self, symbol: Symbol, force=False) -> bool:
         if symbol.get_name() in self.symbols and not force:
             return False
         self.symbols[symbol.get_name()] = symbol
@@ -36,13 +36,13 @@ class Scope:
     def has_symbol(self, name: str):
         return name in self.symbols
 
-    def set_symbol(self, symbol: NewSymbol, force=False):
+    def set_symbol(self, symbol: Symbol, force=False):
         if symbol.get_name() not in self.symbols and not force:
             raise NameError(
                 f"Symbol {symbol.get_name()} does not exist in this scope")
         self.symbols[symbol.get_name()] = symbol
 
-    def resolve_symbol(self, name: str) -> NewSymbol:
+    def resolve_symbol(self, name: str) -> Symbol:
         """逐级向上查找符号"""
         name = str(name)
         current = self
@@ -52,7 +52,7 @@ class Scope:
             current = current.parent
         raise ValueError(f"Undefined symbol: {name}")
 
-    def find_symbol(self, name: str) -> NewSymbol:
+    def find_symbol(self, name: str) -> Symbol:
         """只在单层查找符号"""
         name = str(name)
         if name in self.symbols:
