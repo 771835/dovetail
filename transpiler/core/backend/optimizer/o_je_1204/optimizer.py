@@ -50,7 +50,7 @@ class Optimizer(IROptimizerSpec):
             optimization_pass.append(UselessScopeRemovalPass)
 
         if self.level >= OptimizationLevel.O3:  # 测试性优化
-            # TODO:当函数嵌套且名称重复时会出现删除错误,故临时放在测试性优化，等待修复
+            # FIXME:当函数嵌套且名称重复时会出现删除错误,故临时放在测试性优化，等待修复
             optimization_pass.append(EmptyScopeRemovalPass)
         last_hash = hash(tuple(self.builder.get_instructions()))
         iteration = count()

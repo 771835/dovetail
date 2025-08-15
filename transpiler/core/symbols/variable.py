@@ -19,6 +19,11 @@ class Variable(Symbol):
     var_type: VariableType = field(validator=validators.instance_of(VariableType), default=VariableType.COMMON)
 
     def get_name(self) -> str:
+        """
+        获取变量名
+
+        :return: 变量的名称
+        """
         return self.name
 
     def __hash__(self):

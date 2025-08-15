@@ -1,7 +1,7 @@
 # coding=utf-8
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NoReturn
+from typing import TYPE_CHECKING
 
 from attrs import define, field, validators
 

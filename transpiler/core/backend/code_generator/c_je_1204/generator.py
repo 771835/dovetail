@@ -9,13 +9,13 @@ from typing import Callable
 
 from transpiler.core.backend.ir_builder import IRBuilder, IRBuilderIterator
 from transpiler.core.backend.specification import CodeGeneratorSpec
-from transpiler.core.enums import StructureType, ValueType, DataType, CompareOps, BinaryOps, FunctionType
+from transpiler.core.enums import *
 from transpiler.core.generator_config import MinecraftEdition, GeneratorConfig, MinecraftVersion
 from transpiler.core.instructions import IROpCode, IRInstruction
-from transpiler.core.symbols import Variable, Constant, Function, Literal, Reference, Class
+from transpiler.core.symbols import *
 from .builtins import builtin_func, BuiltinFuncMapping
 from .code_generator_scope import CodeGeneratorScope
-from .command_builder import FunctionBuilder, BasicCommands, Execute, ScoreboardBuilder, DataBuilder, Composite
+from .command_builder import *
 
 
 class CodeGenerator(CodeGeneratorSpec):
@@ -36,8 +36,20 @@ class CodeGenerator(CodeGeneratorSpec):
         self.current_scope = self.top_scope
         self.var_objective = "var"  # 存储变量记分板
         self.statement_objective = "stmt"  # 存储变量记分板
-        self.current_scope.add_command(ScoreboardBuilder.add_objective(self.var_objective, "dummy", "Variables"))
-        self.current_scope.add_command(ScoreboardBuilder.add_objective(self.statement_objective, "dummy", "Statement"))
+        self.current_scope.add_command(
+            ScoreboardBuilder.add_objective(
+                self.var_objective,
+                "dummy",
+                "Variables"
+            )
+        )
+        self.current_scope.add_command(
+            ScoreboardBuilder.add_objective(
+                self.statement_objective,
+                "dummy",
+                "Statement"
+            )
+        )
 
     @staticmethod
     def is_support(config: GeneratorConfig) -> bool:
@@ -97,19 +109,36 @@ class CodeGenerator(CodeGeneratorSpec):
             for instr in self.iterator:
                 handler = handlers.get(instr.opcode, lambda i: None)
                 if handler:
-                    if instr.opcode not in (IROpCode.SCOPE_BEGIN, IROpCode.SCOPE_END, IROpCode.FUNCTION,
+                    if instr.opcode not in (IROpCode.SCOPE_BEGIN,
+                                            IROpCode.SCOPE_END,
+                                            IROpCode.FUNCTION,
                                             IROpCode.CLASS):  # 排除无实际意义的指令
-                        self.current_scope.add_command(BasicCommands.comment(f"{self.current_scope.name}:{instr}"))
+                        self.current_scope.add_command(
+                            BasicCommands.comment(
+                                f"{self.current_scope.name}:{instr}"
+                            )
+                        )
                     handler(instr)
                 else:
                     if hasattr(self, "_" + instr.opcode.name):
                         if callable(getattr(self, "_" + instr.opcode.name)):
                             getattr(self, "_" + instr.opcode.name)(instr.opcode)
                             continue
+                        else:
+                            self.current_scope.add_command(
+                                BasicCommands.comment(
+                                    f"Fucking {instr.opcode.name} doesn't exist!"
+                                )
+                            )
 
             self._write_commands(self.target.__str__(), self.top_scope)
             for file_path in builtin_func:
-                path = os.path.join(self.target, self.namespace, "functions", f"{file_path}.mcfunction")
+                path = os.path.join(
+                    self.target,
+                    self.namespace,
+                    "functions",
+                    f"{file_path}.mcfunction"
+                )
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(path, 'w', encoding='utf-8') as f:
                     f.write(builtin_func[file_path])
@@ -117,96 +146,126 @@ class CodeGenerator(CodeGeneratorSpec):
     def _scope_begin(self, instr: IRInstruction):
         name: str = instr.get_operands()[0]
         stype: StructureType = instr.get_operands()[1]
+
+        if stype == StructureType.LOOP_CHECK:
+            break_name = f"#break_{self.current_scope.get_unique_name('.')}.{name}"
+            self.current_scope.add_command(
+                ScoreboardBuilder.set_score(
+                    break_name,
+                    self.statement_objective,
+                    0
+                )
+            )
+
         self.current_scope = self.current_scope.create_child(name, stype)
         self.scope_stack.append(self.current_scope)
         if stype == StructureType.FUNCTION:
             name = "#return_" + self.current_scope.get_unique_name(".")
-            self.current_scope.add_command(ScoreboardBuilder.set_score(name, self.statement_objective, 0))
-
+            self.current_scope.add_command(
+                ScoreboardBuilder.set_score(
+                    name,
+                    self.statement_objective,
+                    0
+                )
+            )
 
     def _scope_end(self, instr: IRInstruction):
-        name: str = instr.get_operands()[0]
         stype: StructureType = instr.get_operands()[1]
         if stype == StructureType.LOOP_CHECK:
-            break_name = "#break_" + self.current_scope.get_unique_name(".")
             continue_name = "#continue_" + self.current_scope.get_unique_name(".")
 
             self.current_scope.add_command(
-                [
-                    Execute.execute().if_score_matches(break_name, self.statement_objective, "1").run("return 0"),
-                    Execute.execute().if_score_matches(continue_name, self.statement_objective, "1").run("return 0"),
-                    ScoreboardBuilder.set_score(break_name, self.statement_objective, 0),
-                    ScoreboardBuilder.set_score(continue_name, self.statement_objective, 0)
-                ]
+                ScoreboardBuilder.set_score(
+                    continue_name,
+                    self.statement_objective,
+                    0
+                )
             )
+
         self.current_scope = self.current_scope.parent
         self.scope_stack.pop()
 
     def _break(self, instr: IRInstruction):
         loop_check_scope = self.current_scope.resolve_scope(instr.get_operands()[0])
         name = "#break_" + loop_check_scope.get_unique_name(".")
-        self.current_scope.add_command(ScoreboardBuilder.set_score(name, self.statement_objective, 1))
-        current = self.current_scope
-        while True:
-            current.add_command(
-                Execute.execute().if_score_matches(name, self.statement_objective, "1").run("return 0"))
-            if current == loop_check_scope:
-                break
-            current = current.parent
+        self.current_scope.add_command(
+            ScoreboardBuilder.set_score(
+                name,
+                self.statement_objective,
+                1
+            )
+        )
+        self.current_scope.add_command(
+            "return 0"
+        )
 
     def _continue(self, instr: IRInstruction):
         loop_check_scope = self.current_scope.resolve_scope(instr.get_operands()[0])
         name = "#continue_" + loop_check_scope.get_unique_name(".")
-        self.current_scope.add_command(ScoreboardBuilder.set_score(name, self.statement_objective, 1))
-        current = self.current_scope
-        while True:
-            if current == loop_check_scope:
-                break
-            current.add_command(
-                Execute.execute().if_score_matches(name, self.statement_objective, "1").run("return 0"))
-            current = current.parent
+        self.current_scope.add_command(
+            ScoreboardBuilder.set_score(
+                name,
+                self.statement_objective,
+                1
+            )
+        )
+        self.current_scope.add_command(
+            "return 0"
+        )
 
     def _function(self, instr: IRInstruction):
         ...
 
     def _return(self, instr: IRInstruction):
         value: Reference[Variable | Constant | Literal] = instr.get_operands()[0]
-        current = self.current_scope
-        while True:
-            if current.type == StructureType.FUNCTION:
-                break
-            current = current.parent
 
-        return_var = Variable("return_" + uuid.uuid5(self.uuid_namespace, current.get_unique_name(".")).hex,
-                              value.get_data_type())
-        current.add_symbol(return_var)
+        function_scope = self.current_scope.find_parent_scope_by_type(StructureType.FUNCTION)
 
         if value:  # 如果存在返回值
+            return_var = Variable(
+                "return_" + uuid.uuid5(
+                    self.uuid_namespace,
+                    function_scope.get_unique_name('.')
+                ).hex[:8],
+                value.get_data_type()
+            )
+            function_scope.add_symbol(return_var)
             if isinstance(value.get_data_type(), DataType):
                 if value.value_type == ValueType.LITERAL:
                     self.current_scope.add_command(
-                        BasicCommands.Copy.copy_literal_base_type(return_var, self.current_scope, self.var_objective,
-                                                                  value.value))
+                        BasicCommands.Copy.copy_literal_base_type(
+                            return_var,
+                            self.current_scope,
+                            self.var_objective,
+                            value.value
+                        )
+                    )
                 elif value.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
                     self.current_scope.add_command(
-                        BasicCommands.Copy.copy_variable_base_type(return_var, self.current_scope, self.var_objective,
-                                                                   value.value,
-                                                                   self.current_scope, self.var_objective)
+                        BasicCommands.Copy.copy_variable_base_type(
+                            return_var,
+                            self.current_scope,
+                            self.var_objective,
+                            value.value,
+                            self.current_scope,
+                            self.var_objective
+                        )
                     )
             else:  # Class
                 assert isinstance(value.get_data_type(), Class)
                 pass  # TODO:实现类的赋值
 
-        name = "#return_" + current.get_unique_name(".")
-        self.current_scope.add_command(ScoreboardBuilder.set_score(name, self.statement_objective, 1))
-        current = self.current_scope
-        while True:
-            current.add_command(
-                Execute.execute().if_score_matches(name, self.statement_objective, "1").run("return 0"))
-
-            if current.type == StructureType.FUNCTION:
-                break
-            current = current.parent
+        name = "#return_" + function_scope.get_unique_name(".")
+        self.current_scope.add_command(
+            ScoreboardBuilder.set_score(
+                name,
+                self.statement_objective,
+                1
+            )
+        )
+        self.current_scope.add_command(
+            "return 0"
+        )
 
     def _var_release(self, instr: IRInstruction):
         pass  # 懒得清理，反正不清理也占不了多少内存
@@ -214,7 +273,11 @@ class CodeGenerator(CodeGeneratorSpec):
     def _jump(self, instr: IRInstruction):
         scope_name: str = instr.get_operands()[0]
         jump_scope = self.current_scope.resolve_scope(scope_name)
-        self.current_scope.add_command(FunctionBuilder.run(jump_scope.get_minecraft_function_path()))
+        self.current_scope.add_command(
+            FunctionBuilder.run(
+                jump_scope.get_minecraft_function_path()
+            )
+        )
 
     def _cond_jump(self, instr: IRInstruction):
         cond_var: Variable = instr.get_operands()[0]
@@ -223,15 +286,37 @@ class CodeGenerator(CodeGeneratorSpec):
         if true_scope_name:
             true_jump_scope = self.current_scope.resolve_scope(true_scope_name)
             self.current_scope.add_command(
-                Execute.execute().if_score_matches(self.current_scope.get_symbol_path(cond_var.get_name()),
-                                                   self.var_objective, "1").run(
-                    FunctionBuilder.run(true_jump_scope.get_minecraft_function_path())))
+                Execute.execute()
+                .if_score_matches(
+                    self.current_scope.get_symbol_path(
+                        cond_var.get_name()
+                    ),
+                    self.var_objective,
+                    "1"
+                )
+                .run(
+                    FunctionBuilder.run(
+                        true_jump_scope.get_minecraft_function_path()
+                    )
+                )
+            )
         if false_scope_name:
             false_jump_scope = self.current_scope.resolve_scope(false_scope_name)
             self.current_scope.add_command(
-                Execute.execute().unless_score_matches(self.current_scope.get_symbol_path(cond_var.get_name()),
-                                                       self.var_objective, "1").run(
-                    FunctionBuilder.run(false_jump_scope.get_minecraft_function_path())))
+                Execute.execute()
+                .unless_score_matches(
+                    self.current_scope.get_symbol_path(
+                        cond_var.get_name()
+                    ),
+                    self.var_objective,
+                    "1"
+                )
+                .run(
+                    FunctionBuilder.run(
+                        false_jump_scope.get_minecraft_function_path()
+                    )
+                )
+            )
 
     def _call(self, instr: IRInstruction):
         result: Variable | Constant = instr.get_operands()[0]
@@ -268,13 +353,28 @@ class CodeGenerator(CodeGeneratorSpec):
                 assert isinstance(arg.get_data_type(), Class)
                 pass  # TODO:实现类的赋值
         if isinstance(func.return_type, DataType):
-            BasicCommands.Copy.copy_variable_base_type(result, self.current_scope, self.var_objective, Variable(
-                "return_" + uuid.uuid5(self.uuid_namespace, jump_scope.get_unique_name(".")).hex, func.return_type),
-                                                       self.current_scope, self.var_objective)
+            BasicCommands.Copy.copy_variable_base_type(
+                result,
+                self.current_scope,
+                self.var_objective,
+                Variable(
+                    "return_" + uuid.uuid5(
+                        self.uuid_namespace,
+                        jump_scope.get_unique_name('.')
+                    ).hex[:8],
+                    func.return_type
+                ),
+                self.current_scope,
+                self.var_objective
+            )
         else:  # Class
             assert isinstance(func.return_type, Class)
             pass  # TODO:实现类的赋值
-        self.current_scope.add_command(FunctionBuilder.run(jump_scope.get_minecraft_function_path()))
+        self.current_scope.add_command(
+            FunctionBuilder.run(
+                jump_scope.get_minecraft_function_path()
+            )
+        )
 
     def _assign(self, instr: IRInstruction):
         target: Variable | Constant = instr.get_operands()[0]
@@ -282,12 +382,24 @@ class CodeGenerator(CodeGeneratorSpec):
         if isinstance(target.dtype, DataType):
             if source.value_type == ValueType.LITERAL:
                 self.current_scope.add_command(
-                    BasicCommands.Copy.copy_literal_base_type(target, self.current_scope, self.var_objective,
-                                                              source.value))
+                    BasicCommands.Copy.copy_literal_base_type(
+                        target,
+                        self.current_scope,
+                        self.var_objective,
+                        source.value
+                    )
+                )
             elif source.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
                 self.current_scope.add_command(
-                    BasicCommands.Copy.copy_variable_base_type(target, self.current_scope, self.var_objective,
-                                                               source.value, self.current_scope, self.var_objective))
+                    BasicCommands.Copy.copy_variable_base_type(
+                        target,
+                        self.current_scope,
+                        self.var_objective,
+                        source.value,
+                        self.current_scope,
+                        self.var_objective
+                    )
+                )
         else:  # Class
             assert isinstance(target.dtype, Class)
             pass  # TODO:实现类的赋值
@@ -302,9 +414,20 @@ class CodeGenerator(CodeGeneratorSpec):
         right_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
         if isinstance(result.dtype, DataType):
             self.current_scope.add_command(
-                Composite.op_base_type(result, self.current_scope, self.var_objective, op, left_ref, self.current_scope,
-                                       self.var_objective, right_ref, self.current_scope, self.var_objective,
-                                       self.namespace))
+                Composite.op_base_type(
+                    result,
+                    self.current_scope,
+                    self.var_objective,
+                    op,
+                    left_ref,
+                    self.current_scope,
+                    self.var_objective,
+                    right_ref,
+                    self.current_scope,
+                    self.var_objective,
+                    self.namespace
+                )
+            )
         else:  # TODO:实现类的比较？
             assert isinstance(result.dtype, Class)
             pass
@@ -316,9 +439,19 @@ class CodeGenerator(CodeGeneratorSpec):
         right: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
         if isinstance(left.get_data_type(), DataType):
             self.current_scope.add_command(
-                Composite.var_compare_base_type(left, self.current_scope, self.var_objective, op, right,
-                                                self.current_scope, self.var_objective, result, self.current_scope,
-                                                self.var_objective))
+                Composite.var_compare_base_type(
+                    left,
+                    self.current_scope,
+                    self.var_objective,
+                    op,
+                    right,
+                    self.current_scope,
+                    self.var_objective,
+                    result,
+                    self.current_scope,
+                    self.var_objective
+                )
+            )
 
     def _cast(self, instr: IRInstruction):
         result: Variable | Constant = instr.get_operands()[0]
@@ -330,21 +463,57 @@ class CodeGenerator(CodeGeneratorSpec):
         if dtype == DataType.STRING and value.get_data_type() == DataType.INT:
             temp_path = uuid.uuid4().hex
             self.current_scope.add_command(
-                Execute.execute().store_result_storage(self.var_objective, temp_path, "int", 1.0).run(
-                    ScoreboardBuilder.get_score(self.current_scope.get_symbol_path(value.get_name()),
-                                                self.var_objective)))
-            self.current_scope.add_command(
-                DataBuilder.modify_storage_set_string_storage(self.var_objective,
-                                                              self.current_scope.get_symbol_path(result.get_name()),
-                                                              self.var_objective, temp_path)
+                Execute.execute()
+                .store_result_storage(
+                    self.var_objective,
+                    temp_path,
+                    "int",
+                    1.0
+                )
+                .run(
+                    ScoreboardBuilder.get_score(
+                        self.current_scope.get_symbol_path(
+                            value.get_name()
+                        ),
+                        self.var_objective
+                    )
+                )
             )
-            self.current_scope.add_command(DataBuilder.remove_storage(self.var_objective, temp_path))
+            self.current_scope.add_command(
+                DataBuilder.modify_storage_set_string_storage(
+                    self.var_objective,
+                    self.current_scope.get_symbol_path(
+                        result.get_name()
+                    ),
+                    self.var_objective,
+                    temp_path
+                )
+            )
+            self.current_scope.add_command(
+                DataBuilder.remove_storage(
+                    self.var_objective,
+                    temp_path
+                )
+            )
         elif dtype == DataType.INT and value.get_data_type() == DataType.STRING:  # string -> int
             temp_path = uuid.uuid4().hex
             self.current_scope.add_command(
-                Execute.execute().store_result_storage(self.var_objective, temp_path, "int", 1.0).run(
-                    ScoreboardBuilder.get_score(self.current_scope.get_symbol_path(value.get_name()),
-                                                self.var_objective)))
+                Execute.execute()
+                .store_result_storage(
+                    self.var_objective,
+                    temp_path,
+                    "int",
+                    1.0
+                )
+                .run(
+                    ScoreboardBuilder.get_score(
+                        self.current_scope.get_symbol_path(
+                            value.get_name()
+                        ),
+                        self.var_objective
+                    )
+                )
+            )
             self.current_scope.add_command(
                 BasicCommands.call_macros_function(
                     f"{self.namespace}:builtins/str2int",
@@ -368,7 +537,12 @@ class CodeGenerator(CodeGeneratorSpec):
                     }
                 )
             )
-            self.current_scope.add_command(DataBuilder.remove_storage(self.var_objective, temp_path))
+            self.current_scope.add_command(
+                DataBuilder.remove_storage(
+                    self.var_objective,
+                    temp_path
+                )
+            )
 
     def _declare(self, instr: IRInstruction):
         self.current_scope.add_symbol(instr.get_operands()[0])

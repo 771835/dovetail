@@ -1,0 +1,1 @@
+python -m nuitka --standalone --onefile --lto=yes --output-filename=dovetail.exe  .\main.py

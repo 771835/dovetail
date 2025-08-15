@@ -194,7 +194,7 @@ class MixinManager:
                 @wraps(orig_method_raw)
                 def injected_method(*args, **kwargs):
                     ci = CallbackInfoReturnable() if cancel_flag else CallbackInfo()
-                    # 处理HEAD注入 (使用正确的回调分组)
+                    # 处理HEAD注入
                     for cb in local_callbacks:
 
                         if cb['at'].location == At.HEAD:

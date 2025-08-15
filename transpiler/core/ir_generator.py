@@ -1097,10 +1097,13 @@ class MCGenerator(transpilerVisitor):
     def visitReturnStmt(
             self,
             ctx: transpilerParser.ReturnStmtContext):
-        result_var = self.visit(ctx.expr()).value
-        if isinstance(result_var.value, (Constant, Variable)):
-            result_var.value.var_type = VariableType.RETURN
-        self._add_ir_instruction(IRReturn(result_var))
+        if ctx.expr():
+            result_var = self.visit(ctx.expr()).value
+            if isinstance(result_var.value, (Constant, Variable)):
+                result_var.value.var_type = VariableType.RETURN
+            self._add_ir_instruction(IRReturn(result_var))
+        else:
+            self._add_ir_instruction(IRReturn())
         return Result(None)
 
     def visitIncludeStmt(

@@ -1,6 +1,8 @@
 # coding=utf-8
 from __future__ import annotations
 
+from typing import Callable
+
 from transpiler.core.enums import StructureType
 from transpiler.core.symbols import Symbol
 
@@ -115,3 +117,49 @@ class CodeGeneratorScope:
             return True
         else:
             return False
+
+    def traverse_parent_scopes(
+            self,
+            action: Callable[[CodeGeneratorScope], None],
+            stop_condition: Callable[[CodeGeneratorScope], bool] | None = None,
+            per_scope_callback: Callable[[CodeGeneratorScope], None] | None = None,
+            include_self: bool = True
+    ) -> CodeGeneratorScope | None:
+        """
+        通用父作用域遍历方法
+
+        :param action: 在每个作用域上执行的操作
+        :param stop_condition: 停止条件匿名函数，当返回True时停止遍历
+        :param per_scope_callback: 在每个作用域上执行的回调（无论是否满足停止条件）
+        :param include_self: 是否包括当前作用域
+        :return: 停止时所在的作用域（如果因条件停止）或None
+        """
+        current = self if include_self else self.parent
+
+        while current:
+            # 首先执行每个作用域的回调（如果提供）
+            if per_scope_callback:
+                per_scope_callback(current)
+
+            # 执行主要操作
+            action(current)
+
+            # 检查停止条件
+            if stop_condition and stop_condition(current):
+                return current
+
+            current = current.parent
+
+        return None  # 遍历完所有父作用域未触发停止条件
+
+    def find_parent_scope(self, predicate: Callable[[CodeGeneratorScope], bool]) -> CodeGeneratorScope | None:
+        """查找满足特定条件的父作用域"""
+        return self.traverse_parent_scopes(
+            action=lambda _: None,  # 空操作
+            stop_condition=predicate,
+            include_self=True
+        )
+
+    def find_parent_scope_by_type(self, target_type: StructureType) -> CodeGeneratorScope | None:
+        """查找特定类型的父作用域（单行实现）"""
+        return self.find_parent_scope(lambda s: s.type == target_type)

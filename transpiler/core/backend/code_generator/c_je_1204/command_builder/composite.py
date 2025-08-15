@@ -1,5 +1,4 @@
 # coding=utf-8
-import typing
 import uuid
 
 from transpiler.core.enums import DataType, ValueType, CompareOps, BinaryOps
@@ -53,15 +52,15 @@ class Composite:
 
         commands = []
 
-        op_value: typing.Literal["=", "<", "<=", ">", ">="]
-        op_value = op.value  # NOQA
+        op_value: str = op.value
 
         result_path = result_scope.get_symbol_path(result.get_name())
 
-        # 自动将==替换为游戏支持的=
-        if op.value == "==":
+        # 自动将==替换为游戏所使用的=
+        if op_value == "==":
             op_value = "="
 
+        # 类型不相等直接判断为不等于
         if left.get_data_type() != right.get_data_type():
             return [BasicCommands.Copy.copy_literal_base_type(result, result_scope, result_objective,
                                                               Literal(DataType.BOOLEAN, False))]

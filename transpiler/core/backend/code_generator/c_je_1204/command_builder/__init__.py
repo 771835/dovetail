@@ -6,11 +6,12 @@ from ._scoreboard import ScoreboardBuilder
 from .base import BasicCommands
 from .composite import Composite
 
+# 标明所有导出的指令构建器
 __all__ = [
     'Execute',
     'ScoreboardBuilder',
     'Composite',
     'BasicCommands',
     'FunctionBuilder',
-    'DataBuilder']
-MINECRAFT_VERSION = ['1.20.4']
+    'DataBuilder'
+]

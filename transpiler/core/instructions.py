@@ -1,5 +1,4 @@
 # coding=utf-8
-from typing import Any
 
 from transpiler.core.enums import StructureType, CompareOps, BinaryOps, UnaryOps, DataType
 from transpiler.core.safe_enum import SafeEnum
@@ -35,6 +34,7 @@ class IROpCode(SafeEnum):
     GET_FIELD = 0x42  # 获取字段
     SET_FIELD = 0x43  # 设置字段
     CALL_METHOD = 0x44  # 方法调用
+
     # 预留 0x45-0x5F 用于OOP扩展
 
     # ===== 特殊指令 (0x60-0x7F) =====
@@ -53,12 +53,13 @@ class IROpCode(SafeEnum):
 
 class IRInstruction:
     def __init__(self, opcode: IROpCode,
-                 operands: list[Any], line: int = -1, column: int = -1, filename: str = None):
+                 operands: list, line: int = -1, column: int = -1, filename: str | None = None):
+        self.opcode = opcode
+        self.operands = operands
         self.filename = filename
         self.column = column
         self.line = line
-        self.operands = operands
-        self.opcode = opcode
+
 
     def __repr__(self):
         ops = ", ".join(f"{op=}" for op in self.operands)
@@ -66,13 +67,57 @@ class IRInstruction:
             f"{self.opcode}({ops})"
 
     def __hash__(self):
-        return hash((self.opcode, tuple(self.operands)))
+        # 处理操作数的哈希值计算
+        operand_hashes = []
+
+        for op in self.get_operands():
+            if isinstance(op, (list, tuple)):
+                # 递归处理嵌套列表/元组
+                operand_hashes.append(tuple(self._flatten_nested(op)))
+            elif isinstance(op, dict):
+                # 字典转换为排序后的元组
+                operand_hashes.append(tuple(sorted((k, self._flatten_nested(v)) for k, v in op.items())))
+            elif hasattr(op, '__hash__') and callable(op.__hash__):
+                # 可哈希对象直接使用
+                operand_hashes.append(hash(op))
+            elif callable(getattr(op, 'unique_id', None)):
+                # 处理自定义对象（如果有唯一ID）
+                operand_hashes.append(hash(op.unique_id()))
+            else:
+                # 最后手段：使用对象ID
+                operand_hashes.append(id(op))
+
+        return hash((self.opcode, tuple(operand_hashes)))
+
+    def _flatten_nested(self, obj: list | tuple | dict | str):
+        """递归处理嵌套结构"""
+        if isinstance(obj, (list, tuple)):
+            return tuple(self._flatten_nested(item) for item in obj)
+        elif isinstance(obj, dict):
+            return tuple(sorted((k, self._flatten_nested(v)) for k, v in obj.items()))
+        elif hasattr(obj, '__hash__'):
+            return hash(obj)
+        elif hasattr(obj, 'unique_id') and callable(obj.unique_id):
+            return obj.unique_id()
+        return id(obj)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
     def get_operands(self):
         return self.operands
+
+    def get_line(self):
+        return self.line
+
+    def get_column(self):
+        return self.column
+
+    def get_filename(self):
+        return self.filename
+
+    def get_opcode(self):
+        return self.opcode
 
 
 # 具体指令实现
@@ -111,7 +156,7 @@ class IRReturn(IRInstruction):
     def __init__(self, value: Reference[Variable | Constant | Literal] = None, line: int = -1, column: int = -1,
                  filename: str = None):
         operands = [
-            value
+            value,
         ]
         super().__init__(IROpCode.RETURN, operands, line, column, filename)
 
@@ -128,9 +173,6 @@ class IRCall(IRInstruction):
             args
         ]
         super().__init__(opcode if opcode else IROpCode.CALL, operands, line, column, filename)
-
-    def __hash__(self):
-        return hash((self.operands[0], self.operands[1], tuple(self.operands[2])))
 
 
 class IRScopeBegin(IRInstruction):
@@ -303,4 +345,3 @@ class IRCallMethod(IRInstruction):
             args
         ]
         super().__init__(IROpCode.CALL_METHOD, operands, line, column, filename)
-

@@ -11,7 +11,7 @@ program
     ;
 
 includeStmt
-    : INCULDE literal SEMI?             // 包含库文件，如：include "minecraft_utils.mcdl";
+    : INCLUDE literal SEMI?             // 包含库文件，如：include "minecraft_utils.mcdl";
     ;
 
 /* 2. 注解系统 */
@@ -178,7 +178,7 @@ expr
     | NOT expr                         #LogicalNotExpr             // not运算符
     | expr (MUL|DIV|MOD) expr                   # FactorExpr         // 算术运算
     | expr (ADD|SUB) expr                   # TermExpr
-    | expr (GT | LT | EQ | NEQ | '<=' | '>=') expr # CompareExpr      // 比较运算
+    | expr (GT | LT | EQ | NEQ | LTE | GTE) expr # CompareExpr      // 比较运算
     | expr AND expr                   #LogicalAndExpr             // and运算符
     | expr OR expr                   #LogicalOrExpr              // or运算符
     ;
@@ -222,7 +222,7 @@ SEMI : ';';
 COMMA : ',';
 
 // 关键字（定义在ID之前）
-INCULDE: 'include';
+INCLUDE: 'include';
 FUNC: 'func';
 METHOD: 'method';
 CLASS: 'class';
@@ -257,6 +257,8 @@ GT  : '>';
 LT  : '<';
 EQ  : '==';
 NEQ : '!=';
+GTE : '>=';
+LTE : '<=';
 AND : '&&'
     | 'and'
     ;

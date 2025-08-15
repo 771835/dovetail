@@ -1,8 +1,8 @@
-func int main() {
-    int a = 99999
+func main() fuck int{
 
-    for (int i =0;i<a;i=i+1) {
+    for (int i =0;i<99999;i=i+1) {
         print(str(i))
+        setblock(0,i,0,"minecraft:lava")
     }
    /*
 

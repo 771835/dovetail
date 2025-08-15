@@ -42,12 +42,18 @@ class CompilationError(Exception):
         return f"<{self.__class__.__name__}: {self.msg}>" + """"""
 
 
+class ASTVisitorError(CompilationError):
+    """AST遍历阶段错误"""
+    def __init__(self, msg: str, line: int = None,
+                 column: int = None, filename: str = None):
+        super().__init__(msg, line=line, column=column, filename=filename)
+
 class CompilerSyntaxError(CompilationError):
     """语法错误子类"""
 
     def __init__(self, msg: str, line: int = None,
                  column: int = None, filename: str = None):
-        super().__init__(msg, line=line, column=column, filename=filename)  # 修正参数顺序
+        super().__init__(msg, line=line, column=column, filename=filename)
 
 
 class TypeMismatchError(CompilationError):

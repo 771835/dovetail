@@ -1,7 +1,7 @@
 # coding=utf-8
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NoReturn
+from typing import TYPE_CHECKING
 
 from attrs import define, field, validators
 
@@ -9,6 +9,7 @@ from transpiler.core.enums import FunctionType, DataTypeBase, DataType
 from .base import Symbol
 
 if TYPE_CHECKING:
+    # 仅类型检查时导入
     from . import Parameter, Class
 
 
@@ -20,6 +21,11 @@ class Function(Symbol):
     function_type: FunctionType = field(validator=validators.instance_of(FunctionType), default=FunctionType.FUNCTION)
 
     def get_name(self):
+        """
+        获得函数名称
+
+        :return: 函数的名称
+        """
         return self.name
 
     def __hash__(self):

@@ -6,34 +6,94 @@ import warnings
 class ScoreboardBuilder:
     @staticmethod
     def add_objective(objective: str, criteria: str, display_name: str = ""):
+        """
+        增加记分板
+
+        :param objective: 记分板名称
+        :param criteria: 记分板准则
+        :param display_name: 记分板演示名
+        :return: 生成的指令
+        """
         return f"scoreboard objectives add {objective} {criteria} \"{display_name}\""
 
     @staticmethod
     def del_objective(objective: str):
+        """
+        删除一个记分板
+
+        :param objective: 将要删除的记分板名称
+        :return: 生成的指令
+        """
         return f"scoreboard objectives remove {objective}"
 
     @staticmethod
     def get_score(target: str, objective: str):
+        """
+        读取目标的分数
+
+        :param target: 目标
+        :param objective: 目标的记分板名称
+        :return: 生成的指令
+        """
         return f"scoreboard players get {target} {objective}"
 
     @staticmethod
     def set_score(targets: str, objective: str, score: int):
+        """
+        设置目标的分数
+
+        :param targets: 目标
+        :param objective: 目标的记分板名称
+        :param score: 需要设置的分数
+        :return: 生成的指令
+        """
         return f"scoreboard players set {targets} {objective} {score}"
 
     @staticmethod
     def add_score(targets: str, objective: str, score: int) -> list[str]:
+        """
+        设置目标的分数
+
+        :param targets: 目标
+        :param objective: 目标的记分板名称
+        :param score: 需要增加的分数
+        :return: 生成的指令
+        """
         return [f"scoreboard players add {targets} {objective} {score}"]
 
     @staticmethod
     def sub_score(targets: str, objective: str, score: int) -> list[str]:
+        """
+        设置目标的分数
+
+        :param targets: 目标
+        :param objective: 目标的记分板名称
+        :param score: 需要减少的分数
+        :return: 生成的指令
+        """
         return [f"scoreboard players remove {targets} {objective} {score}"]
 
     @staticmethod
     def reset_score(targets: str, objective: str = ""):
+        """
+        重置目标的分数
+
+        :param targets: 目标
+        :param objective: 目标的记分板名称
+        :return: 生成的指令
+        """
         return f"scoreboard players reset {targets} {objective}"
 
     @staticmethod
     def mul_score(targets: str, objective: str, score: int) -> list[str]:
+        """
+        将目标的分数乘以指定值
+
+        :param targets: 目标
+        :param objective: 目标的记分板名称
+        :param score: 指定值
+        :return: 生成的指令
+        """
         temp = '#' + uuid.uuid4().hex
         return [ScoreboardBuilder.set_score(temp, objective, score),
                 ScoreboardBuilder.mul_op(targets, objective, temp, objective),
@@ -41,6 +101,14 @@ class ScoreboardBuilder:
 
     @staticmethod
     def div_score(targets: str, objective: str, score: int) -> list[str]:
+        """
+        将目标的分数除以指定值
+
+        :param targets: 目标
+        :param objective: 目标的记分板名称
+        :param score: 指定值
+        :return: 生成的指令
+        """
         temp = '#' + uuid.uuid4().hex
         return [ScoreboardBuilder.set_score(temp, objective, score),
                 ScoreboardBuilder.div_op(targets, objective, temp, objective),
@@ -48,6 +116,14 @@ class ScoreboardBuilder:
 
     @staticmethod
     def mod_score(targets: str, objective: str, score: int) -> list[str]:
+        """
+        将目标的分数取模为指定值
+
+        :param targets: 目标
+        :param objective: 目标的记分板名称
+        :param score: 指定值
+        :return: 生成的指令
+        """
         temp = '#' + uuid.uuid4().hex
         return [ScoreboardBuilder.set_score(temp, objective, score),
                 ScoreboardBuilder.mod_op(targets, objective, temp, objective),
@@ -55,6 +131,14 @@ class ScoreboardBuilder:
 
     @staticmethod
     def min_score(targets: str, objective: str, score: int) -> list[str]:
+        """
+        目标的分数与指定值取较小值
+
+        :param targets: 目标
+        :param objective: 目标的记分板名称
+        :param score: 指定值
+        :return: 生成的指令
+        """
         temp = '#' + uuid.uuid4().hex
         return [ScoreboardBuilder.set_score(temp, objective, score),
                 ScoreboardBuilder.min_op(targets, objective, temp, objective),
@@ -62,6 +146,14 @@ class ScoreboardBuilder:
 
     @staticmethod
     def max_score(targets: str, objective: str, score: int) -> list[str]:
+        """
+        目标的分数与指定值取较大值
+
+        :param targets: 目标
+        :param objective: 目标的记分板名称
+        :param score: 指定值
+        :return: 生成的指令
+        """
         temp = '#' + uuid.uuid4().hex
         return [ScoreboardBuilder.set_score(temp, objective, score),
                 ScoreboardBuilder.max_op(targets, objective, temp, objective),
@@ -70,7 +162,7 @@ class ScoreboardBuilder:
     @staticmethod
     def swap_score(targets: str, objective: str, score: int) -> list[str]:
         """
-            [Deprecated] 交换目标与指定分数（已弃用，请直接使用 set_score()）
+            [Deprecated] 交换目标与指定分数（已弃用，推荐直接使用 set_score()）
         """
         warnings.warn(
             "swap_score() is deprecated since v1.0.0. Use set_score() instead.",

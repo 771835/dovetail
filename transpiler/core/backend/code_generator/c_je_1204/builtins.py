@@ -31,7 +31,11 @@ builtin_func = {
     "builtins/setblock/setblock_k_air": "$setblock $(x) $(y) $(z) air keep",
     "builtins/setblock/setblock_r_air": "$setblock $(x) $(y) $(z) air replace",
     "builtins/setblock/setblock_s_air": "$setblock $(x) $(y) $(z) air strict",
-
+    "builtins/setblock/setblock_a_lava": "$setblock $(x) $(y) $(z) lava $(mode)",
+    "builtins/setblock/setblock_d_lava": "$setblock $(x) $(y) $(z) lava destroy",
+    "builtins/setblock/setblock_k_lava": "$setblock $(x) $(y) $(z) lava keep",
+    "builtins/setblock/setblock_r_lava": "$setblock $(x) $(y) $(z) lava replace",
+    "builtins/setblock/setblock_s_lava": "$setblock $(x) $(y) $(z) lava strict",
 }
 
 
@@ -43,6 +47,13 @@ class Commands:
             "replace": "builtins/setblock/setblock_r_air",
             "strict": "builtins/setblock/setblock_s_air",
             None: "builtins/setblock/setblock_a_air",
+        },
+        "lava": {
+            "destroy": "builtins/setblock/setblock_d_lava",
+            "keep": "builtins/setblock/setblock_k_lava",
+            "replace": "builtins/setblock/setblock_r_lava",
+            "strict": "builtins/setblock/setblock_s_lava",
+            None: "builtins/setblock/setblock_a_lava",
         },
         None: {
             "destroy": "builtins/setblock/setblock_d",
@@ -257,10 +268,10 @@ class Commands:
         x = args["x"]
         y = args["y"]
         z = args["z"]
-        block_id = args["block_id"]
-        mode = args["mode"]
+        block_id_ref = args["block_id"]
+        mode_ref = args["mode"]
         if all(arg.value_type == ValueType.LITERAL for arg in args.values()):
-            generator.current_scope.add_command(f"setblock {x} {y} {z} {block_id} {mode}")
+            generator.current_scope.add_command(f"setblock {x} {y} {z} {block_id_ref} {mode_ref}")
 
         # 将x,y,z写入数据存储
         if x.value_type != ValueType.LITERAL:
@@ -288,16 +299,24 @@ class Commands:
                 )
             )
 
-        block_id_value = None
-        if block_id.value_type == ValueType.LITERAL:
-            block_id_value = block_id.value.value
+        block_id = None
+        if block_id_ref.value_type == ValueType.LITERAL:
+            block_id = block_id_ref.value.value
+            # 检查方块id是否存在命名空间
+            if ":" in block_id:
+                namespace, block_id_ = block_id.split(":")[:2]
+                if namespace == "minecraft":
+                    block_id = block_id_
 
-        mode_id_value = None
-        if mode.value_type == ValueType.LITERAL:
-            mode_id_value = mode.value.value
+        mode_id = None
+        if mode_ref.value_type == ValueType.LITERAL:
+            mode_id = mode_ref.value.value
+            if mode_id not in ["destroy", "keep", "replace", "strict"]:
+                # 提示填充类型不存在
+                warnings.warn(f"Mode '{mode_id}' is not supported, are you sure it exists?\nuse --disable-warnings to block the warning")
 
-        handler = Commands.SETBLOCK_HANDLERS.get(block_id_value) or Commands.SETBLOCK_HANDLERS.get(None)
-        func_name = handler.get(mode_id_value) or handler.get(None)
+        handler = Commands.SETBLOCK_HANDLERS.get(block_id) or Commands.SETBLOCK_HANDLERS.get(None)
+        func_name = handler.get(mode_id) or handler.get(None)
 
         generator.current_scope.add_command(
             BasicCommands.call_macros_function(
@@ -322,16 +341,16 @@ class Commands:
                             z.get_name()) if z.value_type != ValueType.LITERAL else z.value.value,
                         generator.var_objective,
                     ),
-                    "mode" if mode_id_value not in handler or mode_id_value is None else None: (
-                        True if mode.value_type != ValueType.LITERAL else False,
+                    "mode" if mode_id not in handler or mode_id is None else None: (
+                        True if mode_ref.value_type != ValueType.LITERAL else False,
                         generator.current_scope.get_symbol_path(
-                            mode.get_name()) if mode.value_type != ValueType.LITERAL else mode.value.value,
+                            mode_ref.get_name()) if mode_ref.value_type != ValueType.LITERAL else mode_ref.value.value,
                         generator.var_objective,
                     ),
-                    "block_id" if block_id_value not in Commands.SETBLOCK_HANDLERS or block_id_value is None else None: (
-                        True if block_id.value_type != ValueType.LITERAL else False,
+                    "block_id" if block_id not in Commands.SETBLOCK_HANDLERS or block_id is None else None: (
+                        True if block_id_ref.value_type != ValueType.LITERAL else False,
                         generator.current_scope.get_symbol_path(
-                            block_id.get_name()) if block_id.value_type != ValueType.LITERAL else block_id.value.value,
+                            block_id_ref.get_name()) if block_id_ref.value_type != ValueType.LITERAL else block_id_ref.value.value,
                         generator.var_objective,
                     ),
                 }
