@@ -220,16 +220,16 @@ class ConstantFoldingPass(IROptimizationPass):
         """执行常量折叠优化"""
         iterator = self.builder.__iter__()
         instruction_handlers = {
-            IRScopeBegin: self._handle_scope_begin,
-            IRScopeEnd: self._handle_scope_end,
-            IRAssign: self._assign,
-            IRDeclare: self._declare,
-            IROp: self._op,
-            IRCompare: self._compare,
-            IRUnaryOp: self._unary_op,
-            IRCondJump: self._cond_jump,
-            IRCall: self._call,
-            IRCast: self._cast,
+            IROpCode.SCOPE_BEGIN: self._handle_scope_begin,
+            IROpCode.SCOPE_END: self._handle_scope_end,
+            IROpCode.ASSIGN: self._assign,
+            IROpCode.DECLARE: self._declare,
+            IROpCode.OP: self._op,
+            IROpCode.COMPARE: self._compare,
+            IROpCode.UNARY_OP: self._unary_op,
+            IROpCode.COND_JUMP: self._cond_jump,
+            IROpCode.CALL: self._call,
+            IROpCode.CAST: self._cast,
         }
         while True:
             try:
@@ -237,7 +237,7 @@ class ConstantFoldingPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            handler = instruction_handlers.get(type(instr))
+            handler = instruction_handlers.get(instr.opcode)
             if handler:
                 handler(iterator, instr)  # NOQA
 

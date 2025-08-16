@@ -739,9 +739,9 @@ class MCGenerator(transpilerVisitor):
                             column=self._get_current_column()
                         )
                 else:
-                    condition_ref = Reference(ValueType.LITERAL,Literal(DataType.BOOLEAN,True))
+                    condition_ref = Reference(ValueType.LITERAL, Literal(DataType.BOOLEAN, True))
 
-                self._add_ir_instruction(IRCondJump(condition_ref.value,loop_body.name))
+                self._add_ir_instruction(IRCondJump(condition_ref.value, loop_body.name))
                 self._add_ir_instruction(IRCondJump(condition_ref.value, loop_check.name))
 
             self._add_ir_instruction(IRJump(loop_check.name))
@@ -830,8 +830,8 @@ class MCGenerator(transpilerVisitor):
 
         if left.get_data_type() != DataType.BOOLEAN or right.get_data_type() != DataType.BOOLEAN:
             raise TypeMismatchError(
-                DataType.BOOLEAN,
-                left.get_data_type(),
+                expected_type=DataType.BOOLEAN,
+                actual_type=left.get_data_type(),
                 line=ctx.expr(0).start.line,
                 column=ctx.expr(0).start.column,
                 filename=self.filename
@@ -856,8 +856,8 @@ class MCGenerator(transpilerVisitor):
 
         if left.get_data_type() != DataType.BOOLEAN or right.get_data_type() != DataType.BOOLEAN:
             raise TypeMismatchError(
-                DataType.BOOLEAN,
-                left.get_data_type(),
+                expected_type=DataType.BOOLEAN,
+                actual_type=left.get_data_type(),
                 line=ctx.expr(0).start.line,
                 column=ctx.expr(0).start.column,
                 filename=self.filename
@@ -1011,6 +1011,32 @@ class MCGenerator(transpilerVisitor):
         self._add_ir_instruction(IROp(result_var, op, left.value, right.value))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
+    def visitNegExpr(
+            self,
+            ctx: transpilerParser.NegExprContext
+    ):
+        expr_result = self.visit(ctx.expr()).value
+        if expr_result.get_data_type() not in (DataType.BOOLEAN, DataType.INT):
+            raise TypeMismatchError(
+                expected_type="int/boolean",
+                actual_type=expr_result.value,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        if expr_result.value_type != ValueType.LITERAL:
+            self._add_ir_instruction(
+                IROp(
+                    expr_result.value,
+                    BinaryOps.MUL,
+                    expr_result.value,
+                    Reference.literal(-1)
+                )
+            )
+            return Result(Reference(ValueType.VARIABLE, expr_result.value))
+        else:
+            return Result(Reference(ValueType.VARIABLE, Reference.literal(expr_result.value.value * -1)))
+
     def visitDirectFuncCall(
             self,
             ctx: transpilerParser.DirectFuncCallContext):
@@ -1125,6 +1151,10 @@ class MCGenerator(transpilerVisitor):
         # 标记已导入
         self.include_manager.execute_import(include_path)
 
+        # 判断是否为内置库
+        if library := StdBuiltinMapping.get(include_path, self.ir_builder):
+            self.load_library(library)
+            return Result(None)
         # 处理导入的文件
         try:
             o_filename = self.filename

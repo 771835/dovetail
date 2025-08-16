@@ -2,9 +2,10 @@
 from typing import Callable
 
 from transpiler.core.backend.ir_builder import IRBuilder
+from transpiler.core.enums import DataType, FunctionType
 from transpiler.core.instructions import IRInstruction
 from transpiler.core.lib.library import Library
-from transpiler.core.symbols import Constant, Reference, Function, Variable, Literal
+from transpiler.core.symbols import Constant, Reference, Function, Variable, Literal, Parameter
 
 
 class Random(Library):
@@ -12,11 +13,20 @@ class Random(Library):
         self.builder = builder
         self._constant: dict[Constant, Reference] = {
         }
-        self._functions: dict[Function, Callable[..., Variable | Constant | Literal]] = {
+        self._functions: dict[Function, Callable[..., Variable | Constant | Literal] | None] = {
+            Function(
+                "randint",
+                [
+                    Parameter(Variable("min", DataType.INT)),
+                    Parameter(Variable("max", DataType.INT)),
+                ],
+                DataType.INT,
+                FunctionType.BUILTIN
+            ): None,
         }
 
     def __str__(self) -> str:
-        pass
+        return "random"
 
     def load(self) -> list[IRInstruction]:
         return []

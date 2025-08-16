@@ -1,9 +1,7 @@
 # coding=utf-8
-from __future__ import annotations
-
-import os
 import threading
 import uuid
+from functools import lru_cache
 from pathlib import Path
 from typing import Callable
 
@@ -60,88 +58,97 @@ class CodeGenerator(CodeGeneratorSpec):
             return False
         return True
 
+    def _process_instruction(
+            self,
+            instr: IRInstruction,
+            handlers: dict[IROpCode, Callable[[IRInstruction], None]]
+    ):
+        """处理单个IR指令"""
+        handler = handlers.get(instr.opcode, self._fallback_handler)
+
+        # 添加调试注释
+        if instr.opcode not in (IROpCode.SCOPE_BEGIN, IROpCode.SCOPE_END,
+                                IROpCode.FUNCTION, IROpCode.CLASS):
+            self.current_scope.add_command(
+                BasicCommands.comment(f"{self.current_scope.name}:{instr}")
+            )
+
+        # 处理指令
+        handler(instr)
+
+    def _fallback_handler(self, instr: IRInstruction):
+        """后备指令处理器"""
+        opcode_name = instr.opcode.name
+        if hasattr(self, "_" + opcode_name):
+            handler = getattr(self, "_" + opcode_name)
+            if callable(handler):
+                handler(instr.opcode)
+            else:
+                self.current_scope.add_command(f"# Fucking {opcode_name} exists but isn't callable!")
+        else:
+            self.current_scope.add_command(f"# Fucking {opcode_name} doesn't exist!")
+
     @staticmethod
-    def _write_commands(output_dir: str, top_scope):
+    def _write_commands(output_dir: Path, top_scope):
         """遍历作用域树生成文件"""
         stack: list[CodeGeneratorScope] = [top_scope]
 
         while stack:
             current: CodeGeneratorScope = stack.pop()
-            file_path = os.path.join(output_dir, current.get_file_path())
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            file_path = output_dir / current.get_file_path()
+            file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(file_path, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(current.commands))
+                f.write('\n'.join(current.get_commands()))
             stack.extend(reversed(current.children))
+
+    def _write_builtin_functions(self):
+        """写入内置函数库"""
+        for file_path, content in builtin_func.items():
+            full_path = self.target / self.namespace / "functions" / f"{file_path}.mcfunction"
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(full_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+    @lru_cache(maxsize=1)
+    def _get_opcode_handler(self) -> dict[IROpCode, Callable[[IRInstruction], None]]:
+        return {
+            # ===== 控制流指令 (0x00-0x1F) =====
+            IROpCode.JUMP: self._jump,
+            IROpCode.COND_JUMP: self._cond_jump,
+            IROpCode.FUNCTION: self._function,
+            IROpCode.CALL: self._call,
+            IROpCode.RETURN: self._return,
+            IROpCode.SCOPE_BEGIN: self._scope_begin,
+            IROpCode.SCOPE_END: self._scope_end,
+            IROpCode.BREAK: self._break,
+            IROpCode.CONTINUE: self._continue,
+
+            # ===== 变量操作指令 (0x20-0x3F) =====
+            IROpCode.DECLARE: self._declare,
+            IROpCode.ASSIGN: self._assign,
+            IROpCode.UNARY_OP: self._unary_op,
+            IROpCode.OP: self._op,
+            IROpCode.COMPARE: self._compare,
+            IROpCode.CAST: self._cast,
+
+            # ===== 面向对象指令 (0x40-0x5F) =====
+            # IROpCode.CLASS: self._class_def,
+            # IROpCode.NEW_OBJ: self._new_object,
+            # IROpCode.GET_FIELD: self._get_field,
+            # IROpCode.SET_FIELD: self._set_field,
+            # IROpCode.CALL_METHOD: self._call_method,
+
+            # ===== 命令生成指令 (0x60-0x7F) =====
+        }
 
     def generate_commands(self):
         with self._lock:
             self.iterator = self.builder.__iter__()
-            handlers: dict[IROpCode, Callable[[IRInstruction], None]] = {
-                # ===== 控制流指令 (0x00-0x1F) =====
-                IROpCode.JUMP: self._jump,  # 0x00
-                IROpCode.COND_JUMP: self._cond_jump,  # 0x01
-                IROpCode.FUNCTION: self._function,  # 0x02
-                IROpCode.CALL: self._call,  # 0x03
-                IROpCode.RETURN: self._return,  # 0x04
-                IROpCode.SCOPE_BEGIN: self._scope_begin,  # 0x05
-                IROpCode.SCOPE_END: self._scope_end,  # 0x06
-                IROpCode.BREAK: self._break,  # 0x07
-                IROpCode.CONTINUE: self._continue,  # 0x08
-
-                # ===== 变量操作指令 (0x20-0x3F) =====
-                IROpCode.DECLARE: self._declare,  # 0x20
-                IROpCode.VAR_RELEASE: self._var_release,  # 0x21
-                IROpCode.ASSIGN: self._assign,  # 0x22
-                IROpCode.UNARY_OP: self._unary_op,  # 0x23
-                IROpCode.OP: self._op,  # 0x24
-                IROpCode.COMPARE: self._compare,  # 0x25
-                IROpCode.CAST: self._cast,  ## 0x26
-
-                # ===== 面向对象指令 (0x40-0x5F) =====
-                # IROpCode.CLASS: self._class_def,  # 0x40
-                # IROpCode.NEW_OBJ: self._new_object,  # 0x41
-                # IROpCode.GET_FIELD: self._get_field,  # 0x42
-                # IROpCode.SET_FIELD: self._set_field,  # 0x43
-                # IROpCode.CALL_METHOD: self._call_method,  # 0x44
-
-                # ===== 命令生成指令 (0x60-0x7F) =====
-            }
             for instr in self.iterator:
-                handler = handlers.get(instr.opcode, lambda i: None)
-                if handler:
-                    if instr.opcode not in (IROpCode.SCOPE_BEGIN,
-                                            IROpCode.SCOPE_END,
-                                            IROpCode.FUNCTION,
-                                            IROpCode.CLASS):  # 排除无实际意义的指令
-                        self.current_scope.add_command(
-                            BasicCommands.comment(
-                                f"{self.current_scope.name}:{instr}"
-                            )
-                        )
-                    handler(instr)
-                else:
-                    if hasattr(self, "_" + instr.opcode.name):
-                        if callable(getattr(self, "_" + instr.opcode.name)):
-                            getattr(self, "_" + instr.opcode.name)(instr.opcode)
-                            continue
-                        else:
-                            self.current_scope.add_command(
-                                BasicCommands.comment(
-                                    f"Fucking {instr.opcode.name} doesn't exist!"
-                                )
-                            )
+                self._process_instruction(instr, self._get_opcode_handler())
 
-            self._write_commands(self.target.__str__(), self.top_scope)
-            for file_path in builtin_func:
-                path = os.path.join(
-                    self.target,
-                    self.namespace,
-                    "functions",
-                    f"{file_path}.mcfunction"
-                )
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                with open(path, 'w', encoding='utf-8') as f:
-                    f.write(builtin_func[file_path])
+            self._write_commands(self.target, self.top_scope)
+            self._write_builtin_functions()
 
     def _scope_begin(self, instr: IRInstruction):
         name: str = instr.get_operands()[0]
@@ -266,9 +273,6 @@ class CodeGenerator(CodeGeneratorSpec):
         self.current_scope.add_command(
             "return 0"
         )
-
-    def _var_release(self, instr: IRInstruction):
-        pass  # 懒得清理，反正不清理也占不了多少内存
 
     def _jump(self, instr: IRInstruction):
         scope_name: str = instr.get_operands()[0]
@@ -439,7 +443,7 @@ class CodeGenerator(CodeGeneratorSpec):
         right: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
         if isinstance(left.get_data_type(), DataType):
             self.current_scope.add_command(
-                Composite.var_compare_base_type(
+                Composite.compare_base_type(
                     left,
                     self.current_scope,
                     self.var_objective,

@@ -9,6 +9,14 @@ from transpiler.core.safe_enum import SafeEnum
 
 
 class OptimizationLevel(IntEnum):
+    """
+    优化等级
+
+    - O0 不优化
+    - O1 少量优化
+    - O2 正常优化
+    - O3 激进优化
+    """
     O0 = 0
     O1 = 1
     O2 = 2
@@ -31,6 +39,7 @@ class MinecraftVersion:
     @classmethod
     def from_str(cls, version: str, edition: str = "java_edition") -> MinecraftVersion:
         minecraft_edition: MinecraftEdition = MinecraftEdition.JAVA_EDITION
+        # 如果edition字段中存在be等字段即视为基岩版
         if 'be' in edition.lower() or 'bedrock' in edition.lower():
             minecraft_edition = MinecraftEdition.BEDROCK_EDITION
 
@@ -45,11 +54,15 @@ class MinecraftVersion:
 
 @define(slots=True, frozen=True)
 class GeneratorConfig:
+    """
+    编译配置
+    """
     namespace: str = field(validator=validators.instance_of(str))
     optimization_level: OptimizationLevel = field(validator=validators.instance_of(OptimizationLevel))
     minecraft_version: MinecraftVersion = field(validator=validators.instance_of(MinecraftVersion))
     debug: bool = field(validator=validators.instance_of(bool), default=False)
     no_generate_commands: bool = field(validator=validators.instance_of(bool), default=False)
+    output_temp_file: bool = field(validator=validators.instance_of(bool), default=False)
     enable_recursion: bool = field(validator=validators.instance_of(bool), default=False)
     enable_same_name_function_nesting: bool = field(validator=validators.instance_of(bool), default=False)
     enable_experimental: bool = field(validator=validators.instance_of(bool), default=False)

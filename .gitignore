@@ -5,9 +5,11 @@
 *.interp
 *.tokens
 *.iml
+*.mcdc
 main.build/
 main.dist/
 main.onefile-build/
+bin/
 .idea/*
 .vscode/
 __pycache__/

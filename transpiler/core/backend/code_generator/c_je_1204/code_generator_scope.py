@@ -16,13 +16,17 @@ class CodeGeneratorScope:
         self.type = structure_type
         self.symbols: dict[str, Symbol] = dict()  # 符号表（变量/函数/类）
         self.children: list[CodeGeneratorScope] = list()  # 子作用域
-        self.commands: list[str] = list()
+        self._commands: list[str] = list()
+
+    def get_commands(self) -> list[str]:
+        return self._commands
 
     def add_command(self, commands: str | list[str]):
+
         if isinstance(commands, str):
-            self.commands.append(commands)
+            self._commands.append(commands)
         else:
-            self.commands.extend(commands)
+            self._commands.extend(commands)
 
     def get_name(self):
         return self.name

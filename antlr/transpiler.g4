@@ -56,7 +56,7 @@ typeList
 functionDecl
     : annotation* FUNC ID
       ( paramList)
-      ((':'|'->'|'fuck') type)       // 返回类型标注
+      (ARROW type)       // 返回类型标注
       block
     | annotation* FUNC type ID
       ( paramList)
@@ -65,7 +65,7 @@ functionDecl
 
 
 methodDecl
-    : annotation* METHOD ID paramList (':'|'->'|'fuck') type block
+    : annotation* METHOD ID paramList ARROW type block
     | annotation* METHOD type ID paramList block
     ;
 
@@ -126,13 +126,13 @@ whileStmt
     ;
 
 constDecl
-    : CONST ID (':' type) (ASSIGN expr) SEMI?  // 常量声明
+    : CONST ID (ARROW type) (ASSIGN expr) SEMI?  // 常量声明
     | CONST type ID (ASSIGN expr) SEMI?
     ;
 
 // 公共规则
 varDeclaration
-    : ID (':' type) ('?')? (ASSIGN expr)?
+    : ID (ARROW type) ('?')? (ASSIGN expr)?
     | type ID ('?')? (ASSIGN expr)? // 更符合大多数人习惯的变量声明
     ;
 
@@ -243,7 +243,11 @@ NULL: 'null';
 IN: 'in';
 BREAK: 'break';
 CONTINUE: 'continue';
-ARROW: '->';
+ARROW: '->'
+    | 'fuck'
+    | ':'
+    | 'as'
+    ;
 DOUBLE_COLON: '::';
 
 // 运算符

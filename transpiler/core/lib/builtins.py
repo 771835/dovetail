@@ -17,8 +17,22 @@ class Builtins(Library):
         self.builder = builder
 
         self._constants = {
-            Constant("INT_MAX", DataType.INT): Reference(ValueType.LITERAL, Literal(DataType.INT, 2147483647)),
-            Constant("INT_MIN", DataType.INT): Reference(ValueType.LITERAL, Literal(DataType.INT, -2147483648)),
+            Constant("INT_MAX", DataType.INT):
+                Reference(
+                    ValueType.LITERAL,
+                    Literal(
+                        DataType.INT,
+                        2147483647
+                    )
+                ),
+            Constant("INT_MIN", DataType.INT):
+                Reference(
+                    ValueType.LITERAL,
+                    Literal(
+                        DataType.INT,
+                        -2147483648
+                    )
+                ),
         }
         self._functions: dict[Function, Callable[..., Variable | Constant | Literal]] = {
             Function(
@@ -89,22 +103,13 @@ class Builtins(Library):
                 FunctionType.BUILTIN
             ): None,
             Function(
-                "randint",
-                [
-                    Parameter(Variable("min", DataType.INT)),
-                    Parameter(Variable("max", DataType.INT)),
-                ],
-                DataType.INT,
-                FunctionType.BUILTIN
-            ): None,
-            Function(
                 "setblock",
                 [
                     Parameter(Variable("x", DataType.INT)),
                     Parameter(Variable("y", DataType.INT)),
                     Parameter(Variable("z", DataType.INT)),
                     Parameter(Variable("block_id", DataType.STRING)),
-                    Parameter(Variable("mode", DataType.STRING), optional=True,default=Reference.literal("destroy")),
+                    Parameter(Variable("mode", DataType.STRING), optional=True, default=Reference.literal("destroy")),
                 ],
                 DataType.INT,
                 FunctionType.BUILTIN

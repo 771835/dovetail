@@ -1,13 +1,11 @@
 # coding=utf-8
 import argparse
-import contextlib
-import io
-import os.path
 import sys
 import time
 from pathlib import Path
 
 from transpiler.core.scope import Scope
+from transpiler.utils.ir_serializer import IRSymbolSerializer
 
 start_time = time.time_ns()
 
@@ -41,7 +39,7 @@ class Compile:
     def __init__(self, config: GeneratorConfig):
         self.config = config
 
-    def compile(self, source_path: str | Path, target_path: str | Path):
+    def compile(self, source_path: Path, target_path: Path):
         source_path = Path(source_path)
         target_path = Path(target_path)
         tree = self.parser_file(source_path)
@@ -54,6 +52,9 @@ class Compile:
             # 输出到target目录
             ir_builder = generator.get_generate_ir()
             ir_builder = Optimizer(ir_builder, self.config).optimize()
+            if self.config.output_temp_file:
+                with open(target_path.with_name(f"{target_path.stem}.mcdc"), "wb") as f:
+                    f.write(IRSymbolSerializer.dump(ir_builder))
             if not self.config.no_generate_commands:
                 CodeGenerator(ir_builder, target_path, self.config).generate_commands()
             print(f"Compilation completes, total time {time.time_ns() - start_time}")
@@ -139,6 +140,7 @@ if __name__ == "__main__":
     args_parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=1,
                              help='优化级别')
     args_parser.add_argument('--no-generate-commands', action='store_true', help='不生成指令')
+    args_parser.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
     args_parser.add_argument('--enable-recursion', action='store_true', help='启用递归(需后端支持)')
     args_parser.add_argument('--enable-same-name-function-nesting', action='store_true', help='启用同名函数嵌套')
     args_parser.add_argument('--enable-experimental', action='store_true', help='启用扩展模式')
@@ -167,14 +169,11 @@ if __name__ == "__main__":
     compile_obj = Compile(
         GeneratorConfig(
             args.namespace or "namespace",
-            OptimizationLevel(
-                args.O
-            ),
-            MinecraftVersion.from_str(
-                args.minecraft_version
-            ),
+            OptimizationLevel(args.O),
+            MinecraftVersion.from_str(args.minecraft_version),
             args.debug,
             args.no_generate_commands,
+            args.output_temp_file,
             args.enable_recursion,
             args.enable_same_name_function_nesting,
             args.enable_experimental

@@ -20,13 +20,12 @@ class IROpCode(SafeEnum):
 
     # ===== 变量操作指令 (0x20-0x3F) =====
     DECLARE = 0x20  # 变量声明
-    VAR_RELEASE = 0x21  # 变量释放
-    ASSIGN = 0x22  # 赋值操作
-    UNARY_OP = 0x23  # 一元运算
-    OP = 0x24  # 二元运算
-    COMPARE = 0x25  # 比较运算
-    CAST = 0x26  # 显式类型转换
-    # 预留 0x27-0x3F 用于变量操作扩展
+    ASSIGN = 0x21  # 赋值操作
+    UNARY_OP = 0x22  # 一元运算
+    OP = 0x23  # 二元运算
+    COMPARE = 0x24  # 比较运算
+    CAST = 0x25  # 显式类型转换
+    # 预留 0x26-0x3F 用于变量操作扩展
 
     # ===== 面向对象指令 (0x40-0x5F) =====
     CLASS = 0x40  # 类定义
@@ -59,7 +58,7 @@ class IRInstruction:
         self.filename = filename
         self.column = column
         self.line = line
-
+        self.flags: tuple[str] = tuple()
 
     def __repr__(self):
         ops = ", ".join(f"{op=}" for op in self.operands)
@@ -89,6 +88,9 @@ class IRInstruction:
 
         return hash((self.opcode, tuple(operand_hashes)))
 
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
     def _flatten_nested(self, obj: list | tuple | dict | str):
         """递归处理嵌套结构"""
         if isinstance(obj, (list, tuple)):
@@ -101,8 +103,8 @@ class IRInstruction:
             return obj.unique_id()
         return id(obj)
 
-    def __eq__(self, other):
-        return hash(self) == hash(other)
+    def add_flag(self, flag):
+        self.flags += flag
 
     def get_operands(self):
         return self.operands
@@ -118,6 +120,9 @@ class IRInstruction:
 
     def get_opcode(self):
         return self.opcode
+
+    def get_flags(self):
+        return self.flags
 
 
 # 具体指令实现
@@ -217,15 +222,6 @@ class IRDeclare(IRInstruction):
             var
         ]
         super().__init__(IROpCode.DECLARE, operands, line, column, filename)
-
-
-class IRVarRelease(IRInstruction):
-    def __init__(self, name: str, line: int = -1,
-                 column: int = -1, filename: str = None):
-        operands = [
-            name
-        ]
-        super().__init__(IROpCode.VAR_RELEASE, operands, line, column, filename)
 
 
 class IRAssign(IRInstruction):

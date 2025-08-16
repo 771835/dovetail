@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, TypeVar, Generic
 
 from attrs import define, field, validators
@@ -24,15 +25,25 @@ class Reference(Symbol, Generic[T]):
 
     def __attrs_post_init__(self):
         if isinstance(self.value, Reference):
-            import warnings
+            # 对于多重引用的情况自动拆解
             warnings.warn("多重引用")
             self.value_type = self.value.value_type
             self.value = self.value.value
 
-    def get_name(self) -> str:
+    def get_name(self) -> str | None:
+        """
+        返回所引用的符号的名称
+
+        :return: 符号名称
+        """
         return self.value.get_name()
 
     def get_data_type(self) -> DataType | Class:
+        """
+        返回所引用的符号的数据类型
+
+        :return: 符号数据类型
+        """
         if self.value_type == ValueType.FUNCTION:
             self.value: Function
             return self.value.return_type
@@ -50,4 +61,4 @@ class Reference(Symbol, Generic[T]):
         elif isinstance(value, str):
             return cls(ValueType.LITERAL, Literal(DataType.STRING, str(value)))
         else:
-            raise  # TODO:补上抱错
+            raise TypeError(f"Unsupported literal type: {type(value)}")

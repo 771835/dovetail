@@ -29,7 +29,6 @@
 | 指令          | 参数                   | 备注                    |
 |-------------|----------------------|-----------------------|
 | DECLARE     | variable             | 声明变量                  |
-| VAR_RELEASE | name                 | 显式释放变量资源              |
 | ASSIGN      | target source        | 赋值操作                  |
 | UNARY_OP    | result op operand    | 一元运算（如 `-a`, `!b`）    |
 | OP          | result op left right | 二元运算（如 `a+b`, `c*d`）  |
@@ -117,7 +116,6 @@ GET_FIELD result_var temp_var "value"
 ### 4. IR优化策略
 
 1. **内存优化**：
-    - 作用域退出时自动释放局部变量
     - 临时变量重用池
 2. **性能优化**：
     - 常量折叠：`OP $t0 + 2 3` → `ASSIGN $t0 5`

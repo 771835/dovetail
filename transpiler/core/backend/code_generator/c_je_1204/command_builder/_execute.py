@@ -22,7 +22,7 @@ HeightmapType = Literal["motion_blocking",
 BlocksMode = Literal["all", "masked"]
 # Added more score operations based on common MCJE syntax
 # [ "+=", "-=", "*=", "/=", "%=", "<=>"]
-ScoreOperation = Literal["=", "<", "<=", ">", ">="]
+ScoreOperation = Literal["=", "<", "<=", ">", ">="] | str
 # Added the full list of valid numeric NBT types for 'store'
 StoreType = Literal["int", "float", "short", "long", "double", "byte"]
 BossbarStoreType = Literal["value", "max"]

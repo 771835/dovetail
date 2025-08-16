@@ -9,8 +9,11 @@ from ..code_generator_scope import CodeGeneratorScope
 
 class BasicCommands:
     @staticmethod
-    def call_macros_function(func_name: str, objective: str, param: dict[str, tuple[bool, str, str | None]]) -> list[
-        str]:
+    def call_macros_function(
+            func_name: str,
+            objective: str,
+            param: dict[str, tuple[bool, str, str | None]]
+    ) -> list[str]:
         args_path = f"args.{uuid.uuid4().hex}"
         commands: list[str] = []
         for name, _ in param.items():
@@ -18,10 +21,28 @@ class BasicCommands:
                 continue
             if _[0]:
                 commands.append(
-                    DataBuilder.modify_storage_set_from_storage(objective, f"{args_path}.{name}", _[2], _[1]))
+                    DataBuilder.modify_storage_set_from_storage(
+                        objective,
+                        f"{args_path}.{name}",
+                        _[2],
+                        _[1]
+                    )
+                )
             else:
-                commands.append(DataBuilder.modify_storage_set_value(objective, f"{args_path}.{name}", _[1]))
-        commands.append(FunctionBuilder.run_with_source(func_name, "storage", f"{objective} {args_path}"))
+                commands.append(
+                    DataBuilder.modify_storage_set_value(
+                        objective,
+                        f"{args_path}.{name}",
+                        _[1]
+                    )
+                )
+        commands.append(
+            FunctionBuilder.run_with_source(
+                func_name,
+                "storage",
+                f"{objective} {args_path}"
+            )
+        )
         return commands
 
     @staticmethod

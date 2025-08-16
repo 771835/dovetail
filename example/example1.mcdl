@@ -2,7 +2,7 @@ func foo():int{
     return 404259;
 }
 func bar():int{
-    if (foo()==404259/1) {
+    if (foo()==404259) {
         exec("say 1");
         print("1")
     }else {
