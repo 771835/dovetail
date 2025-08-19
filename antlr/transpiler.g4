@@ -166,7 +166,7 @@ expr
     //| expr '?' '.' ID                       # SafeNavigation     // 安全导航
      expr '.' ID argumentList         # MethodCall         // 方法调用
     | expr '.' ID                           # MemberAccess       // 成员访问
-    //| expr '[' expr ']'                     # ArrayAccess        // 数组访问
+    | expr '[' expr ']'                     # ArrayAccess        // 数组访问
     //| expr argumentList                # FunctionCall       // 函数调用
     | ID argumentList                  # DirectFuncCall     // 直接调用
     | primary                               # PrimaryExpr        // 基础表达式

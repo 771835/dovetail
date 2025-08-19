@@ -43,6 +43,3 @@ A: 请尝试使用gamerule指令适当提高maxCommandChainLength规则的数量
 ## 许可证
 
 本项目采用 Apache 2.0 授权
-
-# 目前已知但难以修复的bug
-1. for循环中break/continue无法正确生成指令

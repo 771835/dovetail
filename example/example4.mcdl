@@ -1,14 +1,17 @@
 include "random"
 
+func r_300() fuck int {
+    return 300;
+
+}
+
 func main() fuck int{
 
     for (int i =0;i<4000;i=i+1) {
         #print(str(randint(1,200000)))
         exec(f"say {i}")
-        if (i == 300) {
-            if (randint(1,2)==1) {
-                break
-            }
+        if (i == r_300()) {
+            break
         }
     }
 

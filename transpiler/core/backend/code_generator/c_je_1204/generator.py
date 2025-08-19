@@ -423,30 +423,33 @@ class CodeGenerator(CodeGeneratorSpec):
             else:  # Class
                 assert isinstance(arg.get_data_type(), Class)
                 pass  # TODO:实现类的赋值
-        if isinstance(func.return_type, DataType):
-            BasicCommands.Copy.copy_variable_base_type(
-                result,
-                self.current_scope,
-                self.var_objective,
-                Variable(
-                    "return_" +
-                    uuid.uuid5(
-                        self.uuid_namespace,
-                        jump_scope.get_unique_name('.')
-                    ).hex[:8],
-                    func.return_type
-                ),
-                self.current_scope,
-                self.var_objective
-            )
-        else:  # Class
-            assert isinstance(func.return_type, Class)
-            pass  # TODO:实现类的赋值
+
         self.current_scope.add_command(
             FunctionBuilder.run(
                 jump_scope.get_minecraft_function_path()
             )
         )
+        if isinstance(func.return_type, DataType):
+            self.current_scope.add_command(
+                BasicCommands.Copy.copy_variable_base_type(
+                    result,
+                    self.current_scope,
+                    self.var_objective,
+                    Variable(
+                        "return_" +
+                        uuid.uuid5(
+                            self.uuid_namespace,
+                            jump_scope.get_unique_name('.')
+                        ).hex[:8],
+                        func.return_type
+                    ),
+                    jump_scope,
+                    self.var_objective
+                )
+            )
+        else:  # Class
+            assert isinstance(func.return_type, Class)
+            pass  # TODO:实现类的赋值
         self._handle_jump_flags(func.name, instr)
 
     def _assign(self, instr: IRInstruction):
