@@ -4,7 +4,7 @@ from typing import Callable
 
 from transpiler.core.backend.ir_builder import IRBuilder
 from transpiler.core.enums import DataType, ValueType, BinaryOps, FunctionType
-from transpiler.core.errors import CompilerSyntaxError, InvalidControlFlowError
+from transpiler.core.errors import ASTSyntaxError, InvalidControlFlowError
 from transpiler.core.instructions import IRInstruction, IRCast, IRDeclare, IROp, IRScopeBegin, \
     IRJump, IRCall
 from transpiler.core.lib.library import Library
@@ -313,7 +313,7 @@ class Builtins(Library):
 
     def _call(self, scope: Reference[Literal]):
         if scope.value_type != ValueType.LITERAL:
-            raise CompilerSyntaxError(
+            raise ASTSyntaxError(
                 "跳转目标必须是字面量字符串"
             )
         exist = False

@@ -60,7 +60,7 @@ class Composite:
             result_objective: str
     ):
         commands = []
-        result_path = result_scope.get_symbol_path(result_objective)
+        result_path = result_scope.get_symbol_path(result.get_name())
 
         # 类型不相等直接判断为不等于
         if left.get_data_type() != right.get_data_type():
@@ -112,7 +112,7 @@ class Composite:
             right_path = right_scope.get_symbol_path(right.get_name())
 
         if left.get_data_type() in (DataType.BOOLEAN, DataType.INT):
-            # 比较两数是否相等，如果相等向result_path存储1，否则存入0
+            # 比较两数是否相等，如果相等向result_path存储结果
             commands.append(
                 Execute.execute()
                 .if_score_compare(
@@ -538,7 +538,7 @@ class Composite:
                     ),
                     "src": (
                         True,
-                        right_scope.get_symbol_path(left.get_name()),
+                        right_scope.get_symbol_path(right.get_name()),
                         right_objective
                     ),
                     "target": (

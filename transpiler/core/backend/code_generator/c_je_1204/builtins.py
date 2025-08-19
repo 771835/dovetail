@@ -13,11 +13,7 @@ builtin_func = {
     "builtins/strcat": "$data modify storage $(target) $(target_path) set value '$(dest)$(src)'",
     "builtins/int2str": "$data modify storage $(target) $(target_path) set value '$(value)'",
     "builtins/str2int": "$scoreboard players set $(target) $(objective) $(value)'",
-    "builtins/tellraw/tellraw_text": "$tellraw $(target) \"$(msg)\"",
-    "builtins/tellraw/tellraw_text_a": "$tellraw @a \"$(msg)\"",
-    "builtins/tellraw/tellraw_text_s": "$tellraw @s \"$(msg)\"",
-    "builtins/tellraw/tellraw_text_e": "$tellraw @e \"$(msg)\"",
-    "builtins/tellraw/tellraw_text_p": "$tellraw @p \"$(msg)\"",
+    "builtins/tellraw/tellraw_text": "$tellraw $(target) {\"storage\":\"$(objective)\",\"nbt\":\"$(path)\"}",
     "builtins/tellraw/tellraw_json": "$tellraw $(target) $(json)",
     "builtins/tellraw/tellraw_json_a": "$tellraw @a $(json)",
     "builtins/tellraw/tellraw_json_s": "$tellraw @s $(json)",
@@ -67,12 +63,6 @@ class Commands:
             )
 
     class Tellraw:
-        TELLRAW_TEXT_HANDLERS = {
-            "@a": "builtins/tellraw/tellraw_text_a",
-            "@s": "builtins/tellraw/tellraw_text_s",
-            "@e": "builtins/tellraw/tellraw_text_e",
-            "@p": "builtins/tellraw/tellraw_text_p",
-        }
         TELLRAW_JSON_HANDLERS = {
             "@a": "builtins/tellraw/tellraw_json_a",
             "@s": "builtins/tellraw/tellraw_json_s",
@@ -93,23 +83,12 @@ class Commands:
                 generator.current_scope.add_command(f"tellraw {target_ref.value.value} \"{message}\"")
             else:
                 if target_ref.value_type == ValueType.LITERAL:
-                    # 由于目标选择器是字面量，因此msg绝对不是字面量，故无需判断msg存入存储
-                    target_value = str(target_ref.value.value)
-                    if target_value in Commands.Tellraw.TELLRAW_TEXT_HANDLERS:
-                        generator.current_scope.add_command(
-                            BasicCommands.call_macros_function(
-                                f"{generator.namespace}:{Commands.Tellraw.TELLRAW_TEXT_HANDLERS[target_value]}",
-                                generator.var_objective,
-                                {
-                                    "msg": (
-                                        True,
-                                        generator.current_scope.get_symbol_path(message_ref.get_name()),
-                                        generator.var_objective,
-                                    )
-                                }
-                            )
-                        )
-                        return
+                    generator.current_scope.add_command(
+                        f'tellraw '
+                        f'{target_ref.value.value} '
+                        f'{{"storage":"{generator.var_objective}","nbt":"{BasicCommands.get_symbol_path(generator.current_scope, message_ref)}"}}'
+                    )
+                    return
 
                 generator.current_scope.add_command(
                     BasicCommands.call_macros_function(
@@ -118,16 +97,21 @@ class Commands:
                         {
                             "target": (
                                 True if target_ref.value_type != ValueType.LITERAL else False,
-                                target_ref.value.value if target_ref.value_type != ValueType.LITERAL else generator.current_scope.get_symbol_path(
-                                    target_ref.get_name()),
+                                target_ref.value.value if target_ref.value_type != ValueType.LITERAL
+                                else BasicCommands.get_symbol_path(generator.current_scope, target_ref),
                                 generator.var_objective,
                             ),
-                            "msg": (
-                                True if message_ref.value_type != ValueType.LITERAL else False,
-                                message_ref.value.value if message_ref.value_type != ValueType.LITERAL else generator.current_scope.get_symbol_path(
-                                    message_ref.get_name()),
+                            "objective": (
+                                False,
                                 generator.var_objective,
-                            )
+                                None
+                            ),
+                            "path": (
+                                False,
+                                BasicCommands.get_symbol_path(generator.current_scope, message_ref),
+                                None
+                            ),
+
                         }
                     )
                 )

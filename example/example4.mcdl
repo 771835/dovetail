@@ -2,14 +2,15 @@ include "random"
 
 func main() fuck int{
 
-    for (int i =0;i<200000;i=i+1) {
-        print(str(randint(1,200000)))
+    for (int i =0;i<4000;i=i+1) {
+        #print(str(randint(1,200000)))
+        exec(f"say {i}")
         if (i == 300) {
-            break
+            if (randint(1,2)==1) {
+                break
+            }
         }
     }
-    a fuck int = 1;
-
 
    /*
 

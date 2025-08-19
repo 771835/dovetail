@@ -51,19 +51,24 @@ class IROpCode(SafeEnum):
 
 
 class IRInstruction:
-    def __init__(self, opcode: IROpCode,
-                 operands: list, line: int = -1, column: int = -1, filename: str | None = None):
+    def __init__(
+            self,
+            opcode: IROpCode,
+            operands: list,
+            line: int = -1,
+            column: int = -1,
+            filename: str | None = None,
+            flags: dict[str, int] = None
+    ):
         self.opcode = opcode
         self.operands = operands
         self.filename = filename
         self.column = column
         self.line = line
-        self.flags: tuple[str] = tuple()
+        self.flags: dict[str, int] = flags or {}
 
     def __repr__(self):
-        ops = ", ".join(f"{op=}" for op in self.operands)
-        return \
-            f"{self.opcode}({ops})"
+        return f"{self.opcode}(operands={self.operands}, line={self.line}, column={self.column}, flags={self.flags})"
 
     def __hash__(self):
         # 处理操作数的哈希值计算
@@ -103,8 +108,8 @@ class IRInstruction:
             return obj.unique_id()
         return id(obj)
 
-    def add_flag(self, flag):
-        self.flags += flag
+    def add_flag(self, flag: str, value: int):
+        self.flags[flag] = value
 
     def get_operands(self):
         return self.operands

@@ -42,22 +42,80 @@ class CompilationError(Exception):
         return f"<{self.__class__.__name__}: {self.msg}>" + """"""
 
 
-class ASTVisitorError(CompilationError):
+# ==================== 编译阶段错误 ====================
+
+class ASTError(CompilationError):
     """AST遍历阶段错误"""
-    def __init__(self, msg: str, line: int = None,
+    pass
+
+
+class IROptimizationError(CompilationError):
+    """IR优化阶段错误"""
+    pass
+
+
+class GenerationError(CompilationError):
+    """最终代码生成阶段错误"""
+    pass
+
+
+# ==================== AST阶段细分 ====================
+
+class ASTSyntaxError(ASTError):
+    """AST中的语法错误"""
+    pass
+
+
+class ASTSemanticError(ASTError):
+    """AST中的语义错误"""
+    pass
+
+
+class ASTInternalError(ASTError):
+    """AST内部错误"""
+    pass
+
+
+# ==================== 具体错误类型 ====================
+
+class InvalidSyntaxError(ASTSyntaxError):
+    """无效语法结构错误"""
+
+    def __init__(self, token: str, line: int = None,
                  column: int = None, filename: str = None):
+        msg = f"无效语法: 意外的符号 '{token}'"
         super().__init__(msg, line=line, column=column, filename=filename)
 
-class CompilerSyntaxError(CompilationError):
-    """语法错误子类"""
 
-    def __init__(self, msg: str, line: int = None,
+class MissingTokenError(ASTSyntaxError):
+    """缺少必要符号错误"""
+
+    def __init__(self, token: str, line: int = None,
                  column: int = None, filename: str = None):
+        msg = f"语法错误: 缺少必要的 '{token}'"
         super().__init__(msg, line=line, column=column, filename=filename)
 
 
-class TypeMismatchError(CompilationError):
-    """类型错误子类"""
+class InvalidOperatorError(ASTSyntaxError):
+    """无效运算符"""
+
+    def __init__(self, op: str, line: int = None,
+                 column: int = None, filename: str = None):
+        msg = f"无效运算符 '{op}'"
+        super().__init__(msg, line=line, column=column, filename=filename)
+
+
+class DuplicateDefinitionError(ASTSyntaxError):
+    """重复定义"""
+
+    def __init__(self, name: str, line: int = None,
+                 column: int = None, filename: str = None):
+        msg = f"标识符 '{name}' 重复定义"
+        super().__init__(msg, line=line, column=column, filename=filename)
+
+
+class TypeMismatchError(ASTSemanticError):
+    """类型错误基类"""
 
     def __init__(self, expected_type: str | DataType, actual_type: str | DataType,
                  line: int = None, column: int = None, filename: str = None, msg=None):
@@ -68,7 +126,166 @@ class TypeMismatchError(CompilationError):
         self.actual_type = actual_type
 
 
-class UnexpectedError(CompilationError):
+class UndefinedTypeError(TypeMismatchError):
+    """使用未定义的类型"""
+
+    def __init__(self, type_name: str, line: int = None,
+                 column: int = None, filename: str = None):
+        msg = f"未定义的类型 '{type_name}'"
+        super().__init__(
+            f"<undefined>",
+            f"'{type_name}'",
+            line=line,
+            column=column,
+            filename=filename,
+            msg=msg
+        )
+
+
+class ArgumentTypeMismatchError(TypeMismatchError):
+    """函数参数类型不匹配"""
+
+    def __init__(self, param_name: str, expected: str, actual: str,
+                 line: int = None, column: int = None, filename: str = None):
+        super().__init__(expected, actual, line=line, column=column, filename=filename)
+        self.param_name = param_name
+
+
+class NotCallableError(TypeMismatchError):
+    """不可调用错误"""
+
+    def __init__(self, symbol_name: str, actual_type: str,
+                 line: int = None, column: int = None, filename: str = None):
+        msg = f"符号 '{symbol_name}' (类型 {actual_type}) 不可调用"
+        super().__init__(
+            "可调用类型", actual_type,
+            line=line, column=column, filename=filename,
+            msg=msg)
+
+
+class SymbolResolutionError(ASTSemanticError):
+    """符号解析错误基类"""
+
+    def __init__(self, symbol_name: str, category: str,
+                 line: int = None, column: int = None, filename: str = None):
+        msg = f"{category} '{symbol_name}' 未找到"
+        super().__init__(msg, line=line, column=column, filename=filename)
+
+
+class UndefinedVariableError(SymbolResolutionError):
+    """未定义变量"""
+
+    def __init__(self, var_name: str, line: int = None,
+                 column: int = None, filename: str = None):
+        super().__init__(var_name, "变量", line=line, column=column, filename=filename)
+
+
+class UndefinedFunctionError(SymbolResolutionError):
+    """未定义函数"""
+
+    def __init__(self, func_name: str, line: int = None,
+                 column: int = None, filename: str = None):
+        super().__init__(func_name, "函数", line=line, column=column, filename=filename)
+
+
+class SymbolCategoryError(SymbolResolutionError):
+    """符号类别错误（期望是某种类型的符号但实际是其他类型）"""
+
+    def __init__(self, symbol_name: str, expected: str, actual: str,
+                 line: int = None, column: int = None, filename: str = None):
+        """
+        :param symbol_name: 符号名称
+        :param expected: 期望的符号类型描述（如 "Variable", "Function" 等）
+        :param actual: 实际的符号类型
+        """
+        self.expected_category = expected
+        self.actual_category = actual
+        self.symbol_name = symbol_name
+        self.msg = f"符号 '{symbol_name}' 类别不匹配：期望 {expected}，实际为 {actual}"
+    def _format_message(self) -> str:
+        """覆盖父类方法以提供更具体的错误信息"""
+        return f"符号 '{self.symbol_name}' 类别不匹配：期望 {self.expected_category}，实际为 {self.actual_category}"
+
+
+class ControlFlowError(ASTSemanticError):
+    """控制流错误基类"""
+    pass
+
+
+class InvalidControlFlowError(ControlFlowError):
+    """非法控制流"""
+
+    def __init__(self, msg: str, line: int = None,
+                 column: int = None, filename: str = None):
+        super().__init__(
+            f"控制流错误: {msg}",
+            line=line,
+            column=column,
+            filename=filename)
+
+
+class CompileRecursionError(ControlFlowError):
+    """递归深度错误"""
+
+    def __init__(self, msg: str, line: int = None,
+                 column: int = None, filename: str = None):
+        super().__init__(f"递归错误: {msg}",
+                         line=line, column=column, filename=filename)
+
+
+class InterfaceError(ASTSemanticError):
+    """接口相关错误"""
+    pass
+
+
+class UnimplementedInterfaceMethodsError(InterfaceError):
+    """未实现接口要求的方法"""
+
+    def __init__(self, missing_methods: set[str], line: int = None,
+                 column: int = None, filename: str = None):
+        self.missing_methods = missing_methods
+        methods_str = ', '.join(map(str, missing_methods))  # 明确列出缺失方法
+        msg = (
+            f"类未实现接口要求的{len(missing_methods)}个方法\n"
+            f"缺失方法: {methods_str}\n"
+            "请在类中实现这些必需的方法"
+        )
+        super().__init__(msg, line=line, column=column, filename=filename)
+
+
+class CompileNotImplementedError(ASTSemanticError):
+    """未实现功能错误基类"""
+    pass
+
+
+class MissingImplementationError(CompileNotImplementedError):
+    """未实现的功能错误"""
+
+    def __init__(self, feature: str, line: int = None,
+                 column: int = None, filename: str = None):
+        msg = f"功能 '{feature}' 暂未实现"
+        super().__init__(msg, line=line, column=column, filename=filename)
+
+
+class FunctionNameConflictError(CompileNotImplementedError):
+    """函数名与作用域名冲突的错误"""
+
+    def __init__(self, name: str, scope_name: str,
+                 line: int = None, column: int = None, filename: str = None):
+        msg = (
+            f"函数名称 '{name}' 与嵌套作用域 '{scope_name}' 冲突\n"
+            f"这种冲突可能导致作用域解析混乱\n"
+            f"解决方案：\n"
+            f"  1. 重命名函数\n"
+            f"  2. 启用同名函数嵌套支持 (--enable-same-name-function-nesting)\n"
+            f"  3. 修改冲突的作用域名"
+        )
+        super().__init__(msg, line=line, column=column, filename=filename)
+        self.func_name = name
+        self.scope_name = scope_name
+
+
+class UnexpectedError(ASTInternalError):
     """
     表示编译过程中发生了未预期的内部错误
     用法：raise UnexpectedError("错误描述", line=行号, filename="文件名")
@@ -97,175 +314,42 @@ class UnexpectedError(CompilationError):
         )
 
 
-class InvalidSyntaxError(CompilerSyntaxError):
-    """无效语法结构错误"""
-
-    def __init__(self, token: str, line: int = None,
-                 column: int = None, filename: str = None):
-        msg = f"无效语法: 意外的符号 '{token}'"
-        super().__init__(msg, line=line, column=column, filename=filename)
-
-
-class MissingTokenError(CompilerSyntaxError):
-    """缺少必要符号错误"""
-
-    def __init__(self, token: str, line: int = None,
-                 column: int = None, filename: str = None):
-        msg = f"语法错误: 缺少必要的 '{token}'"
-        super().__init__(msg, line=line, column=column, filename=filename)
-
-
-class UndefinedTypeError(TypeMismatchError):
-    """使用未定义的类型"""
-
-    def __init__(self, type_name: str, line: int = None,
-                 column: int = None, filename: str = None):
-        msg = f"未定义的类型 '{type_name}'"
-        super().__init__(
-            f"<undefined>",
-            f"'{type_name}'",
-            line=line,
-            column=column,
-            filename=filename,
-            msg=msg
-        )
-
-
-class ArgumentTypeMismatchError(TypeMismatchError):
-    """函数参数类型不匹配"""
-
-    def __init__(self, param_name: str, expected: str, actual: str,
-                 line: int = None, column: int = None, filename: str = None):
-        super().__init__(expected, actual, line=line, column=column, filename=filename)
-        self.param_name = param_name
-
-
-class InvalidOperatorError(CompilerSyntaxError):
-    """无效运算符"""
-
-    def __init__(self, op: str, line: int = None,
-                 column: int = None, filename: str = None):
-        msg = f"无效运算符 '{op}'"
-        super().__init__(msg, line=line, column=column, filename=filename)
-
-
-class DuplicateDefinitionError(CompilerSyntaxError):
-    """重复定义"""
-
-    def __init__(self, name: str, line: int = None,
-                 column: int = None, filename: str = None):
-        msg = f"标识符 '{name}' 重复定义"
-        super().__init__(msg, line=line, column=column, filename=filename)
-
-
-class CompilerImportError(CompilationError):
-    """导入错误"""
+class CompilerIncludeError(ASTError):
+    """包含错误"""
 
     def __init__(self, path: str, reason: str, line: int = None,
                  column: int = None, filename: str = None):
-        msg = f"无法导入 '{path}': {reason}"
+        msg = f"无法包含 '{path}': {reason}"
         super().__init__(msg, line=line, column=column, filename=filename)
 
 
-class UndefinedVariableError(CompilationError):
-    """未定义变量"""
-
-    def __init__(self, var_name: str, line: int = None,
-                 column: int = None, filename: str = None):
-        msg = f"未定义的变量 '{var_name}'"
-        super().__init__(msg, line=line, column=column, filename=filename)
+# ==================== IR优化阶段错误 ====================
+class IRTypeError(IROptimizationError):
+    """IR类型错误"""
+    pass
 
 
-class InvalidControlFlowError(CompilationError):
-    """非法控制流"""
-
-    def __init__(self, msg: str, line: int = None,
-                 column: int = None, filename: str = None):
-        super().__init__(
-            f"控制流错误: {msg}",
-            line=line,
-            column=column,
-            filename=filename)
+class IRStructureError(IROptimizationError):
+    """IR结构错误"""
+    pass
 
 
-class MissingImplementationError(CompilerSyntaxError):
-    """未实现的功能错误"""
-
-    def __init__(self, feature: str, line: int = None,
-                 column: int = None, filename: str = None):
-        msg = f"功能 '{feature}' 暂未实现"
-        super().__init__(msg, line=line, column=column, filename=filename)
+class IROptimizationLimitError(IROptimizationError):
+    """优化限制错误"""
+    pass
 
 
-class RecursionError(CompilationError):
-    """递归深度错误"""
-
-    def __init__(self, msg: str, line: int = None,
-                 column: int = None, filename: str = None):
-        super().__init__(f"递归错误: {msg}",
-                         line=line, column=column, filename=filename)
+# ==================== 代码生成阶段错误 ====================
+class CodeGenerationError(GenerationError):
+    """代码生成错误"""
+    pass
 
 
-class NotCallableError(TypeMismatchError):
-    """不可调用错误"""
-
-    def __init__(self, symbol_name: str, actual_type: str,
-                 line: int = None, column: int = None, filename: str = None):
-        msg = f"符号 '{symbol_name}' (类型 {actual_type}) 不可调用"
-        super().__init__(
-            "可调用类型", actual_type,
-            line=line, column=column, filename=filename,
-            msg=msg)
+class TargetError(GenerationError):
+    """目标平台错误"""
+    pass
 
 
-class SymbolCategoryError(TypeMismatchError):
-    """符号类别错误（期望是某种类型的符号但实际是其他类型）"""
-
-    def __init__(self, msg: str, expected: str, actual: str,
-                 line: int = None, column: int = None, filename: str = None):
-        """
-        @param expected: 期望的符号类型描述（如 "Variable", "Function" 等）
-        @param actual: 实际的符号类型
-        """
-        self.msg = msg
-        self.expected_category = expected
-        self.actual_category = actual
-        super().__init__(expected, actual, line=line, column=column, filename=filename, msg=msg)
-
-    def _format_message(self) -> str:
-        """覆盖父类方法以提供更具体的错误信息"""
-        base = super()._format_message()
-        return f"{base}\n  期望类别: {self.expected_category}\n  实际类别: {self.actual_category}"
-
-
-class UnimplementedInterfaceMethodsError(CompilationError):
-    """未实现接口要求的方法"""
-
-    def __init__(self, missing_methods: set[str], line: int = None,
-                 column: int = None, filename: str = None):
-        self.missing_methods = missing_methods
-        methods_str = ', '.join(map(str, missing_methods))  # 明确列出缺失方法
-        msg = (
-            f"类未实现接口要求的{len(missing_methods)}个方法\n"
-            f"缺失方法: {methods_str}\n"
-            "请在类中实现这些必需的方法"
-        )
-        super().__init__(msg, line=line, column=column, filename=filename)
-
-
-class FunctionNameConflictError(CompilationError):
-    """函数名与作用域名冲突的错误"""
-
-    def __init__(self, name: str, scope_name: str,
-                 line: int = None, column: int = None, filename: str = None):
-        msg = (
-            f"函数名称 '{name}' 与嵌套作用域 '{scope_name}' 冲突\n"
-            f"这种冲突可能导致作用域解析混乱\n"
-            f"解决方案：\n"
-            f"  1. 重命名函数\n"
-            f"  2. 启用同名函数嵌套支持 (--enable-same-name-function-nesting)\n"
-            f"  3. 修改冲突的作用域名"
-        )
-        super().__init__(msg, line=line, column=column, filename=filename)
-        self.func_name = name
-        self.scope_name = scope_name
+class OutputError(GenerationError):
+    """输出错误"""
+    pass

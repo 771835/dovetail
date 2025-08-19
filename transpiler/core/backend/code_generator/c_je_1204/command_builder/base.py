@@ -1,8 +1,8 @@
 # coding=utf-8
 import uuid
 
-from transpiler.core.enums import DataType
-from transpiler.core.symbols import Variable, Constant, Literal
+from transpiler.core.enums import DataType, ValueType
+from transpiler.core.symbols import Variable, Constant, Literal, Symbol
 from . import DataBuilder, ScoreboardBuilder, FunctionBuilder, Execute
 from ..code_generator_scope import CodeGeneratorScope
 
@@ -74,10 +74,14 @@ class BasicCommands:
 
     class Copy:
         @staticmethod
-        def copy_variable_base_type(target: Variable,
-                                    target_scope: CodeGeneratorScope, target_objective: str,
-                                    source: Variable | Constant, source_scope: CodeGeneratorScope,
-                                    source_objective: str):
+        def copy_variable_base_type(
+                target: Variable,
+                target_scope: CodeGeneratorScope,
+                target_objective: str,
+                source: Variable | Constant,
+                source_scope: CodeGeneratorScope,
+                source_objective: str
+        ):
             if source.dtype == DataType.STRING:
                 return DataBuilder.modify_storage_set_from_storage(
                     f"{target_objective}",
@@ -93,18 +97,73 @@ class BasicCommands:
             return None
 
         @staticmethod
-        def copy_literal_base_type(target: Variable | Constant, target_scope: CodeGeneratorScope, target_objective: str,
-                                   source: Literal):
-
+        def copy_literal_base_type(
+                target: Variable | Constant,
+                target_scope: CodeGeneratorScope,
+                target_objective: str,
+                source: Literal
+        ):
+            if target.dtype != source.dtype:
+                return None
+            # 如果目标变量为字符串
             if target.dtype == DataType.STRING:
                 return DataBuilder.modify_storage_set_value(
-                    f"{target_objective}", target_scope.get_symbol_path(target.get_name()),
-                    f"\"{source.value}\"")
+                    target_objective,
+                    target_scope.get_symbol_path(target.get_name()),
+                    f'"{source.value}"'
+                )
             elif target.dtype in (DataType.INT, DataType.BOOLEAN):
                 return ScoreboardBuilder.set_score(
                     target_scope.get_symbol_path(target.get_name()), target_objective, int(source.value))
             return None
 
         @staticmethod
-        def copy_score_to_storage(target: Variable | Constant, target_scope: CodeGeneratorScope, target_objective: str):
-            return Execute.execute().store_result_storage(target_objective, target_scope.get_symbol_path(target.get_name()),'int',1.0).run(ScoreboardBuilder.get_score(target_scope.get_symbol_path(target.get_name()), target_objective))
+        def copy_score_to_storage(
+                target: Variable | Constant,
+                target_scope: CodeGeneratorScope,
+                target_objective: str
+        ):
+            return (Execute.execute()
+                .store_result_storage(
+                    target_objective,
+                    BasicCommands.get_symbol_path(target_scope, target),
+                    'int',
+                    1.0
+                )
+                .run(
+                    ScoreboardBuilder.get_score(
+                        BasicCommands.get_symbol_path(target_scope, target),
+                        target_objective
+                    )
+                )
+            )
+
+        @staticmethod
+        def copy_base_type(
+                target: Variable | Constant,
+                target_scope: CodeGeneratorScope,
+                target_objective: str,
+                source: Variable | Constant | Literal,
+                source_scope: CodeGeneratorScope,
+                source_objective: str
+        ) -> str | None:
+            if isinstance(source, Literal):
+                return BasicCommands.Copy.copy_literal_base_type(
+                    target,
+                    target_scope,
+                    target_objective,
+                    source
+                )
+            else:
+                return BasicCommands.Copy.copy_variable_base_type(
+                    target,
+                    target_scope,
+                    target_objective,
+                    source,
+                    source_scope,
+                    source_objective
+                )
+
+    @staticmethod
+    def get_symbol_path(scope: CodeGeneratorScope, symbol: Symbol | str):
+        return scope.get_symbol_path(symbol.get_name() if isinstance(symbol, Symbol) else symbol)

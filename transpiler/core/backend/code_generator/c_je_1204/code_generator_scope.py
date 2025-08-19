@@ -1,7 +1,7 @@
 # coding=utf-8
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Any
 
 from transpiler.core.enums import StructureType
 from transpiler.core.symbols import Symbol
@@ -124,9 +124,9 @@ class CodeGeneratorScope:
 
     def traverse_parent_scopes(
             self,
-            action: Callable[[CodeGeneratorScope], None],
+            action: Callable[[CodeGeneratorScope], Any],
             stop_condition: Callable[[CodeGeneratorScope], bool] | None = None,
-            per_scope_callback: Callable[[CodeGeneratorScope], None] | None = None,
+            per_scope_callback: Callable[[CodeGeneratorScope], Any] | None = None,
             include_self: bool = True
     ) -> CodeGeneratorScope | None:
         """
@@ -158,11 +158,7 @@ class CodeGeneratorScope:
 
     def find_parent_scope(self, predicate: Callable[[CodeGeneratorScope], bool]) -> CodeGeneratorScope | None:
         """查找满足特定条件的父作用域"""
-        return self.traverse_parent_scopes(
-            action=lambda _: None,  # 空操作
-            stop_condition=predicate,
-            include_self=True
-        )
+        return self.traverse_parent_scopes(action=lambda _: None, stop_condition=predicate)
 
     def find_parent_scope_by_type(self, target_type: StructureType) -> CodeGeneratorScope | None:
         """查找特定类型的父作用域（单行实现）"""

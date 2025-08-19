@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from transpiler.core.enums import StructureType
+from transpiler.core.symbols import Symbol
 from transpiler.core.symbols.base import Symbol
 
 
@@ -36,13 +37,13 @@ class Scope:
     def has_symbol(self, name: str):
         return name in self.symbols
 
-    def set_symbol(self, symbol: Symbol, force=False):
+    def set_symbol(self, symbol: Symbol, force=False) -> bool:
         if symbol.get_name() not in self.symbols and not force:
-            raise NameError(
-                f"Symbol {symbol.get_name()} does not exist in this scope")
+            return False
         self.symbols[symbol.get_name()] = symbol
+        return True
 
-    def resolve_symbol(self, name: str) -> Symbol:
+    def resolve_symbol(self, name: str) -> Symbol | None:
         """逐级向上查找符号"""
         name = str(name)
         current = self
@@ -50,25 +51,26 @@ class Scope:
             if name in current.symbols:
                 return current.symbols[name]
             current = current.parent
+        return None
         raise ValueError(f"Undefined symbol: {name}")
 
-    def find_symbol(self, name: str) -> Symbol:
+    def find_symbol(self, name: str) -> Symbol | None:
         """只在单层查找符号"""
         name = str(name)
         if name in self.symbols:
             return self.symbols[name]
         else:
-            raise ValueError(f"Undefined symbol: {name}")
+            return None
 
-    def find_scope(self, name: str) -> Scope:
+    def find_scope(self, name: str) -> Scope | None:
         """只在单层查找作用域"""
         name = str(name)
         for i in self.children:
             if i.name == name:
                 return i
-        raise ValueError(f"Undefined symbol: {name}")
+        return None
 
-    def resolve_scope(self, name: str) -> Scope:
+    def resolve_scope(self, name: str) -> Scope | None:
         """逐级向上查找该作用域可访问到的作用域"""
         name = str(name)
         current = self
@@ -76,7 +78,7 @@ class Scope:
             if name in [i.name for i in current.children]:
                 return [i for i in current.children if i.name == name][0]
             current = current.parent
-        raise ValueError(f"Undefined scope: {name}")
+        return None
 
     def get_parent(self) -> Scope:
         if self.parent:

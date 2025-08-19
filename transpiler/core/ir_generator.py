@@ -12,10 +12,7 @@ from antlr4 import FileStream, CommonTokenStream
 
 from transpiler.core.backend.ir_builder import IRBuilder
 from transpiler.core.enums import ValueType, VariableType, FunctionType, ClassType
-from transpiler.core.errors import TypeMismatchError, UnexpectedError, CompilerSyntaxError, UndefinedTypeError, \
-    CompilerImportError, UndefinedVariableError, InvalidSyntaxError, DuplicateDefinitionError, \
-    ArgumentTypeMismatchError, InvalidControlFlowError, MissingImplementationError, RecursionError, NotCallableError, \
-    InvalidOperatorError, SymbolCategoryError, UnimplementedInterfaceMethodsError, FunctionNameConflictError
+from transpiler.core.errors import *
 from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.include_manager import IncludeManager
 from transpiler.core.instructions import *
@@ -80,7 +77,7 @@ class MCGenerator(transpilerVisitor):
         if len(self.scope_stack) > 100:
             for i in self.scope_stack:
                 print(f"at {i.name}, in {i.parent.name}")
-            raise RecursionError(
+            raise CompileRecursionError(
                 f"作用域嵌套过深 (超过100层)\n作用域路径: {self.current_scope.get_unique_name()}",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
@@ -191,13 +188,19 @@ class MCGenerator(transpilerVisitor):
 
     def _append_variable_to_result(self, current_var: Variable, var_name: str) -> Variable:
         """将变量内容追加到结果字符串"""
-        try:
-            # 解析变量符号
-            var_symbol = self.current_scope.resolve_symbol(var_name)
-            if not isinstance(var_symbol, (Variable, Constant)):
-                raise UndefinedVariableError(var_name, self._get_current_line(), self._get_current_column())
-        except ValueError:
+        # 解析变量符号
+        var_symbol = self.current_scope.resolve_symbol(var_name)
+        if var_symbol is None:
             raise UndefinedVariableError(var_name, self._get_current_line(), self._get_current_column())
+        if not isinstance(var_symbol, (Variable, Constant)):
+            raise SymbolCategoryError(
+                var_name,
+                expected="Variable/Constant",
+                actual=var_symbol.__class__.__name__,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
 
         # 创建类型转换临时变量
         cast_var = self._create_temp_var(DataType.STRING, "cast")
@@ -215,13 +218,10 @@ class MCGenerator(transpilerVisitor):
 
     def _resolve_type_symbol(self, type_name: str) -> Class | None:
         """解析类型名称对应的符号（仅限类/类型定义）"""
-        try:
-            symbol = self.current_scope.resolve_symbol(type_name)
-            if isinstance(symbol, Class):
-                return symbol
-            return None
-        except ValueError:
-            return None
+        symbol = self.current_scope.resolve_symbol(type_name)
+        if isinstance(symbol, Class):
+            return symbol
+        return None
 
     def _get_type_definition(
             self,
@@ -881,27 +881,26 @@ class MCGenerator(transpilerVisitor):
             self,
             ctx: transpilerParser.VarExprContext):
         var_name = ctx.ID().getText()
-        try:
-            symbol: Symbol = self.current_scope.resolve_symbol(var_name)
-            if not isinstance(symbol, (Variable, Constant, Parameter)):
-                raise SymbolCategoryError(
-                    f"符号 '{var_name}' 必须是变量或常量",
-                    expected="Variable/Constant",
-                    actual=symbol.__class__.__name__,
-                    line=self._get_current_line(),
-                    column=self._get_current_column(),
-                    filename=self.filename
-                )
-
-            if isinstance(symbol, Parameter):
-                symbol = symbol.var
-        except ValueError:
+        symbol: Symbol = self.current_scope.resolve_symbol(var_name)
+        if symbol is None:
             raise UndefinedVariableError(
                 var_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filename
             )
+        if not isinstance(symbol, (Variable, Constant, Parameter)):
+            raise SymbolCategoryError(
+                var_name,
+                expected="Variable/Constant",
+                actual=symbol.__class__.__name__,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+
+        if isinstance(symbol, Parameter):
+            symbol = symbol.var
         return Result(Reference(ValueType.VARIABLE, symbol))
 
     def visitAssignment(
@@ -913,7 +912,7 @@ class MCGenerator(transpilerVisitor):
         try:
             var: Symbol = self.current_scope.resolve_symbol(var_name)
             if isinstance(var, Constant):
-                raise CompilerSyntaxError(
+                raise ASTSyntaxError(
                     f"不能修改常量 '{var_name}'",
                     line=self._get_current_line(),
                     column=self._get_current_column(),
@@ -921,7 +920,7 @@ class MCGenerator(transpilerVisitor):
                 )
             elif not isinstance(var, Variable):
                 raise SymbolCategoryError(
-                    f"符号 '{var_name}' 必须是变量才能赋值",
+                    var_name,
                     expected="Variable",
                     actual=var.__class__.__name__,
                     line=self._get_current_line(),
@@ -1044,13 +1043,21 @@ class MCGenerator(transpilerVisitor):
 
         # 调用函数
         func_symbol: Symbol = self.current_scope.resolve_symbol(func_name)
+        if func_symbol is None:
+            raise UndefinedFunctionError(
+                func_name,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
         if isinstance(func_symbol, Function):
             if not self.config.enable_recursion:  # 未启用递归
                 current = self.current_scope
                 while current:
-                    if current.get_name() == func_name and current.type == StructureType.FUNCTION and current.get_parent().find_symbol(
-                            func_name) is func_symbol:
-                        raise RecursionError(
+                    if (current.get_name() == func_name
+                            and current.type == StructureType.FUNCTION
+                            and current.get_parent().find_symbol(func_name) is func_symbol):
+                        raise CompileRecursionError(
                             f"函数 '{func_name}' 检测到递归调用，但递归支持未启用，启用递归请使用参数--enable-recursion",
                             line=self._get_current_line(),
                             column=self._get_current_column(),
@@ -1169,7 +1176,7 @@ class MCGenerator(transpilerVisitor):
             self.visit(tree)
             self.filename = o_filename
         except Exception as e:
-            raise CompilerImportError(
+            raise CompilerIncludeError(
                 include_path,
                 e.__repr__(),
                 line=self._get_current_line(),

@@ -22,11 +22,15 @@ class IRBuilder:
     def __iter__(self):
         return IRBuilderIterator(self._instructions)
 
+    def __reversed__(self):
+        """返回可反转迭代器"""
+        return IRBuilderReversibleIterator(self._instructions)
+
 
 class IRBuilderIterator:
-    def __init__(self, instructions: list[IRInstruction]):
+    def __init__(self, instructions: list[IRInstruction], index: int = 0):
         self.instructions = instructions
-        self.index = 0
+        self.index = index
         self._last_index = -1  # 跟踪最后返回的指令索引
 
     def __iter__(self):
@@ -39,9 +43,16 @@ class IRBuilderIterator:
         self._last_index = self.index
         item = self.instructions[self.index]
         self.index += 1
-        # print(f"返回指令: {item} | 位置: {self._last_index} | 下一索引: {self.index}")
-        # # 调试
         return item
+
+    def __reversed__(self):
+        """转换为反向迭代器，保持当前位置"""
+        # 计算反向迭代器的起始位置
+        if self.index > 0:
+            reverse_start_index = self.index - 1
+        else:
+            reverse_start_index = -1
+        return IRBuilderReversibleIterator(self.instructions, reverse_start_index)
 
     def rollback(self, steps=1):
         """回退迭代位置"""
@@ -119,3 +130,36 @@ class IRBuilderIterator:
         """插入指令并让迭代器继续从该指令开始"""
         self.insert_here(instruction)
         self.rollback()
+
+
+class IRBuilderReversibleIterator:
+    """反向迭代器类"""
+
+    def __init__(self, instructions: list[IRInstruction], index: int = None):
+        self.instructions = instructions
+        if index is None:
+            self.index = len(instructions) - 1  # 默认从末尾开始
+        else:
+            self.index = index
+        self._last_index = -1
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.index < 0:
+            raise StopIteration
+
+        self._last_index = self.index
+        item = self.instructions[self.index]
+        self.index -= 1
+        return item
+
+    def __reversed__(self):
+        """转换为正向迭代器，保持当前位置"""
+        # 计算正向迭代器的起始位置
+        if self.index < len(self.instructions) - 1:
+            forward_start_index = self.index + 1
+        else:
+            forward_start_index = len(self.instructions)
+        return IRBuilderIterator(self.instructions, forward_start_index)

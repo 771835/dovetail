@@ -1,11 +1,12 @@
 # coding=utf-8
+import sys
 import threading
 import uuid
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable
 
-from transpiler.core.backend.ir_builder import IRBuilder, IRBuilderIterator
+from transpiler.core.backend.ir_builder import IRBuilder, IRBuilderIterator, IRBuilderReversibleIterator
 from transpiler.core.backend.specification import CodeGeneratorSpec
 from transpiler.core.enums import *
 from transpiler.core.generator_config import MinecraftEdition, GeneratorConfig, MinecraftVersion
@@ -88,6 +89,22 @@ class CodeGenerator(CodeGeneratorSpec):
         else:
             self.current_scope.add_command(f"# Fucking {opcode_name} doesn't exist!")
 
+    def _get_scope_block(self, name: str):
+        iterable: IRBuilderIterator = self.iterator or self.builder
+        reversed_iterable: IRBuilderReversibleIterator = iterable.__reversed__()
+
+        for instr in reversed_iterable:
+            if instr.opcode == IROpCode.SCOPE_BEGIN and instr.get_operands()[0] == name:
+                break
+        else:
+            raise Exception(f"Scope block {name} not found!")
+        scope_block = []
+        for instr in reversed(reversed_iterable):
+            scope_block.append(instr)
+            if instr.opcode == IROpCode.SCOPE_END and instr.get_operands()[0] == name:
+                break
+        return scope_block
+
     @staticmethod
     def _write_commands(output_dir: Path, top_scope):
         """遍历作用域树生成文件"""
@@ -149,6 +166,57 @@ class CodeGenerator(CodeGeneratorSpec):
 
             self._write_commands(self.target, self.top_scope)
             self._write_builtin_functions()
+            self.iterator = None
+
+    def _handle_jump_flags(self, scope_name: str, jump_instr: IRInstruction):
+        # 反向搜索
+        iterator = self.iterator.__reversed__()
+        # 向前搜索到需要跳转到的作用域的头部
+        depth = 0
+        for instr in iterator:
+            if instr.opcode == IROpCode.SCOPE_END:
+                depth += 1
+                continue
+            elif instr.opcode == IROpCode.SCOPE_BEGIN:
+                depth -= 1
+                if depth == 0 and instr.operands[0] == scope_name:
+                    break
+                continue
+        # 再次反转，重新正向扫描作用域块的内容，处理 flag
+        depth = 0
+        flag_name_set = set()
+        for instr in reversed(iterator):
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
+                depth += 1
+                continue
+            elif instr.opcode == IROpCode.SCOPE_END:
+                depth -= 1
+                if depth == 0:
+                    break
+                continue
+
+            # 当搜索到开始搜索位置时返回
+            if instr is jump_instr:
+                break
+            # 无视作用域深度过大的位置
+            if depth == 1:
+                for flag_name, i in instr.get_flags().items():
+                    # flag_name重复出现的情况下不生成指令
+                    if flag_name in flag_name_set:
+                        continue
+                    if flag_name.startswith("return") and i > 0:
+                        jump_instr.add_flag(flag_name, i - 1)
+                        self.current_scope.add_command(
+                            Execute.execute()
+                            .if_score_matches(
+                                flag_name.split(';')[1],
+                                self.statement_objective,
+                                '1'
+                            )
+                            .run(
+                                "return 0"
+                            )
+                        )
 
     def _scope_begin(self, instr: IRInstruction):
         name: str = instr.get_operands()[0]
@@ -195,6 +263,11 @@ class CodeGenerator(CodeGeneratorSpec):
     def _break(self, instr: IRInstruction):
         loop_check_scope = self.current_scope.resolve_scope(instr.get_operands()[0])
         name = "#break_" + loop_check_scope.get_unique_name(".")
+        instr.add_flag(
+            f"return;{name}",
+            self.current_scope.get_unique_name(".").count(".") -
+            loop_check_scope.get_unique_name(".").count(".")
+        )
         self.current_scope.add_command(
             ScoreboardBuilder.set_score(
                 name,
@@ -209,6 +282,11 @@ class CodeGenerator(CodeGeneratorSpec):
     def _continue(self, instr: IRInstruction):
         loop_check_scope = self.current_scope.resolve_scope(instr.get_operands()[0])
         name = "#continue_" + loop_check_scope.get_unique_name(".")
+        instr.add_flag(
+            f"return;{name}",
+            self.current_scope.get_unique_name(".").count(".") -
+            loop_check_scope.get_unique_name(".").count(".")
+        )
         self.current_scope.add_command(
             ScoreboardBuilder.set_score(
                 name,
@@ -225,7 +303,6 @@ class CodeGenerator(CodeGeneratorSpec):
 
     def _return(self, instr: IRInstruction):
         value: Reference[Variable | Constant | Literal] = instr.get_operands()[0]
-
         function_scope = self.current_scope.find_parent_scope_by_type(StructureType.FUNCTION)
 
         if value:  # 如果存在返回值
@@ -238,31 +315,26 @@ class CodeGenerator(CodeGeneratorSpec):
             )
             function_scope.add_symbol(return_var)
             if isinstance(value.get_data_type(), DataType):
-                if value.value_type == ValueType.LITERAL:
-                    self.current_scope.add_command(
-                        BasicCommands.Copy.copy_literal_base_type(
-                            return_var,
-                            self.current_scope,
-                            self.var_objective,
-                            value.value
-                        )
+                self.current_scope.add_command(
+                    BasicCommands.Copy.copy_base_type(
+                        return_var,
+                        self.current_scope,
+                        self.var_objective,
+                        value.value,
+                        self.current_scope,
+                        self.var_objective
                     )
-                elif value.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
-                    self.current_scope.add_command(
-                        BasicCommands.Copy.copy_variable_base_type(
-                            return_var,
-                            self.current_scope,
-                            self.var_objective,
-                            value.value,
-                            self.current_scope,
-                            self.var_objective
-                        )
-                    )
+                )
             else:  # Class
                 assert isinstance(value.get_data_type(), Class)
                 pass  # TODO:实现类的赋值
 
         name = "#return_" + function_scope.get_unique_name(".")
+        instr.add_flag(
+            f"return;{name}",
+            self.current_scope.get_unique_name(".").count(".") -
+            function_scope.get_unique_name(".").count(".")
+        )
         self.current_scope.add_command(
             ScoreboardBuilder.set_score(
                 name,
@@ -282,6 +354,7 @@ class CodeGenerator(CodeGeneratorSpec):
                 jump_scope.get_minecraft_function_path()
             )
         )
+        self._handle_jump_flags(scope_name, instr)
 
     def _cond_jump(self, instr: IRInstruction):
         cond_var: Variable = instr.get_operands()[0]
@@ -304,6 +377,8 @@ class CodeGenerator(CodeGeneratorSpec):
                     )
                 )
             )
+
+            self._handle_jump_flags(true_scope_name, instr)
         if false_scope_name:
             false_jump_scope = self.current_scope.resolve_scope(false_scope_name)
             self.current_scope.add_command(
@@ -322,6 +397,8 @@ class CodeGenerator(CodeGeneratorSpec):
                 )
             )
 
+            self._handle_jump_flags(false_scope_name, instr)
+
     def _call(self, instr: IRInstruction):
         result: Variable | Constant = instr.get_operands()[0]
         func: Function = instr.get_operands()[1]
@@ -333,26 +410,16 @@ class CodeGenerator(CodeGeneratorSpec):
 
         for param_name, arg, param in zip(args.items(), func.params):
             if isinstance(arg.get_data_type(), DataType):
-                if arg.value_type == ValueType.LITERAL:
-                    self.current_scope.add_command(
-                        BasicCommands.Copy.copy_literal_base_type(
-                            param.var,
-                            jump_scope,
-                            self.var_objective,
-                            arg.value
-                        )
+                self.current_scope.add_command(
+                    BasicCommands.Copy.copy_base_type(
+                        param.var,
+                        jump_scope,
+                        self.var_objective,
+                        arg.value,
+                        self.current_scope,
+                        self.var_objective
                     )
-                elif arg.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
-                    self.current_scope.add_command(
-                        BasicCommands.Copy.copy_variable_base_type(
-                            param.var,
-                            jump_scope,
-                            self.var_objective,
-                            arg.value,
-                            self.current_scope,
-                            self.var_objective
-                        )
-                    )
+                )
             else:  # Class
                 assert isinstance(arg.get_data_type(), Class)
                 pass  # TODO:实现类的赋值
@@ -362,7 +429,8 @@ class CodeGenerator(CodeGeneratorSpec):
                 self.current_scope,
                 self.var_objective,
                 Variable(
-                    "return_" + uuid.uuid5(
+                    "return_" +
+                    uuid.uuid5(
                         self.uuid_namespace,
                         jump_scope.get_unique_name('.')
                     ).hex[:8],
@@ -379,31 +447,22 @@ class CodeGenerator(CodeGeneratorSpec):
                 jump_scope.get_minecraft_function_path()
             )
         )
+        self._handle_jump_flags(func.name, instr)
 
     def _assign(self, instr: IRInstruction):
         target: Variable | Constant = instr.get_operands()[0]
         source: Reference[Variable | Constant | Literal] = instr.get_operands()[1]
         if isinstance(target.dtype, DataType):
-            if source.value_type == ValueType.LITERAL:
-                self.current_scope.add_command(
-                    BasicCommands.Copy.copy_literal_base_type(
-                        target,
-                        self.current_scope,
-                        self.var_objective,
-                        source.value
-                    )
+            self.current_scope.add_command(
+                BasicCommands.Copy.copy_base_type(
+                    target,
+                    self.current_scope,
+                    self.var_objective,
+                    source.value,
+                    self.current_scope,
+                    self.var_objective
                 )
-            elif source.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
-                self.current_scope.add_command(
-                    BasicCommands.Copy.copy_variable_base_type(
-                        target,
-                        self.current_scope,
-                        self.var_objective,
-                        source.value,
-                        self.current_scope,
-                        self.var_objective
-                    )
-                )
+            )
         else:  # Class
             assert isinstance(target.dtype, Class)
             pass  # TODO:实现类的赋值
@@ -464,7 +523,7 @@ class CodeGenerator(CodeGeneratorSpec):
         if value.value_type == Literal:
             raise
         # int -> string
-        if dtype == DataType.STRING and value.get_data_type() == DataType.INT:
+        if dtype == DataType.STRING and value.get_data_type() in (DataType.INT, DataType.BOOLEAN):
             temp_path = uuid.uuid4().hex
             self.current_scope.add_command(
                 Execute.execute()
@@ -499,7 +558,7 @@ class CodeGenerator(CodeGeneratorSpec):
                     temp_path
                 )
             )
-        elif dtype == DataType.INT and value.get_data_type() == DataType.STRING:  # string -> int
+        elif dtype in DataType.INT and value.get_data_type() == DataType.STRING:  # string -> int
             temp_path = uuid.uuid4().hex
             self.current_scope.add_command(
                 Execute.execute()
@@ -537,7 +596,7 @@ class CodeGenerator(CodeGeneratorSpec):
                             True,
                             temp_path,
                             self.var_objective
-                        ),
+                        )
                     }
                 )
             )

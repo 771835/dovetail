@@ -4,6 +4,7 @@ import sys
 import time
 from pathlib import Path
 
+from transpiler.core.instructions import IRScopeEnd, IRScopeBegin
 from transpiler.core.scope import Scope
 from transpiler.utils.ir_serializer import IRSymbolSerializer
 
@@ -45,6 +46,7 @@ class Compile:
         tree = self.parser_file(source_path)
         if not tree:
             print("file not found!")
+            return -1
         generator: MCGenerator | None = None
         try:
             generator = MCGenerator(self.config)
@@ -54,7 +56,16 @@ class Compile:
             ir_builder = Optimizer(ir_builder, self.config).optimize()
             if self.config.output_temp_file:
                 with open(target_path.with_name(f"{target_path.stem}.mcdc"), "wb") as f:
-                    f.write(IRSymbolSerializer.dump(ir_builder))
+                    f.write(IRSymbolSerializer.dump(ir_builder, "eb9a736010764a6da0a3448874db8e2c"))
+                print(IRSymbolSerializer(ir_builder).serialize())
+
+                depth = 0
+                for i in ir_builder:
+                    if isinstance(i, IRScopeEnd):
+                        depth -= 1
+                    print(depth * "    " + repr(i))
+                    if isinstance(i, IRScopeBegin):
+                        depth += 1
             if not self.config.no_generate_commands:
                 CodeGenerator(ir_builder, target_path, self.config).generate_commands()
             print(f"Compilation completes, total time {time.time_ns() - start_time}")

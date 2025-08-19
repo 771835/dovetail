@@ -50,17 +50,12 @@ type
     ;
 
 typeList
-    :type (',' type)*
+    :type (COMMA type)*
     ;
 
 functionDecl
-    : annotation* FUNC ID
-      ( paramList)
-      (ARROW type)       // 返回类型标注
-      block
-    | annotation* FUNC type ID
-      ( paramList)
-      block
+    : annotation* FUNC ID paramList (ARROW) type block // 返回类型标注
+    | annotation* FUNC type ID paramList block
     ;
 
 
@@ -70,12 +65,12 @@ methodDecl
     ;
 
 paramList
-    : LPAREN (paramDecl (',' paramDecl)*)? RPAREN
+    : LPAREN (paramDecl (COMMA paramDecl)*)? RPAREN
     | PAREN
     ;
 
 paramDecl
-    : ID (':' type)   // 强制类型标注
+    : ID (ARROW type)   // 强制类型标注
     | type ID
     ;
 
@@ -88,7 +83,8 @@ block
 
 /* 6. 流程控制 */
 statement
-    : varDecl                               // 变量声明
+    : functionDecl                         // 函数定义
+    | varDecl                               // 变量声明
     | constDecl                             // 常量声明
     | forStmt                               // for循环
     | whileStmt                             // while循环
@@ -99,7 +95,7 @@ statement
     | ifStmt                                // 条件语句
     | breakStmt SEMI?                        // break语句
     | continueStmt SEMI?                     // continue语句
-    | functionDecl                         // 函数定义
+
     ;
 
 breakStmt
@@ -112,7 +108,7 @@ continueStmt
 
 forStmt
     : FOR LPAREN forControl RPAREN block        // 传统for循环
-    | FOR LPAREN type ID ':' expr RPAREN block       // 增强for循环 (expr需为可迭代class)
+    | FOR LPAREN type ID ARROW expr RPAREN block       // 增强for循环 (expr需为可迭代class)
     ;
 
 
@@ -221,6 +217,13 @@ RBRACE : '}';
 SEMI : ';';
 COMMA : ',';
 
+ARROW: ':'
+    | '->'
+    | 'fuck'
+    | 'as'
+    ;
+DOUBLE_COLON: '::';
+
 // 关键字（定义在ID之前）
 INCLUDE: 'include';
 FUNC: 'func';
@@ -243,12 +246,9 @@ NULL: 'null';
 IN: 'in';
 BREAK: 'break';
 CONTINUE: 'continue';
-ARROW: '->'
-    | 'fuck'
-    | ':'
-    | 'as'
-    ;
-DOUBLE_COLON: '::';
+
+
+
 
 // 运算符
 NOT : '!';
