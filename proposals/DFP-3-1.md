@@ -20,20 +20,20 @@
 | RETURN      | [value]                           | 从函数返回（可选返回值）        |
 | CALL        | result func [args...]             | 函数调用                |
 | SCOPE_BEGIN | name type                         | 作用域开始标记（可标记为函数、循环等） |
-| SCOPE_END   | -                                 | 作用域结束标记             |
+| SCOPE_END   | name type                         | 作用域结束标记             |
 | BREAK       | scope_name                        | 跳出指定循环              |
 | CONTINUE    | scope_name                        | 终止当前循环迭代，继续下次迭代     |
 
 ### 变量操作
 
-| 指令          | 参数                   | 备注                    |
-|-------------|----------------------|-----------------------|
-| DECLARE     | variable             | 声明变量                  |
-| ASSIGN      | target source        | 赋值操作                  |
-| UNARY_OP    | result op operand    | 一元运算（如 `-a`, `!b`）    |
-| OP          | result op left right | 二元运算（如 `a+b`, `c*d`）  |
-| COMPARE     | result op left right | 比较运算（如 `a>b`, `c==d`） |
-| CAST        | result type value    | 显式类型转换                |
+| 指令       | 参数                   | 备注                    |
+|----------|----------------------|-----------------------|
+| DECLARE  | variable             | 声明变量                  |
+| ASSIGN   | target source        | 赋值操作                  |
+| UNARY_OP | result op operand    | 一元运算（如 `-a`, `!b`）    |
+| OP       | result op left right | 二元运算（如 `a+b`, `c*d`）  |
+| COMPARE  | result op left right | 比较运算（如 `a>b`, `c==d`） |
+| CAST     | result type value    | 显式类型转换                |
 
 ### 面向对象指令
 
@@ -63,7 +63,7 @@
 
 #### if-else 示例
 
-```
+```dovetail
 if (cond_var) {
     # if块代码
 } else {
@@ -79,7 +79,7 @@ COND_JUMP(op=Variable(name='cond_var', dtype=<DataType.BOOLEAN: 'boolean'>, var_
 
 #### 传统for循环示例
 
-```
+```dovetail
 for (int i=0;i<3;i=i+1) {
     # 循环体
 }
@@ -102,18 +102,7 @@ SCOPE_END()
 JUMP(op='for_0')
 ```
 
-### 3. 方法调用优化
-
-#### 方法调用转为
-
-```
-CALL_METHOD result_var player "getScore" args...
-# 可优化为
-GET_FIELD temp_var player "scores"
-GET_FIELD result_var temp_var "value"
-```
-
-### 4. IR优化策略
+### 3. IR优化策略
 
 1. **内存优化**：
     - 临时变量重用池
@@ -125,7 +114,7 @@ GET_FIELD result_var temp_var "value"
 
 ### 原始代码
 
-```
+```dovetail
 func main() -> int {
     func add(a:int, b:int) -> int {
         return a + b
@@ -138,7 +127,7 @@ func main() -> int {
 
 ### 生成IR
 
-```
+```dovetail
 IROpCode.SCOPE_BEGIN(op='main', op=<StructureType.FUNCTION: 'function'>)
     IROpCode.SCOPE_BEGIN(op='add', op=<StructureType.FUNCTION: 'function'>)
         IROpCode.DECLARE(op=Variable(name='a', dtype=<DataType.INT: 'int'>, var_type=<VariableType.ARGUMENT: 'argument'>))
@@ -174,39 +163,125 @@ IROpCode.FUNCTION(op=Function(name='main', params=[], return_type=<DataType.INT:
 
 ### 参数类型定义表
 
+#### 基础符号类 (Symbol)
+
+```dovetail
+class Symbol(ABC):
+    @abstractmethod
+    def get_name(self) -> str: ...
 ```
-Literal:
-    dtype: DataType
-    value: Any
- 
-Variable:
-    name: str
-    dtype:  DataType|'Class'
-    var_type: VariableType
 
-Constant:
-    name: str
-    dtype:  DataType|'Class'
-    value: Any (可选)
-    var_type: VariableType
+#### 类定义 (Class)
 
-Function:
-    name: str
-    params: list[Variable]
-    return_type:  DataType|'Class'
-
-
-Class:
-    name: str
-    methods: list[Function]）
-    interfaces: Optional[Class]
-    parent: Optional[Class]
-    constants: set[Reference[Constant]]
-    variables: list[Reference[Variable]]
-
-T = 'Variable','Constant','Literal','Function', 'Class'
-Reference:
-    value_type: ValueType
-    value: T
-
+```python
+@define(slots=True)
+class Class(Symbol, DataTypeBase):
+    name: str  # 类名
+    methods: set[Function]  # 方法集合
+    interface: Optional[Class]  # 实现的接口
+    parent: Optional[Class]  # 父类
+    constants: set[Reference[Constant]]  # 常量引用集合
+    variables: set[Reference[Variable]]  # 变量引用集合
+    type: ClassType = ClassType.CLASS  # 类型（类/接口）
 ```
+
+#### 常量定义 (Constant)
+
+```python
+\
+
+@define(slots=True)
+class Constant(Symbol):
+    name: str  # 常量名
+    dtype: DataType | Class  # 数据类型
+    var_type: VariableType = VariableType.COMMON  # 变量类型
+```
+
+#### 函数定义 (Function)
+
+```python
+@define(slots=True)
+class Function(Symbol):
+    name: str  # 函数名
+    params: list[Parameter]  # 参数列表
+    return_type: DataType | Class  # 返回类型
+    function_type: FunctionType = FunctionType.FUNCTION  # 函数类型
+```
+
+#### 字面量定义 (Literal)
+
+```python
+@define(slots=True, frozen=True)
+class Literal(Symbol):
+    dtype: DataType  # 数据类型
+    value: str | int | bool | None  # 字面量值
+```
+
+#### 参数定义 (Parameter)
+
+```python
+@define(slots=True)
+class Parameter(Symbol):
+    var: Variable  # 参数变量
+    optional: bool = False  # 是否可选
+    default: Reference[Variable | Literal | Constant] = None  # 默认值
+```
+
+#### 引用定义 (Reference)
+
+```python
+\
+
+@define(slots=True, hash=True)
+class Reference(Symbol, Generic[T]):
+    value_type: ValueType  # 引用值类型
+    value: T  # 被引用的符号
+
+    # 支持的引用类型：
+    # ValueType.LITERAL - 字面量引用
+    # ValueType.VARIABLE - 变量引用  
+    # ValueType.CONSTANT - 常量引用
+    # ValueType.FUNCTION - 函数引用
+    # ValueType.CLASS - 类引用
+```
+
+#### 变量定义 (Variable)
+
+```python
+@define(slots=True)
+class Variable(Symbol):
+    name: str  # 变量名
+    dtype: DataType | Class  # 数据类型
+    var_type: VariableType = VariableType.COMMON  # 变量类型
+```
+
+#### 枚举类型说明
+
+**ValueType 枚举：**
+
+- `LITERAL`: 字面量
+- `VARIABLE`: 变量
+- `CONSTANT`: 常量
+- `FUNCTION`: 函数
+- `CLASS`: 类
+
+**DataType 枚举：**
+
+- `INT`: 整数类型
+- `STRING`: 字符串类型
+- `BOOLEAN`: 布尔类型
+- `NULL`: 空类型
+- `Function`: 函数类型(不保证使用)
+
+**VariableType 枚举：**
+
+- `COMMON`: 普通变量
+- `PARAMETER`: 函数参数
+- `RETURN`: 返回值
+
+**FunctionType 枚举：**
+
+- `FUNCTION`: 普通函数
+- `BUILTIN`: 内置函数
+- `METHOD`: 类方法
+- `LIBRARY`: 库函数

@@ -39,11 +39,6 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by transpilerParser#typeList.
-    def visitTypeList(self, ctx:transpilerParser.TypeListContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by transpilerParser#functionDecl.
     def visitFunctionDecl(self, ctx:transpilerParser.FunctionDeclContext):
         return self.visitChildren(ctx)
@@ -144,8 +139,8 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by transpilerParser#DirectFuncCall.
-    def visitDirectFuncCall(self, ctx:transpilerParser.DirectFuncCallContext):
+    # Visit a parse tree produced by transpilerParser#ArrayAccess.
+    def visitArrayAccess(self, ctx:transpilerParser.ArrayAccessContext):
         return self.visitChildren(ctx)
 
 
@@ -174,6 +169,11 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by transpilerParser#FunctionCall.
+    def visitFunctionCall(self, ctx:transpilerParser.FunctionCallContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by transpilerParser#LogicalAndExpr.
     def visitLogicalAndExpr(self, ctx:transpilerParser.LogicalAndExprContext):
         return self.visitChildren(ctx)
@@ -189,8 +189,8 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by transpilerParser#VarExpr.
-    def visitVarExpr(self, ctx:transpilerParser.VarExprContext):
+    # Visit a parse tree produced by transpilerParser#IdentifierExpr.
+    def visitIdentifierExpr(self, ctx:transpilerParser.IdentifierExprContext):
         return self.visitChildren(ctx)
 
 

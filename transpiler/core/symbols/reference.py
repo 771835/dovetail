@@ -44,11 +44,13 @@ class Reference(Symbol, Generic[T]):
 
         :return: 符号数据类型
         """
-        if self.value_type == ValueType.FUNCTION:
-            self.value: Function
-            return self.value.return_type
-        elif self.value_type == ValueType.CLASS:
+        from . import Class, Function, Parameter
+        if isinstance(self.value, Class):
             return self.value
+        elif isinstance(self.value, Function):
+            return DataType.Function
+        elif isinstance(self.value, Parameter):
+            return self.value.get_data_type()
         else:
             return self.value.dtype
 

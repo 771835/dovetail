@@ -3,12 +3,13 @@ import argparse
 import sys
 import time
 from pathlib import Path
+from contextlib import chdir
 
 from transpiler.core.instructions import IRScopeEnd, IRScopeBegin
 from transpiler.core.scope import Scope
 from transpiler.utils.ir_serializer import IRSymbolSerializer
 
-start_time = time.time_ns()
+start_time = time.time()
 
 from transpiler.core.errors import CompilationError
 from transpiler.core.ir_generator import MCGenerator
@@ -24,7 +25,7 @@ from transpiler.core.parser import transpilerLexer
 from transpiler.core.parser import transpilerParser
 from transpiler.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
 
-print(f"导库所用时间：{time.time_ns() - start_time}")
+print(f"导库所用时间：{time.time() - start_time}")
 
 
 @Mixin(ErrorListener)  # 相比于正常继承，使用mixin会慢0.001-0.01左右，但是可以减少代码量，而且好酷qwq
@@ -43,49 +44,50 @@ class Compile:
     def compile(self, source_path: Path, target_path: Path):
         source_path = Path(source_path)
         target_path = Path(target_path)
+        source_dir = source_path.parent if source_path.is_file() else Path.cwd()
         tree = self.parser_file(source_path)
         if not tree:
             print("file not found!")
             return -1
-        generator: MCGenerator | None = None
-        try:
-            generator = MCGenerator(self.config)
-            generator.visit(tree)
-            # 输出到target目录
-            ir_builder = generator.get_generate_ir()
-            ir_builder = Optimizer(ir_builder, self.config).optimize()
-            if self.config.output_temp_file:
-                with open(target_path.with_name(f"{target_path.stem}.mcdc"), "wb") as f:
-                    f.write(IRSymbolSerializer.dump(ir_builder, "eb9a736010764a6da0a3448874db8e2c"))
-                print(IRSymbolSerializer(ir_builder).serialize())
+        generator: MCGenerator = MCGenerator(self.config)
+        with chdir(source_dir):
+            try:
+                generator.visit(tree)
+                # 输出到target目录
+                ir_builder = generator.get_ir()
+                ir_builder = Optimizer(ir_builder, self.config).optimize()
+                if self.config.output_temp_file:
+                    with open(target_path.with_name(f"{target_path.stem}.mcdc"), "wb") as f:
+                        f.write(IRSymbolSerializer.dump(ir_builder, "eb9a736010764a6da0a3448874db8e2c"))
+                    print(IRSymbolSerializer(ir_builder).serialize())
 
-                depth = 0
-                for i in ir_builder:
-                    if isinstance(i, IRScopeEnd):
-                        depth -= 1
-                    print(depth * "    " + repr(i))
-                    if isinstance(i, IRScopeBegin):
-                        depth += 1
-            if not self.config.no_generate_commands:
-                CodeGenerator(ir_builder, target_path, self.config).generate_commands()
-            print(f"Compilation completes, total time {time.time_ns() - start_time}")
-        except CompilationError as e:
-            time.sleep(0.1)  # 保证前面的输出完成
-            if generator:
-                self.print_error_info(generator.scope_stack)
-            print(e.__repr__())
-            if self.config.debug:
+                    depth = 0
+                    for i in ir_builder:
+                        if isinstance(i, IRScopeEnd):
+                            depth -= 1
+                        print(depth * "    " + repr(i))
+                        if isinstance(i, IRScopeBegin):
+                            depth += 1
+                if not self.config.no_generate_commands:
+                    CodeGenerator(ir_builder, target_path, self.config).generate_commands()
+                print(f"Compilation completes, total time {time.time() - start_time}")
+            except CompilationError as e:
+                time.sleep(0.1)  # 保证前面的输出完成
+                if generator:
+                    self.print_error_info(generator.scope_stack)
+                print(e.__repr__())
+                if self.config.debug:
+                    # 重新抛出异常显示错误详情
+                    raise
+                return -1
+            except Exception:
+                time.sleep(0.1)
+                if generator:
+                    self.print_error_info(generator.scope_stack)
+                print("意外的错误，以下为详细堆栈信息")
+                time.sleep(0.1)
                 # 重新抛出异常显示错误详情
                 raise
-            return -1
-        except Exception:
-            time.sleep(0.1)
-            if generator:
-                self.print_error_info(generator.scope_stack)
-            print("意外的错误，以下为详细堆栈信息")
-            time.sleep(0.1)
-            # 重新抛出异常显示错误详情
-            raise
 
     @staticmethod
     def parser_file(file_path: str | Path) -> transpilerParser.transpilerParser.ProgramContext | None:
@@ -154,6 +156,8 @@ if __name__ == "__main__":
     args_parser.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
     args_parser.add_argument('--enable-recursion', action='store_true', help='启用递归(需后端支持)')
     args_parser.add_argument('--enable-same-name-function-nesting', action='store_true', help='启用同名函数嵌套')
+    args_parser.add_argument('--enable-first-class-functions', action='store_true',
+                             help='启用函数一等公民(大部分代码未适配，谨慎开启)')
     args_parser.add_argument('--enable-experimental', action='store_true', help='启用扩展模式')
     args_parser.add_argument('--disable-warnings', action='store_true', help='禁用警告')
     args_parser.add_argument('--debug', action='store_true', help='启用调试模式')
@@ -161,7 +165,6 @@ if __name__ == "__main__":
                              help='来点神奇的mixin(警告:这将会严重破坏编译器的功能)')
 
     args = args_parser.parse_args()
-
     if args.wtf_mixin:
         import transpiler.easter_egg
 
@@ -187,7 +190,9 @@ if __name__ == "__main__":
             args.output_temp_file,
             args.enable_recursion,
             args.enable_same_name_function_nesting,
-            args.enable_experimental
+            args.enable_first_class_functions,
+            args.enable_experimental,
+            Path("lib").absolute()
         )
     )
     sys.exit(

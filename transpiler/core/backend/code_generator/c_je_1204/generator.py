@@ -1,5 +1,4 @@
 # coding=utf-8
-import sys
 import threading
 import uuid
 from functools import lru_cache
@@ -313,7 +312,7 @@ class CodeGenerator(CodeGeneratorSpec):
                 ).hex[:8],
                 value.get_data_type()
             )
-            function_scope.add_symbol(return_var)
+            function_scope.add_symbol(return_var, force=True)
             if isinstance(value.get_data_type(), DataType):
                 self.current_scope.add_command(
                     BasicCommands.Copy.copy_base_type(
@@ -407,8 +406,7 @@ class CodeGenerator(CodeGeneratorSpec):
             BuiltinFuncMapping.get(func.get_name())(result, self, args)
             return
         jump_scope = self.current_scope.resolve_scope(func.name)
-
-        for param_name, arg, param in zip(args.items(), func.params):
+        for (param_name, arg), param in zip(args.items(), func.params):
             if isinstance(arg.get_data_type(), DataType):
                 self.current_scope.add_command(
                     BasicCommands.Copy.copy_base_type(
@@ -429,7 +427,7 @@ class CodeGenerator(CodeGeneratorSpec):
                 jump_scope.get_minecraft_function_path()
             )
         )
-        if isinstance(func.return_type, DataType):
+        if isinstance(func.return_type, DataType) and func.return_type != DataType.NULL:
             self.current_scope.add_command(
                 BasicCommands.Copy.copy_variable_base_type(
                     result,
@@ -447,8 +445,7 @@ class CodeGenerator(CodeGeneratorSpec):
                     self.var_objective
                 )
             )
-        else:  # Class
-            assert isinstance(func.return_type, Class)
+        elif isinstance(func.return_type, Class):  # Class
             pass  # TODO:实现类的赋值
         self._handle_jump_flags(func.name, instr)
 
@@ -561,7 +558,7 @@ class CodeGenerator(CodeGeneratorSpec):
                     temp_path
                 )
             )
-        elif dtype in DataType.INT and value.get_data_type() == DataType.STRING:  # string -> int
+        elif dtype in (DataType.INT, DataType.BOOLEAN) and value.get_data_type() == DataType.STRING:  # string -> int
             temp_path = uuid.uuid4().hex
             self.current_scope.add_command(
                 Execute.execute()

@@ -46,22 +46,19 @@ interfaceDecl
 
 /* 4. 类型系统(阉割版) */
 type
-    : ID
-    ;
-
-typeList
-    :type (COMMA type)*
+    : ID ('[' (type ',')* ']')?
+    | NULL
     ;
 
 functionDecl
-    : annotation* FUNC ID paramList (ARROW) type block // 返回类型标注
-    | annotation* FUNC type ID paramList block
+    : annotation* FUNC ID paramList (ARROW type)? block // 返回类型标注
+    | annotation* FUNC type? ID paramList block
     ;
 
 
 methodDecl
-    : annotation* METHOD ID paramList ARROW type block
-    | annotation* METHOD type ID paramList block
+    : annotation* METHOD ID paramList (ARROW type)? block
+    | annotation* METHOD type? ID paramList block
     ;
 
 paramList
@@ -122,26 +119,26 @@ whileStmt
     ;
 
 constDecl
-    : CONST ID (ARROW type) (ASSIGN expr) SEMI?  // 常量声明
+    : CONST ID (ARROW type)? ('?')? (ASSIGN expr) SEMI?  // 常量声明
     | CONST type ID (ASSIGN expr) SEMI?
     ;
 
 // 公共规则
 varDeclaration
-    : ID (ARROW type) ('?')? (ASSIGN expr)?
+    : LET ID ('?')? (ASSIGN expr)
+    | ID (ARROW type) ('?')? (ASSIGN expr)?
     | type ID ('?')? (ASSIGN expr)? // 更符合大多数人习惯的变量声明
+    | LET ID ('?')? (ASSIGN expr)
     ;
 
 // 变量声明（带分号）
 varDecl
-    : VAR varDeclaration SEMI?
-    | varDeclaration SEMI?
+    : varDeclaration SEMI?
     ;
 
 // for 循环变量声明（无分号）
 forLoopVarDecl
-    : VAR varDeclaration
-    | varDeclaration
+    : varDeclaration
     ;
 
 assignment
@@ -167,8 +164,8 @@ expr
      expr '.' ID argumentList         # MethodCall         // 方法调用
     | expr '.' ID                           # MemberAccess       // 成员访问
     | expr '[' expr ']'                     # ArrayAccess        // 数组访问
-    //| expr argumentList                # FunctionCall       // 函数调用
-    | ID argumentList                  # DirectFuncCall     // 直接调用
+    | expr argumentList                # FunctionCall       // 函数调用
+    //| ID argumentList                  # DirectFuncCall     // 直接调用
     | primary                               # PrimaryExpr        // 基础表达式
     | SUB expr                              # NegExpr            // 负号
     | NOT expr                         #LogicalNotExpr             // not运算符
@@ -181,7 +178,7 @@ expr
 
 
 primary
-    :ID                                    # VarExpr            // 变量
+    :ID                                    # IdentifierExpr      // 标识符（变量、函数、类等）
     | literal                               # LiteralExpr        // 字面量
     | LPAREN expr RPAREN                          # ParenExpr          // 括号
     ;
@@ -224,7 +221,7 @@ ARROW: ':'
     ;
 DOUBLE_COLON: '::';
 
-// 关键字（定义在ID之前）
+// 关键字
 INCLUDE: 'include';
 FUNC: 'func';
 METHOD: 'method';
@@ -232,8 +229,8 @@ CLASS: 'class';
 INTERFACE: 'interface';
 EXTENDS: 'extends';
 IMPLEMENTS: 'implements';
-VAR: 'var';
 CONST: 'const';
+LET: 'let';
 RETURN: 'return';
 FOR: 'for';
 WHILE: 'while';

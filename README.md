@@ -2,8 +2,7 @@
 
 > Minecraft数据包编译语言 | 面向对象的Minecraft DSL  
 > 该项目部分参考了[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)
-> 且引入了部分新的语法和设计。但该项目最初并非由MCFPP启发而产生。  
-> 该项目的实现并不完善，若需要生产环境使用，请考虑如MCFPP等相对成熟的项目  
+> 该项目的实现不够成熟，若需要生产环境使用，请考虑其他相对成熟的项目    
 > 关于自举: 绝对不会考虑
 <!-- 把史放github上我真是个天才 -->
 
@@ -18,7 +17,7 @@
 
 ### 环境要求
 
-- Python 3.10+
+- Python 3.10+归
 
 ### 快速开始
 
@@ -39,6 +38,8 @@ Q: 明明我的代码没有错误，生成出的指令却无法正确执行
 A: 请先尝试添加参数 `-O0` ，若是再次生成的指令正确执行，请以`ir优化错误`为issue标题前缀,否则以`未知错误`作为标题前缀    
 Q: 生成出来的指令执行到一半就中止  
 A: 请尝试使用gamerule指令适当提高maxCommandChainLength规则的数量
+Q: 如果我必须要用堆栈呢
+A: 可以采用其他项目，如[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)
 
 ## 许可证
 

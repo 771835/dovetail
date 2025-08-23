@@ -525,6 +525,7 @@ class Composite:
                     result_objective
                 )
             )
+            return commands
         elif result.dtype == DataType.STRING:
             # 对左右两项进行拼接然后存储到结果中
             return BasicCommands.call_macros_function(

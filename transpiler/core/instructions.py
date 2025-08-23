@@ -174,7 +174,7 @@ class IRReturn(IRInstruction):
 class IRCall(IRInstruction):
     def __init__(self, result: Variable | Constant | None, func: Function,
                  args: dict[str, Reference[Variable | Constant | Literal]] = None, line: int = -1, column: int = -1,
-                 filename: str = None, opcode: IROpCode = None):
+                 filename: str = None):
         if args is None:
             args = []
         operands = [
@@ -182,7 +182,7 @@ class IRCall(IRInstruction):
             func,
             args
         ]
-        super().__init__(opcode if opcode else IROpCode.CALL, operands, line, column, filename)
+        super().__init__(IROpCode.CALL, operands, line, column, filename)
 
 
 class IRScopeBegin(IRInstruction):
@@ -336,12 +336,12 @@ class IRSetField(IRInstruction):
 
 
 class IRCallMethod(IRInstruction):
-    def __init__(self, result: Variable, obj: Reference[Variable | Constant], method: Function,
+    def __init__(self, result: Variable, class_: Class, method: Function,
                  args: dict[str, Reference] = None, line: int = -1,
                  column: int = -1, filename: str = None):
         operands = [
             result,
-            obj,
+            class_,
             method,
             args
         ]

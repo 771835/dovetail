@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from enum import IntEnum, auto
+from pathlib import Path
 
 from attrs import define, field, validators
 
@@ -65,4 +66,6 @@ class GeneratorConfig:
     output_temp_file: bool = field(validator=validators.instance_of(bool), default=False)
     enable_recursion: bool = field(validator=validators.instance_of(bool), default=False)
     enable_same_name_function_nesting: bool = field(validator=validators.instance_of(bool), default=False)
+    enable_first_class_functions: bool = field(validator=validators.instance_of(bool), default=False)
     enable_experimental: bool = field(validator=validators.instance_of(bool), default=False)
+    lib_path: Path = field(validator=validators.instance_of(Path), default=Path("lib").absolute())

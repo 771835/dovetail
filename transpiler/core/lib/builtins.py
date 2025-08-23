@@ -81,7 +81,7 @@ class Builtins(Library):
                 [
                     Parameter(Variable("command", DataType.STRING))
                 ],
-                DataType.VOID,
+                DataType.NULL,
                 FunctionType.BUILTIN
             ): None,
             Function(
@@ -90,7 +90,7 @@ class Builtins(Library):
                     Parameter(Variable("target", DataType.STRING)),
                     Parameter(Variable("msg", DataType.STRING)),
                 ],
-                DataType.VOID,
+                DataType.NULL,
                 FunctionType.BUILTIN
             ): None,
             Function(
@@ -99,7 +99,7 @@ class Builtins(Library):
                     Parameter(Variable("target", DataType.STRING)),
                     Parameter(Variable("json", DataType.STRING)),
                 ],
-                DataType.VOID,
+                DataType.NULL,
                 FunctionType.BUILTIN
             ): None,
             Function(
@@ -302,7 +302,7 @@ class Builtins(Library):
                 }
             )
         )
-        return Literal(DataType.VOID, None)
+        return Literal(DataType.NULL, None)
 
     def _strcat(self, dest: Reference[Variable | Constant | Literal],
                 src: Reference[Variable | Constant | Literal]) -> Variable:

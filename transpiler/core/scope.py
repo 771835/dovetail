@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from transpiler.core.enums import StructureType
-from transpiler.core.symbols import Symbol
 from transpiler.core.symbols.base import Symbol
 
 
@@ -52,7 +51,6 @@ class Scope:
                 return current.symbols[name]
             current = current.parent
         return None
-        raise ValueError(f"Undefined symbol: {name}")
 
     def find_symbol(self, name: str) -> Symbol | None:
         """只在单层查找符号"""

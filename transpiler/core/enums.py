@@ -59,7 +59,6 @@ class DataType(DataTypeBase, SafeEnum):
     INT = 'int'
     STRING = 'string'
     BOOLEAN = 'boolean'
-    VOID = 'void'
     NULL = 'null'  # 特殊类型，不可为声明变量时的类型
     Function = 'function'
 
@@ -87,8 +86,6 @@ class ValueType(SafeEnum):
     VARIABLE = "variable"  # 变量
     FUNCTION = "function"  # 函数
     CLASS = "class"
-    ERROR = "error"  # 错误
-    OTHER = 'other'
 
 
 class VariableType(SafeEnum):
@@ -96,7 +93,6 @@ class VariableType(SafeEnum):
     PARAMETER = "parameter"
     COMMON = "common"
     RETURN = "return"
-    DEBUG = "debug"
 
 
 class ClassType(SafeEnum):

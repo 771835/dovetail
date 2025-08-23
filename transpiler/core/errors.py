@@ -1,4 +1,6 @@
 # coding=utf-8
+from pathlib import Path
+
 from transpiler.core.enums import DataType
 
 
@@ -167,8 +169,8 @@ class SymbolResolutionError(ASTSemanticError):
     """符号解析错误基类"""
 
     def __init__(self, symbol_name: str, category: str,
-                 line: int = None, column: int = None, filename: str = None):
-        msg = f"{category} '{symbol_name}' 未找到"
+                 msg: str = None, line: int = None, column: int = None, filename: str = None):
+        msg = msg or f"{category} '{symbol_name}' 未找到"
         super().__init__(msg, line=line, column=column, filename=filename)
 
 
@@ -201,10 +203,8 @@ class SymbolCategoryError(SymbolResolutionError):
         self.expected_category = expected
         self.actual_category = actual
         self.symbol_name = symbol_name
-        self.msg = f"符号 '{symbol_name}' 类别不匹配：期望 {expected}，实际为 {actual}"
-    def _format_message(self) -> str:
-        """覆盖父类方法以提供更具体的错误信息"""
-        return f"符号 '{self.symbol_name}' 类别不匹配：期望 {self.expected_category}，实际为 {self.actual_category}"
+        msg = f"符号 '{symbol_name}' 类别不匹配：期望 {expected}，实际为 {actual}"
+        super().__init__(symbol_name, "fuck", msg, line, column, filename)
 
 
 class ControlFlowError(ASTSemanticError):
@@ -317,7 +317,7 @@ class UnexpectedError(ASTInternalError):
 class CompilerIncludeError(ASTError):
     """包含错误"""
 
-    def __init__(self, path: str, reason: str, line: int = None,
+    def __init__(self, path: str | Path, reason: str, line: int = None,
                  column: int = None, filename: str = None):
         msg = f"无法包含 '{path}': {reason}"
         super().__init__(msg, line=line, column=column, filename=filename)

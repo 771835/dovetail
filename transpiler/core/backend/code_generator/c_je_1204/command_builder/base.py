@@ -1,7 +1,7 @@
 # coding=utf-8
 import uuid
 
-from transpiler.core.enums import DataType, ValueType
+from transpiler.core.enums import DataType
 from transpiler.core.symbols import Variable, Constant, Literal, Symbol
 from . import DataBuilder, ScoreboardBuilder, FunctionBuilder, Execute
 from ..code_generator_scope import CodeGeneratorScope
@@ -14,6 +14,14 @@ class BasicCommands:
             objective: str,
             param: dict[str, tuple[bool, str, str | None]]
     ) -> list[str]:
+        """
+         调用宏函数
+
+        :param func_name:函数路径
+        :param objective: 临时记分板
+        :param param: 参数 参数名:(是否为引用，路径/具体值,记分板)
+        :return: 生成的指令
+        """
         args_path = f"args.{uuid.uuid4().hex}"
         commands: list[str] = []
         for name, _ in param.items():
@@ -29,11 +37,13 @@ class BasicCommands:
                     )
                 )
             else:
+                value = _[1].replace("\\","\\\\")
+                # 此处可通过merge进行优化生成的指令的效率，但是暂不实现，也可以通过常量池预加载，但是也不实现qwq
                 commands.append(
                     DataBuilder.modify_storage_set_value(
                         objective,
                         f"{args_path}.{name}",
-                        _[1]
+                        f'"{value}"'
                     )
                 )
         commands.append(
@@ -124,18 +134,18 @@ class BasicCommands:
                 target_objective: str
         ):
             return (Execute.execute()
-                .store_result_storage(
-                    target_objective,
+            .store_result_storage(
+                target_objective,
+                BasicCommands.get_symbol_path(target_scope, target),
+                'int',
+                1.0
+            )
+            .run(
+                ScoreboardBuilder.get_score(
                     BasicCommands.get_symbol_path(target_scope, target),
-                    'int',
-                    1.0
+                    target_objective
                 )
-                .run(
-                    ScoreboardBuilder.get_score(
-                        BasicCommands.get_symbol_path(target_scope, target),
-                        target_objective
-                    )
-                )
+            )
             )
 
         @staticmethod

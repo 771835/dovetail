@@ -62,15 +62,6 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by transpilerParser#typeList.
-    def enterTypeList(self, ctx:transpilerParser.TypeListContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#typeList.
-    def exitTypeList(self, ctx:transpilerParser.TypeListContext):
-        pass
-
-
     # Enter a parse tree produced by transpilerParser#functionDecl.
     def enterFunctionDecl(self, ctx:transpilerParser.FunctionDeclContext):
         pass
@@ -251,12 +242,12 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by transpilerParser#DirectFuncCall.
-    def enterDirectFuncCall(self, ctx:transpilerParser.DirectFuncCallContext):
+    # Enter a parse tree produced by transpilerParser#ArrayAccess.
+    def enterArrayAccess(self, ctx:transpilerParser.ArrayAccessContext):
         pass
 
-    # Exit a parse tree produced by transpilerParser#DirectFuncCall.
-    def exitDirectFuncCall(self, ctx:transpilerParser.DirectFuncCallContext):
+    # Exit a parse tree produced by transpilerParser#ArrayAccess.
+    def exitArrayAccess(self, ctx:transpilerParser.ArrayAccessContext):
         pass
 
 
@@ -305,6 +296,15 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by transpilerParser#FunctionCall.
+    def enterFunctionCall(self, ctx:transpilerParser.FunctionCallContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#FunctionCall.
+    def exitFunctionCall(self, ctx:transpilerParser.FunctionCallContext):
+        pass
+
+
     # Enter a parse tree produced by transpilerParser#LogicalAndExpr.
     def enterLogicalAndExpr(self, ctx:transpilerParser.LogicalAndExprContext):
         pass
@@ -332,12 +332,12 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by transpilerParser#VarExpr.
-    def enterVarExpr(self, ctx:transpilerParser.VarExprContext):
+    # Enter a parse tree produced by transpilerParser#IdentifierExpr.
+    def enterIdentifierExpr(self, ctx:transpilerParser.IdentifierExprContext):
         pass
 
-    # Exit a parse tree produced by transpilerParser#VarExpr.
-    def exitVarExpr(self, ctx:transpilerParser.VarExprContext):
+    # Exit a parse tree produced by transpilerParser#IdentifierExpr.
+    def exitIdentifierExpr(self, ctx:transpilerParser.IdentifierExprContext):
         pass
 
 

@@ -97,8 +97,8 @@ class ScoreboardBuilder:
         #  对于score为2的情况下进行优化(使用加法而非乘法)
         if score == 1:
             return []
-        elif score <= 3:
-            return [ScoreboardBuilder.add_op(targets, objective, targets, objective)]*int(score-1)
+        elif 1 < score <= 3:
+            return [ScoreboardBuilder.add_op(targets, objective, targets, objective)] * int(score - 1)
         temp = '#' + uuid.uuid4().hex
         return [ScoreboardBuilder.set_score(temp, objective, score),
                 ScoreboardBuilder.mul_op(targets, objective, temp, objective),

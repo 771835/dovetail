@@ -14,7 +14,7 @@ from transpiler.core.backend.specification import IROptimizerSpec, \
 from transpiler.core.enums import ValueType, VariableType, DataTypeBase
 from transpiler.core.generator_config import GeneratorConfig, MinecraftEdition, OptimizationLevel
 from transpiler.core.instructions import *
-from transpiler.core.symbols import Variable, Reference, Constant, Literal
+from transpiler.core.symbols import Variable, Reference, Constant, Literal, Parameter
 
 
 class Optimizer(IROptimizerSpec):
@@ -230,6 +230,7 @@ class ConstantFoldingPass(IROptimizationPass):
             IROpCode.COND_JUMP: self._cond_jump,
             IROpCode.CALL: self._call,
             IROpCode.CAST: self._cast,
+            IROpCode.FUNCTION: self._function
         }
         while True:
             try:
@@ -259,13 +260,17 @@ class ConstantFoldingPass(IROptimizationPass):
             return value
         elif value.value_type == ValueType.LITERAL:
             return value
+        elif value.value_type == ValueType.FUNCTION:
+            return value
         elif value.value_type in (ValueType.CONSTANT, ValueType.VARIABLE):
             return self._find(value)
         else:
             return ConstantFoldingPass.FoldingFlags.UNKNOWN
 
-    def _resolve_ref(self, ref: Reference[Variable | Constant | Literal]) -> Reference[
-                                                                                 Literal] | ConstantFoldingPass.FoldingFlags:
+    def _resolve_ref(
+            self,
+            ref: Reference[Variable | Constant | Literal]
+    ) -> Reference[Literal] | ConstantFoldingPass.FoldingFlags:
         if ref.value_type == ValueType.LITERAL:
             return ref
         else:
@@ -413,11 +418,8 @@ class ConstantFoldingPass(IROptimizationPass):
         # 操作前将结果设为未知
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
-        if value_ref.value_type == ValueType.LITERAL:  # 搜索最终值
-            value = value_ref
-        else:
-            value = self._find(value_ref)
-        if value == ConstantFoldingPass.FoldingFlags.UNKNOWN:
+        value = self._resolve_ref(value_ref)
+        if isinstance(value, ConstantFoldingPass.FoldingFlags):
             return
 
         if dtype == value_ref.get_data_type():
@@ -432,6 +434,10 @@ class ConstantFoldingPass(IROptimizationPass):
                 iterator.set_current(
                     IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.STRING, str(value.value.value)))))
                 self._assign(iterator, iterator.current())  # NOQA
+
+    def _function(self, iterator: IRBuilderIterator, instr: IRFunction):
+        function: Function = instr.get_operands()[0]
+        self.current_table.set(function.get_name(), Reference(ValueType.FUNCTION, function))
 
 
 class DeadCodeEliminationPass(IROptimizationPass):
@@ -688,7 +694,6 @@ class DeclareCleanupPass(IROptimizationPass):
                 target, dtype, source = instr.get_operands()
                 if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
                     self.var_references[source.get_name()] = self.var_references.get(source.get_name(), 0) + 1
-
 
     def _remove_dead_declarations(self):
         """删除无效的变量声明"""

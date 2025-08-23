@@ -1,6 +1,7 @@
 # coding=utf-8
 """IRBuilder序列化工具"""
 import time
+import uuid
 from enum import Enum
 
 from transpiler.core.backend.ir_builder import IRBuilder
@@ -23,16 +24,14 @@ class IRSymbolSerializer:
         """生成符号的序列化数据"""
         if symbol is None:
             return None
-        metadata: dict[str, str | None | bool | list | dict] = {
+        metadata: dict[str, str | None | bool | list | dict | int] = {
             'symbol_type': type(symbol).__name__,
             'symbol_name': symbol.get_name() if isinstance(symbol, Symbol) else None,
         }
         if isinstance(symbol, (int, float, bool, str)):
             metadata['value'] = symbol
         elif isinstance(symbol, (list, tuple)):
-            metadata['value'] = [
-                {'ref': id(i)} for i in symbol
-            ]
+            metadata['value'] = [id(i) for i in symbol]
         elif isinstance(symbol, dict):
             metadata['value'] = {}
             for key, value in symbol.items():
@@ -40,45 +39,50 @@ class IRSymbolSerializer:
         elif isinstance(symbol, Enum):
             metadata['value'] = symbol.value
         elif isinstance(symbol, (Variable, Constant)):
-            metadata['dtype'] = {"ref": id(symbol.dtype)}
-            metadata['var_type'] = {"ref": id(symbol.var_type)}
+            metadata['dtype'] = id(symbol.dtype)
+            metadata['var_type'] = id(symbol.var_type)
         elif isinstance(symbol, Literal):
             metadata['value'] = symbol.value
         elif isinstance(symbol, Parameter):
-            metadata['var'] = {'ref': id(symbol.var)}
+            metadata['var'] = id(symbol.var)
             metadata['optional'] = symbol.optional
-            metadata['default'] = {'ref': id(symbol.default)}
+            metadata['default'] = id(symbol.default)
         elif isinstance(symbol, Reference):
             metadata['value_type'] = symbol.value_type.value
-            metadata['value'] = {'ref': id(symbol.value)}
+            metadata['value'] = id(symbol.value)
         elif isinstance(symbol, Function):
             metadata['params'] = {param_symbol.get_name(): id(param_symbol) for param_symbol in symbol.params}
-            metadata['return_type'] = {'type_name': symbol.return_type.name}
-            metadata['function_type'] = {'ref': id(symbol.function_type)}
+            metadata['return_type'] = id(symbol.return_type)
+            metadata['function_type'] = id(symbol.function_type)
         elif isinstance(symbol, Class):
-            metadata['methods'] = [{'ref': id(func_symbol)} for func_symbol in symbol.methods]
-            metadata['interface'] = {'ref': id(symbol.interface)}
-            metadata['parent'] = {'ref': id(symbol.parent)}
-            metadata['constants'] = [{'ref': id(const_symbol)} for const_symbol in symbol.constants]
-            metadata['variables'] = [{'ref': id(var_symbol)} for var_symbol in symbol.variables]
-            metadata['type'] = {'ref': id(symbol.type)}
+            metadata['methods'] = [id(func_symbol) for func_symbol in symbol.methods]
+            metadata['interface'] = id(symbol.interface)
+            metadata['parent'] = id(symbol.parent)
+            metadata['constants'] = [id(const_symbol) for const_symbol in symbol.constants]
+            metadata['variables'] = [id(var_symbol) for var_symbol in symbol.variables]
+            metadata['type'] = id(symbol.type)
 
         return metadata
 
-    def _add_symbol_id_map(self, symbol: Symbol):
+    def _add_symbol_id_map(self, symbol: Symbol | Enum | list | dict | bool):
         # 将自身加入映射表
         if id(symbol) not in self.symbol_id_map:
             self.symbol_id_map[id(symbol)] = symbol
         # 将符号中所有符号也加入其中
         if isinstance(symbol, Reference):
             self._add_symbol_id_map(symbol.value)
-            self._add_symbol_id_map(symbol.get_data_type())
+            self._add_symbol_id_map(symbol.value_type)
+        elif isinstance(symbol, (Variable, Constant)):
+            self._add_symbol_id_map(symbol.dtype)
+            self._add_symbol_id_map(symbol.var_type)
         elif isinstance(symbol, Function):
             for param_symbol in symbol.params:
                 self._add_symbol_id_map(param_symbol)
             self._add_symbol_id_map(symbol.return_type)
+            self._add_symbol_id_map(symbol.function_type)
         elif isinstance(symbol, Parameter):
             self._add_symbol_id_map(symbol.var)
+            self._add_symbol_id_map(symbol.optional)
             self._add_symbol_id_map(symbol.default)
         elif isinstance(symbol, (list, tuple)):
             for i in symbol:
@@ -99,7 +103,9 @@ class IRSymbolSerializer:
 
         result['metadata'] = {
             'version': version,
-            'time': time.time(),
+            'time': time.time_ns(),
+            'minecraft_version': '2.0',
+            uuid.uuid4().hex: uuid.uuid4().hex,
         }
         result['symbol'] = {
             id_: self._extract_metadata(metadata)

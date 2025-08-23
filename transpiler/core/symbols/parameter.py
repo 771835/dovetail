@@ -11,7 +11,7 @@ from .reference import Reference
 from .variable import Variable
 
 if TYPE_CHECKING:
-    from . import Literal, Constant,Class
+    from . import Literal, Constant, Class
 
 
 @define(slots=True)

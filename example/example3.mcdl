@@ -1,7 +1,123 @@
-class foo {
-    method int a(foo self, string abc){
-        print(abc)
+// test_mathlib.mcdl - 数学库测试程序
 
+include "mathlib.mcdl";
+
+/**
+ * 测试绝对值函数
+ */
+func test_abs() -> null {
+    print("=== 测试 abs 函数 ===");
+    int temp = abs(5);
+    print(f"abs(5) = {temp}");
+    temp = abs(-5);
+    print(f"abs(-5) = {temp}");
+    temp = abs(0);
+    print(f"abs(0) = {temp}");
+    print("");
+}
+
+/**
+ * 测试斐波那契函数
+ */
+func test_fibonacci() -> null {
+    print("=== 测试 fibonacci 函数 ===");
+    int temp;
+    for (let i = 0; i <= 10; i = i + 1) {
+        temp = fibonacci(i);
+        print(f"fibonacci({i}) = {temp}");
     }
+    print("");
+}
 
+/**
+ * 测试阶乘函数
+ */
+func test_factorial() -> null {
+    print("=== 测试 factorial 函数 ===");
+    int temp;
+    for (let i = 0; i <= 10; i = i + 1) {
+        temp = factorial(i);
+        print(f"factorial({i}) = {temp}");
+    }
+    print("");
+}
+
+/**
+ * 测试快速幂函数
+ */
+func test_pow() -> null {
+    print("=== 测试 pow 函数 ===");
+    int temp;
+    temp = pow(2, 0);
+    print(f"pow(2, 0) = {temp}");
+    temp = pow(2, 3);
+    print(f"pow(2, 3) = {temp}");
+    temp = pow(3, 4);
+    print(f"pow(3, 4) = {temp}");
+    temp = pow(5, 2);
+    print(f"pow(5, 2) = {temp}");
+    temp = pow(10, 3);
+    print(f"pow(10, 3) = {temp}");
+    print("");
+}
+
+/**
+ * 测试最大公约数和最小公倍数函数
+ */
+func test_gcd_lcm() -> null {
+    print("=== 测试 gcd 和 lcm 函数 ===");
+    int temp;
+    temp = gcd(48, 18);
+    print(f"gcd(48, 18) = {temp}");
+    temp = gcd(100, 25);
+    print(f"gcd(100, 25) = {temp}");
+    temp = gcd(17, 13);
+    print(f"gcd(17, 13) = {temp}");
+    temp = lcm(4, 6);
+    print(f"lcm(4, 6) = {temp}");
+    temp = lcm(12, 18);
+    print(f"lcm(12, 18) = {temp}");
+    temp = lcm(7, 5);
+    print(f"lcm(7, 5) = {temp}");
+    print("");
+}
+
+/**
+ * 测试数字位数和反转函数
+ */
+func test_digit_functions() -> null {
+    print("=== 测试 digit_count 和 reverse_number 函数 ===");
+    int temp;
+    temp = digit_count(0);
+    print(f"digit_count(0) = {temp}");
+    temp = digit_count(123);
+    print(f"digit_count(123) = {temp}");
+    temp = digit_count(-456);
+    print(f"digit_count(-456) = {temp}");
+    temp = digit_count(10000);
+    print(f"digit_count(10000) = {temp}");
+    temp = reverse_number(123);
+    print(f"reverse_number(123) = {temp}");
+    temp = reverse_number(-456);
+    print(f"reverse_number(-456) = {temp}");
+    temp = reverse_number(1000);
+    print(f"reverse_number(1000) = {temp}");
+    print("");
+}
+
+/**
+ * 主测试函数
+ */
+func main() -> null {
+    print("开始测试数学库函数...");
+    print("");
+
+    test_abs();
+    test_fibonacci();
+    test_factorial();
+    test_pow();
+    test_gcd_lcm();
+    test_digit_functions();
+
+    print("所有测试完成！");
 }
