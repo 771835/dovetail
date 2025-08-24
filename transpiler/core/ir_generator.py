@@ -15,7 +15,7 @@ from transpiler.core.instructions import IRInstruction, IRAssign, IRDeclare, IRF
     IRCall, IRJump, IRCondJump, IRCast, IRCompare, IRBreak, IRClass, IRReturn, IRContinue, IRScopeEnd, IRScopeBegin, \
     IRGetField
 from transpiler.core.lib.library import Library
-from transpiler.core.lib.std_builtin_mapping import StdBuiltinMapping
+from transpiler.core.lib.library_mapping import StdBuiltinMapping
 from transpiler.core.parser.transpilerLexer import transpilerLexer
 from transpiler.core.parser.transpilerParser import transpilerParser
 from transpiler.core.parser.transpilerVisitor import transpilerVisitor

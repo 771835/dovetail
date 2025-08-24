@@ -1,5 +1,5 @@
-// test_mathlib.mcdl - 数学库测试程序
-
+// 数学库测试程序
+include "math";
 include "mathlib.mcdl";
 
 /**
@@ -106,6 +106,41 @@ func test_digit_functions() -> null {
 }
 
 /**
+ * 测试 min 和 max 函数
+ */
+func test_min_max() -> null {
+    print("=== 测试 min 和 max 函数 ===");
+    int temp;
+
+    // 正数比较
+    temp = min(10, 20);
+    print(f"min(10, 20) = {temp}");
+    temp = max(10, 20);
+    print(f"max(10, 20) = {temp}");
+
+    // 负数比较
+    temp = min(-5, -10);
+    print(f"min(-5, -10) = {temp}");
+    temp = max(-5, -10);
+    print(f"max(-5, -10) = {temp}");
+
+    // 一正一负
+    temp = min(-3, 7);
+    print(f"min(-3, 7) = {temp}");
+    temp = max(-3, 7);
+    print(f"max(-3, 7) = {temp}");
+
+    // 相等的情况
+    temp = min(15, 15);
+    print(f"min(15, 15) = {temp}");
+    temp = max(15, 15);
+    print(f"max(15, 15) = {temp}");
+
+    print("");
+}
+
+
+/**
  * 主测试函数
  */
 func main() -> null {
@@ -118,6 +153,6 @@ func main() -> null {
     test_pow();
     test_gcd_lcm();
     test_digit_functions();
-
+    test_min_max();
     print("所有测试完成！");
 }

@@ -157,6 +157,8 @@ class BasicCommands:
                 source_scope: CodeGeneratorScope,
                 source_objective: str
         ) -> str | None:
+            if target.get_name() == source.get_name() and target_scope == source_scope:
+                return ""
             if isinstance(source, Literal):
                 return BasicCommands.Copy.copy_literal_base_type(
                     target,

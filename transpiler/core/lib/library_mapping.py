@@ -5,6 +5,7 @@ from functools import lru_cache
 from transpiler.core.backend.ir_builder import IRBuilder
 from transpiler.core.lib.builtins import Builtins
 from transpiler.core.lib.experimental import Experimental
+from transpiler.core.lib.lib_math import Math
 from transpiler.core.lib.lib_random import Random
 from transpiler.core.lib.library import Library
 
@@ -15,6 +16,7 @@ class StdBuiltinMapping:
         "builtins": Builtins,
         "experimental": Experimental,
         "random": Random,
+        "math": Math,
     }
 
     @classmethod

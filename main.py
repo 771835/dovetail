@@ -192,7 +192,7 @@ if __name__ == "__main__":
             args.enable_same_name_function_nesting,
             args.enable_first_class_functions,
             args.enable_experimental,
-            Path("lib").absolute()
+            Path(__file__).parent / "lib"
         )
     )
     sys.exit(

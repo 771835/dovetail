@@ -5,7 +5,7 @@ from typing import Callable
 
 from transpiler.core.backend.code_generator.c_je_1204.command_builder import BasicCommands, Execute, ScoreboardBuilder
 from transpiler.core.backend.specification import CodeGeneratorSpec
-from transpiler.core.enums import ValueType
+from transpiler.core.enums import ValueType, DataType
 from transpiler.core.symbols import Reference, Variable, Constant, Literal
 
 builtin_func = {
@@ -44,7 +44,7 @@ class Commands:
     @staticmethod
     def exec(result: Variable | Constant, generator,
              args: dict[str, Reference[Variable | Constant | Literal]]):
-        command: Reference[Variable | Constant | Literal] = args["command"]
+        command = args["command"]
         if command.value_type == ValueType.LITERAL:
             generator.current_scope.add_command(str(command.value.value))
         else:
@@ -586,6 +586,271 @@ class Commands:
                 args: dict[str, Reference[Variable | Constant | Literal]]):
         pass
 
+    class Math:
+        @staticmethod
+        def abs(
+                result: Variable | Constant,
+                generator,
+                args: dict[str, Reference[Variable | Constant | Literal]]
+        ):
+            value = args["value"]
+            if value.value_type == ValueType.LITERAL:
+                generator.current_scope.add_command(
+                    BasicCommands.Copy.copy_literal_base_type(
+                        result,
+                        generator.current_scope,
+                        generator.var_objective,
+                        Literal(DataType.INT, abs(value.value.value))
+                    )
+                )
+            else:
+                generator.current_scope.add_command(
+                    ScoreboardBuilder.set_score(
+                        "-1",
+                        generator.var_objective,
+                        -1
+                    )
+                )
+                if result.get_name() != value.get_name():
+                    generator.current_scope.add_command(
+                        BasicCommands.Copy.copy_base_type(
+                            result,
+                            generator.current_scope,
+                            generator.var_objective,
+                            value.value,
+                            generator.current_scope,
+                            generator.var_objective,
+                        )
+                    )
+                generator.current_scope.add_command(
+                    Execute.execute()
+                    .if_score_matches(
+                        BasicCommands.get_symbol_path(
+                            generator.current_scope,
+                            result,
+                        ),
+                        generator.var_objective,
+                        "..-1"
+                    )
+                    .run(
+                        ScoreboardBuilder.mul_op(
+                            BasicCommands.get_symbol_path(
+                                generator.current_scope,
+                                result
+                            ),
+                            generator.var_objective,
+                            "-1",
+                            generator.var_objective,
+                        )
+                    )
+                )
+
+        @staticmethod
+        def min(
+                result: Variable | Constant,
+                generator,
+                args: dict[str, Reference[Variable | Constant | Literal]]
+        ):
+            a = args["a"]
+            b = args["b"]
+            if a.value_type == ValueType.LITERAL == b.value_type:
+                generator.current_scope.add_command(
+                    BasicCommands.Copy.copy_literal_base_type(
+                        result,
+                        generator.current_scope,
+                        generator.var_objective,
+                        Literal(DataType.INT, min(a.value.value, b.value.value))
+                    )
+                )
+            elif a.value_type != ValueType.LITERAL != b.value_type:
+                # 对于a与b相等的特殊情况
+                if a.get_name() == b.get_name():
+                    if a.get_name() != result.get_name():
+                        generator.current_scope.add_command(
+                            BasicCommands.Copy.copy_base_type(
+                                result,
+                                generator.current_scope,
+                                generator.var_objective,
+                                a.value,
+                                generator.current_scope,
+                                generator.var_objective
+                            )
+                        )
+                    return
+                # 如果b等于结果则a与b交换
+                if b.get_name() == result.get_name():
+                    a, b = b, a
+                if a.get_name() != result.get_name():
+                    # 将a的值复制到结果
+                    generator.current_scope.add_command(
+                        BasicCommands.Copy.copy_base_type(
+                            result,
+                            generator.current_scope,
+                            generator.var_objective,
+                            a.value,
+                            generator.current_scope,
+                            generator.var_objective,
+                        )
+                    )
+                # 将结果与b进行比较
+                generator.current_scope.add_command(
+                    ScoreboardBuilder.min_op(
+                        BasicCommands.get_symbol_path(
+                            generator.current_scope,
+                            result,
+                        ),
+                        generator.var_objective,
+                        BasicCommands.get_symbol_path(
+                            generator.current_scope,
+                            b,
+                        ),
+                        generator.var_objective
+                    )
+                )
+            else:  # 有一个是常量
+                if a.value_type == ValueType.LITERAL:
+                    a, b = b, a
+                # 如果a等于结果
+                if a.get_name() == result.get_name():
+                    generator.current_scope.add_command(
+                        ScoreboardBuilder.min_score(
+                            BasicCommands.get_symbol_path(
+                                generator.current_scope,
+                                result,
+                            ),
+                            generator.var_objective,
+                            b.value.value
+                        )
+                    )
+                    return
+                else:
+                    # 否则将b复制到结果并与a进行比较
+                    generator.current_scope.add_command(
+                        BasicCommands.Copy.copy_literal_base_type(
+                            result,
+                            generator.current_scope,
+                            generator.var_objective,
+                            b.value,
+                        )
+                    )
+                    generator.current_scope.add_command(
+                        ScoreboardBuilder.min_op(
+                            BasicCommands.get_symbol_path(
+                                generator.current_scope,
+                                result
+                            ),
+                            generator.var_objective,
+                            BasicCommands.get_symbol_path(
+                                generator.current_scope,
+                                a
+                            ),
+                            generator.var_objective
+                        )
+                    )
+
+        @staticmethod
+        def max(
+                result: Variable | Constant,
+                generator,
+                args: dict[str, Reference[Variable | Constant | Literal]]
+        ):
+            a = args["a"]
+            b = args["b"]
+            if a.value_type == ValueType.LITERAL == b.value_type:
+                generator.current_scope.add_command(
+                    BasicCommands.Copy.copy_literal_base_type(
+                        result,
+                        generator.current_scope,
+                        generator.var_objective,
+                        Literal(DataType.INT, max(a.value.value, b.value.value))
+                    )
+                )
+            elif a.value_type != ValueType.LITERAL != b.value_type:
+                # 对于a与b相等的特殊情况
+                if a.get_name() == b.get_name():
+                    if a.get_name() != result.get_name():
+                        generator.current_scope.add_command(
+                            BasicCommands.Copy.copy_base_type(
+                                result,
+                                generator.current_scope,
+                                generator.var_objective,
+                                a.value,
+                                generator.current_scope,
+                                generator.var_objective
+                            )
+                        )
+                    return
+                # 如果b等于结果则a与b交换
+                if b.get_name() == result.get_name():
+                    a, b = b, a
+                if a.get_name() != result.get_name():
+                    # 将a的值复制到结果
+                    generator.current_scope.add_command(
+                        BasicCommands.Copy.copy_base_type(
+                            result,
+                            generator.current_scope,
+                            generator.var_objective,
+                            a.value,
+                            generator.current_scope,
+                            generator.var_objective,
+                        )
+                    )
+                # 将结果与b进行比较
+                generator.current_scope.add_command(
+                    ScoreboardBuilder.max_op(
+                        BasicCommands.get_symbol_path(
+                            generator.current_scope,
+                            result,
+                        ),
+                        generator.var_objective,
+                        BasicCommands.get_symbol_path(
+                            generator.current_scope,
+                            b,
+                        ),
+                        generator.var_objective
+                    )
+                )
+            else:  # 有一个是常量
+                if a.value_type == ValueType.LITERAL:
+                    a, b = b, a
+                # 如果a等于结果
+                if a.get_name() == result.get_name():
+                    generator.current_scope.add_command(
+                        ScoreboardBuilder.max_score(
+                            BasicCommands.get_symbol_path(
+                                generator.current_scope,
+                                result,
+                            ),
+                            generator.var_objective,
+                            b.value.value
+                        )
+                    )
+                    return
+                else:
+                    # 否则将b复制到结果并与a进行比较
+                    generator.current_scope.add_command(
+                        BasicCommands.Copy.copy_literal_base_type(
+                            result,
+                            generator.current_scope,
+                            generator.var_objective,
+                            b.value,
+                        )
+                    )
+                    generator.current_scope.add_command(
+                        ScoreboardBuilder.max_op(
+                            BasicCommands.get_symbol_path(
+                                generator.current_scope,
+                                result
+                            ),
+                            generator.var_objective,
+                            BasicCommands.get_symbol_path(
+                                generator.current_scope,
+                                a
+                            ),
+                            generator.var_objective
+                        )
+                    )
+
 
 class BuiltinFuncMapping:
     _lock = threading.Lock()
@@ -612,6 +877,9 @@ class BuiltinFuncMapping:
         'damage': Commands.damage,
         'scoreboard': Commands.scoreboard,
         'bossbar': Commands.bossbar,
+        'abs': Commands.Math.abs,
+        'min': Commands.Math.min,
+        'max': Commands.Math.max,
     }
 
     @classmethod
