@@ -3,13 +3,9 @@ include "mathlib.mcdl"
 
 func main() fuck int{
 
-    for (int i =0;i<2147483647;i=i+1) {
-        #print(str(randint(1,200000)))
+    for (int i =0;i<=300;i=i+1) {
         let f = abs(fibonacci(i))
         exec(f"say {f}")
-        if (i == 300) {
-            break
-        }
     }
 
     /*

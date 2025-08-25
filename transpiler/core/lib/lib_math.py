@@ -2,7 +2,7 @@
 from typing import Callable
 
 from transpiler.core.backend.ir_builder import IRBuilder
-from transpiler.core.enums import DataType, FunctionType
+from transpiler.core.enums import DataType, FunctionType, ValueType
 from transpiler.core.instructions import IRInstruction
 from transpiler.core.lib.library import Library
 from transpiler.core.symbols import Constant, Reference, Function, Variable, Parameter, Literal
@@ -12,6 +12,30 @@ class Math(Library):
     def __init__(self, builder: IRBuilder):
         self.builder = builder
         self._constant: dict[Constant, Reference] = {
+            Constant("INT_MAX", DataType.INT):
+                Reference(
+                    ValueType.LITERAL,
+                    Literal(
+                        DataType.INT,
+                        2147483647
+                    )
+                ),
+            Constant("INT_MIN", DataType.INT):
+                Reference(
+                    ValueType.LITERAL,
+                    Literal(
+                        DataType.INT,
+                        -2147483648
+                    )
+                ),
+            Constant("DEADBEEF", DataType.INT):
+                Reference(
+                    ValueType.LITERAL,
+                    Literal(
+                        DataType.INT,
+                        0xdeadbeef
+                    )
+                ),
         }
         self._functions: dict[Function, Callable[..., Variable | Constant | Literal] | None] = {
             Function(

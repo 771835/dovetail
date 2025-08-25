@@ -12,7 +12,7 @@ class BinarySerializer:
     支持字典、列表、元组、字符串、整数、浮点数、布尔值、None、字节串
     """
 
-    MAGIC_HEADER = 0x0F5E2F3C
+    MAGIC_HEADER = 0x0F5E2F3D
     VERSION = 5  # 新版本支持加密
     MAX_PADDING = 256
 

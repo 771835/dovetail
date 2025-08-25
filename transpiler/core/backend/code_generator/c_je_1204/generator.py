@@ -1,5 +1,6 @@
 # coding=utf-8
 import threading
+import time
 import uuid
 from functools import lru_cache
 from pathlib import Path
@@ -24,7 +25,6 @@ class CodeGenerator(CodeGeneratorSpec):
         self.builder = builder
         self.namespace = config.namespace
         self.uuid_namespace = uuid.uuid4()
-        self._lock = threading.Lock()
         self.top_scope = CodeGeneratorScope(
             "global",
             None,
@@ -158,16 +158,19 @@ class CodeGenerator(CodeGeneratorSpec):
         }
 
     def generate_commands(self):
-        with self._lock:
-            self.iterator = self.builder.__iter__()
-            for instr in self.iterator:
-                self._process_instruction(instr, self._get_opcode_handler())
-
-            self._write_commands(self.target, self.top_scope)
-            self._write_builtin_functions()
-            self.iterator = None
+        self.iterator = self.builder.__iter__()
+        s_t = time.time()
+        for instr in self.iterator:
+            self._process_instruction(instr, self._get_opcode_handler())
+        print(f"生成最终代码用时{time.time() - s_t}，单条指令用时{(time.time() - s_t)/len(self.builder.get_instructions())}，{len(self.builder.get_instructions())}")
+        s_t = time.time()
+        self._write_commands(self.target, self.top_scope)
+        print(f"写入用时{time.time() - s_t}")
+        self._write_builtin_functions()
+        self.iterator = None
 
     def _handle_jump_flags(self, scope_name: str, jump_instr: IRInstruction):
+        # TODO:fuck! 这函数执行一次要30ms+纯纯性能刺客，我当时写下这函数是人我吃
         # 反向搜索
         iterator = self.iterator.__reversed__()
         # 向前搜索到需要跳转到的作用域的头部
@@ -447,7 +450,6 @@ class CodeGenerator(CodeGeneratorSpec):
             )
         elif isinstance(func.return_type, Class):  # Class
             pass  # TODO:实现类的赋值
-        self._handle_jump_flags(func.name, instr)
 
     def _assign(self, instr: IRInstruction):
         target: Variable | Constant = instr.get_operands()[0]

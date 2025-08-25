@@ -5,11 +5,11 @@ import time
 from pathlib import Path
 from contextlib import chdir
 
+start_time = time.time()
+
 from transpiler.core.instructions import IRScopeEnd, IRScopeBegin
 from transpiler.core.scope import Scope
 from transpiler.utils.ir_serializer import IRSymbolSerializer
-
-start_time = time.time()
 
 from transpiler.core.errors import CompilationError
 from transpiler.core.ir_generator import MCGenerator
@@ -24,8 +24,6 @@ from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel
 from transpiler.core.parser import transpilerLexer
 from transpiler.core.parser import transpilerParser
 from transpiler.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
-
-print(f"导库所用时间：{time.time() - start_time}")
 
 
 @Mixin(ErrorListener)  # 相比于正常继承，使用mixin会慢0.001-0.01左右，但是可以减少代码量，而且好酷qwq
@@ -45,17 +43,23 @@ class Compile:
         source_path = Path(source_path)
         target_path = Path(target_path)
         source_dir = source_path.parent if source_path.is_file() else Path.cwd()
+        s_t = time.time()
         tree = self.parser_file(source_path)
+        print(f"AST分析用时：{time.time() - s_t}")
         if not tree:
             print("file not found!")
             return -1
         generator: MCGenerator = MCGenerator(self.config)
         with chdir(source_dir):
             try:
+                s_t = time.time()
                 generator.visit(tree)
-                # 输出到target目录
+                print(f"IR生成用时：{time.time() - s_t}")
+
                 ir_builder = generator.get_ir()
+                s_t = time.time()
                 ir_builder = Optimizer(ir_builder, self.config).optimize()
+                print(f"IR优化用时：{time.time() - s_t}")
                 if self.config.output_temp_file:
                     with open(target_path.with_name(f"{target_path.stem}.mcdc"), "wb") as f:
                         f.write(IRSymbolSerializer.dump(ir_builder, "eb9a736010764a6da0a3448874db8e2c"))
@@ -69,8 +73,11 @@ class Compile:
                         if isinstance(i, IRScopeBegin):
                             depth += 1
                 if not self.config.no_generate_commands:
+                    # 输出到target目录
+                    s_t = time.time()
                     CodeGenerator(ir_builder, target_path, self.config).generate_commands()
-                print(f"Compilation completes, total time {time.time() - start_time}")
+                    print(f"最终代码生成与写入总用时：{time.time() - s_t}")
+                print(f"构建总用时 {time.time() - start_time}")
             except CompilationError as e:
                 time.sleep(0.1)  # 保证前面的输出完成
                 if generator:
@@ -135,6 +142,7 @@ class Compile:
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(description="dovetail")
     args_parser.add_argument('input', type=str, help='输入文件路径')
+    #args_parser.add_argument('--input', metavar='path', type=str, help='输入文件路径')
     args_parser.add_argument('--minecraft_version', '-mcv', metavar='version', type=str, help='游戏版本',
                              default="1.20.4")
     args_parser.add_argument(
@@ -144,21 +152,26 @@ if __name__ == "__main__":
         type=str,
         help='输出文件路径')
     args_parser.add_argument(
+        '--lib-path',
+        '-L',
+        metavar='path',
+        type=str,
+        help='强制指定标准库路径')
+
+    args_parser.add_argument(
         '--namespace',
         '-n',
         metavar='namespace',
         type=str,
         help='输出数据包命名空间')
 
-    args_parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=1,
-                             help='优化级别')
+    args_parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')
     args_parser.add_argument('--no-generate-commands', action='store_true', help='不生成指令')
     args_parser.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
     args_parser.add_argument('--enable-recursion', action='store_true', help='启用递归(需后端支持)')
     args_parser.add_argument('--enable-same-name-function-nesting', action='store_true', help='启用同名函数嵌套')
-    args_parser.add_argument('--enable-first-class-functions', action='store_true',
-                             help='启用函数一等公民(大部分代码未适配，谨慎开启)')
-    args_parser.add_argument('--enable-experimental', action='store_true', help='启用扩展模式')
+    # args_parser.add_argument('--enable-first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
+    args_parser.add_argument('--enable-experimental', action='store_true', help='启用扩展模式(测试性功能)')
     args_parser.add_argument('--disable-warnings', action='store_true', help='禁用警告')
     args_parser.add_argument('--debug', action='store_true', help='启用调试模式')
     args_parser.add_argument('--wtf-mixin', action='store_true',
@@ -190,9 +203,9 @@ if __name__ == "__main__":
             args.output_temp_file,
             args.enable_recursion,
             args.enable_same_name_function_nesting,
-            args.enable_first_class_functions,
+            False,
             args.enable_experimental,
-            Path(__file__).parent / "lib"
+            Path(args.lib_path).absolute() if args.lib_path else Path(__file__).parent / "lib"
         )
     )
     sys.exit(

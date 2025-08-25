@@ -1,6 +1,5 @@
 # coding=utf-8
 from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from attrs import define, field, validators
@@ -19,6 +18,7 @@ class Function(Symbol):
     params: list[Parameter] = field(validator=validators.instance_of(list))
     return_type: DataType | Class = field(validator=validators.instance_of(DataTypeBase))
     function_type: FunctionType = field(validator=validators.instance_of(FunctionType), default=FunctionType.FUNCTION)
+    annotation: list[str] = field(validator=validators.instance_of(list), default=[])
 
     def get_name(self):
         """

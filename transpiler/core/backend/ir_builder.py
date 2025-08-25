@@ -54,6 +54,14 @@ class IRBuilderIterator:
             reverse_start_index = -1
         return IRBuilderReversibleIterator(self.instructions, reverse_start_index)
 
+    def peek(self) -> IRInstruction:
+        """
+        查看下一条指令但不移动迭代器
+        """
+        if self.index >= len(self.instructions):
+            raise StopIteration
+        return self.instructions[self.index]
+
     def rollback(self, steps=1):
         """回退迭代位置"""
         self.index = min(max(0, self.index - steps), len(self.instructions))

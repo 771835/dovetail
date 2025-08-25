@@ -187,7 +187,7 @@ class TimeWarpProgressMixin:
         if seconds < 0.5:
             return
         ci.cancel()
-        TimeWarpProgressMixin.animated_progress_bar(seconds * random.uniform(0.8, 1.14))  # 不是我喜欢的时间，直接篡改qwq
+        TimeWarpProgressMixin.animated_progress_bar(seconds * random.uniform(0.8, 1.14))
 
 
 @Mixin(sys.stdout)
@@ -241,7 +241,6 @@ class CompilationErrorMixin:
         import random
         if random.random() < 0.3:  # 30%概率
             ci.set_return_value("错误被吃掉啦~")
-
 
 def main():
     print("Hello world!")

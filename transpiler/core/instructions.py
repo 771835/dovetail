@@ -300,13 +300,12 @@ class IRClass(IRInstruction):
 
 
 class IRNewObj(IRInstruction):
-    def __init__(self, result: Variable, class_: Class, args: list[Reference[Variable | Constant | Literal]],
+    def __init__(self, result: Variable, class_: Class,
                  line: int = -1, column: int = -1,
                  filename: str = None):
         operands = [
             result,
-            class_,
-            args
+            class_
         ]
         super().__init__(IROpCode.NEW_OBJ, operands, line, column, filename)
 
@@ -336,7 +335,7 @@ class IRSetField(IRInstruction):
 
 
 class IRCallMethod(IRInstruction):
-    def __init__(self, result: Variable, class_: Class, method: Function,
+    def __init__(self, result: Variable | None, class_: Class, method: Function,
                  args: dict[str, Reference] = None, line: int = -1,
                  column: int = -1, filename: str = None):
         operands = [

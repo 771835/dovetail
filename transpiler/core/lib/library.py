@@ -32,14 +32,6 @@ class Library(metaclass=ABCMeta):
         """获取库中定义的所有常量"""
         pass
 
-    def get_events(self) -> dict[str, Callable[..., list[IRInstruction]]]:
-        """获取事件及其处理函数的映射"""
-        return {}
-
-    def get_annotations(self) -> dict[str, Callable[..., list[IRInstruction]]]:
-        """获取注解及其处理函数的映射"""
-        return {}
-
     def get_classes(self) -> list[Class]:
         """获取库中定义的所有类"""
         return []

@@ -45,12 +45,6 @@
 | SET_FIELD   | obj field value             | 设置对象字段值 |
 | CALL_METHOD | result obj method [args...] | 调用对象方法  |
 
-### 特殊指令
-
-| 指令      | 参数             | 备注                   |
-|---------|----------------|----------------------|
-| RAW_CMD | command_string | 输出原生Minecraft命令(已弃用) |
-
 ## 关键实现细节
 
 ### 1. 变量管理

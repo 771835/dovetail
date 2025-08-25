@@ -16,24 +16,7 @@ class Builtins(Library):
     def __init__(self, builder: IRBuilder):
         self.builder = builder
 
-        self._constants = {
-            Constant("INT_MAX", DataType.INT):
-                Reference(
-                    ValueType.LITERAL,
-                    Literal(
-                        DataType.INT,
-                        2147483647
-                    )
-                ),
-            Constant("INT_MIN", DataType.INT):
-                Reference(
-                    ValueType.LITERAL,
-                    Literal(
-                        DataType.INT,
-                        -2147483648
-                    )
-                ),
-        }
+        self._constants = {}
         self._functions: dict[Function, Callable[..., Variable | Constant | Literal]] = {
             Function(
                 "int",
@@ -343,14 +326,6 @@ class Builtins(Library):
 
     def get_constants(self) -> dict[Constant, Reference]:
         return self._constants
-
-    def get_events(self) -> dict[str, Callable[..., list[IRInstruction]]]:
-        """获取事件及其处理函数的映射"""
-        return {}
-
-    def get_annotations(self) -> dict[str, Callable[..., list[IRInstruction]]]:
-        """获取注解及其处理函数的映射"""
-        return {}
 
     def get_classes(self) -> list[Class]:
         """获取库中定义的所有类"""

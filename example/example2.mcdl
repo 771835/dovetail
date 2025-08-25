@@ -1,4 +1,15 @@
-func main():void{
-    exec("say 1");
+class foo {
+    method __init__(self:foo):null {
+        print("33")
+    }
 
+    method bar(self:foo):null {
+        print("42")
+    }
+}
+
+
+func main():null {
+    let var = foo();
+    var.bar();
 }

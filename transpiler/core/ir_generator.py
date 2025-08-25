@@ -1,6 +1,5 @@
 # coding=utf-8
 import itertools
-import uuid
 from contextlib import contextmanager
 from typing import Callable
 
@@ -11,9 +10,10 @@ from transpiler.core.backend.ir_builder import IRBuilder
 from transpiler.core.errors import *
 from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.include_manager import IncludeManager
-from transpiler.core.instructions import IRInstruction, IRAssign, IRDeclare, IRFunction, IROp, IRCallMethod, \
-    IRCall, IRJump, IRCondJump, IRCast, IRCompare, IRBreak, IRClass, IRReturn, IRContinue, IRScopeEnd, IRScopeBegin, \
-    IRGetField
+from transpiler.core.instructions import (IRInstruction, IRAssign, IRDeclare, IRFunction, IROp,
+                                          IRCallMethod, IRCall, IRJump, IRCondJump, IRCast, IRCompare,
+                                          IRBreak, IRClass, IRReturn, IRContinue, IRScopeEnd,
+                                          IRScopeBegin, IRGetField, IRNewObj)
 from transpiler.core.lib.library import Library
 from transpiler.core.lib.library_mapping import StdBuiltinMapping
 from transpiler.core.parser.transpilerLexer import transpilerLexer
@@ -33,11 +33,11 @@ class MCGenerator(transpilerVisitor):
         self.top_scope = Scope(
             "global",
             None,
-            StructureType.GLOBAL)
+            StructureType.GLOBAL
+        )
         self.current_scope = self.top_scope
         self.include_manager = IncludeManager()  # 包含管理器
         self.builtin_func_table: dict[str, Callable[..., Variable | Constant | Literal]] = {}
-        self.uuid_namespace = uuid.uuid4()
         self.scope_stack = [self.top_scope]
         self.cnt = itertools.count()  # 保证for loop和if else唯一性
         self.filename = "<main>"
@@ -57,6 +57,9 @@ class MCGenerator(transpilerVisitor):
             self.current_scope.add_symbol(constant)
             self._add_ir_instruction(IRDeclare(constant))
             self._add_ir_instruction(IRAssign(constant, value))
+        for class_ in library.get_classes():
+            self.current_scope.add_symbol(class_)
+
         # TODO: 实现其他加载
 
     @contextmanager
@@ -73,10 +76,7 @@ class MCGenerator(transpilerVisitor):
                 self.scope_stack.pop()
                 self._add_ir_instruction(IRScopeEnd(name, scope_type))
 
-    def _add_ir_instruction(
-            self,
-            instructions: IRInstruction | list[IRInstruction]
-    ):
+    def _add_ir_instruction(self, instructions: IRInstruction | list[IRInstruction]):
         if isinstance(instructions, IRInstruction):
             instructions = [instructions]
         for instruction in instructions:
@@ -219,7 +219,7 @@ class MCGenerator(transpilerVisitor):
                 column=self._get_current_column(),
                 filename=self.filename
             )
-        if not isinstance(symbol, (Variable, Constant, Parameter, Function)):
+        if not isinstance(symbol, (Variable, Constant, Parameter, Function, Class)):
             raise SymbolCategoryError(
                 identifier_name,
                 expected="Variable/Constant/Function",
@@ -231,6 +231,21 @@ class MCGenerator(transpilerVisitor):
         if isinstance(symbol, Parameter):
             return symbol.var
         return symbol
+
+    def _check_recursion(self, func_name: str, func_symbol: Function):
+        if not self.config.enable_recursion:  # 未启用递归
+            current = self.current_scope
+            while current:
+                if (current.get_name() == func_name
+                        and current.type == StructureType.FUNCTION
+                        and current.get_parent().find_symbol(func_name) is func_symbol):
+                    raise CompileRecursionError(
+                        f"函数 '{func_name}' 检测到递归调用，但递归支持未启用，启用递归请使用参数--enable-recursion",
+                        line=self._get_current_line(),
+                        column=self._get_current_column(),
+                        filename=self.filename
+                    )
+                current = current.parent
 
     @staticmethod
     def _parse_fstring(s: str) -> tuple[str, ...]:
@@ -287,7 +302,7 @@ class MCGenerator(transpilerVisitor):
 
         return Reference(ValueType.VARIABLE, result_var)
 
-    def _create_temp_var(self, dtype: DataType, prefix: str) -> Variable:
+    def _create_temp_var(self, dtype: DataType | Class, prefix: str) -> Variable:
         """创建带唯一编号的临时变量"""
         temp_var = Variable(f"{prefix}_{next(self.cnt)}", dtype)
         if not self.current_scope.add_symbol(temp_var):
@@ -368,12 +383,6 @@ class MCGenerator(transpilerVisitor):
             column=self._get_current_column(),
             filename=self.filename
         )
-
-    # 检查类型是否存在
-    def _type_exists(self, type_):
-        if isinstance(type_, DataType):
-            return True
-        return self._get_type_definition(type_) is not None
 
     def _get_current_line(self):
         if self._current_ctx:
@@ -476,14 +485,6 @@ class MCGenerator(transpilerVisitor):
                     msg="变量声明必须指定类型或提供初始值以推断类型"
                 )
 
-        if not self._type_exists(dtype):  # 判断所给类型是否存在
-            raise UndefinedTypeError(
-                dtype.name,
-                line=self._get_current_line(),
-                column=self._get_current_column(),
-                filename=self.filename
-            )
-
         var = Variable(
             var_name,
             dtype
@@ -531,13 +532,6 @@ class MCGenerator(transpilerVisitor):
                 column=self._get_current_column(),
                 filename=self.filename,
                 msg="变量声明必须指定类型或提供初始值以推断类型"
-            )
-
-        if not self._type_exists(dtype):  # 判断所给类型是否存在
-            raise UndefinedTypeError(
-                dtype.name,
-                line=self._get_current_line(),
-                column=self._get_current_column()
             )
 
         constant = Constant(
@@ -603,7 +597,9 @@ class MCGenerator(transpilerVisitor):
         func = Function(
             func_name,
             params_list,
-            return_type
+            return_type,
+            FunctionType.FUNCTION,
+            [annotation.getText() for annotation in ctx.annotation()]
         )
 
         if not self.current_scope.add_symbol(func):
@@ -734,8 +730,8 @@ class MCGenerator(transpilerVisitor):
 
             # 处理字段和方法
 
-            for const in ctx.constDecl():
-                constants.add(self.visit(const).value)
+            for constant in ctx.constDecl():
+                constants.add(self.visit(constant).value)
 
             for var in ctx.varDecl():
                 variables.add(self.visit(var).value)
@@ -965,9 +961,8 @@ class MCGenerator(transpilerVisitor):
                 filename=self.filename
             )
         # 生成唯一结果变量
-        result_var_name = f"bool_{next(self.cnt)}"
-        result_var = Variable(result_var_name,
-                              DataType.BOOLEAN)
+        result_var = self._create_temp_var(DataType.BOOLEAN, "bool")
+
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(IRCompare(result_var, CompareOps(op), left, right))
 
@@ -986,11 +981,8 @@ class MCGenerator(transpilerVisitor):
                 filename=self.filename
             )
         # 生成唯一结果变量
-        result_var_name = f"bool_{next(self.cnt)}"
-        result_var = Variable(result_var_name,
-                              DataType.BOOLEAN)
-        temp_var = Variable(uuid.uuid5(self.uuid_namespace, result_var_name).hex,
-                            DataType.INT)
+        result_var = self._create_temp_var(DataType.BOOLEAN, "bool")
+        temp_var = self._create_temp_var(DataType.BOOLEAN, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
         self._add_ir_instruction(IROp(temp_var, BinaryOps.MUL, left, right))
@@ -1012,11 +1004,8 @@ class MCGenerator(transpilerVisitor):
                 filename=self.filename
             )
         # 生成唯一结果变量
-        result_var_name = f"bool_{next(self.cnt)}"
-        result_var = Variable(result_var_name,
-                              DataType.BOOLEAN)
-        temp_var = Variable(uuid.uuid5(self.uuid_namespace, result_var_name).hex,
-                            DataType.INT)
+        result_var = self._create_temp_var(DataType.BOOLEAN, "bool")
+        temp_var = self._create_temp_var(DataType.BOOLEAN, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
         self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left, right))
@@ -1148,44 +1137,64 @@ class MCGenerator(transpilerVisitor):
             return Result(Reference.literal(expr_result.value.value * -1))
 
     def visitFunctionCall(self, ctx: transpilerParser.FunctionCallContext):
-        func_symbol = self.visit(ctx.expr()).value.value
-        func_name: str = func_symbol.get_name()
-        if not isinstance(func_symbol, Function):
+        symbol: Symbol = self.visit(ctx.expr()).value.value
+        symbol_name: str = symbol.get_name()
+        if isinstance(symbol, Function):
+            # 检测递归
+            self._check_recursion(symbol_name, symbol)
+            # 解析参数
+            args_dict = self._process_call_arguments(symbol, ctx.argumentList())
+            # 调用函数
+            if symbol.function_type == FunctionType.LIBRARY:
+                result_var = self.builtin_func_table[symbol.get_name()](**args_dict)
+            else:
+                result_var = self._create_temp_var(symbol.return_type, "result")
+                if symbol.return_type != DataType.NULL:
+                    self._add_ir_instruction(IRDeclare(result_var))
+                    self._add_ir_instruction(IRCall(result_var, symbol, args_dict))
+                else:
+                    self._add_ir_instruction(IRCall(None, symbol, args_dict))
+
+            return Result(Reference(ValueType.VARIABLE, result_var))
+        elif isinstance(symbol, Class):
+            if init_func := next(
+                    (method for method in list(symbol.methods) if method.get_name() == "__init__"), None):
+                instance = self._create_temp_var(symbol, "instance")
+                self._add_ir_instruction(IRDeclare(instance))
+                self._add_ir_instruction(
+                    IRNewObj(
+                        instance,
+                        symbol
+                    )
+                )
+                # 解析参数
+                args_dict = self._process_call_arguments(
+                    init_func,
+                    ctx.argumentList(),
+                    Reference(ValueType.VARIABLE, instance)
+                )
+                # 调用函数
+                if init_func.function_type == FunctionType.LIBRARY:
+                    self.builtin_func_table[f"{symbol.get_name()}:__init__"](**args_dict)
+                else:
+                    self._add_ir_instruction(IRCallMethod(None, symbol, init_func, args_dict))
+                return Result(Reference(ValueType.VARIABLE, instance))
+
             raise NotCallableError(
-                func_name,
-                func_symbol.__class__.__name__,
+                symbol_name,
+                symbol.__class__.__name__,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filename
             )
-        # 调用函数
-        if not self.config.enable_recursion:  # 未启用递归
-            current = self.current_scope
-            while current:
-                if (current.get_name() == func_name
-                        and current.type == StructureType.FUNCTION
-                        and current.get_parent().find_symbol(func_name) is func_symbol):
-                    raise CompileRecursionError(
-                        f"函数 '{func_name}' 检测到递归调用，但递归支持未启用，启用递归请使用参数--enable-recursion",
-                        line=self._get_current_line(),
-                        column=self._get_current_column(),
-                        filename=self.filename
-                    )
-                current = current.parent
-
-        args_dict = self._process_call_arguments(func_symbol, ctx.argumentList())
-
-        if func_symbol.function_type == FunctionType.LIBRARY:
-            result_var = self.builtin_func_table[func_symbol.get_name()](**args_dict)
         else:
-            result_var = self._create_temp_var(func_symbol.return_type, "result")
-            if func_symbol.return_type != DataType.NULL:
-                self._add_ir_instruction(IRDeclare(result_var))
-                self._add_ir_instruction(IRCall(result_var, func_symbol, args_dict))
-            else:
-                self._add_ir_instruction(IRCall(None, func_symbol, args_dict))
-
-        return Result(Reference(ValueType.VARIABLE, result_var))
+            raise NotCallableError(
+                symbol_name,
+                symbol.__class__.__name__,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
 
     def visitMethodCall(self, ctx: transpilerParser.MethodCallContext):
         instance_ref = self.visit(ctx.expr()).value

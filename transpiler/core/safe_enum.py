@@ -39,11 +39,11 @@ class SafeEnum(Enum):
         """
         执行类型检查并调用比较函数
 
-        参数:
+        Args:
             other: 比较对象
             compare_func: 原始比较函数
 
-        返回:
+        Return:
             比较结果布尔值
         """
         if isinstance(other, Enum) and not self._is_same_enum_type(other):

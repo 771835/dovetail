@@ -549,7 +549,8 @@ class DeadCodeEliminationPass(IROptimizationPass):
     def _has_side_effect(self, instr):
         """判断指令是否有副作用"""
         return isinstance(instr,
-                          (IRAssign, IRCast, IRReturn, IRCall, IROp, IRCompare, IRUnaryOp))
+                          (IRAssign, IRCast, IRReturn, IRCall, IRCallMethod, IRNewObj, IRGetField, IRSetField, IROp,
+                           IRCompare, IRUnaryOp))
 
     def _is_declaration_exists(self, var_name):
         # 检查变量声明是否存在于IR中
@@ -646,8 +647,11 @@ class DeclareCleanupPass(IROptimizationPass):
                     self.var_references[param.get_name()] = self.var_references.get(param.get_name(), 0) + 1
 
             # 处理函数调用
-            elif isinstance(instr, IRCall):
-                result_var, func, args = instr.get_operands()
+            elif isinstance(instr, (IRCall, IRCallMethod)):
+                if isinstance(instr, IRCall):
+                    result_var, func, args = instr.get_operands()
+                else:
+                    result_var, _, func, args = instr.get_operands()
                 # 标记结果变量为使用
                 if result_var:
                     self.var_references[result_var.name] = self.var_references.get(result_var.name, 0) + 1
@@ -985,6 +989,10 @@ class EmptyScopeRemovalPass(IROptimizationPass):
                 if deleting_scope is not None:
                     iterator.remove_current()
                     deleting_scope = None
+            elif isinstance(instr, (IRFunction, IRClass)):
+                peek_instr = iterator.peek()
+                if isinstance(peek_instr, IRScopeBegin) and peek_instr.get_operands()[0] in self.empty_scopes:
+                    iterator.remove_current()
             else:
                 if deleting_scope is not None:
                     iterator.remove_current()
