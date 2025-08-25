@@ -128,7 +128,7 @@ varDeclaration
     : LET ID ('?')? (ASSIGN expr)
     | ID (ARROW type) ('?')? (ASSIGN expr)?
     | type ID ('?')? (ASSIGN expr)? // 更符合大多数人习惯的变量声明
-    | LET ID ('?')? (ASSIGN expr)
+    | LET ID ('?')? (ARROW type) (ASSIGN expr)
     ;
 
 // 变量声明（带分号）

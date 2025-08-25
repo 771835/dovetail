@@ -159,13 +159,11 @@ class CodeGenerator(CodeGeneratorSpec):
 
     def generate_commands(self):
         self.iterator = self.builder.__iter__()
-        s_t = time.time()
         for instr in self.iterator:
             self._process_instruction(instr, self._get_opcode_handler())
-        print(f"生成最终代码用时{time.time() - s_t}，单条指令用时{(time.time() - s_t)/len(self.builder.get_instructions())}，{len(self.builder.get_instructions())}")
-        s_t = time.time()
+        # 写入实际指令
         self._write_commands(self.target, self.top_scope)
-        print(f"写入用时{time.time() - s_t}")
+        # 写入宏函数
         self._write_builtin_functions()
         self.iterator = None
 
