@@ -802,7 +802,7 @@ class MCGenerator(transpilerVisitor):
     def visitLiteral(self, ctx: transpilerParser.LiteralContext):
         value: str = ctx.getText()
         if value == 'true' or value == 'false':
-            return Result.from_literal(bool(value), DataType.BOOLEAN)
+            return Result.from_literal(True if value == 'true' else False, DataType.BOOLEAN)
         elif value == 'null':
             return Result.from_literal(None, DataType.NULL)
         elif value[0] == 'f':
