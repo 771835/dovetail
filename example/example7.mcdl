@@ -1,0 +1,7 @@
+func greet(name: string) {
+    print(f"Hello, {name}");
+}
+
+func main() {
+    greet("World")
+}

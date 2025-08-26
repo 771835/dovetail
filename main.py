@@ -142,7 +142,6 @@ class Compile:
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(description="dovetail")
     args_parser.add_argument('input', type=str, help='输入文件路径')
-    #args_parser.add_argument('--input', metavar='path', type=str, help='输入文件路径')
     args_parser.add_argument('--minecraft_version', '-mcv', metavar='version', type=str, help='游戏版本',
                              default="1.20.4")
     args_parser.add_argument(

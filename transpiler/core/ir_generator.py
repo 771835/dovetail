@@ -326,7 +326,9 @@ class MCGenerator(transpilerVisitor):
         var_symbol = self.current_scope.resolve_symbol(var_name)
         if var_symbol is None:
             raise UndefinedVariableError(var_name, self._get_current_line(), self._get_current_column())
-        if not isinstance(var_symbol, (Variable, Constant)):
+        if isinstance(var_symbol, Parameter):
+            var_symbol = var_symbol.var
+        elif not isinstance(var_symbol, (Variable, Constant)):
             raise SymbolCategoryError(
                 var_name,
                 expected="Variable/Constant",
@@ -337,11 +339,14 @@ class MCGenerator(transpilerVisitor):
             )
 
         # 创建类型转换临时变量
-        cast_var = self._create_temp_var(DataType.STRING, "cast")
-        self._add_ir_instruction(IRDeclare(cast_var))
-        self._add_ir_instruction(IRCast(cast_var, DataType.STRING,
-                                        Reference(ValueType.VARIABLE, var_symbol)))
-
+        if var_symbol.dtype != DataType.STRING:
+            cast_var = self._create_temp_var(DataType.STRING, "cast")
+            self._add_ir_instruction(IRDeclare(cast_var))
+            self._add_ir_instruction(IRCast(cast_var, DataType.STRING,
+                                            Reference(ValueType.VARIABLE, var_symbol)))
+        else:
+            # 对于string类型不进行转换
+            cast_var = var_symbol
         # 拼接字符串
         new_var = self._create_temp_var(DataType.STRING, "fstring")
         self._add_ir_instruction(IRDeclare(new_var))
