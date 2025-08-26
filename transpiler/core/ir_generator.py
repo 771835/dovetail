@@ -602,7 +602,7 @@ class MCGenerator(transpilerVisitor):
             params_list,
             return_type,
             FunctionType.FUNCTION,
-            [annotation.getText() for annotation in ctx.annotation()]
+            [annotation.ID().getText() for annotation in ctx.annotation()]
         )
 
         if not self.current_scope.add_symbol(func):
@@ -846,8 +846,9 @@ class MCGenerator(transpilerVisitor):
         for_control: transpilerParser.ForControlContext = ctx.forControl()
         if for_control:  # 传统for循环
             loop_id = next(self.cnt)
-            # 处理初始化表达式
-            self.visit(for_control.forLoopVarDecl())
+            if for_control.forLoopVarDecl():
+                # 处理初始化表达式
+                self.visit(for_control.forLoopVarDecl())
             # 创建循环检查作用域
             with self.scoped_environment(f"for_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
                 with self.scoped_environment(f"for_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:

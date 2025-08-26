@@ -142,6 +142,7 @@ func test_min_max() {
 /**
  * 主测试函数
  */
+@init
 func main(){
     print("开始测试数学库函数...");
     print("");

@@ -19,7 +19,7 @@ class Function(Symbol):
     params: list[Parameter] = field(validator=validators.instance_of(list))
     return_type: DataType | Class = field(validator=validators.instance_of(DataTypeBase))
     function_type: FunctionType = field(validator=validators.instance_of(FunctionType), default=FunctionType.FUNCTION)
-    annotation: list[str] = field(validator=validators.instance_of(list), default=[])
+    annotations: list[str] = field(validator=validators.instance_of(list), default=[])
 
     def get_name(self):
         """

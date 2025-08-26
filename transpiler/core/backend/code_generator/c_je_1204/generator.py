@@ -46,6 +46,8 @@ class CodeGenerator(CodeGeneratorSpec):
                 "Statement"
             )
         )
+        self.init_functions = [self.top_scope.get_minecraft_function_path()]
+        self.tick_functions = []
 
     @staticmethod
     def is_support(config: GeneratorConfig) -> bool:
@@ -102,14 +104,13 @@ class CodeGenerator(CodeGeneratorSpec):
                 break
         return scope_block
 
-    @staticmethod
-    def _write_commands(output_dir: Path, top_scope):
+    def _write_commands(self):
         """遍历作用域树生成文件"""
-        stack: list[CodeGeneratorScope] = [top_scope]
+        stack: list[CodeGeneratorScope] = [self.top_scope]
 
         while stack:
             current: CodeGeneratorScope = stack.pop()
-            file_path = output_dir / current.get_file_path()
+            file_path = self.target / self.namespace / "data" / current.get_file_path()
             file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(current.get_commands()))
@@ -118,10 +119,29 @@ class CodeGenerator(CodeGeneratorSpec):
     def _write_builtin_functions(self):
         """写入内置函数库"""
         for file_path, content in builtin_func.items():
-            full_path = self.target / self.namespace / "functions" / f"{file_path}.mcfunction"
+            full_path = self.target / self.namespace / "data" / self.namespace / "functions" / f"{file_path}.mcfunction"
             full_path.parent.mkdir(parents=True, exist_ok=True)
             with open(full_path, 'w', encoding='utf-8') as f:
                 f.write(content)
+
+    def _write_minecraft_tags(self):
+        """写入内置函数标签 init/tick"""
+        function_tags_path = self.target / self.namespace / "data" / "minecraft" / "tags" / "functions"
+        function_tags_path.mkdir(parents=True, exist_ok=True)
+        if self.init_functions:
+            init_tag_path = function_tags_path / "load.json"
+            with open(init_tag_path, 'w', encoding='utf-8') as f:
+                f.write(f"""{{"values": ["{'","'.join(self.init_functions)}"]}}""")
+        if self.tick_functions:
+            tick_tag_path = function_tags_path / "tick.json"
+            with open(tick_tag_path, 'w', encoding='utf-8') as f:
+                f.write(f"""{{"values": ["{'","'.join(self.tick_functions)}"]}}""")
+
+    def _write_datapack_meta(self):
+        """写入数据包元数据"""
+        datapack_meta_path = self.target / self.namespace /  "pack.mcmeta"
+        with open(datapack_meta_path, 'w', encoding='utf-8') as f:
+            f.write(f"""{{"pack": {{"pack_format": 26,"description": "{self.namespace}"}}}}""")
 
     def _get_opcode_handler(self) -> dict[IROpCode, Callable[[IRInstruction], None]]:
         return {
@@ -159,9 +179,13 @@ class CodeGenerator(CodeGeneratorSpec):
         for instr in self.iterator:
             self._process_instruction(instr, self._get_opcode_handler())
         # 写入实际指令
-        self._write_commands(self.target, self.top_scope)
+        self._write_commands()
         # 写入宏函数
         self._write_builtin_functions()
+        # 写入init/tick标签
+        self._write_minecraft_tags()
+        # 写入元数据
+        self._write_datapack_meta()
         self.iterator = None
 
     def _handle_jump_flags(self, scope_name: str, jump_instr: IRInstruction):
@@ -214,6 +238,12 @@ class CodeGenerator(CodeGeneratorSpec):
                                 "return 0"
                             )
                         )
+
+    def _handle_annotation(self, function: Function, annotation: str):
+        if annotation == "init":
+            self.init_functions.append(f"{self.current_scope.get_minecraft_function_path()}/{function.name}")
+        elif annotation == "tick":
+            self.tick_functions.append(f"{self.current_scope.get_minecraft_function_path()}/{function.name}")
 
     def _scope_begin(self, instr: IRInstruction):
         name: str = instr.get_operands()[0]
@@ -295,7 +325,9 @@ class CodeGenerator(CodeGeneratorSpec):
         )
 
     def _function(self, instr: IRInstruction):
-        ...
+        function: Function = instr.get_operands()[0]
+        for annotation in function.annotations:
+            self._handle_annotation(function, annotation)
 
     def _return(self, instr: IRInstruction):
         value: Reference[Variable | Constant | Literal] = instr.get_operands()[0]

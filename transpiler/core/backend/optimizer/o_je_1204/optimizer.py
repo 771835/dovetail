@@ -40,9 +40,10 @@ class Optimizer(IROptimizerSpec):
         optimization_pass: list[type[IROptimizationPass]] = []
         if self.level == OptimizationLevel.O0:
             return self.builder
-
-        if self.level >= OptimizationLevel.O1:
+        if self.level >= OptimizationLevel.O3:  # 测试性优化
+            # FIXME:严重激进优化，会影响ConstantFoldingPass的运行和搜索
             optimization_pass.append(ChainAssignEliminationPass)
+        if self.level >= OptimizationLevel.O1:
             optimization_pass.append(ConstantFoldingPass)
             optimization_pass.append(DeadCodeEliminationPass)
             optimization_pass.append(DeclareCleanupPass)
@@ -351,7 +352,7 @@ class ConstantFoldingPass(IROptimizationPass):
         target: Variable = instr.get_operands()[0]
         source: Reference[Variable | Constant | Literal] = instr.get_operands()[1]
         if source.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
-            new_source = self._find(source)
+            new_source = self._resolve_ref(source)
             if new_source == ConstantFoldingPass.FoldingFlags.UNKNOWN:
                 pass
             elif new_source == ConstantFoldingPass.FoldingFlags.UNDEFINED:

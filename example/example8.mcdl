@@ -1,6 +1,6 @@
 func test(boolean awa);
 func test2() -> boolean {
-    return true;
+    return false;
 }
 
 func main() {
@@ -14,7 +14,7 @@ func main() {
         test(not_awa)
         print(str_b(!test2()))
     }
-    if (test2()) {
+    if (!test2()) {
         print("awa")
     }
 }
