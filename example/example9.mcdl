@@ -1,0 +1,14 @@
+func test(a:int);
+func get_300() -> int {
+    return 300;
+}
+
+func main() {
+    let a = get_300();
+    let b = a;
+    let c = b;
+    let d = c;
+    let e = d;
+    let f = e;
+    test(f);
+}

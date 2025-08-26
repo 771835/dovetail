@@ -1,0 +1,20 @@
+func test(boolean awa);
+func test2() -> boolean {
+    return true;
+}
+
+func main() {
+    # 测试常量折叠
+    let awa = true;
+    if (awa) {
+        print(f"awa = {awa}")
+        let not_awa = !awa;
+        print(f"awa != {not_awa}")
+        # 通过空函数防止被优化()
+        test(not_awa)
+        print(str_b(!test2()))
+    }
+    if (test2()) {
+        print("awa")
+    }
+}

@@ -12,30 +12,9 @@ class Math(Library):
     def __init__(self, builder: IRBuilder):
         self.builder = builder
         self._constant: dict[Constant, Reference] = {
-            Constant("INT_MAX", DataType.INT):
-                Reference(
-                    ValueType.LITERAL,
-                    Literal(
-                        DataType.INT,
-                        2147483647
-                    )
-                ),
-            Constant("INT_MIN", DataType.INT):
-                Reference(
-                    ValueType.LITERAL,
-                    Literal(
-                        DataType.INT,
-                        -2147483648
-                    )
-                ),
-            Constant("DEADBEEF", DataType.INT):
-                Reference(
-                    ValueType.LITERAL,
-                    Literal(
-                        DataType.INT,
-                        0xdeadbeef
-                    )
-                ),
+            Constant("INT_MAX", DataType.INT): Reference.literal(2147483647),
+            Constant("INT_MIN", DataType.INT): Reference.literal(-2147483648),
+            Constant("DEADBEEF", DataType.INT): Reference.literal(0xdeadbeef),
         }
         self._functions: dict[Function, Callable[..., Variable | Constant | Literal] | None] = {
             Function(

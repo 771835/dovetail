@@ -46,7 +46,7 @@ interfaceDecl
 
 /* 4. 类型系统(阉割版) */
 type
-    : ID ('[' (type ',')* ']')?
+    : ID // ('[' (type ',')* ']')?
     | NULL
     ;
 
@@ -163,7 +163,7 @@ expr
     //| expr '?' '.' ID                       # SafeNavigation     // 安全导航
      expr '.' ID argumentList         # MethodCall         // 方法调用
     | expr '.' ID                           # MemberAccess       // 成员访问
-    | expr '[' expr ']'                     # ArrayAccess        // 数组访问
+    | expr LBRACK expr RBRACK                     # ArrayAccess        // 数组访问
     | expr argumentList                # FunctionCall       // 函数调用
     //| ID argumentList                  # DirectFuncCall     // 直接调用
     | primary                               # PrimaryExpr        // 基础表达式
@@ -209,6 +209,8 @@ literal
 PAREN : '()';
 LPAREN : '(';
 RPAREN : ')';
+LBRACK : '[';
+RBRACK : ']';
 LBRACE : '{';
 RBRACE : '}';
 SEMI : ';';
@@ -248,7 +250,9 @@ CONTINUE: 'continue';
 
 
 // 运算符
-NOT : '!';
+NOT : '!'
+    | 'not'
+    ;
 MUL : '*';
 DIV : '/';
 MOD : '%';

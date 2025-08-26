@@ -464,7 +464,22 @@ class CodeGenerator(CodeGeneratorSpec):
             pass  # TODO:实现类的赋值
 
     def _unary_op(self, instr: IRInstruction):
-        pass  # 因该dsl内不存在直接性的位运算，故不实现
+        result: Variable | Constant = instr.get_operands()[0]
+        op: UnaryOps = instr.get_operands()[1]
+        operand: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+        if op == UnaryOps.NOT:
+            self.current_scope.add_command(
+                Composite.unary_op_not(
+                    result,
+                    self.current_scope,
+                    self.var_objective,
+                    operand,
+                    self.current_scope,
+                    self.var_objective
+                )
+            )
+        else:
+            pass  # 因该dsl内不存在直接性的位运算，故不实现
 
     def _op(self, instr: IRInstruction):
         result: Variable | Constant = instr.get_operands()[0]

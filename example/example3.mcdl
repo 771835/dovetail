@@ -1,11 +1,10 @@
 // 数学库测试程序
-include "math";
 include "mathlib.mcdl";
 
 /**
  * 测试绝对值函数
  */
-func test_abs() -> null {
+func test_abs(){
     print("=== 测试 abs 函数 ===");
     int temp = abs(5);
     print(f"abs(5) = {temp}");
@@ -19,7 +18,7 @@ func test_abs() -> null {
 /**
  * 测试斐波那契函数
  */
-func test_fibonacci() -> null {
+func test_fibonacci(){
     print("=== 测试 fibonacci 函数 ===");
     int temp;
     for (let i = 0; i <= 10; i = i + 1) {
@@ -32,7 +31,7 @@ func test_fibonacci() -> null {
 /**
  * 测试阶乘函数
  */
-func test_factorial() -> null {
+func test_factorial(){
     print("=== 测试 factorial 函数 ===");
     int temp;
     for (let i = 0; i <= 10; i = i + 1) {
@@ -45,7 +44,7 @@ func test_factorial() -> null {
 /**
  * 测试快速幂函数
  */
-func test_pow() -> null {
+func test_pow(){
     print("=== 测试 pow 函数 ===");
     int temp;
     temp = pow(2, 0);
@@ -64,7 +63,7 @@ func test_pow() -> null {
 /**
  * 测试最大公约数和最小公倍数函数
  */
-func test_gcd_lcm() -> null {
+func test_gcd_lcm(){
     print("=== 测试 gcd 和 lcm 函数 ===");
     int temp;
     temp = gcd(48, 18);
@@ -85,7 +84,7 @@ func test_gcd_lcm() -> null {
 /**
  * 测试数字位数和反转函数
  */
-func test_digit_functions() -> null {
+func test_digit_functions(){
     print("=== 测试 digit_count 和 reverse_number 函数 ===");
     int temp;
     temp = digit_count(0);
@@ -108,7 +107,7 @@ func test_digit_functions() -> null {
 /**
  * 测试 min 和 max 函数
  */
-func test_min_max() -> null {
+func test_min_max() {
     print("=== 测试 min 和 max 函数 ===");
     int temp;
 
@@ -143,7 +142,7 @@ func test_min_max() -> null {
 /**
  * 主测试函数
  */
-func main() -> null {
+func main(){
     print("开始测试数学库函数...");
     print("");
 

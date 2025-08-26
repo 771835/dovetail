@@ -6,14 +6,15 @@ from typing import Callable
 from antlr4 import FileStream, CommonTokenStream
 
 from transpiler.core.backend.ir_builder import IRBuilder
-from transpiler.core.enums import ValueType, VariableType, FunctionType, ClassType, StructureType, BinaryOps, CompareOps
+from transpiler.core.enums import ValueType, VariableType, FunctionType, ClassType, StructureType, BinaryOps, \
+    CompareOps, UnaryOps
 from transpiler.core.errors import *
 from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.include_manager import IncludeManager
 from transpiler.core.instructions import (IRInstruction, IRAssign, IRDeclare, IRFunction, IROp,
                                           IRCallMethod, IRCall, IRJump, IRCondJump, IRCast, IRCompare,
                                           IRBreak, IRClass, IRReturn, IRContinue, IRScopeEnd,
-                                          IRScopeBegin, IRGetField, IRNewObj)
+                                          IRScopeBegin, IRGetField, IRNewObj, IRUnaryOp)
 from transpiler.core.lib.library import Library
 from transpiler.core.lib.library_mapping import StdBuiltinMapping
 from transpiler.core.parser.transpilerLexer import transpilerLexer
@@ -38,7 +39,7 @@ class MCGenerator(transpilerVisitor):
         self.include_manager = IncludeManager()  # 包含管理器
         self.builtin_func_table: dict[str, Callable[..., Variable | Constant | Literal]] = {}
         self.scope_stack = [self.top_scope]
-        self.cnt = itertools.count()  # 保证for loop和if else唯一性
+        self.cnt = itertools.count()
         self.filename = "<main>"
         self.ir_builder: IRBuilder = IRBuilder()
 
@@ -315,8 +316,7 @@ class MCGenerator(transpilerVisitor):
         self._add_ir_instruction(IRDeclare(new_var))
         self._add_ir_instruction(IROp(new_var, BinaryOps.ADD,
                                       Reference(ValueType.VARIABLE, current_var),
-                                      Reference(ValueType.LITERAL,
-                                                Literal(DataType.STRING, text))))
+                                      Reference.literal(text)))
         return new_var
 
     def _append_variable_to_result(self, current_var: Variable, var_name: str) -> Variable:
@@ -440,8 +440,7 @@ class MCGenerator(transpilerVisitor):
         self._current_ctx = tree
 
         result = tree.accept(self)
-        if not isinstance(result, Result) and not isinstance(
-                tree, transpilerParser.ProgramContext):
+        if not isinstance(result, Result) and not isinstance(tree, transpilerParser.ProgramContext):
             raise UnexpectedError(f"意外的错误:result结果为{type(result)},需要{Result}")
         self._current_ctx = previous_ctx
         return result
@@ -828,11 +827,10 @@ class MCGenerator(transpilerVisitor):
                 self.visit(ctx.block())
 
             # 从检查函数调用循环体
-            condition_expr = self.visit(ctx.expr())
-            condition_var = condition_expr.value
+            condition_ref = self.visit(ctx.expr()).value
 
             # 评估条件表达式
-            if condition_var.get_data_type() != DataType.BOOLEAN:
+            if condition_ref.get_data_type() != DataType.BOOLEAN:
                 raise InvalidSyntaxError(
                     ctx.expr().getText(),
                     line=self._get_current_line(),
@@ -840,14 +838,8 @@ class MCGenerator(transpilerVisitor):
                     filename=self.filename
                 )
 
-            self._add_ir_instruction(
-                IRCondJump(
-                    condition_var.value,
-                    loop_body.name))
-            self._add_ir_instruction(
-                IRCondJump(
-                    condition_var.value,
-                    loop_check.name))
+            self._add_ir_instruction(IRCondJump(condition_ref.value, loop_body.name))
+            self._add_ir_instruction(IRCondJump(condition_ref.value, loop_check.name))
         self._add_ir_instruction(IRJump(loop_check.name))
 
     def visitForStmt(self, ctx: transpilerParser.ForStmtContext):
@@ -877,7 +869,7 @@ class MCGenerator(transpilerVisitor):
                             column=self._get_current_column()
                         )
                 else:
-                    condition_ref = Reference(ValueType.LITERAL, Literal(DataType.BOOLEAN, True))
+                    condition_ref = Reference.literal(True)
 
                 self._add_ir_instruction(IRCondJump(condition_ref.value, loop_body.name))
                 self._add_ir_instruction(IRCondJump(condition_ref.value, loop_check.name))
@@ -913,16 +905,9 @@ class MCGenerator(transpilerVisitor):
         if ctx.block(1):
             with self.scoped_environment(f"else_{if_id}", StructureType.CONDITIONAL) as else_scope:
                 self.visit(ctx.block(1))
-            self._add_ir_instruction(
-                IRCondJump(
-                    condition_ref.value,
-                    if_scope.name,
-                    else_scope.name))
+            self._add_ir_instruction(IRCondJump(condition_ref.value, if_scope.name, else_scope.name))
         else:
-            self._add_ir_instruction(
-                IRCondJump(
-                    condition_ref.value,
-                    if_scope.name))
+            self._add_ir_instruction(IRCondJump(condition_ref.value, if_scope.name))
         return Result(None)
 
     def visitCompareExpr(self, ctx):
@@ -965,7 +950,7 @@ class MCGenerator(transpilerVisitor):
         self._add_ir_instruction(IROp(temp_var, BinaryOps.MUL, left, right))
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(IRCompare(result_var, CompareOps.EQ, Reference(ValueType.VARIABLE, temp_var),
-                                           Reference(ValueType.LITERAL, Literal(DataType.INT, 1))))
+                                           Reference.literal(1)))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitLogicalOrExpr(self, ctx: transpilerParser.LogicalOrExprContext):
@@ -987,9 +972,21 @@ class MCGenerator(transpilerVisitor):
         self._add_ir_instruction(IRDeclare(temp_var))
         self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left, right))
         self._add_ir_instruction(IRDeclare(result_var))
-        self._add_ir_instruction(IRCompare(result_var, CompareOps.LT,
-                                           Reference(ValueType.LITERAL, Literal(DataType.INT, 0)),
-                                           Reference(ValueType.VARIABLE, temp_var)))
+        self._add_ir_instruction(
+            IRCompare(
+                result_var,
+                CompareOps.LT,
+                Reference.literal(0),
+                Reference(ValueType.VARIABLE, temp_var)
+            )
+        )
+        return Result(Reference(ValueType.VARIABLE, result_var))
+
+    def visitLogicalNotExpr(self, ctx: transpilerParser.LogicalNotExprContext):
+        value_ref = self.visit(ctx.expr()).value
+        result_var = self._create_temp_var(DataType.BOOLEAN, "bool")
+        self._add_ir_instruction(IRDeclare(result_var))
+        self._add_ir_instruction(IRUnaryOp(result_var, UnaryOps.NOT, value_ref))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitIdentifierExpr(self, ctx: transpilerParser.IdentifierExprContext):
@@ -1251,14 +1248,13 @@ class MCGenerator(transpilerVisitor):
 
     def visitReturnStmt(self, ctx: transpilerParser.ReturnStmtContext):
         result_dtype: DataType | Class = DataType.NULL
+        result_var_ref: Reference[Variable | Constant | Literal] | None = None
         if ctx.expr():
-            result_var = self.visit(ctx.expr()).value
-            result_dtype = result_var.get_data_type()
-            if isinstance(result_var.value, (Constant, Variable)):
-                result_var.value.var_type = VariableType.RETURN
-            self._add_ir_instruction(IRReturn(result_var))
-        else:
-            self._add_ir_instruction(IRReturn())
+            result_var_ref = self.visit(ctx.expr()).value
+            result_dtype = result_var_ref.get_data_type()
+            if isinstance(result_var_ref.value, (Constant, Variable)):
+                result_var_ref.value.var_type = VariableType.RETURN
+        self._add_ir_instruction(IRReturn(result_var_ref))
         # 检查返回值的类型是否正确
         current = self.current_scope
         while current:

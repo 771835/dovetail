@@ -614,3 +614,53 @@ class Composite:
                 right.value,
                 namespace
             )
+
+    @staticmethod
+    def unary_op_not(
+            result: Variable | Constant,
+            result_scope: CodeGeneratorScope,
+            result_objective: str,
+            value: Reference[Variable | Constant | Literal],
+            value_scope: CodeGeneratorScope,
+            value_objective: str
+    ) -> list[str] | None:
+        if value.value_type == ValueType.LITERAL:
+            return [
+                BasicCommands.Copy.copy_literal_base_type(
+                    result,
+                    result_scope,
+                    result_objective,
+                    Literal(
+                        value.get_data_type(),
+                        not value.value.value
+                    )
+                )
+            ]
+        else:
+            return [
+                BasicCommands.Copy.copy_variable_base_type(
+                    result,
+                    result_scope,
+                    result_objective,
+                    value.value,
+                    value_scope,
+                    value_objective
+                ),
+                *ScoreboardBuilder.mul_score(
+                    BasicCommands.get_symbol_path(
+                        value_scope,
+                        value.value
+                    ),
+                    value_objective,
+                    -1
+                ),
+                *ScoreboardBuilder.add_score(
+                    BasicCommands.get_symbol_path(
+                        value_scope,
+                        value.value
+                    ),
+                    value_objective,
+                    1
+                ),
+
+            ]
