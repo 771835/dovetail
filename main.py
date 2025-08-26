@@ -2,8 +2,8 @@
 import argparse
 import sys
 import time
-from pathlib import Path
 from contextlib import chdir
+from pathlib import Path
 
 start_time = time.time()
 

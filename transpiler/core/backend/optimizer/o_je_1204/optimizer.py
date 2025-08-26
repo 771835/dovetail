@@ -14,7 +14,7 @@ from transpiler.core.backend.specification import IROptimizerSpec, \
 from transpiler.core.enums import ValueType, VariableType, DataTypeBase
 from transpiler.core.generator_config import GeneratorConfig, MinecraftEdition, OptimizationLevel
 from transpiler.core.instructions import *
-from transpiler.core.symbols import Variable, Reference, Constant, Literal, Parameter
+from transpiler.core.symbols import Variable, Reference, Constant, Literal
 
 
 class Optimizer(IROptimizerSpec):

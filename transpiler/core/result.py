@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from typing import Any, Callable
+from typing import Any
 
 from attrs import define, field, validators
 

@@ -242,5 +242,6 @@ class CompilationErrorMixin:
         if random.random() < 0.3:  # 30%概率
             ci.set_return_value("错误被吃掉啦~")
 
+
 def main():
     print("Hello world!")

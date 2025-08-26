@@ -1,6 +1,5 @@
 # coding=utf-8
 import uuid
-from functools import lru_cache
 from pathlib import Path
 from typing import Callable
 
@@ -27,7 +26,8 @@ class CodeGenerator(CodeGeneratorSpec):
             "global",
             None,
             StructureType.GLOBAL,
-            self.namespace)
+            self.namespace
+        )
         self.scope_stack = [self.top_scope]
         self.current_scope = self.top_scope
         self.var_objective = "var"  # 存储变量记分板
@@ -94,7 +94,7 @@ class CodeGenerator(CodeGeneratorSpec):
             if instr.opcode == IROpCode.SCOPE_BEGIN and instr.get_operands()[0] == name:
                 break
         else:
-            raise Exception(f"Scope block {name} not found!")
+            raise Exception(f"作用域结构错误")
         scope_block = []
         for instr in reversed(reversed_iterable):
             scope_block.append(instr)
@@ -123,7 +123,6 @@ class CodeGenerator(CodeGeneratorSpec):
             with open(full_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-    @lru_cache(maxsize=1)
     def _get_opcode_handler(self) -> dict[IROpCode, Callable[[IRInstruction], None]]:
         return {
             # ===== 控制流指令 (0x00-0x1F) =====
@@ -246,7 +245,6 @@ class CodeGenerator(CodeGeneratorSpec):
         stype: StructureType = instr.get_operands()[1]
         if stype == StructureType.LOOP_CHECK:
             continue_name = "#continue_" + self.current_scope.get_unique_name(".")
-
             self.current_scope.add_command(
                 ScoreboardBuilder.set_score(
                     continue_name,
@@ -550,12 +548,6 @@ class CodeGenerator(CodeGeneratorSpec):
                     temp_path
                 )
             )
-            self.current_scope.add_command(
-                DataBuilder.remove_storage(
-                    self.var_objective,
-                    temp_path
-                )
-            )
         elif dtype in (DataType.INT, DataType.BOOLEAN) and value.get_data_type() == DataType.STRING:  # string -> int
             temp_path = uuid.uuid4().hex
             self.current_scope.add_command(
@@ -596,12 +588,6 @@ class CodeGenerator(CodeGeneratorSpec):
                             self.var_objective
                         )
                     }
-                )
-            )
-            self.current_scope.add_command(
-                DataBuilder.remove_storage(
-                    self.var_objective,
-                    temp_path
                 )
             )
 

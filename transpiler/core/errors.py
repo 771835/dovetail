@@ -165,6 +165,15 @@ class NotCallableError(TypeMismatchError):
             msg=msg)
 
 
+class PrimitiveTypeOperationError(ASTSemanticError):
+    """对基本类型执行了不允许的操作"""
+
+    def __init__(self, operation: str, type_name: str,
+                 line: int = None, column: int = None, filename: str = None):
+        msg = f"不支持的操作：'{operation}' 不能应用于基本类型 '{type_name}'"
+        super().__init__(msg, line=line, column=column, filename=filename)
+
+
 class SymbolResolutionError(ASTSemanticError):
     """符号解析错误基类"""
 

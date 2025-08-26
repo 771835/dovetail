@@ -5,8 +5,8 @@ from typing import Callable
 
 from antlr4 import FileStream, CommonTokenStream
 
-from transpiler.core.enums import ValueType, VariableType, FunctionType, ClassType, StructureType, BinaryOps, CompareOps
 from transpiler.core.backend.ir_builder import IRBuilder
+from transpiler.core.enums import ValueType, VariableType, FunctionType, ClassType, StructureType, BinaryOps, CompareOps
 from transpiler.core.errors import *
 from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.include_manager import IncludeManager
@@ -22,7 +22,6 @@ from transpiler.core.parser.transpilerVisitor import transpilerVisitor
 from transpiler.core.result import Result
 from transpiler.core.scope import Scope
 from transpiler.core.symbols import *
-from transpiler.core.symbols import Class
 
 
 class MCGenerator(transpilerVisitor):
@@ -49,7 +48,7 @@ class MCGenerator(transpilerVisitor):
             self._load_library(StdBuiltinMapping.get("experimental", self.ir_builder))
 
     def _load_library(self, library: Library):
-        library.load()
+        self._add_ir_instruction(library.load())
         for function, handler in library.get_functions().items():
             self.current_scope.add_symbol(function)
             self.builtin_func_table[function.get_name()] = handler
@@ -824,24 +823,22 @@ class MCGenerator(transpilerVisitor):
 
     def visitWhileStmt(self, ctx: transpilerParser.WhileStmtContext):
         loop_id = next(self.cnt)
-        cond = ctx.expr()
         with self.scoped_environment(f"while_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
             with self.scoped_environment(f"while_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
                 self.visit(ctx.block())
+
+            # 从检查函数调用循环体
+            condition_expr = self.visit(ctx.expr())
+            condition_var = condition_expr.value
+
             # 评估条件表达式
-            if not isinstance(cond, (transpilerParser.CompareExprContext, transpilerParser.LogicalOrExprContext,
-                                     transpilerParser.LogicalAndExprContext, transpilerParser.LogicalNotExprContext,
-                                     transpilerParser.PrimaryExprContext)):
+            if condition_var.get_data_type() != DataType.BOOLEAN:
                 raise InvalidSyntaxError(
                     ctx.expr().getText(),
                     line=self._get_current_line(),
                     column=self._get_current_column(),
                     filename=self.filename
                 )
-
-            # 从检查函数调用循环体
-            condition_expr = self.visit(cond)
-            condition_var = condition_expr.value
 
             self._add_ir_instruction(
                 IRCondJump(
@@ -857,11 +854,8 @@ class MCGenerator(transpilerVisitor):
         for_control: transpilerParser.ForControlContext = ctx.forControl()
         if for_control:  # 传统for循环
             loop_id = next(self.cnt)
-            for_control_init = for_control.forLoopVarDecl()
-            for_control_cond = for_control.expr()
             # 处理初始化表达式
-            if for_control_init:
-                self.visit(for_control_init)
+            self.visit(for_control.forLoopVarDecl())
             # 创建循环检查作用域
             with self.scoped_environment(f"for_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
                 with self.scoped_environment(f"for_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
@@ -873,16 +867,10 @@ class MCGenerator(transpilerVisitor):
                     if ctx.forControl().assignment():
                         self.visit(ctx.forControl().assignment())
 
-                # 评估条件表达式
-                if for_control_cond:
-                    if isinstance(for_control_cond,
-                                  (transpilerParser.CompareExprContext, transpilerParser.LogicalOrExprContext,
-                                   transpilerParser.LogicalAndExprContext, transpilerParser.LogicalNotExprContext)):
-                        # 从检查函数调用循环体
-                        condition_expr = self.visit(for_control_cond)
-                        condition_ref = condition_expr.value
-
-                    else:
+                # 处理条件表达式
+                if for_control.expr():
+                    condition_ref = self.visit(for_control.expr()).value
+                    if condition_ref.get_data_type() != DataType.BOOLEAN:
                         raise InvalidSyntaxError(
                             ctx.expr().getText(),
                             line=self._get_current_line(),
@@ -907,26 +895,10 @@ class MCGenerator(transpilerVisitor):
     def visitIfStmt(self, ctx: transpilerParser.IfStmtContext):
         # 生成唯一ID
         if_id = next(self.cnt)
-        if isinstance(  # 判断expr是否为比较表达式
-                ctx.expr(),
-                (transpilerParser.CompareExprContext, transpilerParser.LogicalOrExprContext,
-                 transpilerParser.LogicalAndExprContext, transpilerParser.LogicalNotExprContext,
-                 transpilerParser.PrimaryExprContext)):
-            # 计算条件表达式
-            condition_expr = self.visit(ctx.expr())
-        elif isinstance(
-                ctx.expr(),
-                transpilerParser.PrimaryExprContext):
-            condition_expr = self.visit(ctx.expr())
-            if condition_expr.value.get_data_type() != DataType.BOOLEAN:
-                raise TypeMismatchError(
-                    expected_type=DataType.BOOLEAN,
-                    actual_type=condition_expr.value.get_data_type(),
-                    line=self._get_current_line(),
-                    column=self._get_current_column(),
-                    filename=self.filename
-                )
-        else:
+        # 计算条件表达式
+        condition_ref = self.visit(ctx.expr()).value
+
+        if condition_ref.get_data_type() != DataType.BOOLEAN:
             raise InvalidSyntaxError(
                 ctx.expr().getText(),
                 line=self._get_current_line(),
@@ -943,13 +915,13 @@ class MCGenerator(transpilerVisitor):
                 self.visit(ctx.block(1))
             self._add_ir_instruction(
                 IRCondJump(
-                    condition_expr.value.value,
+                    condition_ref.value,
                     if_scope.name,
                     else_scope.name))
         else:
             self._add_ir_instruction(
                 IRCondJump(
-                    condition_expr.value.value,
+                    condition_ref.value,
                     if_scope.name))
         return Result(None)
 
@@ -1206,8 +1178,9 @@ class MCGenerator(transpilerVisitor):
         instance_type = instance_ref.get_data_type()
         method_name = ctx.ID().getText()
         if isinstance(instance_type, DataType):
-            raise MissingImplementationError(  # TODO:替换成更好的错误类型
-                f"基本类型 {instance_type.name} 不支持方法调用",
+            raise PrimitiveTypeOperationError(
+                "方法调用",
+                instance_type.name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filename
@@ -1244,8 +1217,9 @@ class MCGenerator(transpilerVisitor):
         instance_type = instance_ref.get_data_type()
         field_name = ctx.ID().getText()
         if isinstance(instance_type, DataType):
-            raise MissingImplementationError(  # TODO:替换成更好的错误类型
-                f"基本类型 {instance_type.name} 不支持方法调用",
+            raise PrimitiveTypeOperationError(
+                "方法调用",
+                instance_type.name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filename
@@ -1285,6 +1259,7 @@ class MCGenerator(transpilerVisitor):
             self._add_ir_instruction(IRReturn(result_var))
         else:
             self._add_ir_instruction(IRReturn())
+        # 检查返回值的类型是否正确
         current = self.current_scope
         while current:
             if current.type == StructureType.FUNCTION:
@@ -1329,11 +1304,13 @@ class MCGenerator(transpilerVisitor):
         # 判断是否为内置库
         if library := StdBuiltinMapping.get(include_path_ref.value, self.ir_builder):
             self._load_library(library)
+            self.include_manager.add_include_path(include_path)
             return Result(None)
 
         if not include_path.exists():
             if (self.config.lib_path / include_path_ref.value).exists():
                 include_path = self.config.lib_path / include_path_ref.value
+                self.include_manager.add_include_path(include_path)
             else:
                 raise CompilerIncludeError(
                     include_path.absolute(),
@@ -1372,7 +1349,7 @@ class MCGenerator(transpilerVisitor):
         loop_scope_name = self._get_loop_check_scope_name()
         if loop_scope_name is None:
             raise InvalidControlFlowError(
-                "break 语句只能在循环结构中使用",
+                "continue 语句只能在循环结构中使用",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filename

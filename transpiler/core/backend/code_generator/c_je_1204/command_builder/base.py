@@ -37,7 +37,7 @@ class BasicCommands:
                     )
                 )
             else:
-                value = _[1].replace("\\","\\\\")
+                value = _[1].replace("\\", "\\\\")
                 # 此处可通过merge进行优化生成的指令的效率，但是暂不实现，也可以通过常量池预加载，但是也不实现qwq
                 commands.append(
                     DataBuilder.modify_storage_set_value(
