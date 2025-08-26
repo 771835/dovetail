@@ -42,6 +42,7 @@ class Optimizer(IROptimizerSpec):
             return self.builder
 
         if self.level >= OptimizationLevel.O1:
+            optimization_pass.append(ChainAssignEliminationPass)
             optimization_pass.append(ConstantFoldingPass)
             optimization_pass.append(DeadCodeEliminationPass)
             optimization_pass.append(DeclareCleanupPass)
@@ -52,6 +53,7 @@ class Optimizer(IROptimizerSpec):
         if self.level >= OptimizationLevel.O3:  # 测试性优化
             # FIXME:当函数嵌套且名称重复时会出现删除错误,故临时放在测试性优化，等待修复
             optimization_pass.append(EmptyScopeRemovalPass)
+
         last_hash = hash(tuple(self.builder.get_instructions()))
         iteration = count()
         while True:
@@ -88,73 +90,130 @@ class ConstantFoldingPass(IROptimizationPass):
         BinaryOps.ADD: {
             (DataType.INT, DataType.INT): lambda a, b: a + b,
             (DataType.STRING, DataType.STRING): lambda a, b: a + b,
-            (DataType.STRING, DataType.INT): lambda a, b: a + str(b)
+            (DataType.STRING, DataType.INT): lambda a, b: a + str(b),
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) + b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a + int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) + int(b)
         },
         BinaryOps.SUB: {
-            (DataType.INT, DataType.INT): lambda a, b: a - b
+            (DataType.INT, DataType.INT): lambda a, b: a - b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) - b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a - int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) - int(b)
         },
         BinaryOps.MUL: {
-            (DataType.INT, DataType.INT): lambda a, b: a * b
+            (DataType.INT, DataType.INT): lambda a, b: a * b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) * b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a * int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) * int(b)
         },
         BinaryOps.DIV: {
-            (DataType.INT, DataType.INT): lambda a, b: a / b
+            (DataType.INT, DataType.INT): lambda a, b: a / b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) / b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a / int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) / int(b)
         },
         BinaryOps.MOD: {
-            (DataType.INT, DataType.INT): lambda a, b: a % b
+            (DataType.INT, DataType.INT): lambda a, b: a % b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) % b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a % int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) % int(b)
         },
         BinaryOps.MIN: {
-            (DataType.INT, DataType.INT): lambda a, b: min(a, b)
+            (DataType.INT, DataType.INT): lambda a, b: min(a, b),
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: min(int(a), b),
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: min(a, int(b)),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: min(int(a), int(b))
         },
         BinaryOps.MAX: {
-            (DataType.INT, DataType.INT): lambda a, b: max(a, b)
+            (DataType.INT, DataType.INT): lambda a, b: max(a, b),
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: max(int(a), b),
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: max(a, int(b)),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: max(int(a), int(b))
         },
         BinaryOps.BIT_AND: {
-            (DataType.INT, DataType.INT): lambda a, b: a & b
+            (DataType.INT, DataType.INT): lambda a, b: a & b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) & b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a & int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) & int(b)
         },
         BinaryOps.BIT_OR: {
-            (DataType.INT, DataType.INT): lambda a, b: a | b
+            (DataType.INT, DataType.INT): lambda a, b: a | b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) | b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a | int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) | int(b)
         },
         BinaryOps.BIT_XOR: {
-            (DataType.INT, DataType.INT): lambda a, b: a ^ b
+            (DataType.INT, DataType.INT): lambda a, b: a ^ b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) ^ b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a ^ int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) ^ int(b)
         },
         BinaryOps.SHL: {
-            (DataType.INT, DataType.INT): lambda a, b: a << b
+            (DataType.INT, DataType.INT): lambda a, b: a << b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) << b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a << int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) << int(b)
         },
         BinaryOps.SHR: {
-            (DataType.INT, DataType.INT): lambda a, b: a >> b
+            (DataType.INT, DataType.INT): lambda a, b: a >> b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) >> b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a >> int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) >> int(b)
         }
     }
     COMPARE_OP_HANDLERS: dict[CompareOps, dict[tuple[DataTypeBase, DataTypeBase], ...]] = {
         CompareOps.EQ: {
             (DataType.INT, DataType.INT): lambda a, b: a == b,
             (DataType.STRING, DataType.STRING): lambda a, b: a == b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) == b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a == int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: a == b
         },
         CompareOps.NE: {
             (DataType.INT, DataType.INT): lambda a, b: a != b,
             (DataType.STRING, DataType.STRING): lambda a, b: a != b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) != b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a != int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: a != b
         },
         CompareOps.LT: {
             (DataType.INT, DataType.INT): lambda a, b: a < b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) < b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a < int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) < int(b)
         },
         CompareOps.LE: {
             (DataType.INT, DataType.INT): lambda a, b: a <= b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) <= b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a <= int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) <= int(b)
         },
         CompareOps.GT: {
             (DataType.INT, DataType.INT): lambda a, b: a > b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) > b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a > int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) > int(b)
         },
         CompareOps.GE: {
             (DataType.INT, DataType.INT): lambda a, b: a >= b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) >= b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a >= int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) >= int(b)
         },
     }
     UNARY_OP_HANDLERS: dict[UnaryOps, dict[DataTypeBase, ...]] = {
         UnaryOps.NEG: {
             DataType.INT: lambda a: -a,
+            DataType.BOOLEAN: lambda a: -int(a),
         },
         UnaryOps.NOT: {
             DataType.INT: lambda a: not a,
+            DataType.BOOLEAN: lambda a: not a,
         },
         UnaryOps.BIT_NOT: {
             DataType.INT: lambda a: ~a,
+            DataType.BOOLEAN: lambda a: ~int(a),
         },
     }
 
@@ -319,12 +378,14 @@ class ConstantFoldingPass(IROptimizationPass):
         right = self._resolve_ref(right_ref)
         if not self._is_literal(left) or not self._is_literal(right):
             return
+
         left: Reference[Literal]
         right: Reference[Literal]
-        handlers = self.BINARY_OP_HANDLERS.get(op, {})
-        handler = handlers.get((DataType.INT if left.get_data_type() == DataType.BOOLEAN else left.get_data_type(),
-                                DataType.INT if right.get_data_type() == DataType.BOOLEAN else right.get_data_type()))
 
+        left_dtype = left.get_data_type()
+        right_dtype = right.get_data_type()
+        handlers = self.BINARY_OP_HANDLERS.get(op, {})
+        handler = handlers.get((left_dtype, right_dtype))
         if handler:
             folded_value = handler(left.value.value, right.value.value)
             new_instr = IRAssign(result, Reference.literal(folded_value))
@@ -346,8 +407,7 @@ class ConstantFoldingPass(IROptimizationPass):
         left: Reference[Literal]
         right: Reference[Literal]
         handlers = self.COMPARE_OP_HANDLERS.get(op, {})
-        handler = handlers.get((DataType.INT if left.get_data_type() == DataType.BOOLEAN else left.get_data_type(),
-                                DataType.INT if right.get_data_type() == DataType.BOOLEAN else right.get_data_type()))
+        handler = handlers.get((left.get_data_type(), right.get_data_type()))
 
         if handler:
             folded_value = handler(left.value.value, right.value.value)
@@ -367,7 +427,7 @@ class ConstantFoldingPass(IROptimizationPass):
             return
 
         handlers = self.UNARY_OP_HANDLERS.get(op, {})
-        handler = handlers.get(DataType.INT if operand.get_data_type() == DataType.BOOLEAN else operand.get_data_type())
+        handler = handlers.get(operand.get_data_type())
 
         if handler:
             folded_value = handler(operand.value.value)
@@ -425,14 +485,12 @@ class ConstantFoldingPass(IROptimizationPass):
         if dtype == value_ref.get_data_type():
             iterator.set_current(IRAssign(result, value_ref))
             self._assign(iterator, iterator.current())  # NOQA
-            return  # NOQA
+            return
 
         if dtype == DataType.STRING:
             if value.get_data_type() in (DataType.INT, DataType.BOOLEAN):
-                self.current_table.set(result.get_name(),
-                                       Reference(ValueType.LITERAL, Literal(DataType.STRING, str(value.value.value))))
-                iterator.set_current(
-                    IRAssign(result, Reference(ValueType.LITERAL, Literal(DataType.STRING, str(value.value.value)))))
+                self.current_table.set(result.get_name(), Reference.literal(str(int(value.value.value))))
+                iterator.set_current(IRAssign(result, Reference.literal(str(int(value.value.value)))))
                 self._assign(iterator, iterator.current())  # NOQA
 
     def _function(self, iterator: IRBuilderIterator, instr: IRFunction):
@@ -1029,3 +1087,318 @@ class UnreachableCodeRemovalPass(IROptimizationPass):
             # 检查是否进入不可达模式
             if isinstance(instr, (IRReturn, IRBreak, IRContinue)):
                 in_unreachable = True
+
+
+class ChainAssignEliminationPass(IROptimizationPass):
+    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+        self.builder = builder
+        self.config = config
+
+    def exec(self):
+        """
+        链式赋值消除优化：消除中间变量的无意义链式赋用
+        """
+        # 第一步：构建变量别名映射表
+        alias_map = self._build_alias_map()
+
+        # 第二步：应用别名替换
+        self._apply_alias_substitution(alias_map)
+
+    def _build_alias_map(self) -> dict[str, Reference]:
+        """
+        构建变量别名映射表
+        返回 {变量名: 它应该指向的最终引用}
+        """
+        alias_map = {}
+
+        # 遍历所有指令，构建别名关系
+        for instr in self.builder.get_instructions():
+            if isinstance(instr, IRDeclare):
+                var = instr.get_operands()[0]
+                var_name = var.get_name()
+                # 每个变量初始时指向自己
+                alias_map[var_name] = Reference.variable(var_name, var.dtype)
+
+            elif isinstance(instr, IRAssign):
+                target, source = instr.get_operands()
+                target_name = target.get_name()
+
+                if isinstance(source, Reference):
+                    if source.value_type == ValueType.VARIABLE:
+                        source_name = source.get_name()
+                        # 如果源变量有别名，使用源变量的别名
+                        if source_name in alias_map:
+                            alias_map[target_name] = alias_map[source_name]
+                        else:
+                            alias_map[target_name] = source
+                    elif source.value_type in (ValueType.LITERAL, ValueType.CONSTANT):
+                        # 直接值作为别名
+                        alias_map[target_name] = source
+
+        return alias_map
+
+    def _apply_alias_substitution(self, alias_map: dict[str, Reference]):
+        """
+        应用别名替换到所有使用这些变量的地方
+        """
+        iterator = self.builder.__iter__()
+
+        while True:
+            try:
+                instr = next(iterator)
+            except StopIteration:
+                break
+
+            # 处理赋值语句
+            if isinstance(instr, IRAssign):
+                self._handle_assign(iterator, instr, alias_map)
+
+            # 处理函数调用 - 这是关键遗漏的部分
+            elif isinstance(instr, IRCall):
+                self._handle_call(iterator, instr, alias_map)
+
+            # 处理方法调用
+            elif isinstance(instr, IRCallMethod):
+                self._handle_call_method(iterator, instr, alias_map)
+
+            # 处理条件跳转
+            elif isinstance(instr, IRCondJump):
+                self._handle_cond_jump(iterator, instr, alias_map)
+
+            # 处理比较操作
+            elif isinstance(instr, IRCompare):
+                self._handle_compare(iterator, instr, alias_map)
+
+            # 处理二元操作
+            elif isinstance(instr, IROp):
+                self._handle_binary_op(iterator, instr, alias_map)
+
+            # 处理一元操作
+            elif isinstance(instr, IRUnaryOp):
+                self._handle_unary_op(iterator, instr, alias_map)
+
+            # 处理类型转换
+            elif isinstance(instr, IRCast):
+                self._handle_cast(iterator, instr, alias_map)
+
+            # 处理字段获取
+            elif isinstance(instr, IRGetField):
+                self._handle_get_field(iterator, instr, alias_map)
+
+            # 处理字段设置
+            elif isinstance(instr, IRSetField):
+                self._handle_set_field(iterator, instr, alias_map)
+
+    def _handle_assign(self, iterator, instr: IRAssign, alias_map: dict[str, Reference]):
+        """处理赋值语句中的别名替换"""
+        target, source = instr.get_operands()
+
+        if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
+            source_name = source.get_name()
+            if source_name in alias_map:
+                final_alias = alias_map[source_name]
+                # 只有当别名不是自身时才替换
+                if (isinstance(final_alias, Reference) and
+                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != source_name)):
+                    new_instr = IRAssign(target, final_alias)
+                    iterator.set_current(new_instr)
+
+    def _handle_call(self, iterator, instr: IRCall, alias_map: dict[str, Reference]):
+        """处理函数调用中的参数别名替换"""
+        result, func, args = instr.get_operands()
+        new_args = {}
+        changed = False
+
+        for param_name, arg_ref in args.items():
+            if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
+                source_name = arg_ref.get_name()
+                if source_name in alias_map:
+                    final_alias = alias_map[source_name]
+                    # 只有当别名不是自身时才替换
+                    if (isinstance(final_alias, Reference) and
+                            (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != source_name)):
+                        new_args[param_name] = final_alias
+                        changed = True
+                    else:
+                        new_args[param_name] = arg_ref
+                else:
+                    new_args[param_name] = arg_ref
+            else:
+                new_args[param_name] = arg_ref
+
+        if changed:
+            iterator.set_current(IRCall(result, func, new_args))
+
+    def _handle_call_method(self, iterator, instr: IRCallMethod, alias_map: dict[str, Reference]):
+        """处理方法调用中的参数别名替换"""
+        result, class_, method, args = instr.get_operands()
+        if args is None:
+            return
+
+        new_args = {}
+        changed = False
+
+        for param_name, arg_ref in args.items():
+            if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
+                source_name = arg_ref.get_name()
+                if source_name in alias_map:
+                    final_alias = alias_map[source_name]
+                    if (isinstance(final_alias, Reference) and
+                            (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != source_name)):
+                        new_args[param_name] = final_alias
+                        changed = True
+                    else:
+                        new_args[param_name] = arg_ref
+                else:
+                    new_args[param_name] = arg_ref
+            else:
+                new_args[param_name] = arg_ref
+
+        if changed:
+            iterator.set_current(IRCallMethod(result, class_, method, new_args))
+
+    def _handle_cond_jump(self, iterator, instr: IRCondJump, alias_map: dict[str, Reference]):
+        """处理条件跳转中的条件变量替换"""
+        cond_ref, true_scope, false_scope = instr.get_operands()
+
+        if isinstance(cond_ref, Variable):
+            cond_name = cond_ref.name
+            if cond_name in alias_map:
+                final_alias = alias_map[cond_name]
+                if (isinstance(final_alias, Reference) and
+                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != cond_name)):
+                    new_instr = IRCondJump(final_alias if isinstance(final_alias, Variable) else cond_ref,
+                                           true_scope, false_scope)
+                    iterator.set_current(new_instr)
+
+    def _handle_compare(self, iterator, instr: IRCompare, alias_map: dict[str, Reference]):
+        """处理比较操作中的操作数替换"""
+        result, op, left_ref, right_ref = instr.get_operands()
+        changed = False
+        new_left = left_ref
+        new_right = right_ref
+
+        # 处理左操作数
+        if isinstance(left_ref, Reference) and left_ref.value_type == ValueType.VARIABLE:
+            left_name = left_ref.get_name()
+            if left_name in alias_map:
+                final_alias = alias_map[left_name]
+                if (isinstance(final_alias, Reference) and
+                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != left_name)):
+                    new_left = final_alias
+                    changed = True
+
+        # 处理右操作数
+        if isinstance(right_ref, Reference) and right_ref.value_type == ValueType.VARIABLE:
+            right_name = right_ref.get_name()
+            if right_name in alias_map:
+                final_alias = alias_map[right_name]
+                if (isinstance(final_alias, Reference) and
+                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != right_name)):
+                    new_right = final_alias
+                    changed = True
+
+        if changed:
+            new_instr = IRCompare(result, op, new_left, new_right)
+            iterator.set_current(new_instr)
+
+    def _handle_binary_op(self, iterator, instr: IROp, alias_map: dict[str, Reference]):
+        """处理二元操作中的操作数替换"""
+        result, op, left_ref, right_ref = instr.get_operands()
+        changed = False
+        new_left = left_ref
+        new_right = right_ref
+
+        # 处理左操作数
+        if isinstance(left_ref, Reference) and left_ref.value_type == ValueType.VARIABLE:
+            left_name = left_ref.get_name()
+            if left_name in alias_map:
+                final_alias = alias_map[left_name]
+                if (isinstance(final_alias, Reference) and
+                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != left_name)):
+                    new_left = final_alias
+                    changed = True
+
+        # 处理右操作数
+        if isinstance(right_ref, Reference) and right_ref.value_type == ValueType.VARIABLE:
+            right_name = right_ref.get_name()
+            if right_name in alias_map:
+                final_alias = alias_map[right_name]
+                if (isinstance(final_alias, Reference) and
+                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != right_name)):
+                    new_right = final_alias
+                    changed = True
+
+        if changed:
+            new_instr = IROp(result, op, new_left, new_right)
+            iterator.set_current(new_instr)
+
+    def _handle_unary_op(self, iterator, instr: IRUnaryOp, alias_map: dict[str, Reference]):
+        """处理一元操作中的操作数替换"""
+        result, op, operand_ref = instr.get_operands()
+
+        if isinstance(operand_ref, Reference) and operand_ref.value_type == ValueType.VARIABLE:
+            operand_name = operand_ref.get_name()
+            if operand_name in alias_map:
+                final_alias = alias_map[operand_name]
+                if (isinstance(final_alias, Reference) and
+                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != operand_name)):
+                    new_instr = IRUnaryOp(result, op, final_alias)
+                    iterator.set_current(new_instr)
+
+    def _handle_cast(self, iterator, instr: IRCast, alias_map: dict[str, Reference]):
+        """处理类型转换中的操作数替换"""
+        result, dtype, value_ref = instr.get_operands()
+
+        if isinstance(value_ref, Reference) and value_ref.value_type == ValueType.VARIABLE:
+            value_name = value_ref.get_name()
+            if value_name in alias_map:
+                final_alias = alias_map[value_name]
+                if (isinstance(final_alias, Reference) and
+                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != value_name)):
+                    new_instr = IRCast(result, dtype, final_alias)
+                    iterator.set_current(new_instr)
+
+    def _handle_get_field(self, iterator, instr: IRGetField, alias_map: dict[str, Reference]):
+        """处理字段获取中的对象引用替换"""
+        result, obj_ref, field = instr.get_operands()
+
+        if isinstance(obj_ref, Reference) and obj_ref.value_type == ValueType.VARIABLE:
+            obj_name = obj_ref.get_name()
+            if obj_name in alias_map:
+                final_alias = alias_map[obj_name]
+                if (isinstance(final_alias, Reference) and
+                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != obj_name)):
+                    new_instr = IRGetField(result, final_alias, field)
+                    iterator.set_current(new_instr)
+
+    def _handle_set_field(self, iterator, instr: IRSetField, alias_map: dict[str, Reference]):
+        """处理字段设置中的对象引用和值引用替换"""
+        obj_ref, field, value_ref = instr.get_operands()
+        changed = False
+        new_obj = obj_ref
+        new_value = value_ref
+
+        # 处理对象引用
+        if isinstance(obj_ref, Reference) and obj_ref.value_type == ValueType.VARIABLE:
+            obj_name = obj_ref.get_name()
+            if obj_name in alias_map:
+                final_alias = alias_map[obj_name]
+                if (isinstance(final_alias, Reference) and
+                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != obj_name)):
+                    new_obj = final_alias
+                    changed = True
+
+        # 处理值引用
+        if isinstance(value_ref, Reference) and value_ref.value_type == ValueType.VARIABLE:
+            value_name = value_ref.get_name()
+            if value_name in alias_map:
+                final_alias = alias_map[value_name]
+                if (isinstance(final_alias, Reference) and
+                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != value_name)):
+                    new_value = final_alias
+                    changed = True
+
+        if changed:
+            new_instr = IRSetField(new_obj, field, new_value)
+            iterator.set_current(new_instr)

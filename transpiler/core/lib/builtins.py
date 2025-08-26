@@ -35,6 +35,22 @@ class Builtins(Library):
                 FunctionType.LIBRARY
             ): self._str,
             Function(
+                "str_i",
+                [
+                    Parameter(Variable("value", DataType.INT))
+                ],
+                DataType.STRING,
+                FunctionType.LIBRARY
+            ): self._str,
+            Function(
+                "str_b",
+                [
+                    Parameter(Variable("value", DataType.BOOLEAN))
+                ],
+                DataType.STRING,
+                FunctionType.LIBRARY
+            ): self._str,
+            Function(
                 "print",
                 [
                     Parameter(Variable("msg", DataType.STRING))
@@ -280,7 +296,7 @@ class Builtins(Library):
                 None,
                 next((function for function in self._functions if function.name == "tellraw_text"), None),
                 {
-                    "target": Reference(ValueType.LITERAL, Literal(DataType.STRING, "@a")),
+                    "target": Reference.literal("@a"),
                     "msg": msg
                 }
             )

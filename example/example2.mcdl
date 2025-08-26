@@ -1,15 +1,15 @@
 class foo {
-    method __init__(self:foo):null {
+    method __init__(self:foo){
         print("33")
     }
 
-    method bar(self:foo):null {
+    method bar(self:foo){
         print("42")
     }
 }
 
-
-func main():null {
+func main(){
     let var = foo();
     var.bar();
+
 }

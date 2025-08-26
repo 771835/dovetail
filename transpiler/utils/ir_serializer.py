@@ -115,7 +115,7 @@ class IRSymbolSerializer:
             {
                 "opcode": instr.opcode.value,
                 "operands": [id(op) for op in instr.operands],
-                "flags": instr.flags,
+                # "flags": instr.flags,(不记录flags，因为没有意义)
             } for instr in self.builder.get_instructions()
         ]
         return result

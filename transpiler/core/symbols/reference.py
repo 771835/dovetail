@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, TypeVar, Generic
 
 from attrs import define, field, validators
 
-from transpiler.core.enums import ValueType, DataType
+from transpiler.core.enums import ValueType, DataType, VariableType
 from .base import Symbol
 from .literal import Literal
+from .variable import Variable
 
 if TYPE_CHECKING:
     from . import Class, Function
@@ -64,3 +65,7 @@ class Reference(Symbol, Generic[T]):
             return cls(ValueType.LITERAL, Literal(DataType.STRING, str(value)))
         else:
             raise TypeError(f"Unsupported literal type: {type(value)}")
+
+    @classmethod
+    def variable(cls, var_name, dtype: DataType, var_type: VariableType = VariableType.COMMON) -> Reference:
+        return cls(ValueType.VARIABLE, Variable(var_name, dtype, var_type))

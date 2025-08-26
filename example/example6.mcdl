@@ -1,4 +1,4 @@
 # hello world
-func null main() {
+func main() {
     print("hello world")
 }

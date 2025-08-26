@@ -113,16 +113,14 @@ class BasicCommands:
                 target_objective: str,
                 source: Literal
         ):
-            if target.dtype != source.dtype:
-                return None
             # 如果目标变量为字符串
-            if target.dtype == DataType.STRING:
+            if target.dtype == DataType.STRING == source.dtype:
                 return DataBuilder.modify_storage_set_value(
                     target_objective,
                     target_scope.get_symbol_path(target.get_name()),
                     f'"{source.value}"'
                 )
-            elif target.dtype in (DataType.INT, DataType.BOOLEAN):
+            elif target.dtype in (DataType.INT, DataType.BOOLEAN) and source.dtype in (DataType.INT, DataType.BOOLEAN):
                 return ScoreboardBuilder.set_score(
                     target_scope.get_symbol_path(target.get_name()), target_objective, int(source.value))
             return None

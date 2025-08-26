@@ -48,10 +48,7 @@ class SpecialEasterEggMixin:
         if hasattr(SpecialEasterEggMixin, 'easter_egg_mode') and SpecialEasterEggMixin.easter_egg_mode:
             if ci.return_value and ci.return_value.value.get_data_type() == DataType.INT:
                 new_val = ci.return_value.value.value.value * 2
-                ci.set_return_value(Result(Reference(
-                    ValueType.LITERAL,
-                    Literal(DataType.INT, new_val)
-                )))
+                ci.set_return_value(Result.from_literal(new_val,DataType.INT))
 
 
 @Mixin(sys)

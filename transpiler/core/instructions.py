@@ -2,7 +2,7 @@
 
 from transpiler.core.enums import StructureType, CompareOps, BinaryOps, UnaryOps, DataType
 from transpiler.core.safe_enum import SafeEnum
-from transpiler.core.symbols import Literal, Class, Constant, Function, Reference, Variable
+from transpiler.core.symbols import Literal, Class, Constant, Function, Reference, Variable, Symbol
 
 
 class IROpCode(SafeEnum):
@@ -54,7 +54,7 @@ class IRInstruction:
     def __init__(
             self,
             opcode: IROpCode,
-            operands: list,
+            operands: list[Reference | str | Symbol | SafeEnum],
             line: int = -1,
             column: int = -1,
             filename: str | None = None,
@@ -84,9 +84,6 @@ class IRInstruction:
             elif hasattr(op, '__hash__') and callable(op.__hash__):
                 # 可哈希对象直接使用
                 operand_hashes.append(hash(op))
-            elif callable(getattr(op, 'unique_id', None)):
-                # 处理自定义对象（如果有唯一ID）
-                operand_hashes.append(hash(op.unique_id()))
             else:
                 # 最后手段：使用对象ID
                 operand_hashes.append(id(op))
@@ -163,7 +160,7 @@ class IRFunction(IRInstruction):
 
 
 class IRReturn(IRInstruction):
-    def __init__(self, value: Reference[Variable | Constant | Literal] = None, line: int = -1, column: int = -1,
+    def __init__(self, value: Reference[Variable | Constant | Literal] | None = None, line: int = -1, column: int = -1,
                  filename: str = None):
         operands = [
             value,
