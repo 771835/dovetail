@@ -14,7 +14,7 @@ from transpiler.core.include_manager import IncludeManager
 from transpiler.core.instructions import (IRInstruction, IRAssign, IRDeclare, IRFunction, IROp,
                                           IRCallMethod, IRCall, IRJump, IRCondJump, IRCast, IRCompare,
                                           IRBreak, IRClass, IRReturn, IRContinue, IRScopeEnd,
-                                          IRScopeBegin, IRGetField, IRNewObj, IRUnaryOp)
+                                          IRScopeBegin, IRGetField, IRNewObj, IRUnaryOp, IRSetField)
 from transpiler.core.lib.library import Library
 from transpiler.core.lib.library_mapping import StdBuiltinMapping
 from transpiler.core.parser.transpilerLexer import transpilerLexer
@@ -445,8 +445,8 @@ class MCGenerator(transpilerVisitor):
         self._current_ctx = previous_ctx
         return result
 
-    # 处理变量声明
-    def visitVarDeclaration(self, ctx: transpilerParser.VarDeclarationContext):
+    def visitVarDecl(self, ctx: transpilerParser.VarDeclContext):
+        """处理变量声明"""
         var_name = ctx.ID().getText()
         dtype: DataType | Class = self._get_type_definition(ctx.type_().getText()) if ctx.type_() else DataType.NULL
         var_value: Reference | None = None
@@ -802,7 +802,7 @@ class MCGenerator(transpilerVisitor):
     def visitLiteral(self, ctx: transpilerParser.LiteralContext):
         value: str = ctx.getText()
         if value == 'true' or value == 'false':
-            return Result.from_literal(True if value == 'true' else False, DataType.BOOLEAN)
+            return Result.from_literal(value == 'true', DataType.BOOLEAN)
         elif value == 'null':
             return Result.from_literal(None, DataType.NULL)
         elif value[0] == 'f':
@@ -848,8 +848,8 @@ class MCGenerator(transpilerVisitor):
             loop_id = next(self.cnt)
             if for_control.forInit():
                 # 处理初始化表达式
-                if for_control.forInit().forLoopVarDecl():
-                    self.visit(for_control.forInit().forLoopVarDecl())
+                if for_control.forInit().varDecl():
+                    self.visit(for_control.forInit().varDecl())
                 else:
                     self.visit(for_control.forInit().expr())
             # 创建循环检查作用域
@@ -1029,6 +1029,37 @@ class MCGenerator(transpilerVisitor):
         self._add_ir_instruction(IRAssign(var_symbol, expr_result.value))
 
         return Result(Reference(ValueType.VARIABLE, var_symbol))
+
+    def visitMemberAssignmentExpr(self, ctx: transpilerParser.MemberAssignmentExprContext):
+        instance_ref = self.visit(ctx.expr(0)).value
+        instance_type = instance_ref.get_data_type()
+        field_name = ctx.ID().getText()
+        value = self.visit(ctx.expr(1)).value
+        if isinstance(instance_type, DataType):
+            raise PrimitiveTypeOperationError(
+                "修改属性",
+                instance_type.name,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        # 搜索被修改的变量或常量
+        member_symbol = next(
+            (
+                symbol for symbol in instance_type.variables  # NOQA
+                if symbol.get_name() == field_name
+            ),
+            None
+        )
+        if member_symbol is None:
+            raise UndefinedVariableError(
+                field_name,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        self._add_ir_instruction(IRSetField(instance_ref.value, field_name, value))
+        return Result(value)
 
     def visitFactorExpr(self, ctx: transpilerParser.FactorExprContext):
         left = self.visit(ctx.expr(0))
@@ -1218,7 +1249,7 @@ class MCGenerator(transpilerVisitor):
         field_name = ctx.ID().getText()
         if isinstance(instance_type, DataType):
             raise PrimitiveTypeOperationError(
-                "方法调用",
+                "成员访问",
                 instance_type.name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
@@ -1227,7 +1258,7 @@ class MCGenerator(transpilerVisitor):
         # 搜索被访问的变量或常量
         member_symbol = next(
             (
-                symbol for symbol in itertools.chain(instance_type.variables, list(instance_type.constants))  # NOQA
+                symbol for symbol in itertools.chain(instance_type.variables, instance_type.constants)  # NOQA
                 if symbol.get_name() == field_name
             ),
             None

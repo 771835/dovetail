@@ -197,30 +197,12 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by transpilerParser#varDeclaration.
-    def enterVarDeclaration(self, ctx:transpilerParser.VarDeclarationContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#varDeclaration.
-    def exitVarDeclaration(self, ctx:transpilerParser.VarDeclarationContext):
-        pass
-
-
     # Enter a parse tree produced by transpilerParser#varDecl.
     def enterVarDecl(self, ctx:transpilerParser.VarDeclContext):
         pass
 
     # Exit a parse tree produced by transpilerParser#varDecl.
     def exitVarDecl(self, ctx:transpilerParser.VarDeclContext):
-        pass
-
-
-    # Enter a parse tree produced by transpilerParser#forLoopVarDecl.
-    def enterForLoopVarDecl(self, ctx:transpilerParser.ForLoopVarDeclContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#forLoopVarDecl.
-    def exitForLoopVarDecl(self, ctx:transpilerParser.ForLoopVarDeclContext):
         pass
 
 

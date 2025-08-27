@@ -1,0 +1,49 @@
+func sqrt(int x): int {
+    int res
+
+    if (0 <= x and x <= 19310) {
+        res = -594039 / (x + 4095) + 149
+    }
+    if (19311 <= x and x <= 1705544)  {
+        res = -1568669636 / (x + 903167) + 1857
+    }
+    if (1705545 <= x and x <= 39400514) {
+        res = -2147483648 / (x / 141 + 224767) + 10425
+    }
+    if (39400515 <= x and x <= 455779650) {
+        res = -2147483648 / (x / 7775 + 60419) + 39184
+    }
+    if (455779651 <= x and x <= 2147483647) {
+        res = -2147483648 / (x / 100000 + 26111) + 91181
+    }
+
+    res = (res + x / res) / 2
+
+    if (res * res > x) {
+        res=res - 1
+    }
+    return res
+}
+
+func is_prime(int x): boolean {
+    if (x < 2) {
+        return false
+    }
+
+    int sqrt_x = sqrt(x)
+    for (int i = 2; i <= sqrt_x; i=i+1) {
+        if (x % i == 0) {
+            return false
+        }
+    }
+    return true;
+}
+
+@init
+func main():null {
+    for (int i = 1; i <= 100; i=i+1) {
+        if (is_prime(i)){
+            print(str(i))
+        }
+    }
+}

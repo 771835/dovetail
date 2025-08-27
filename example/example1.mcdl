@@ -1,6 +1,7 @@
 func foo():int{
     return 404259;
 }
+@init
 func bar(){
     if (foo()==404259/1) {
         exec("say 1");

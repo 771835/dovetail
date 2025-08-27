@@ -1,4 +1,5 @@
 class foo {
+    int a;
     method __init__(self:foo){
         print("33")
     }
@@ -7,9 +8,9 @@ class foo {
         print("42")
     }
 }
-
+@init
 func main(){
     let var = foo();
     var.bar();
-
+    var.a = 123
 }

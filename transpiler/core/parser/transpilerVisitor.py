@@ -114,18 +114,8 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by transpilerParser#varDeclaration.
-    def visitVarDeclaration(self, ctx:transpilerParser.VarDeclarationContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by transpilerParser#varDecl.
     def visitVarDecl(self, ctx:transpilerParser.VarDeclContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by transpilerParser#forLoopVarDecl.
-    def visitForLoopVarDecl(self, ctx:transpilerParser.ForLoopVarDeclContext):
         return self.visitChildren(ctx)
 
 

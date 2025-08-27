@@ -6,8 +6,8 @@ program
       (classDecl
       | interfaceDecl
       | functionDecl
-      | varDecl
-      | constDecl)* EOF
+      | varDecl SEMI?
+      | constDecl SEMI?)* EOF
     ;
 
 includeStmt
@@ -26,8 +26,8 @@ classDecl
       (EXTENDS type)?                      // 单继承
       (IMPLEMENTS type)?               // 单接口实现
       LBRACE // 构造函数为__init__
-        (varDecl
-        | constDecl
+        (varDecl SEMI?
+        | constDecl SEMI?
         | methodDecl 
         )*
 
@@ -81,17 +81,17 @@ block
 /* 6. 流程控制 */
 statement
     : functionDecl                         // 函数定义
-    | varDecl                               // 变量声明
-    | constDecl                             // 常量声明
-    | forStmt                               // for循环
-    | whileStmt                             // while循环
-    //| assignment SEMI?                        // 赋值
-    | expr SEMI?                              // 表达式语句
-    | returnStmt SEMI?                        // 返回
-    | block                                 // 代码块
-    | ifStmt                                // 条件语句
-    | breakStmt SEMI?                        // break语句
-    | continueStmt SEMI?                     // continue语句
+    | varDecl SEMI?                        // 变量声明
+    | constDecl SEMI?                      // 常量声明
+    | forStmt                              // for循环
+    | whileStmt                            // while循环
+    //| assignment SEMI?                   // 赋值
+    | expr SEMI?                           // 表达式语句
+    | returnStmt SEMI?                     // 返回
+    | block                                // 代码块
+    | ifStmt                               // 条件语句
+    | breakStmt SEMI?                      // break语句
+    | continueStmt SEMI?                   // continue语句
 
     ;
 
@@ -115,7 +115,7 @@ forControl
 
 
 forInit
-    : forLoopVarDecl
+    : varDecl
     | expr
     ;
 
@@ -133,33 +133,18 @@ whileStmt
     ;
 
 constDecl
-    : CONST ID (ARROW type)? ('?')? (ASSIGN expr) SEMI?  // 常量声明
-    | CONST type ID (ASSIGN expr) SEMI?
+    : CONST ID (ARROW type)? ('?')? (ASSIGN expr)  // 常量声明
+    | CONST type ID (ASSIGN expr)
     ;
 
-// 公共规则
-varDeclaration
+// 变量声明
+varDecl
     : LET ID ('?')? (ASSIGN expr)
     | ID (ARROW type) ('?')? (ASSIGN expr)?
     | type ID ('?')? (ASSIGN expr)? // 更符合大多数人习惯的变量声明
     | LET ID ('?')? (ARROW type) (ASSIGN expr)
     ;
 
-// 变量声明（带分号）
-varDecl
-    : varDeclaration SEMI?
-    ;
-
-// for 循环变量声明（无分号）
-forLoopVarDecl
-    : varDeclaration
-    ;
-/*
-assignment
-    : ID ASSIGN expr                     // 变量赋值，如：count = 10
-    // | expr '.' ID '=' expr 暂不实现
-    ;
-*/
 
 returnStmt
     : RETURN expr?                  // 返回语句，如：return result;
