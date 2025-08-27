@@ -89,6 +89,21 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by transpilerParser#forInit.
+    def visitForInit(self, ctx:transpilerParser.ForInitContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by transpilerParser#forCondition.
+    def visitForCondition(self, ctx:transpilerParser.ForConditionContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by transpilerParser#forUpdate.
+    def visitForUpdate(self, ctx:transpilerParser.ForUpdateContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by transpilerParser#whileStmt.
     def visitWhileStmt(self, ctx:transpilerParser.WhileStmtContext):
         return self.visitChildren(ctx)
@@ -114,11 +129,6 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by transpilerParser#assignment.
-    def visitAssignment(self, ctx:transpilerParser.AssignmentContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by transpilerParser#returnStmt.
     def visitReturnStmt(self, ctx:transpilerParser.ReturnStmtContext):
         return self.visitChildren(ctx)
@@ -131,6 +141,36 @@ class transpilerVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by transpilerParser#TermExpr.
     def visitTermExpr(self, ctx:transpilerParser.TermExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by transpilerParser#NegExpr.
+    def visitNegExpr(self, ctx:transpilerParser.NegExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by transpilerParser#LogicalNotExpr.
+    def visitLogicalNotExpr(self, ctx:transpilerParser.LogicalNotExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by transpilerParser#MemberAssignmentExpr.
+    def visitMemberAssignmentExpr(self, ctx:transpilerParser.MemberAssignmentExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by transpilerParser#LocalAssignmentExpr.
+    def visitLocalAssignmentExpr(self, ctx:transpilerParser.LocalAssignmentExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by transpilerParser#LogicalAndExpr.
+    def visitLogicalAndExpr(self, ctx:transpilerParser.LogicalAndExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by transpilerParser#MethodCall.
+    def visitMethodCall(self, ctx:transpilerParser.MethodCallContext):
         return self.visitChildren(ctx)
 
 
@@ -154,16 +194,6 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by transpilerParser#NegExpr.
-    def visitNegExpr(self, ctx:transpilerParser.NegExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by transpilerParser#LogicalNotExpr.
-    def visitLogicalNotExpr(self, ctx:transpilerParser.LogicalNotExprContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by transpilerParser#PrimaryExpr.
     def visitPrimaryExpr(self, ctx:transpilerParser.PrimaryExprContext):
         return self.visitChildren(ctx)
@@ -171,16 +201,6 @@ class transpilerVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by transpilerParser#FunctionCall.
     def visitFunctionCall(self, ctx:transpilerParser.FunctionCallContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by transpilerParser#LogicalAndExpr.
-    def visitLogicalAndExpr(self, ctx:transpilerParser.LogicalAndExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by transpilerParser#MethodCall.
-    def visitMethodCall(self, ctx:transpilerParser.MethodCallContext):
         return self.visitChildren(ctx)
 
 

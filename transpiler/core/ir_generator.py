@@ -846,9 +846,12 @@ class MCGenerator(transpilerVisitor):
         for_control: transpilerParser.ForControlContext = ctx.forControl()
         if for_control:  # 传统for循环
             loop_id = next(self.cnt)
-            if for_control.forLoopVarDecl():
+            if for_control.forInit():
                 # 处理初始化表达式
-                self.visit(for_control.forLoopVarDecl())
+                if for_control.forInit().forLoopVarDecl():
+                    self.visit(for_control.forInit().forLoopVarDecl())
+                else:
+                    self.visit(for_control.forInit().expr())
             # 创建循环检查作用域
             with self.scoped_environment(f"for_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
                 with self.scoped_environment(f"for_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
@@ -857,15 +860,14 @@ class MCGenerator(transpilerVisitor):
                     self.visit(ctx.block())
 
                     # 处理更新表达式
-                    if ctx.forControl().assignment():
-                        self.visit(ctx.forControl().assignment())
-
+                    if ctx.forControl().forUpdate():
+                        self.visit(ctx.forControl().forUpdate().expr())
                 # 处理条件表达式
-                if for_control.expr():
-                    condition_ref = self.visit(for_control.expr()).value
+                if for_control.forCondition():
+                    condition_ref = self.visit(for_control.forCondition().expr()).value
                     if condition_ref.get_data_type() != DataType.BOOLEAN:
                         raise InvalidSyntaxError(
-                            ctx.expr().getText(),
+                            for_control.forCondition().expr().getText(),
                             line=self._get_current_line(),
                             column=self._get_current_column()
                         )
@@ -993,7 +995,7 @@ class MCGenerator(transpilerVisitor):
     def visitIdentifierExpr(self, ctx: transpilerParser.IdentifierExprContext):
         return Result(Reference(ValueType.VARIABLE, self._resolve_identifier(ctx.ID().getText())))
 
-    def visitAssignment(self, ctx: transpilerParser.AssignmentContext):
+    def visitLocalAssignmentExpr(self, ctx: transpilerParser.LocalAssignmentExprContext):
         var_name = ctx.ID().getText()
         expr_result = self.visit(ctx.expr())
         var_symbol = self._resolve_identifier(var_name)

@@ -152,6 +152,33 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by transpilerParser#forInit.
+    def enterForInit(self, ctx:transpilerParser.ForInitContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#forInit.
+    def exitForInit(self, ctx:transpilerParser.ForInitContext):
+        pass
+
+
+    # Enter a parse tree produced by transpilerParser#forCondition.
+    def enterForCondition(self, ctx:transpilerParser.ForConditionContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#forCondition.
+    def exitForCondition(self, ctx:transpilerParser.ForConditionContext):
+        pass
+
+
+    # Enter a parse tree produced by transpilerParser#forUpdate.
+    def enterForUpdate(self, ctx:transpilerParser.ForUpdateContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#forUpdate.
+    def exitForUpdate(self, ctx:transpilerParser.ForUpdateContext):
+        pass
+
+
     # Enter a parse tree produced by transpilerParser#whileStmt.
     def enterWhileStmt(self, ctx:transpilerParser.WhileStmtContext):
         pass
@@ -197,15 +224,6 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by transpilerParser#assignment.
-    def enterAssignment(self, ctx:transpilerParser.AssignmentContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#assignment.
-    def exitAssignment(self, ctx:transpilerParser.AssignmentContext):
-        pass
-
-
     # Enter a parse tree produced by transpilerParser#returnStmt.
     def enterReturnStmt(self, ctx:transpilerParser.ReturnStmtContext):
         pass
@@ -230,6 +248,60 @@ class transpilerListener(ParseTreeListener):
 
     # Exit a parse tree produced by transpilerParser#TermExpr.
     def exitTermExpr(self, ctx:transpilerParser.TermExprContext):
+        pass
+
+
+    # Enter a parse tree produced by transpilerParser#NegExpr.
+    def enterNegExpr(self, ctx:transpilerParser.NegExprContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#NegExpr.
+    def exitNegExpr(self, ctx:transpilerParser.NegExprContext):
+        pass
+
+
+    # Enter a parse tree produced by transpilerParser#LogicalNotExpr.
+    def enterLogicalNotExpr(self, ctx:transpilerParser.LogicalNotExprContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#LogicalNotExpr.
+    def exitLogicalNotExpr(self, ctx:transpilerParser.LogicalNotExprContext):
+        pass
+
+
+    # Enter a parse tree produced by transpilerParser#MemberAssignmentExpr.
+    def enterMemberAssignmentExpr(self, ctx:transpilerParser.MemberAssignmentExprContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#MemberAssignmentExpr.
+    def exitMemberAssignmentExpr(self, ctx:transpilerParser.MemberAssignmentExprContext):
+        pass
+
+
+    # Enter a parse tree produced by transpilerParser#LocalAssignmentExpr.
+    def enterLocalAssignmentExpr(self, ctx:transpilerParser.LocalAssignmentExprContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#LocalAssignmentExpr.
+    def exitLocalAssignmentExpr(self, ctx:transpilerParser.LocalAssignmentExprContext):
+        pass
+
+
+    # Enter a parse tree produced by transpilerParser#LogicalAndExpr.
+    def enterLogicalAndExpr(self, ctx:transpilerParser.LogicalAndExprContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#LogicalAndExpr.
+    def exitLogicalAndExpr(self, ctx:transpilerParser.LogicalAndExprContext):
+        pass
+
+
+    # Enter a parse tree produced by transpilerParser#MethodCall.
+    def enterMethodCall(self, ctx:transpilerParser.MethodCallContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#MethodCall.
+    def exitMethodCall(self, ctx:transpilerParser.MethodCallContext):
         pass
 
 
@@ -269,24 +341,6 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by transpilerParser#NegExpr.
-    def enterNegExpr(self, ctx:transpilerParser.NegExprContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#NegExpr.
-    def exitNegExpr(self, ctx:transpilerParser.NegExprContext):
-        pass
-
-
-    # Enter a parse tree produced by transpilerParser#LogicalNotExpr.
-    def enterLogicalNotExpr(self, ctx:transpilerParser.LogicalNotExprContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#LogicalNotExpr.
-    def exitLogicalNotExpr(self, ctx:transpilerParser.LogicalNotExprContext):
-        pass
-
-
     # Enter a parse tree produced by transpilerParser#PrimaryExpr.
     def enterPrimaryExpr(self, ctx:transpilerParser.PrimaryExprContext):
         pass
@@ -302,24 +356,6 @@ class transpilerListener(ParseTreeListener):
 
     # Exit a parse tree produced by transpilerParser#FunctionCall.
     def exitFunctionCall(self, ctx:transpilerParser.FunctionCallContext):
-        pass
-
-
-    # Enter a parse tree produced by transpilerParser#LogicalAndExpr.
-    def enterLogicalAndExpr(self, ctx:transpilerParser.LogicalAndExprContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#LogicalAndExpr.
-    def exitLogicalAndExpr(self, ctx:transpilerParser.LogicalAndExprContext):
-        pass
-
-
-    # Enter a parse tree produced by transpilerParser#MethodCall.
-    def enterMethodCall(self, ctx:transpilerParser.MethodCallContext):
-        pass
-
-    # Exit a parse tree produced by transpilerParser#MethodCall.
-    def exitMethodCall(self, ctx:transpilerParser.MethodCallContext):
         pass
 
 

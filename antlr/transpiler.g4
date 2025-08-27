@@ -85,7 +85,7 @@ statement
     | constDecl                             // 常量声明
     | forStmt                               // for循环
     | whileStmt                             // while循环
-    | assignment SEMI?                        // 赋值
+    //| assignment SEMI?                        // 赋值
     | expr SEMI?                              // 表达式语句
     | returnStmt SEMI?                        // 返回
     | block                                 // 代码块
@@ -110,7 +110,21 @@ forStmt
 
 
 forControl
-    : forLoopVarDecl? SEMI expr? SEMI (assignment)?
+    : forInit? SEMI forCondition? SEMI forUpdate?
+    ;
+
+
+forInit
+    : forLoopVarDecl
+    | expr
+    ;
+
+forCondition
+    : expr
+    ;
+
+forUpdate
+    : expr
     ;
 
 
@@ -140,11 +154,12 @@ varDecl
 forLoopVarDecl
     : varDeclaration
     ;
-
+/*
 assignment
     : ID ASSIGN expr                     // 变量赋值，如：count = 10
     // | expr '.' ID '=' expr 暂不实现
     ;
+*/
 
 returnStmt
     : RETURN expr?                  // 返回语句，如：return result;
@@ -174,6 +189,8 @@ expr
     | expr (GT | LT | EQ | NEQ | LTE | GTE) expr # CompareExpr      // 比较运算
     | expr AND expr                   #LogicalAndExpr             // and运算符
     | expr OR expr                   #LogicalOrExpr              // or运算符
+    | expr '.' ID ASSIGN expr           # MemberAssignmentExpr
+    | ID ASSIGN expr                    # LocalAssignmentExpr
     ;
 
 
