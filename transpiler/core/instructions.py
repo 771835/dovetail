@@ -138,7 +138,8 @@ class IRJump(IRInstruction):
 
 
 class IRCondJump(IRInstruction):
-    def __init__(self, cond: Variable, true_scope: str, false_scope: str = None, line: int = -1, column: int = -1,
+    def __init__(self, cond: Variable | Literal, true_scope: str, false_scope: str = None, line: int = -1,
+                 column: int = -1,
                  filename: str = None):
         assert cond.dtype == DataType.BOOLEAN
 

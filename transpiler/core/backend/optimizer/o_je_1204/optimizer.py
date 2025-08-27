@@ -44,7 +44,7 @@ class Optimizer(IROptimizerSpec):
             # FIXME:严重激进优化，会影响ConstantFoldingPass的运行和搜索
             optimization_pass.append(ChainAssignEliminationPass)
         if self.level >= OptimizationLevel.O1:
-            optimization_pass.append(ConstantFoldingPass)
+            optimization_pass.append(ConstantFoldingPassEX if self.config.enable_experimental else ConstantFoldingPass)
             optimization_pass.append(DeadCodeEliminationPass)
             optimization_pass.append(DeclareCleanupPass)
             optimization_pass.append(UnreachableCodeRemovalPass)
@@ -496,6 +496,512 @@ class ConstantFoldingPass(IROptimizationPass):
 
     def _function(self, iterator: IRBuilderIterator, instr: IRFunction):
         function: Function = instr.get_operands()[0]
+        self.current_table.set(function.get_name(), Reference(ValueType.FUNCTION, function))
+
+
+class ConstantFoldingPassEX(IROptimizationPass):
+    BINARY_OP_HANDLERS: dict[BinaryOps, dict[tuple[DataTypeBase, DataTypeBase], ...]] = {
+        BinaryOps.ADD: {
+            (DataType.INT, DataType.INT): lambda a, b: a + b,
+            (DataType.STRING, DataType.STRING): lambda a, b: a + b,
+            (DataType.STRING, DataType.INT): lambda a, b: a + str(b),
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) + b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a + int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) + int(b)
+        },
+        BinaryOps.SUB: {
+            (DataType.INT, DataType.INT): lambda a, b: a - b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) - b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a - int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) - int(b)
+        },
+        BinaryOps.MUL: {
+            (DataType.INT, DataType.INT): lambda a, b: a * b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) * b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a * int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) * int(b)
+        },
+        BinaryOps.DIV: {
+            (DataType.INT, DataType.INT): lambda a, b: a / b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) / b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a / int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) / int(b)
+        },
+        BinaryOps.MOD: {
+            (DataType.INT, DataType.INT): lambda a, b: a % b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) % b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a % int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) % int(b)
+        },
+        BinaryOps.MIN: {
+            (DataType.INT, DataType.INT): lambda a, b: min(a, b),
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: min(int(a), b),
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: min(a, int(b)),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: min(int(a), int(b))
+        },
+        BinaryOps.MAX: {
+            (DataType.INT, DataType.INT): lambda a, b: max(a, b),
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: max(int(a), b),
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: max(a, int(b)),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: max(int(a), int(b))
+        },
+        BinaryOps.BIT_AND: {
+            (DataType.INT, DataType.INT): lambda a, b: a & b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) & b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a & int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) & int(b)
+        },
+        BinaryOps.BIT_OR: {
+            (DataType.INT, DataType.INT): lambda a, b: a | b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) | b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a | int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) | int(b)
+        },
+        BinaryOps.BIT_XOR: {
+            (DataType.INT, DataType.INT): lambda a, b: a ^ b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) ^ b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a ^ int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) ^ int(b)
+        },
+        BinaryOps.SHL: {
+            (DataType.INT, DataType.INT): lambda a, b: a << b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) << b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a << int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) << int(b)
+        },
+        BinaryOps.SHR: {
+            (DataType.INT, DataType.INT): lambda a, b: a >> b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) >> b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a >> int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) >> int(b)
+        }
+    }
+    COMPARE_OP_HANDLERS: dict[CompareOps, dict[tuple[DataTypeBase, DataTypeBase], ...]] = {
+        CompareOps.EQ: {
+            (DataType.INT, DataType.INT): lambda a, b: a == b,
+            (DataType.STRING, DataType.STRING): lambda a, b: a == b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) == b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a == int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: a == b
+        },
+        CompareOps.NE: {
+            (DataType.INT, DataType.INT): lambda a, b: a != b,
+            (DataType.STRING, DataType.STRING): lambda a, b: a != b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) != b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a != int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: a != b
+        },
+        CompareOps.LT: {
+            (DataType.INT, DataType.INT): lambda a, b: a < b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) < b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a < int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) < int(b)
+        },
+        CompareOps.LE: {
+            (DataType.INT, DataType.INT): lambda a, b: a <= b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) <= b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a <= int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) <= int(b)
+        },
+        CompareOps.GT: {
+            (DataType.INT, DataType.INT): lambda a, b: a > b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) > b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a > int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) > int(b)
+        },
+        CompareOps.GE: {
+            (DataType.INT, DataType.INT): lambda a, b: a >= b,
+            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) >= b,
+            (DataType.INT, DataType.BOOLEAN): lambda a, b: a >= int(b),
+            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) >= int(b)
+        },
+    }
+    UNARY_OP_HANDLERS: dict[UnaryOps, dict[DataTypeBase, ...]] = {
+        UnaryOps.NEG: {
+            DataType.INT: lambda a: -a,
+            DataType.BOOLEAN: lambda a: -int(a),
+        },
+        UnaryOps.NOT: {
+            DataType.INT: lambda a: not a,
+            DataType.BOOLEAN: lambda a: not a,
+        },
+        UnaryOps.BIT_NOT: {
+            DataType.INT: lambda a: ~a,
+            DataType.BOOLEAN: lambda a: ~int(a),
+        },
+    }
+
+    class FoldingFlags(Enum):
+        UNKNOWN = auto()  # 未知/无法追踪变量
+        UNDEFINED = auto()  # 未定义的变量
+
+    @define(slots=True)
+    class SymbolTable:
+        """
+        支持父-子结构的符号表。
+        在当前作用域及其祖先作用域中查找符号。
+        """
+        name: str = field(validator=validators.instance_of(str))
+        stype: StructureType = field(validator=validators.instance_of(StructureType))
+        table: dict[str, Reference | ConstantFoldingPassEX.FoldingFlags] = field(factory=dict)
+        parent: ConstantFoldingPassEX.SymbolTable | None = field(default=None)
+
+        def find(self, name: str) -> Reference | ConstantFoldingPassEX.FoldingFlags:
+            """在当前作用域及其祖先作用域中查找符号"""
+            # 先在当前作用域查找
+            if name in self.table:
+                # 需要特别注意：如果当前作用域的值是 UNKNOWN/UNDEFINED，不应该继续向上查
+                # 它代表在这个作用域内这个变量的状态。
+                # 但是，如果当前作用域是 LOOP_CHECK，应该标记为 UNKNOWN 并返回。
+                # 当前实现，table 中保存的值即为最终状态。
+                return self.table[name]
+
+            # 如果没找到，向上级查找
+            if self.parent is not None:
+                return self.parent.find(name)
+
+            # 找不到
+            return ConstantFoldingPassEX.FoldingFlags.UNDEFINED
+
+        def set(self, name: str, value: Reference | ConstantFoldingPassEX.FoldingFlags):
+            """在当前作用域设置符号"""
+            self.table[name] = value
+
+        def add(self, name: str, value: Reference | ConstantFoldingPassEX.FoldingFlags):
+            """同 set"""
+            self.set(name, value)
+
+    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+        self.builder = builder
+        # 根符号表，等价于 GLOBAL_SCOPE
+        self.global_table = ConstantFoldingPassEX.SymbolTable("global", StructureType.GLOBAL)
+        # 当前作用域的符号表。这是一个栈的概念，但用链表（parent）实现更自然。
+        # current_table 始终指向当前正在处理的最内层作用域的符号表。
+        self.current_table: ConstantFoldingPassEX.SymbolTable = self.global_table
+
+    def exec(self):
+        """执行常量折叠优化"""
+        iterator = self.builder.__iter__()
+        instruction_handlers = {
+            IROpCode.SCOPE_BEGIN: self._handle_scope_begin,
+            IROpCode.SCOPE_END: self._handle_scope_end,
+            IROpCode.ASSIGN: self._assign,
+            IROpCode.DECLARE: self._declare,
+            IROpCode.OP: self._op,
+            IROpCode.COMPARE: self._compare,
+            IROpCode.UNARY_OP: self._unary_op,
+            IROpCode.COND_JUMP: self._cond_jump,
+            IROpCode.CALL: self._call,
+            IROpCode.CAST: self._cast,
+            IROpCode.FUNCTION: self._function
+        }
+        while True:
+            try:
+                instr: IRInstruction = next(iterator)
+            except StopIteration:
+                break
+
+            handler = instruction_handlers.get(instr.opcode)
+            if handler:
+                handler(iterator, instr)
+
+    def _find(self, name: Variable | Literal | Constant | Reference) -> Reference[Literal] | FoldingFlags:
+        """
+        从符号表搜索符号的最终值
+        :param name: 符号名称
+        :return: 符号的最终值
+        """
+        # 如果是字面量，直接返回
+        if isinstance(name, Literal):
+            return Reference(ValueType.LITERAL, name)
+        # 如果是字面量的引用，直接返回
+        if isinstance(name, Reference) and name.value_type == ValueType.LITERAL:
+            return name
+
+        # 在 loop_check 中查找任何变量都应视为 UNKNOWN
+        # 这可以通过检查 current_table 链来实现
+        current_scope = self.current_table
+        while current_scope:
+            if current_scope.stype == StructureType.LOOP_CHECK:
+                return ConstantFoldingPassEX.FoldingFlags.UNKNOWN
+            current_scope = current_scope.parent
+
+        # 否则，从符号表中查找
+        value = self.current_table.find(name.get_name())
+        if value == ConstantFoldingPassEX.FoldingFlags.UNKNOWN:
+            return value
+        elif value == ConstantFoldingPassEX.FoldingFlags.UNDEFINED:
+            return value
+        elif value.value_type == ValueType.LITERAL:
+            return value
+        elif value.value_type == ValueType.FUNCTION:
+            return value
+        elif value.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+            # 递归解析引用链
+            return self._find(value)
+        else:
+            return ConstantFoldingPassEX.FoldingFlags.UNKNOWN
+
+    def _resolve_ref(
+            self,
+            ref: Reference[Variable | Constant | Literal]
+    ) -> Reference[Literal] | ConstantFoldingPassEX.FoldingFlags:
+        """解析引用到字面量或标识为未知/未定义"""
+        if ref.value_type == ValueType.LITERAL:
+            return ref
+        else:
+            return self._find(ref)
+
+    @staticmethod
+    def _is_literal(ref: Reference[Literal] | ConstantFoldingPassEX.FoldingFlags):
+        return False if isinstance(ref, ConstantFoldingPassEX.FoldingFlags) else ref.value_type == ValueType.LITERAL
+
+    def _handle_scope_end(self, iterator: IRBuilderIterator, instr: IRScopeEnd):
+        """处理作用域结束"""
+        if self.current_table.parent is not None:
+            self.current_table = self.current_table.parent
+
+    def _handle_scope_begin(self, iterator: IRBuilderIterator, instr: IRScopeBegin):
+        """处理作用域开始"""
+        # 为新的作用域创建新的符号表实例，其父是当前作用域
+        new_table = ConstantFoldingPassEX.SymbolTable(instr.get_operands()[0], instr.get_operands()[1],
+                                                    parent=self.current_table)
+        self.current_table = new_table
+
+    def _declare(self, iterator: IRBuilderIterator, instr: IRDeclare):
+        var: Variable = instr.get_operands()[0]
+        # 在当前作用域中声明变量，初始值为 UNKNOWN
+        self.current_table.set(var.get_name(), ConstantFoldingPassEX.FoldingFlags.UNKNOWN)
+
+    def _assign(self, iterator: IRBuilderIterator, instr: IRAssign) -> None:
+        target: Variable = instr.get_operands()[0]
+        source_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[1]
+
+        resolved_source = source_ref
+        # 尝试解析源引用，看能否优化它
+        if source_ref.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+            new_source = self._resolve_ref(source_ref)
+            # 如果不能解析或者解析到 UNKNOWN/UNDEFINED，保留原始引用
+            if isinstance(new_source, ConstantFoldingPassEX.FoldingFlags):
+                # 无法解析，保持原样
+                pass
+            elif new_source.value_type == ValueType.LITERAL:
+                # 解析成功，用常量值替换新指令中的 source
+                new_instr = IRAssign(target, new_source)
+                iterator.set_current(new_instr)
+                resolved_source = new_source
+            # 解析成其它(比如 FUNCTION)，也保留原始引用，不替换。
+        # 不管有没有替换指令，都把目标变量在符号表中的值更新
+        self.current_table.set(target.get_name(), resolved_source)
+
+    def _op(self, iterator: IRBuilderIterator, instr: IROp):
+        result: Variable = instr.get_operands()[0]
+        op: BinaryOps = instr.get_operands()[1]
+        left_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+        right_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
+
+        # 初始假设无法折叠，先把结果设为 UNKNOWN
+        self.current_table.set(result.get_name(), ConstantFoldingPassEX.FoldingFlags.UNKNOWN)
+
+        left = self._resolve_ref(left_ref)
+        right = self._resolve_ref(right_ref)
+
+        # 如果任一操作数无法确认为字面量，则无法折叠
+        if not self._is_literal(left) or not self._is_literal(right):
+            return
+
+        # 进行类型检查和处理 (这部分保持不变)
+        left: Reference[Literal]
+        right: Reference[Literal]
+        left_dtype = left.get_data_type()
+        right_dtype = right.get_data_type()
+
+        # 注意字典可能存在不一致，根据问题描述，假设 handlers 存在匹配项
+        handlers = self.BINARY_OP_HANDLERS.get(op)
+        if not handlers: return
+        handler = handlers.get((left_dtype, right_dtype))
+        if not handler: return
+
+        try:
+            # 调用处理器计算结果
+            folded_value = handler(left.value.value, right.value.value)
+            # 创建新的字面量引用
+            folded_literal_ref = Reference.literal(folded_value)
+            # 用赋值指令替换运算指令
+            new_instr = IRAssign(result, folded_literal_ref)
+            iterator.set_current(new_instr)
+            # 立即在符号表中更新 result 的值，这样后续使用 result 的指令都能看到这个新值
+            self._assign(iterator, new_instr)
+        except (TypeError, ValueError, ZeroDivisionError):
+            # 运算出错，例如类型不匹配，或除零
+            pass  # 保持原状
+
+    def _compare(self, iterator: IRBuilderIterator, instr: IRCompare):
+        """处理比较运算"""
+        # 逻辑与 _op 类似
+        result: Variable = instr.get_operands()[0]
+        op: CompareOps = instr.get_operands()[1]
+        left_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+        right_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
+
+        self.current_table.set(result.get_name(), ConstantFoldingPassEX.FoldingFlags.UNKNOWN)
+
+        left = self._resolve_ref(left_ref)
+        right = self._resolve_ref(right_ref)
+        if not self._is_literal(left) or not self._is_literal(right):
+            return
+
+        left: Reference[Literal]
+        right: Reference[Literal]
+
+        handlers = self.COMPARE_OP_HANDLERS.get(op, {})
+        handler = handlers.get((left.get_data_type(), right.get_data_type()))
+
+        if handler:
+            try:
+                folded_value = handler(left.value.value, right.value.value)
+                new_instr = IRAssign(result, Reference.literal(folded_value))
+                iterator.set_current(new_instr)
+                self._assign(iterator, new_instr)
+            except (TypeError, ValueError):
+                pass
+
+    def _unary_op(self, iterator: IRBuilderIterator, instr: IRUnaryOp):
+        """处理一元运算"""
+        result: Variable = instr.get_operands()[0]
+        op: UnaryOps = instr.get_operands()[1]
+        operand_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+
+        self.current_table.set(result.get_name(), ConstantFoldingPassEX.FoldingFlags.UNKNOWN)
+
+        operand = self._resolve_ref(operand_ref)
+        if not self._is_literal(operand):
+            return
+
+        handlers = self.UNARY_OP_HANDLERS.get(op, {})
+        handler = handlers.get(operand.get_data_type())
+
+        if handler:
+            try:
+                folded_value = handler(operand.value.value)
+                new_instr = IRAssign(result, Reference.literal(folded_value))
+                iterator.set_current(new_instr)
+                self._assign(iterator, new_instr)
+            except (TypeError, ValueError):
+                pass
+
+    def _cond_jump(self, iterator: IRBuilderIterator, instr: IRCondJump):
+        """处理条件跳转，如果条件是常量则可以优化"""
+        cond_var: Variable | Literal = instr.get_operands()[0]
+
+        true_scope: str = instr.get_operands()[1]
+        false_scope: str = instr.get_operands()[2]
+
+        # 只处理简单变量（非复杂表达式）作为条件
+        if isinstance(cond_var, Variable):
+            value = self._find(cond_var)
+
+            if isinstance(value, ConstantFoldingPassEX.FoldingFlags):
+                return  # 无法确定条件，保留原跳转
+
+            # 如果条件变量是布尔类型或可以转为布尔
+            if cond_var.dtype in (DataType.INT, DataType.BOOLEAN):
+                # 注意：这里查找的 value 本身应该已经被折叠成 Literal 类型
+                if isinstance(value, Reference) and value.value_type == ValueType.LITERAL:
+                    # 如果 value.value.value 是布尔值或能转成布尔值
+                    cond_val = bool(value.value.value)  # 0 为 False，非0 为 True
+                    jump_scope = true_scope if cond_val else false_scope
+                    if jump_scope:
+                        # 用直接跳转替代条件跳转
+                        iterator.set_current(IRJump(jump_scope))
+                    else:
+                        # 如果跳转目标为空，则无条件删除该指令？
+                        # 删除似乎更合适，表示这个分支不执行
+                        iterator.remove_current()
+        elif isinstance(cond_var, Literal):
+            cond_val = bool(cond_var.value)  # 0 为 False，非0 为 True
+            jump_scope = true_scope if cond_val else false_scope
+            if jump_scope:
+                # 用直接跳转替代条件跳转
+                iterator.set_current(IRJump(jump_scope))
+            else:
+                iterator.remove_current()
+
+    def _call(self, iterator: IRBuilderIterator, instr: IRCall):
+        """处理函数调用，优化参数"""
+        # 注意：函数调用的常量折叠需要函数是纯函数且有返回值
+        # 这里主要做参数的常量传播，而不是结果折叠
+        result: Variable | Constant = instr.get_operands()[0]
+        func: Function = instr.get_operands()[1]
+        args: dict[str, Reference[Variable | Constant | Literal]] = instr.get_operands()[2]
+
+        new_args: dict[str, Reference[Variable | Constant | Literal]] = {}
+        changed = False
+
+        for param_name, arg_ref in args.items():
+            # 尝试解析实参
+
+            # 如果实参本身已经是字面量，不需要解析
+            if arg_ref.value_type == ValueType.LITERAL:
+                new_args[param_name] = arg_ref
+                continue
+
+            # 如果实参是变量或常量，尝试查找其最终值
+            if arg_ref.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+                arg_value = self._find(arg_ref.value)  # arg_ref.value is the symbol
+                if isinstance(arg_value, ConstantFoldingPassEX.FoldingFlags):
+                    # 如果不能确定，保留原引用
+                    new_args[param_name] = arg_ref
+                else:
+                    # 否则，用解析后的值替换引用
+                    new_args[param_name] = arg_value
+                    changed = True
+            else:
+                # 不应该出现，因为传参不可能为类或函数的定义
+                new_args[param_name] = arg_ref  # 为安全起见，原样保留
+
+        # 如果有任何改变，替换当前指令
+        if changed:
+            iterator.set_current(IRCall(result, func, new_args))
+
+    def _cast(self, iterator: IRBuilderIterator, instr: IRCast):
+        result: Variable | Constant = instr.get_operands()[0]
+        dtype: DataType | Class = instr.get_operands()[1]
+        value_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+
+        self.current_table.set(result.get_name(), ConstantFoldingPassEX.FoldingFlags.UNKNOWN)
+
+        value = self._resolve_ref(value_ref)
+        if isinstance(value, ConstantFoldingPassEX.FoldingFlags):
+            return
+
+        # 类型相同
+        if isinstance(value, Reference) and value.value_type == ValueType.LITERAL and dtype == value.get_data_type():
+            # 类型相同且值已知，直接赋值
+            new_assign = IRAssign(result, value)
+            iterator.set_current(new_assign)
+            # 注意：传递当前的 iterator 和已经创建好的 new_assign 指令
+            self._assign(iterator, new_assign)  # 修复：改为传递 current instr，或直接传递已创建的 instr
+            return
+
+        # int/bool to string
+        if dtype == DataType.STRING and isinstance(value, Reference) and value.value_type == ValueType.LITERAL:
+            if value.get_data_type() in (DataType.INT, DataType.BOOLEAN):
+                str_val = str(int(value.value.value))  # bool 转 int 再转 str
+                str_literal_ref = Reference.literal(str_val)
+                self.current_table.set(result.get_name(), str_literal_ref)
+                new_assign = IRAssign(result, str_literal_ref)
+                iterator.set_current(new_assign)
+                # 同样，传递创建好的指令给 _assign
+                self._assign(iterator, new_assign)  # 修复
+                return
+
+        # 其他情况不能折叠，保持原样
+
+    def _function(self, iterator: IRBuilderIterator, instr: IRFunction):
+        """处理函数定义"""
+        function: Function = instr.get_operands()[0]
+        # 将函数本身存入符号表
         self.current_table.set(function.get_name(), Reference(ValueType.FUNCTION, function))
 
 
