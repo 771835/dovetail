@@ -1,0 +1,21 @@
+func fizz_buzz(int n): null {
+    for (int i = 1; i <= n; i = i + 1) {
+        if (i % 3 == 0 or i % 5 == 0) {
+            string s = "";
+            if (i % 3 == 0) {
+                s = s + "Fizz"
+            }
+            if (i % 5 == 0) {
+                s = s + "Buzz"
+            }
+            print(s)
+        } else {
+            print(str(i))
+        }
+    }
+}
+
+@init
+func main(): null {
+    fizz_buzz(100)
+}

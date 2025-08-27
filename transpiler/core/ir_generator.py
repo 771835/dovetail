@@ -939,8 +939,8 @@ class MCGenerator(transpilerVisitor):
 
         if left.get_data_type() != DataType.BOOLEAN or right.get_data_type() != DataType.BOOLEAN:
             raise TypeMismatchError(
-                expected_type=DataType.BOOLEAN,
-                actual_type=left.get_data_type(),
+                expected_type="boolean与boolean",
+                actual_type=f"{left.get_data_type().value}{right.get_data_type().value}和",
                 line=ctx.expr(0).start.line,
                 column=ctx.expr(0).start.column,
                 filename=self.filename
@@ -950,10 +950,16 @@ class MCGenerator(transpilerVisitor):
         temp_var = self._create_temp_var(DataType.BOOLEAN, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
-        self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left, right))
+        self._add_ir_instruction(IROp(temp_var, BinaryOps.MUL, left, right))
         self._add_ir_instruction(IRDeclare(result_var))
-        self._add_ir_instruction(IRCompare(result_var, CompareOps.EQ, Reference(ValueType.VARIABLE, temp_var),
-                                           Reference.literal(2)))
+        self._add_ir_instruction(
+            IRCompare(
+                result_var,
+                CompareOps.EQ,
+                Reference(ValueType.VARIABLE, temp_var),
+                Reference.literal(1)
+            )
+        )
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitLogicalOrExpr(self, ctx: transpilerParser.LogicalOrExprContext):
@@ -973,13 +979,13 @@ class MCGenerator(transpilerVisitor):
         temp_var = self._create_temp_var(DataType.BOOLEAN, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
-        self._add_ir_instruction(IROp(temp_var, BinaryOps.MUL, left, right))
+        self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left, right))
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(
             IRCompare(
                 result_var,
                 CompareOps.LT,
-                Reference.literal(1),
+                Reference.literal(0),
                 Reference(ValueType.VARIABLE, temp_var)
             )
         )
