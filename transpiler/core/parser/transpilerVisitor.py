@@ -189,6 +189,11 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by transpilerParser#ArrayAssignmentExpr.
+    def visitArrayAssignmentExpr(self, ctx:transpilerParser.ArrayAssignmentExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by transpilerParser#FunctionCall.
     def visitFunctionCall(self, ctx:transpilerParser.FunctionCallContext):
         return self.visitChildren(ctx)

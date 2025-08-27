@@ -73,7 +73,8 @@ paramDecl
 
 
 block
-    : LBRACE statement* RBRACE              // 代码块，包含多个语句
+    : statement // 单条语句
+    | LBRACE statement* RBRACE              // 代码块，包含多个语句
     | SEMI // 空的代码块
     ;
 
@@ -88,11 +89,10 @@ statement
     //| assignment SEMI?                   // 赋值
     | expr SEMI?                           // 表达式语句
     | returnStmt SEMI?                     // 返回
-    | block                                // 代码块
     | ifStmt                               // 条件语句
     | breakStmt SEMI?                      // break语句
     | continueStmt SEMI?                   // continue语句
-
+    | SEMI                                 // 分号
     ;
 
 breakStmt

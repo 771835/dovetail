@@ -332,6 +332,15 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by transpilerParser#ArrayAssignmentExpr.
+    def enterArrayAssignmentExpr(self, ctx:transpilerParser.ArrayAssignmentExprContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#ArrayAssignmentExpr.
+    def exitArrayAssignmentExpr(self, ctx:transpilerParser.ArrayAssignmentExprContext):
+        pass
+
+
     # Enter a parse tree produced by transpilerParser#FunctionCall.
     def enterFunctionCall(self, ctx:transpilerParser.FunctionCallContext):
         pass
