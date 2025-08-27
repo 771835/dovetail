@@ -950,10 +950,10 @@ class MCGenerator(transpilerVisitor):
         temp_var = self._create_temp_var(DataType.BOOLEAN, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
-        self._add_ir_instruction(IROp(temp_var, BinaryOps.MUL, left, right))
+        self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left, right))
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(IRCompare(result_var, CompareOps.EQ, Reference(ValueType.VARIABLE, temp_var),
-                                           Reference.literal(1)))
+                                           Reference.literal(2)))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitLogicalOrExpr(self, ctx: transpilerParser.LogicalOrExprContext):
@@ -973,13 +973,13 @@ class MCGenerator(transpilerVisitor):
         temp_var = self._create_temp_var(DataType.BOOLEAN, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
-        self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left, right))
+        self._add_ir_instruction(IROp(temp_var, BinaryOps.MUL, left, right))
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(
             IRCompare(
                 result_var,
                 CompareOps.LT,
-                Reference.literal(0),
+                Reference.literal(1),
                 Reference(ValueType.VARIABLE, temp_var)
             )
         )

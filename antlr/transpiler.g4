@@ -165,7 +165,6 @@ expr
     | expr '.' ID                           # MemberAccess       // 成员访问
     | expr LBRACK expr RBRACK                     # ArrayAccess        // 数组访问
     | expr argumentList                # FunctionCall       // 函数调用
-    //| ID argumentList                  # DirectFuncCall     // 直接调用
     | primary                               # PrimaryExpr        // 基础表达式
     | SUB expr                              # NegExpr            // 负号
     | NOT expr                         #LogicalNotExpr             // not运算符
@@ -174,6 +173,7 @@ expr
     | expr (GT | LT | EQ | NEQ | LTE | GTE) expr # CompareExpr      // 比较运算
     | expr AND expr                   #LogicalAndExpr             // and运算符
     | expr OR expr                   #LogicalOrExpr              // or运算符
+    | expr LBRACK expr RBRACK ASSIGN expr           # ArrayAssignmentExpr
     | expr '.' ID ASSIGN expr           # MemberAssignmentExpr
     | ID ASSIGN expr                    # LocalAssignmentExpr
     ;

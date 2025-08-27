@@ -62,19 +62,7 @@ class Composite:
         commands = []
         result_path = result_scope.get_symbol_path(result.get_name())
 
-        # 类型不相等直接判断为不等于
-        if left.get_data_type() != right.get_data_type():
-            return [
-                BasicCommands.Copy.copy_literal_base_type(
-                    result,
-                    result_scope,
-                    result_objective,
-                    Literal(
-                        DataType.BOOLEAN,
-                        False if op == CompareOps.EQ else True,
-                    )
-                )
-            ]
+
         # 左项为字面量
         if left.value_type == ValueType.LITERAL:
             left_name = uuid.uuid4().hex
@@ -311,7 +299,6 @@ class Composite:
             result_objective: str
     ) -> list[str] | None:
 
-        commands = []
 
         if op in (CompareOps.EQ, CompareOps.NE):
             return Composite.compare_base_type_equality(
@@ -391,10 +378,11 @@ class Composite:
             result_scope: CodeGeneratorScope,
             result_objective: str,
             op: BinaryOps,
-            left: Variable | Constant,
+            left: Variable | Constant | Literal,
             left_scope: CodeGeneratorScope,
-            left_objective: str,
-            right: Literal,
+            right: Variable | Constant | Literal,
+            right_scope: CodeGeneratorScope,
+            objective: str,
             namespace: str = ""
     ):
         """
@@ -406,50 +394,29 @@ class Composite:
         :param op: 运算符
         :param left: 左项变量
         :param left_scope: 左项的变量的作用域
-        :param left_objective: 左项的变量的记分板
         :param right: 右项
+        :param right_scope: 右项的变量的作用域
+        :param objective: 记分板
         :param namespace: 命名空间(仅结果为字符串时有效)
         :return: 生成的指令
         """
-        result_path = result_scope.get_symbol_path(result.get_name())
-        # 当左项和右项的类型均为数时
-        if left.dtype in (DataType.BOOLEAN, DataType.INT) and right.dtype in (DataType.BOOLEAN, DataType.INT):
-            commands = []
-            # 如果左项和结果变量不同将左项复制到结果中
-            if left.get_name() != result.get_name():
-                commands.append(
-                    BasicCommands.Copy.copy_variable_base_type(
-                        result,
-                        result_scope,
-                        result_objective,
-                        left,
-                        left_scope,
-                        left_objective
-                    )
-                )
-            commands.extend(
-                Composite.VAR_LITERAL_OP_HANDLERS[op](
-                    result_path,
-                    result_objective,
-                    right.value
-                )
-            )
-
-            return commands
-        elif result.dtype == DataType.STRING:
+        result_path = BasicCommands.get_symbol_path(result_scope, result)
+        if left.dtype == DataType.STRING and op == BinaryOps.ADD:
             return BasicCommands.call_macros_function(
                 f"{namespace}:builtins/strcat",
-                left_objective,
+                objective,
                 {
                     "dest": (
-                        True,
-                        left_scope.get_symbol_path(left.get_name()),
-                        left_objective
+                        not isinstance(left, Literal),
+                        str(left.value) if isinstance(left, Literal) else left_scope.get_symbol_path(
+                            left.get_name()),
+                        objective
                     ),
                     "src": (
-                        False,
-                        str(right.value),
-                        None
+                        not isinstance(right, Literal),
+                        str(right.value) if isinstance(right, Literal) else right_scope.get_symbol_path(
+                            right.get_name()),
+                        objective
                     ),
                     "target": (
                         False,
@@ -460,9 +427,42 @@ class Composite:
                         False,
                         result_path,
                         None
-                    ),
+                    )
                 }
             )
+        elif left.dtype in (DataType.BOOLEAN, DataType.INT):
+            if isinstance(left, Literal):
+                # 当左项为字面量时直接复制到结果
+                return [
+                    BasicCommands.Copy.copy_literal_base_type(
+                        result,
+                        result_scope,
+                        result_objective,
+                        left
+                    ),
+                    Composite.BINARY_OP_HANDLERS[op](
+                        result_path,
+                        result_objective,
+                        BasicCommands.get_symbol_path(right_scope, right),
+                        objective
+                    )
+                ]
+            else:
+                return [
+                    BasicCommands.Copy.copy_variable_base_type(
+                        result,
+                        result_scope,
+                        result_objective,
+                        left,
+                        left_scope,
+                        objective
+                    ),
+                    *Composite.VAR_LITERAL_OP_HANDLERS[op](
+                        result_path,
+                        result_objective,
+                        right.value,
+                    )
+                ]
 
         return None
 
@@ -597,12 +597,6 @@ class Composite:
                 namespace
             )
         else:  # 左右项中有一个是变量/常量
-            # 如果右项为变量/常量而左项为字面量的话将左右进行交换
-            if right.value_type != ValueType.LITERAL:
-                right, left = left, right
-                left_scope, right_scope = right_scope, left_scope
-                left_objective, right_objective = right_objective, left_objective
-
             return Composite.op_base_type_variable_literal(
                 result,
                 result_scope,
@@ -610,8 +604,9 @@ class Composite:
                 op,
                 left.value,
                 left_scope,
-                left_objective,
                 right.value,
+                right_scope,
+                left_objective,
                 namespace
             )
 

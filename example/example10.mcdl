@@ -1,5 +1,5 @@
 func sqrt(int x): int {
-    int res
+    int res = 0
 
     if (0 <= x and x <= 19310) {
         res = -594039 / (x + 4095) + 149
@@ -36,7 +36,8 @@ func is_prime(int x): boolean {
             return false
         }
     }
-    return true;
+
+    return true
 }
 
 @init

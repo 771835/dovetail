@@ -1,5 +1,6 @@
 # coding=utf-8
 import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
@@ -113,6 +114,9 @@ class CodeGenerator(CodeGeneratorSpec):
             file_path = self.target / self.namespace / "data" / current.get_file_path()
             file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(file_path, 'w', encoding='utf-8') as f:
+                # 写入文件位置及信息
+                f.write(f"# {current.get_file_path()} time:{datetime.now()} version:{self.config.minecraft_version}\n")
+                # 写入实际指令
                 f.write('\n'.join(current.get_commands()))
             stack.extend(reversed(current.children))
 

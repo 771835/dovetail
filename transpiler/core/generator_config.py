@@ -26,11 +26,11 @@ class OptimizationLevel(IntEnum):
 
 class MinecraftEdition(SafeEnum):
     """Minecraft游戏版本类型枚举"""
-    JAVA_EDITION = auto()  # Java版 (JE)
-    BEDROCK_EDITION = auto()  # 基岩版 (BE)
+    JAVA_EDITION = "java_edition"  # Java版 (JE)
+    BEDROCK_EDITION = "bedrock_edition"  # 基岩版 (BE)
 
 
-@define(frozen=True, slots=True, eq=True)
+@define(frozen=True, slots=True, eq=True,repr=False)
 class MinecraftVersion:
     major: int = field(converter=int)
     minor: int = field(converter=int)
@@ -51,6 +51,8 @@ class MinecraftVersion:
             patch=version_[2] if len(version_) > 2 else 0,
             edition=minecraft_edition
         )
+    def __repr__(self):
+        return f"{self.edition.value}-{self.major}.{self.minor}.{self.patch}"
 
 
 @define(slots=True, frozen=True)
