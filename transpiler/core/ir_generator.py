@@ -947,17 +947,17 @@ class MCGenerator(transpilerVisitor):
             )
         # 生成唯一结果变量
         result_var = self._create_temp_var(DataType.BOOLEAN, "bool")
-        temp_var = self._create_temp_var(DataType.BOOLEAN, "calc")
+        temp_var = self._create_temp_var(DataType.INT, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
-        self._add_ir_instruction(IROp(temp_var, BinaryOps.MUL, left, right))
+        self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left, right))
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(
             IRCompare(
                 result_var,
                 CompareOps.EQ,
                 Reference(ValueType.VARIABLE, temp_var),
-                Reference.literal(1)
+                Reference.literal(2)
             )
         )
         return Result(Reference(ValueType.VARIABLE, result_var))
@@ -976,7 +976,7 @@ class MCGenerator(transpilerVisitor):
             )
         # 生成唯一结果变量
         result_var = self._create_temp_var(DataType.BOOLEAN, "bool")
-        temp_var = self._create_temp_var(DataType.BOOLEAN, "calc")
+        temp_var = self._create_temp_var(DataType.INT, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
         self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left, right))

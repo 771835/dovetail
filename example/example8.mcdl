@@ -1,17 +1,54 @@
-func test() -> boolean {
-    return false;
+func t(): boolean {
+    print("true")
+    return true
 }
+
+func f(): boolean {
+    print("false")
+    return false
+}
+
 @init
-func main() {
-    # 测试常量折叠
-    let awa = true;
-    if (awa) {
-        print(f"awa = {awa}")
-        let not_awa = !awa;
-        print(f"awa != {not_awa}")
-        print(str_b(!test()))
-    }
-    if (!test()) {
-        print("awa")
-    }
+func main(): null {
+    if (t() and t())
+        print("Passed")
+    else
+        print("(true and true) != true")
+
+    if (t() and f())
+        print("(true and false) != false")
+    else
+        print("Passed")
+
+    if (f() and f())
+        print("(false and false) != false")
+    else
+        print("Passed")
+
+    if (f() and t())
+        print("(false and true) != false")
+    else
+        print("Passed")
+
+    if (t() or t())
+        print("Passed")
+    else
+        print("(true or true) != true")
+
+    if (t() or f())
+        print("Passed")
+    else
+        print("(true or false) != true")
+
+    if (f() or f())
+        print("(false or false) != false")
+    else
+        print("Passed")
+
+    if (f() or t())
+        print("Passed")
+    else
+        print("(false or true) != true")
+
+    print("Test completed")
 }
