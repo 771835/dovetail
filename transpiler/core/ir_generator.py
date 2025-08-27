@@ -984,9 +984,9 @@ class MCGenerator(transpilerVisitor):
         self._add_ir_instruction(
             IRCompare(
                 result_var,
-                CompareOps.LT,
+                CompareOps.NE,
+                Reference(ValueType.VARIABLE, temp_var),
                 Reference.literal(0),
-                Reference(ValueType.VARIABLE, temp_var)
             )
         )
         return Result(Reference(ValueType.VARIABLE, result_var))
