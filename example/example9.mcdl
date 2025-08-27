@@ -2,7 +2,7 @@ func test(a:int);
 func get_300() -> int {
     return 300;
 }
-
+@init
 func main() {
     let a = get_300();
     let b = a;

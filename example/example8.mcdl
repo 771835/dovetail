@@ -1,8 +1,7 @@
-func test(boolean awa);
-func test2() -> boolean {
+func test() -> boolean {
     return false;
 }
-
+@init
 func main() {
     # 测试常量折叠
     let awa = true;
@@ -10,11 +9,9 @@ func main() {
         print(f"awa = {awa}")
         let not_awa = !awa;
         print(f"awa != {not_awa}")
-        # 通过空函数防止被优化()
-        test(not_awa)
-        print(str_b(!test2()))
+        print(str_b(!test()))
     }
-    if (!test2()) {
+    if (!test()) {
         print("awa")
     }
 }

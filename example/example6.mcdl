@@ -1,4 +1,5 @@
 # hello world
+@init
 func main() {
     print("hello world")
 }

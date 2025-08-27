@@ -648,18 +648,18 @@ class Composite:
                 ),
                 *ScoreboardBuilder.mul_score(
                     BasicCommands.get_symbol_path(
-                        value_scope,
-                        value.value
+                        result_scope,
+                        result
                     ),
-                    value_objective,
+                    result_objective,
                     -1
                 ),
                 *ScoreboardBuilder.add_score(
                     BasicCommands.get_symbol_path(
-                        value_scope,
-                        value.value
+                        result_scope,
+                        result
                     ),
-                    value_objective,
+                    result_objective,
                     1
                 ),
 
