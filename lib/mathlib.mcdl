@@ -116,3 +116,67 @@ func reverse_number(n: int) -> int {
 
     return result;
 }
+/**
+ * 计算给定整数 x 的整数平方根（向下取整）
+ * 使用分段线性近似 + 牛顿迭代法优化，适用于 32 位整数范围内的输入
+ *
+ * 参数:
+ *   x - 要计算平方根的非负整数（0 <= x <= 2147483647）
+ *
+ * 返回值:
+ *   返回 x 的整数平方根（即 floor(sqrt(x))）
+ */
+func sqrt(int x): int {
+    int res = 0
+
+    if (0 <= x and x <= 19310) {
+        res = -594039 / (x + 4095) + 149
+    }
+    else if (19311 <= x and x <= 1705544)  {
+        res = -1568669636 / (x + 903167) + 1857
+    }
+    else if (1705545 <= x and x <= 39400514) {
+        res = -2147483648 / (x / 141 + 224767) + 10425
+    }
+    else if (39400515 <= x and x <= 455779650) {
+        res = -2147483648 / (x / 7775 + 60419) + 39184
+    }
+    else if (455779651 <= x and x <= 2147483647) {
+        res = -2147483648 / (x / 100000 + 26111) + 91181
+    }
+
+    res = (res + x / res) / 2
+
+    if (res * res > x) {
+        res=res - 1
+    }
+    return res
+}
+/**
+ * 判断一个整数是否为质数（素数）
+ *
+ * 参数:
+ *   x - 待判断的整数
+ *
+ * 返回值:
+ *   true 表示是质数，false 表示不是质数
+ *
+ * 实现说明：
+ *   - 小于 2 的数不是质数
+ *   - 对于大于等于 2 的数，只需检查到 sqrt(x) 即可
+ *   - 若存在能整除 x 的因数，则不是质数
+ */
+func is_prime(int x): boolean {
+    if (x < 2) {
+        return false
+    }
+
+    int sqrt_x = sqrt(x)
+    for (int i = 2; i <= sqrt_x; i=i+1) {
+        if (x % i == 0) {
+            return false
+        }
+    }
+
+    return true
+}

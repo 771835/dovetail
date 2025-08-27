@@ -40,11 +40,9 @@ class Optimizer(IROptimizerSpec):
         optimization_pass: list[type[IROptimizationPass]] = []
         if self.level == OptimizationLevel.O0:
             return self.builder
-        if self.level >= OptimizationLevel.O3:  # 测试性优化
-            # FIXME:严重激进优化，会影响ConstantFoldingPass的运行和搜索
-            optimization_pass.append(ChainAssignEliminationPass)
         if self.level >= OptimizationLevel.O1:
-            optimization_pass.append(ConstantFoldingPassEX if self.config.enable_experimental else ConstantFoldingPass)
+            optimization_pass.append(ChainAssignEliminationPass)
+            optimization_pass.append(ConstantFoldingPass)
             optimization_pass.append(DeadCodeEliminationPass)
             optimization_pass.append(DeclareCleanupPass)
             optimization_pass.append(UnreachableCodeRemovalPass)
@@ -225,56 +223,46 @@ class ConstantFoldingPass(IROptimizationPass):
     @define(slots=True)
     class SymbolTable:
         """
-            符号表实现，使用嵌套字典结构
-
-            属性:
-
-            table : 字典类型，映射符号名称到以下两种类型之一:
-                Reference: 变量/函数的直接引用
-                SymbolTable: 嵌套的作用域/子语言符号表
+        支持父-子结构的符号表。
+        在当前作用域及其祖先作用域中查找符号。
         """
         name: str = field(validator=validators.instance_of(str))
         stype: StructureType = field(validator=validators.instance_of(StructureType))
-        table: dict[str, Reference | ConstantFoldingPass.FoldingFlags | ConstantFoldingPass.SymbolTable] = field(
-            validator=validators.instance_of(dict), factory=dict)
+        table: dict[str, Reference | ConstantFoldingPass.FoldingFlags] = field(factory=dict)
         parent: ConstantFoldingPass.SymbolTable | None = field(default=None)
 
-        def set(self, name: str, value: Reference | ConstantFoldingPass.FoldingFlags, depth=1) -> bool:
+        def find(self, name: str) -> Reference | ConstantFoldingPass.FoldingFlags:
+            """在当前作用域及其祖先作用域中查找符号"""
+            # 先在当前作用域查找
             if name in self.table:
-                self.table[name] = value
-                return True
-            if self.parent is None:
-                if depth > 1:
-                    return False
-                else:
-                    self.table[name] = value
-                    return True
-            success = self.parent.set(name, value, depth + 1)
-            if not success and depth == 1:
-                self.table[name] = value
-                return True
-            else:
-                return success
+                # 需要特别注意：如果当前作用域的值是 UNKNOWN/UNDEFINED，不应该继续向上查
+                # 它代表在这个作用域内这个变量的状态。
+                # 但是，如果当前作用域是 LOOP_CHECK，应该标记为 UNKNOWN 并返回。
+                # 当前实现，table 中保存的值即为最终状态。
+                return self.table[name]
 
-        def add(self, name: str, value: Reference | ConstantFoldingPass.FoldingFlags):
+            # 如果没找到，向上级查找
+            if self.parent is not None:
+                return self.parent.find(name)
+
+            # 找不到
+            return ConstantFoldingPass.FoldingFlags.UNDEFINED
+
+        def set(self, name: str, value: Reference | ConstantFoldingPass.FoldingFlags):
+            """在当前作用域设置符号"""
             self.table[name] = value
 
-        def create_child(self, name: str, stype: StructureType) -> ConstantFoldingPass.SymbolTable:
-            return ConstantFoldingPass.SymbolTable(name, parent=self, stype=stype)
-
-        def find(self, name: str):
-            if self.stype == StructureType.LOOP_CHECK:
-                return ConstantFoldingPass.FoldingFlags.UNKNOWN
-            if name in self.table:
-                return self.table[name]
-            if self.parent is None:
-                return ConstantFoldingPass.FoldingFlags.UNDEFINED
-            return self.parent.find(name)
+        def add(self, name: str, value: Reference | ConstantFoldingPass.FoldingFlags):
+            """同 set"""
+            self.set(name, value)
 
     def __init__(self, builder: IRBuilder, config: GeneratorConfig):
         self.builder = builder
-        self.symbol_table = ConstantFoldingPass.SymbolTable("global", StructureType.GLOBAL)
-        self.current_table: ConstantFoldingPass.SymbolTable = self.symbol_table
+        # 根符号表，等价于 GLOBAL_SCOPE
+        self.global_table = ConstantFoldingPass.SymbolTable("global", StructureType.GLOBAL)
+        # 当前作用域的符号表。这是一个栈的概念，但用链表（parent）实现更自然。
+        # current_table 始终指向当前正在处理的最内层作用域的符号表。
+        self.current_table: ConstantFoldingPass.SymbolTable = self.global_table
 
     def exec(self):
         """执行常量折叠优化"""
@@ -308,409 +296,6 @@ class ConstantFoldingPass(IROptimizationPass):
         :param name: 符号名称
         :return: 符号的最终值
         """
-        if isinstance(name, Literal):
-            return Reference(ValueType.LITERAL, name)
-        if isinstance(name, Reference) and name.value_type == ValueType.LITERAL:
-            return name
-
-        value = self.current_table.find(name.get_name())
-        if value == ConstantFoldingPass.FoldingFlags.UNKNOWN:
-            return value
-        elif value == ConstantFoldingPass.FoldingFlags.UNDEFINED:
-            return value
-        elif value.value_type == ValueType.LITERAL:
-            return value
-        elif value.value_type == ValueType.FUNCTION:
-            return value
-        elif value.value_type in (ValueType.CONSTANT, ValueType.VARIABLE):
-            return self._find(value)
-        else:
-            return ConstantFoldingPass.FoldingFlags.UNKNOWN
-
-    def _resolve_ref(
-            self,
-            ref: Reference[Variable | Constant | Literal]
-    ) -> Reference[Literal] | ConstantFoldingPass.FoldingFlags:
-        if ref.value_type == ValueType.LITERAL:
-            return ref
-        else:
-            return self._find(ref)
-
-    @staticmethod
-    def _is_literal(ref: Reference[Literal] | ConstantFoldingPass.FoldingFlags):
-        return False if isinstance(ref, ConstantFoldingPass.FoldingFlags) else ref.value_type == ValueType.LITERAL
-
-    def _handle_scope_end(self, iterator: IRBuilderIterator, instr: IRScopeEnd):
-        self.current_table = self.current_table.parent
-
-    def _handle_scope_begin(self, iterator: IRBuilderIterator, instr: IRScopeBegin):
-        self.current_table: ConstantFoldingPass.SymbolTable = self.current_table.create_child(instr.get_operands()[0],
-                                                                                              instr.get_operands()[1])
-
-    def _assign(self, iterator: IRBuilderIterator, instr: IRAssign) -> None:
-        """处理赋值"""
-        target: Variable = instr.get_operands()[0]
-        source: Reference[Variable | Constant | Literal] = instr.get_operands()[1]
-        if source.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
-            new_source = self._resolve_ref(source)
-            if new_source == ConstantFoldingPass.FoldingFlags.UNKNOWN:
-                pass
-            elif new_source == ConstantFoldingPass.FoldingFlags.UNDEFINED:
-                raise RuntimeError(f"未定义的符号{source}")
-            else:
-                iterator.set_current(IRAssign(target, new_source))
-                source = new_source
-
-        self.current_table.set(target.get_name(), source)
-
-    def _declare(self, iterator: IRBuilderIterator, instr: IRDeclare):
-        var: Variable = instr.get_operands()[0]
-        self.current_table.set(var.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
-
-    def _op(self, iterator: IRBuilderIterator, instr: IROp):
-        result: Variable = instr.get_operands()[0]
-        op: BinaryOps = instr.get_operands()[1]
-        left_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
-        right_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
-        # 操作前将结果设为未知
-        self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
-
-        left = self._resolve_ref(left_ref)
-        right = self._resolve_ref(right_ref)
-        if not self._is_literal(left) or not self._is_literal(right):
-            return
-
-        left: Reference[Literal]
-        right: Reference[Literal]
-
-        left_dtype = left.get_data_type()
-        right_dtype = right.get_data_type()
-        handlers = self.BINARY_OP_HANDLERS.get(op, {})
-        handler = handlers.get((left_dtype, right_dtype))
-        if handler:
-            folded_value = handler(left.value.value, right.value.value)
-            new_instr = IRAssign(result, Reference.literal(folded_value))
-            iterator.set_current(new_instr)
-            self._assign(iterator, new_instr)
-
-    def _compare(self, iterator: IRBuilderIterator, instr: IRCompare):
-        result: Variable = instr.get_operands()[0]
-        op: CompareOps = instr.get_operands()[1]
-        left_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
-        right_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
-        # 操作前将结果设为未知
-        self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
-
-        left = self._resolve_ref(left_ref)
-        right = self._resolve_ref(right_ref)
-        if not self._is_literal(left) or not self._is_literal(right):
-            return
-        left: Reference[Literal]
-        right: Reference[Literal]
-        handlers = self.COMPARE_OP_HANDLERS.get(op, {})
-        handler = handlers.get((left.get_data_type(), right.get_data_type()))
-
-        if handler:
-            folded_value = handler(left.value.value, right.value.value)
-            new_instr = IRAssign(result, Reference.literal(folded_value))
-            iterator.set_current(new_instr)
-            self._assign(iterator, new_instr)
-
-    def _unary_op(self, iterator: IRBuilderIterator, instr: IRUnaryOp):
-        result: Variable = instr.get_operands()[0]
-        op: UnaryOps = instr.get_operands()[1]
-        operand_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
-        # 操作前将结果设为未知
-        self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
-
-        operand = self._resolve_ref(operand_ref)
-        if not self._is_literal(operand):
-            return
-
-        handlers = self.UNARY_OP_HANDLERS.get(op, {})
-        handler = handlers.get(operand.get_data_type())
-
-        if handler:
-            folded_value = handler(operand.value.value)
-            new_instr = IRAssign(result, Reference.literal(folded_value))
-            iterator.set_current(new_instr)
-            self._assign(iterator, new_instr)
-
-    def _cond_jump(self, iterator: IRBuilderIterator, instr: IRCondJump):
-        cond_var: Variable = instr.get_operands()[0]
-        true_scope: str = instr.get_operands()[1]
-        false_scope: str = instr.get_operands()[2]
-        value = self._find(cond_var)
-        if isinstance(value, ConstantFoldingPass.FoldingFlags):
-            return
-
-        if cond_var.dtype in (DataType.INT, DataType.BOOLEAN):
-            jump_scope = true_scope if value.value.value else false_scope
-            if jump_scope:
-                iterator.set_current(IRJump(jump_scope))
-            else:
-                iterator.remove_current()
-
-    def _call(self, iterator: IRBuilderIterator, instr: IRCall):
-        result: Variable | Constant = instr.get_operands()[0]
-        func: Function = instr.get_operands()[1]
-        args: dict[str, Reference[Variable | Constant | Literal]] = instr.get_operands()[2]
-        new_args: dict[str, Reference[Variable | Constant | Literal]] = {}
-        for param_name, arg_ref in args.items():
-            arg = arg_ref.value
-
-            if arg_ref.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
-                arg_value = self._find(arg)
-                if isinstance(arg_value, ConstantFoldingPass.FoldingFlags):  # 如果搜不到最终值
-                    new_args[param_name] = arg_ref
-                else:
-                    new_args[param_name] = arg_value
-            elif arg_ref.value_type == ValueType.LITERAL:
-                new_args[param_name] = arg_ref
-            else:  # 不应该出现，因为传参不可能为类或函数的定义
-                raise
-        iterator.set_current(instr.__class__(result, func, new_args))
-
-    def _cast(self, iterator: IRBuilderIterator, instr: IRCast):
-        result: Variable | Constant = instr.get_operands()[0]
-        dtype: DataType | Class = instr.get_operands()[1]
-        value_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
-
-        # 操作前将结果设为未知
-        self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
-
-        value = self._resolve_ref(value_ref)
-        if isinstance(value, ConstantFoldingPass.FoldingFlags):
-            return
-
-        if dtype == value_ref.get_data_type():
-            iterator.set_current(IRAssign(result, value_ref))
-            self._assign(iterator, iterator.current())  # NOQA
-            return
-
-        if dtype == DataType.STRING:
-            if value.get_data_type() in (DataType.INT, DataType.BOOLEAN):
-                self.current_table.set(result.get_name(), Reference.literal(str(int(value.value.value))))
-                iterator.set_current(IRAssign(result, Reference.literal(str(int(value.value.value)))))
-                self._assign(iterator, iterator.current())  # NOQA
-
-    def _function(self, iterator: IRBuilderIterator, instr: IRFunction):
-        function: Function = instr.get_operands()[0]
-        self.current_table.set(function.get_name(), Reference(ValueType.FUNCTION, function))
-
-
-class ConstantFoldingPassEX(IROptimizationPass):
-    BINARY_OP_HANDLERS: dict[BinaryOps, dict[tuple[DataTypeBase, DataTypeBase], ...]] = {
-        BinaryOps.ADD: {
-            (DataType.INT, DataType.INT): lambda a, b: a + b,
-            (DataType.STRING, DataType.STRING): lambda a, b: a + b,
-            (DataType.STRING, DataType.INT): lambda a, b: a + str(b),
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) + b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a + int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) + int(b)
-        },
-        BinaryOps.SUB: {
-            (DataType.INT, DataType.INT): lambda a, b: a - b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) - b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a - int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) - int(b)
-        },
-        BinaryOps.MUL: {
-            (DataType.INT, DataType.INT): lambda a, b: a * b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) * b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a * int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) * int(b)
-        },
-        BinaryOps.DIV: {
-            (DataType.INT, DataType.INT): lambda a, b: a / b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) / b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a / int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) / int(b)
-        },
-        BinaryOps.MOD: {
-            (DataType.INT, DataType.INT): lambda a, b: a % b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) % b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a % int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) % int(b)
-        },
-        BinaryOps.MIN: {
-            (DataType.INT, DataType.INT): lambda a, b: min(a, b),
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: min(int(a), b),
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: min(a, int(b)),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: min(int(a), int(b))
-        },
-        BinaryOps.MAX: {
-            (DataType.INT, DataType.INT): lambda a, b: max(a, b),
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: max(int(a), b),
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: max(a, int(b)),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: max(int(a), int(b))
-        },
-        BinaryOps.BIT_AND: {
-            (DataType.INT, DataType.INT): lambda a, b: a & b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) & b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a & int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) & int(b)
-        },
-        BinaryOps.BIT_OR: {
-            (DataType.INT, DataType.INT): lambda a, b: a | b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) | b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a | int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) | int(b)
-        },
-        BinaryOps.BIT_XOR: {
-            (DataType.INT, DataType.INT): lambda a, b: a ^ b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) ^ b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a ^ int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) ^ int(b)
-        },
-        BinaryOps.SHL: {
-            (DataType.INT, DataType.INT): lambda a, b: a << b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) << b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a << int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) << int(b)
-        },
-        BinaryOps.SHR: {
-            (DataType.INT, DataType.INT): lambda a, b: a >> b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) >> b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a >> int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) >> int(b)
-        }
-    }
-    COMPARE_OP_HANDLERS: dict[CompareOps, dict[tuple[DataTypeBase, DataTypeBase], ...]] = {
-        CompareOps.EQ: {
-            (DataType.INT, DataType.INT): lambda a, b: a == b,
-            (DataType.STRING, DataType.STRING): lambda a, b: a == b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) == b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a == int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: a == b
-        },
-        CompareOps.NE: {
-            (DataType.INT, DataType.INT): lambda a, b: a != b,
-            (DataType.STRING, DataType.STRING): lambda a, b: a != b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) != b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a != int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: a != b
-        },
-        CompareOps.LT: {
-            (DataType.INT, DataType.INT): lambda a, b: a < b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) < b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a < int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) < int(b)
-        },
-        CompareOps.LE: {
-            (DataType.INT, DataType.INT): lambda a, b: a <= b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) <= b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a <= int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) <= int(b)
-        },
-        CompareOps.GT: {
-            (DataType.INT, DataType.INT): lambda a, b: a > b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) > b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a > int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) > int(b)
-        },
-        CompareOps.GE: {
-            (DataType.INT, DataType.INT): lambda a, b: a >= b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) >= b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a >= int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) >= int(b)
-        },
-    }
-    UNARY_OP_HANDLERS: dict[UnaryOps, dict[DataTypeBase, ...]] = {
-        UnaryOps.NEG: {
-            DataType.INT: lambda a: -a,
-            DataType.BOOLEAN: lambda a: -int(a),
-        },
-        UnaryOps.NOT: {
-            DataType.INT: lambda a: not a,
-            DataType.BOOLEAN: lambda a: not a,
-        },
-        UnaryOps.BIT_NOT: {
-            DataType.INT: lambda a: ~a,
-            DataType.BOOLEAN: lambda a: ~int(a),
-        },
-    }
-
-    class FoldingFlags(Enum):
-        UNKNOWN = auto()  # 未知/无法追踪变量
-        UNDEFINED = auto()  # 未定义的变量
-
-    @define(slots=True)
-    class SymbolTable:
-        """
-        支持父-子结构的符号表。
-        在当前作用域及其祖先作用域中查找符号。
-        """
-        name: str = field(validator=validators.instance_of(str))
-        stype: StructureType = field(validator=validators.instance_of(StructureType))
-        table: dict[str, Reference | ConstantFoldingPassEX.FoldingFlags] = field(factory=dict)
-        parent: ConstantFoldingPassEX.SymbolTable | None = field(default=None)
-
-        def find(self, name: str) -> Reference | ConstantFoldingPassEX.FoldingFlags:
-            """在当前作用域及其祖先作用域中查找符号"""
-            # 先在当前作用域查找
-            if name in self.table:
-                # 需要特别注意：如果当前作用域的值是 UNKNOWN/UNDEFINED，不应该继续向上查
-                # 它代表在这个作用域内这个变量的状态。
-                # 但是，如果当前作用域是 LOOP_CHECK，应该标记为 UNKNOWN 并返回。
-                # 当前实现，table 中保存的值即为最终状态。
-                return self.table[name]
-
-            # 如果没找到，向上级查找
-            if self.parent is not None:
-                return self.parent.find(name)
-
-            # 找不到
-            return ConstantFoldingPassEX.FoldingFlags.UNDEFINED
-
-        def set(self, name: str, value: Reference | ConstantFoldingPassEX.FoldingFlags):
-            """在当前作用域设置符号"""
-            self.table[name] = value
-
-        def add(self, name: str, value: Reference | ConstantFoldingPassEX.FoldingFlags):
-            """同 set"""
-            self.set(name, value)
-
-    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
-        self.builder = builder
-        # 根符号表，等价于 GLOBAL_SCOPE
-        self.global_table = ConstantFoldingPassEX.SymbolTable("global", StructureType.GLOBAL)
-        # 当前作用域的符号表。这是一个栈的概念，但用链表（parent）实现更自然。
-        # current_table 始终指向当前正在处理的最内层作用域的符号表。
-        self.current_table: ConstantFoldingPassEX.SymbolTable = self.global_table
-
-    def exec(self):
-        """执行常量折叠优化"""
-        iterator = self.builder.__iter__()
-        instruction_handlers = {
-            IROpCode.SCOPE_BEGIN: self._handle_scope_begin,
-            IROpCode.SCOPE_END: self._handle_scope_end,
-            IROpCode.ASSIGN: self._assign,
-            IROpCode.DECLARE: self._declare,
-            IROpCode.OP: self._op,
-            IROpCode.COMPARE: self._compare,
-            IROpCode.UNARY_OP: self._unary_op,
-            IROpCode.COND_JUMP: self._cond_jump,
-            IROpCode.CALL: self._call,
-            IROpCode.CAST: self._cast,
-            IROpCode.FUNCTION: self._function
-        }
-        while True:
-            try:
-                instr: IRInstruction = next(iterator)
-            except StopIteration:
-                break
-
-            handler = instruction_handlers.get(instr.opcode)
-            if handler:
-                handler(iterator, instr)
-
-    def _find(self, name: Variable | Literal | Constant | Reference) -> Reference[Literal] | FoldingFlags:
-        """
-        从符号表搜索符号的最终值
-        :param name: 符号名称
-        :return: 符号的最终值
-        """
         # 如果是字面量，直接返回
         if isinstance(name, Literal):
             return Reference(ValueType.LITERAL, name)
@@ -723,14 +308,14 @@ class ConstantFoldingPassEX(IROptimizationPass):
         current_scope = self.current_table
         while current_scope:
             if current_scope.stype == StructureType.LOOP_CHECK:
-                return ConstantFoldingPassEX.FoldingFlags.UNKNOWN
+                return ConstantFoldingPass.FoldingFlags.UNKNOWN
             current_scope = current_scope.parent
 
         # 否则，从符号表中查找
         value = self.current_table.find(name.get_name())
-        if value == ConstantFoldingPassEX.FoldingFlags.UNKNOWN:
+        if value == ConstantFoldingPass.FoldingFlags.UNKNOWN:
             return value
-        elif value == ConstantFoldingPassEX.FoldingFlags.UNDEFINED:
+        elif value == ConstantFoldingPass.FoldingFlags.UNDEFINED:
             return value
         elif value.value_type == ValueType.LITERAL:
             return value
@@ -740,12 +325,12 @@ class ConstantFoldingPassEX(IROptimizationPass):
             # 递归解析引用链
             return self._find(value)
         else:
-            return ConstantFoldingPassEX.FoldingFlags.UNKNOWN
+            return ConstantFoldingPass.FoldingFlags.UNKNOWN
 
     def _resolve_ref(
             self,
             ref: Reference[Variable | Constant | Literal]
-    ) -> Reference[Literal] | ConstantFoldingPassEX.FoldingFlags:
+    ) -> Reference[Literal] | ConstantFoldingPass.FoldingFlags:
         """解析引用到字面量或标识为未知/未定义"""
         if ref.value_type == ValueType.LITERAL:
             return ref
@@ -753,8 +338,8 @@ class ConstantFoldingPassEX(IROptimizationPass):
             return self._find(ref)
 
     @staticmethod
-    def _is_literal(ref: Reference[Literal] | ConstantFoldingPassEX.FoldingFlags):
-        return False if isinstance(ref, ConstantFoldingPassEX.FoldingFlags) else ref.value_type == ValueType.LITERAL
+    def _is_literal(ref: Reference[Literal] | ConstantFoldingPass.FoldingFlags):
+        return False if isinstance(ref, ConstantFoldingPass.FoldingFlags) else ref.value_type == ValueType.LITERAL
 
     def _handle_scope_end(self, iterator: IRBuilderIterator, instr: IRScopeEnd):
         """处理作用域结束"""
@@ -764,14 +349,14 @@ class ConstantFoldingPassEX(IROptimizationPass):
     def _handle_scope_begin(self, iterator: IRBuilderIterator, instr: IRScopeBegin):
         """处理作用域开始"""
         # 为新的作用域创建新的符号表实例，其父是当前作用域
-        new_table = ConstantFoldingPassEX.SymbolTable(instr.get_operands()[0], instr.get_operands()[1],
+        new_table = ConstantFoldingPass.SymbolTable(instr.get_operands()[0], instr.get_operands()[1],
                                                     parent=self.current_table)
         self.current_table = new_table
 
     def _declare(self, iterator: IRBuilderIterator, instr: IRDeclare):
         var: Variable = instr.get_operands()[0]
         # 在当前作用域中声明变量，初始值为 UNKNOWN
-        self.current_table.set(var.get_name(), ConstantFoldingPassEX.FoldingFlags.UNKNOWN)
+        self.current_table.set(var.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
     def _assign(self, iterator: IRBuilderIterator, instr: IRAssign) -> None:
         target: Variable = instr.get_operands()[0]
@@ -782,7 +367,7 @@ class ConstantFoldingPassEX(IROptimizationPass):
         if source_ref.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
             new_source = self._resolve_ref(source_ref)
             # 如果不能解析或者解析到 UNKNOWN/UNDEFINED，保留原始引用
-            if isinstance(new_source, ConstantFoldingPassEX.FoldingFlags):
+            if isinstance(new_source, ConstantFoldingPass.FoldingFlags):
                 # 无法解析，保持原样
                 pass
             elif new_source.value_type == ValueType.LITERAL:
@@ -801,7 +386,7 @@ class ConstantFoldingPassEX(IROptimizationPass):
         right_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
 
         # 初始假设无法折叠，先把结果设为 UNKNOWN
-        self.current_table.set(result.get_name(), ConstantFoldingPassEX.FoldingFlags.UNKNOWN)
+        self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
         left = self._resolve_ref(left_ref)
         right = self._resolve_ref(right_ref)
@@ -844,7 +429,7 @@ class ConstantFoldingPassEX(IROptimizationPass):
         left_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
         right_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
 
-        self.current_table.set(result.get_name(), ConstantFoldingPassEX.FoldingFlags.UNKNOWN)
+        self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
         left = self._resolve_ref(left_ref)
         right = self._resolve_ref(right_ref)
@@ -872,7 +457,7 @@ class ConstantFoldingPassEX(IROptimizationPass):
         op: UnaryOps = instr.get_operands()[1]
         operand_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
 
-        self.current_table.set(result.get_name(), ConstantFoldingPassEX.FoldingFlags.UNKNOWN)
+        self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
         operand = self._resolve_ref(operand_ref)
         if not self._is_literal(operand):
@@ -901,7 +486,7 @@ class ConstantFoldingPassEX(IROptimizationPass):
         if isinstance(cond_var, Variable):
             value = self._find(cond_var)
 
-            if isinstance(value, ConstantFoldingPassEX.FoldingFlags):
+            if isinstance(value, ConstantFoldingPass.FoldingFlags):
                 return  # 无法确定条件，保留原跳转
 
             # 如果条件变量是布尔类型或可以转为布尔
@@ -949,7 +534,7 @@ class ConstantFoldingPassEX(IROptimizationPass):
             # 如果实参是变量或常量，尝试查找其最终值
             if arg_ref.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
                 arg_value = self._find(arg_ref.value)  # arg_ref.value is the symbol
-                if isinstance(arg_value, ConstantFoldingPassEX.FoldingFlags):
+                if isinstance(arg_value, ConstantFoldingPass.FoldingFlags):
                     # 如果不能确定，保留原引用
                     new_args[param_name] = arg_ref
                 else:
@@ -969,10 +554,10 @@ class ConstantFoldingPassEX(IROptimizationPass):
         dtype: DataType | Class = instr.get_operands()[1]
         value_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
 
-        self.current_table.set(result.get_name(), ConstantFoldingPassEX.FoldingFlags.UNKNOWN)
+        self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
         value = self._resolve_ref(value_ref)
-        if isinstance(value, ConstantFoldingPassEX.FoldingFlags):
+        if isinstance(value, ConstantFoldingPass.FoldingFlags):
             return
 
         # 类型相同
@@ -1603,52 +1188,96 @@ class ChainAssignEliminationPass(IROptimizationPass):
 
     def exec(self):
         """
-        链式赋值消除优化：消除中间变量的无意义链式赋用
+        链式赋值消除优化：消除中间变量的无意义链式赋值
         """
-        # 第一步：构建变量别名映射表
-        alias_map = self._build_alias_map()
+        # 第一步：构建作用域树和变量别名映射表
+        scope_tree, alias_maps = self._build_scope_tree_and_alias_maps()
 
         # 第二步：应用别名替换
-        self._apply_alias_substitution(alias_map)
+        self._apply_alias_substitution(alias_maps, scope_tree)
 
-    def _build_alias_map(self) -> dict[str, Reference]:
+    def _build_scope_tree_and_alias_maps(self) -> tuple[dict, dict]:
         """
-        构建变量别名映射表
-        返回 {变量名: 它应该指向的最终引用}
+        构建作用域树和每个作用域的变量别名映射表
+        返回 (scope_tree, alias_maps)
+        scope_tree: {scope_name: parent_scope_name}
+        alias_maps: {scope_name: {var_name: final_reference}}
         """
-        alias_map = {}
+        scope_tree = {}  # 作用域树 {scope_name: parent_scope_name}
+        alias_maps = {}  # 每个作用域的别名映射 {scope_name: {var_name: final_reference}}
 
-        # 遍历所有指令，构建别名关系
+        scope_stack = []  # 当前作用域栈
+        current_scope = "global"  # 当前作用域
+        alias_maps[current_scope] = {}  # 初始化全局作用域别名映射
+
+        # 遍历所有指令，构建作用域结构和别名映射
         for instr in self.builder.get_instructions():
-            if isinstance(instr, IRDeclare):
+            if isinstance(instr, IRScopeBegin):
+                scope_name = instr.get_operands()[0]
+                parent_scope = current_scope
+                scope_tree[scope_name] = parent_scope
+                scope_stack.append(scope_name)
+                current_scope = scope_name
+                # 初始化新作用域的别名映射，继承父作用域的映射
+                alias_maps[current_scope] = alias_maps[parent_scope].copy()
+
+            elif isinstance(instr, IRScopeEnd):
+                if scope_stack:
+                    scope_stack.pop()
+                    current_scope = scope_stack[-1] if scope_stack else "global"
+
+            elif isinstance(instr, IRDeclare):
                 var = instr.get_operands()[0]
                 var_name = var.get_name()
                 # 每个变量初始时指向自己
-                alias_map[var_name] = Reference.variable(var_name, var.dtype)
+                if current_scope in alias_maps:
+                    alias_maps[current_scope][var_name] = Reference.variable(var_name, var.dtype)
 
             elif isinstance(instr, IRAssign):
                 target, source = instr.get_operands()
                 target_name = target.get_name()
 
                 if isinstance(source, Reference):
-                    if source.value_type == ValueType.VARIABLE:
-                        source_name = source.get_name()
-                        # 如果源变量有别名，使用源变量的别名
-                        if source_name in alias_map:
-                            alias_map[target_name] = alias_map[source_name]
-                        else:
-                            alias_map[target_name] = source
-                    elif source.value_type in (ValueType.LITERAL, ValueType.CONSTANT):
-                        # 直接值作为别名
-                        alias_map[target_name] = source
+                    if current_scope in alias_maps:
+                        if source.value_type == ValueType.VARIABLE:
+                            source_name = source.get_name()
+                            # 如果源变量有别名，使用源变量的别名
+                            if source_name in alias_maps[current_scope]:
+                                alias_maps[current_scope][target_name] = alias_maps[current_scope][source_name]
+                            else:
+                                alias_maps[current_scope][target_name] = source
+                        elif source.value_type in (ValueType.LITERAL, ValueType.CONSTANT):
+                            # 直接值作为别名
+                            alias_maps[current_scope][target_name] = source
 
-        return alias_map
+        return scope_tree, alias_maps
 
-    def _apply_alias_substitution(self, alias_map: dict[str, Reference]):
+    def _get_visible_aliases(self, scope: str, scope_tree: dict, alias_maps: dict) -> dict:
+        """
+        获取在指定作用域中可见的所有别名映射
+        包括当前作用域及其所有祖先作用域的别名
+        """
+        visible_aliases = {}
+        current = scope
+
+        # 从当前作用域开始，向上遍历到根作用域，收集所有可见的别名
+        while current is not None:
+            if current in alias_maps:
+                # 更新可见别名（内部作用域的别名优先）
+                for var_name, alias_ref in alias_maps[current].items():
+                    if var_name not in visible_aliases:
+                        visible_aliases[var_name] = alias_ref
+            current = scope_tree.get(current)
+
+        return visible_aliases
+
+    def _apply_alias_substitution(self, alias_maps: dict, scope_tree: dict):
         """
         应用别名替换到所有使用这些变量的地方
         """
         iterator = self.builder.__iter__()
+        scope_stack = []  # 当前作用域栈
+        current_scope = "global"  # 当前作用域
 
         while True:
             try:
@@ -1656,61 +1285,56 @@ class ChainAssignEliminationPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            # 处理赋值语句
+            # 更新当前作用域
+            if isinstance(instr, IRScopeBegin):
+                scope_name = instr.get_operands()[0]
+                scope_stack.append(scope_name)
+                current_scope = scope_name
+            elif isinstance(instr, IRScopeEnd):
+                if scope_stack:
+                    scope_stack.pop()
+                    current_scope = scope_stack[-1] if scope_stack else "global"
+
+            # 获取当前作用域可见的别名映射
+            visible_aliases = self._get_visible_aliases(current_scope, scope_tree, alias_maps)
+
+            # 处理各种指令类型
             if isinstance(instr, IRAssign):
-                self._handle_assign(iterator, instr, alias_map)
-
-            # 处理函数调用 - 这是关键遗漏的部分
+                self._handle_assign(iterator, instr, visible_aliases)
             elif isinstance(instr, IRCall):
-                self._handle_call(iterator, instr, alias_map)
-
-            # 处理方法调用
+                self._handle_call(iterator, instr, visible_aliases)
             elif isinstance(instr, IRCallMethod):
-                self._handle_call_method(iterator, instr, alias_map)
-
-            # 处理条件跳转
+                self._handle_call_method(iterator, instr, visible_aliases)
             elif isinstance(instr, IRCondJump):
-                self._handle_cond_jump(iterator, instr, alias_map)
-
-            # 处理比较操作
+                self._handle_cond_jump(iterator, instr, visible_aliases)
             elif isinstance(instr, IRCompare):
-                self._handle_compare(iterator, instr, alias_map)
-
-            # 处理二元操作
+                self._handle_compare(iterator, instr, visible_aliases)
             elif isinstance(instr, IROp):
-                self._handle_binary_op(iterator, instr, alias_map)
-
-            # 处理一元操作
+                self._handle_binary_op(iterator, instr, visible_aliases)
             elif isinstance(instr, IRUnaryOp):
-                self._handle_unary_op(iterator, instr, alias_map)
-
-            # 处理类型转换
+                self._handle_unary_op(iterator, instr, visible_aliases)
             elif isinstance(instr, IRCast):
-                self._handle_cast(iterator, instr, alias_map)
-
-            # 处理字段获取
+                self._handle_cast(iterator, instr, visible_aliases)
             elif isinstance(instr, IRGetField):
-                self._handle_get_field(iterator, instr, alias_map)
-
-            # 处理字段设置
+                self._handle_get_field(iterator, instr, visible_aliases)
             elif isinstance(instr, IRSetField):
-                self._handle_set_field(iterator, instr, alias_map)
+                self._handle_set_field(iterator, instr, visible_aliases)
 
-    def _handle_assign(self, iterator, instr: IRAssign, alias_map: dict[str, Reference]):
+    def _handle_assign(self, iterator, instr: IRAssign, visible_aliases: dict):
         """处理赋值语句中的别名替换"""
         target, source = instr.get_operands()
 
         if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
             source_name = source.get_name()
-            if source_name in alias_map:
-                final_alias = alias_map[source_name]
+            if source_name in visible_aliases:
+                final_alias = visible_aliases[source_name]
                 # 只有当别名不是自身时才替换
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != source_name)):
                     new_instr = IRAssign(target, final_alias)
                     iterator.set_current(new_instr)
 
-    def _handle_call(self, iterator, instr: IRCall, alias_map: dict[str, Reference]):
+    def _handle_call(self, iterator, instr: IRCall, visible_aliases: dict):
         """处理函数调用中的参数别名替换"""
         result, func, args = instr.get_operands()
         new_args = {}
@@ -1719,8 +1343,8 @@ class ChainAssignEliminationPass(IROptimizationPass):
         for param_name, arg_ref in args.items():
             if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
                 source_name = arg_ref.get_name()
-                if source_name in alias_map:
-                    final_alias = alias_map[source_name]
+                if source_name in visible_aliases:
+                    final_alias = visible_aliases[source_name]
                     # 只有当别名不是自身时才替换
                     if (isinstance(final_alias, Reference) and
                             (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != source_name)):
@@ -1736,7 +1360,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
         if changed:
             iterator.set_current(IRCall(result, func, new_args))
 
-    def _handle_call_method(self, iterator, instr: IRCallMethod, alias_map: dict[str, Reference]):
+    def _handle_call_method(self, iterator, instr: IRCallMethod, visible_aliases: dict):
         """处理方法调用中的参数别名替换"""
         result, class_, method, args = instr.get_operands()
         if args is None:
@@ -1748,8 +1372,8 @@ class ChainAssignEliminationPass(IROptimizationPass):
         for param_name, arg_ref in args.items():
             if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
                 source_name = arg_ref.get_name()
-                if source_name in alias_map:
-                    final_alias = alias_map[source_name]
+                if source_name in visible_aliases:
+                    final_alias = visible_aliases[source_name]
                     if (isinstance(final_alias, Reference) and
                             (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != source_name)):
                         new_args[param_name] = final_alias
@@ -1764,21 +1388,22 @@ class ChainAssignEliminationPass(IROptimizationPass):
         if changed:
             iterator.set_current(IRCallMethod(result, class_, method, new_args))
 
-    def _handle_cond_jump(self, iterator, instr: IRCondJump, alias_map: dict[str, Reference]):
+    def _handle_cond_jump(self, iterator, instr: IRCondJump, visible_aliases: dict):
         """处理条件跳转中的条件变量替换"""
         cond_ref, true_scope, false_scope = instr.get_operands()
 
         if isinstance(cond_ref, Variable):
             cond_name = cond_ref.name
-            if cond_name in alias_map:
-                final_alias = alias_map[cond_name]
+            if cond_name in visible_aliases:
+                final_alias = visible_aliases[cond_name]
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != cond_name)):
-                    new_instr = IRCondJump(final_alias if isinstance(final_alias, Variable) else cond_ref,
-                                           true_scope, false_scope)
-                    iterator.set_current(new_instr)
+                    # 注意：IRCondJump的第一个操作数需要是Variable类型，不是Reference
+                    if isinstance(final_alias, Reference) and final_alias.value_type == ValueType.VARIABLE:
+                        new_instr = IRCondJump(final_alias.value, true_scope, false_scope)
+                        iterator.set_current(new_instr)
 
-    def _handle_compare(self, iterator, instr: IRCompare, alias_map: dict[str, Reference]):
+    def _handle_compare(self, iterator, instr: IRCompare, visible_aliases: dict):
         """处理比较操作中的操作数替换"""
         result, op, left_ref, right_ref = instr.get_operands()
         changed = False
@@ -1788,8 +1413,8 @@ class ChainAssignEliminationPass(IROptimizationPass):
         # 处理左操作数
         if isinstance(left_ref, Reference) and left_ref.value_type == ValueType.VARIABLE:
             left_name = left_ref.get_name()
-            if left_name in alias_map:
-                final_alias = alias_map[left_name]
+            if left_name in visible_aliases:
+                final_alias = visible_aliases[left_name]
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != left_name)):
                     new_left = final_alias
@@ -1798,8 +1423,8 @@ class ChainAssignEliminationPass(IROptimizationPass):
         # 处理右操作数
         if isinstance(right_ref, Reference) and right_ref.value_type == ValueType.VARIABLE:
             right_name = right_ref.get_name()
-            if right_name in alias_map:
-                final_alias = alias_map[right_name]
+            if right_name in visible_aliases:
+                final_alias = visible_aliases[right_name]
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != right_name)):
                     new_right = final_alias
@@ -1809,7 +1434,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
             new_instr = IRCompare(result, op, new_left, new_right)
             iterator.set_current(new_instr)
 
-    def _handle_binary_op(self, iterator, instr: IROp, alias_map: dict[str, Reference]):
+    def _handle_binary_op(self, iterator, instr: IROp, visible_aliases: dict):
         """处理二元操作中的操作数替换"""
         result, op, left_ref, right_ref = instr.get_operands()
         changed = False
@@ -1819,8 +1444,8 @@ class ChainAssignEliminationPass(IROptimizationPass):
         # 处理左操作数
         if isinstance(left_ref, Reference) and left_ref.value_type == ValueType.VARIABLE:
             left_name = left_ref.get_name()
-            if left_name in alias_map:
-                final_alias = alias_map[left_name]
+            if left_name in visible_aliases:
+                final_alias = visible_aliases[left_name]
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != left_name)):
                     new_left = final_alias
@@ -1829,8 +1454,8 @@ class ChainAssignEliminationPass(IROptimizationPass):
         # 处理右操作数
         if isinstance(right_ref, Reference) and right_ref.value_type == ValueType.VARIABLE:
             right_name = right_ref.get_name()
-            if right_name in alias_map:
-                final_alias = alias_map[right_name]
+            if right_name in visible_aliases:
+                final_alias = visible_aliases[right_name]
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != right_name)):
                     new_right = final_alias
@@ -1840,46 +1465,46 @@ class ChainAssignEliminationPass(IROptimizationPass):
             new_instr = IROp(result, op, new_left, new_right)
             iterator.set_current(new_instr)
 
-    def _handle_unary_op(self, iterator, instr: IRUnaryOp, alias_map: dict[str, Reference]):
+    def _handle_unary_op(self, iterator, instr: IRUnaryOp, visible_aliases: dict):
         """处理一元操作中的操作数替换"""
         result, op, operand_ref = instr.get_operands()
 
         if isinstance(operand_ref, Reference) and operand_ref.value_type == ValueType.VARIABLE:
             operand_name = operand_ref.get_name()
-            if operand_name in alias_map:
-                final_alias = alias_map[operand_name]
+            if operand_name in visible_aliases:
+                final_alias = visible_aliases[operand_name]
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != operand_name)):
                     new_instr = IRUnaryOp(result, op, final_alias)
                     iterator.set_current(new_instr)
 
-    def _handle_cast(self, iterator, instr: IRCast, alias_map: dict[str, Reference]):
+    def _handle_cast(self, iterator, instr: IRCast, visible_aliases: dict):
         """处理类型转换中的操作数替换"""
         result, dtype, value_ref = instr.get_operands()
 
         if isinstance(value_ref, Reference) and value_ref.value_type == ValueType.VARIABLE:
             value_name = value_ref.get_name()
-            if value_name in alias_map:
-                final_alias = alias_map[value_name]
+            if value_name in visible_aliases:
+                final_alias = visible_aliases[value_name]
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != value_name)):
                     new_instr = IRCast(result, dtype, final_alias)
                     iterator.set_current(new_instr)
 
-    def _handle_get_field(self, iterator, instr: IRGetField, alias_map: dict[str, Reference]):
+    def _handle_get_field(self, iterator, instr: IRGetField, visible_aliases: dict):
         """处理字段获取中的对象引用替换"""
         result, obj_ref, field = instr.get_operands()
 
         if isinstance(obj_ref, Reference) and obj_ref.value_type == ValueType.VARIABLE:
             obj_name = obj_ref.get_name()
-            if obj_name in alias_map:
-                final_alias = alias_map[obj_name]
+            if obj_name in visible_aliases:
+                final_alias = visible_aliases[obj_name]
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != obj_name)):
                     new_instr = IRGetField(result, final_alias, field)
                     iterator.set_current(new_instr)
 
-    def _handle_set_field(self, iterator, instr: IRSetField, alias_map: dict[str, Reference]):
+    def _handle_set_field(self, iterator, instr: IRSetField, visible_aliases: dict):
         """处理字段设置中的对象引用和值引用替换"""
         obj_ref, field, value_ref = instr.get_operands()
         changed = False
@@ -1889,8 +1514,8 @@ class ChainAssignEliminationPass(IROptimizationPass):
         # 处理对象引用
         if isinstance(obj_ref, Reference) and obj_ref.value_type == ValueType.VARIABLE:
             obj_name = obj_ref.get_name()
-            if obj_name in alias_map:
-                final_alias = alias_map[obj_name]
+            if obj_name in visible_aliases:
+                final_alias = visible_aliases[obj_name]
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != obj_name)):
                     new_obj = final_alias
@@ -1899,8 +1524,8 @@ class ChainAssignEliminationPass(IROptimizationPass):
         # 处理值引用
         if isinstance(value_ref, Reference) and value_ref.value_type == ValueType.VARIABLE:
             value_name = value_ref.get_name()
-            if value_name in alias_map:
-                final_alias = alias_map[value_name]
+            if value_name in visible_aliases:
+                final_alias = visible_aliases[value_name]
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != value_name)):
                     new_value = final_alias
