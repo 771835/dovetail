@@ -1,7 +1,18 @@
 include "int_list"
 include "random"
+
+@init
 func main() {
-    let a = IntList()
+    let a = IntList();
     a.append(1)
-    print(str(a[0]))
+    a.append(2)
+    a.append(3)
+    a.append(1)
+
+    for (int i =0;i<4;i=i+1) {
+        print(f"i={i}")
+        print(str(a[i]))
+    }
+
+
 }

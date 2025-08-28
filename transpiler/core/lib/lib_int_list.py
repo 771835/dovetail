@@ -209,7 +209,7 @@ class IntList(Library):
 
 
     def _int_list_getitem(_self, self: Reference[Variable | Constant | Literal],
-                          index: Reference[Variable | Constant | Literal]) -> None:
+                          index: Reference[Variable | Constant | Literal]):
         result_var = Variable(
             "result_" + uuid.uuid4().hex[:8],
             DataType.INT,

@@ -924,6 +924,15 @@ class Commands:
                         )
                     )
             else:
+                if index.get_data_type() in (DataType.INT, DataType.BOOLEAN):
+                    generator.current_scope.add_command(
+                        BasicCommands.Copy.copy_score_to_storage(
+                            index.value,
+                            generator.current_scope,
+                            generator.var_objective,
+                        )
+                    )
+
                 if value.value_type != ValueType.LITERAL:
                     if value.get_data_type() in (DataType.INT, DataType.BOOLEAN):
                         generator.current_scope.add_command(
@@ -969,7 +978,7 @@ class Commands:
                 else:
                     generator.current_scope.add_command(
                         BasicCommands.call_macros_function(
-                            f"{generator.namespace}:list_setitem_value",
+                            f"{generator.namespace}:builtins/data/list_setitem_value",
                             generator.var_objective,
                             {
                                 "target": (
@@ -1025,10 +1034,19 @@ class Commands:
                         )
                     )
             else:
+                if index.get_data_type() in (DataType.INT, DataType.BOOLEAN):
+                    generator.current_scope.add_command(
+                        BasicCommands.Copy.copy_score_to_storage(
+                            index.value,
+                            generator.current_scope,
+                            generator.var_objective,
+                        )
+                    )
+
                 if result.dtype == DataType.STRING:
                     generator.current_scope.add_command(
                         BasicCommands.call_macros_function(
-                            f"{generator.namespace}:list_getitem_storage",
+                            f"{generator.namespace}:builtins/data/list_getitem_storage",
                             generator.var_objective,
                             {
                                 "target": (
@@ -1062,7 +1080,7 @@ class Commands:
                 else:
                     generator.current_scope.add_command(
                         BasicCommands.call_macros_function(
-                            f"{generator.namespace}:list_getitem_score",
+                            f"{generator.namespace}:builtins/data/list_getitem_score",
                             generator.var_objective,
                             {
                                 "objective": (
