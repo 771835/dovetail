@@ -94,8 +94,8 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by transpilerParser#forCondition.
-    def visitForCondition(self, ctx:transpilerParser.ForConditionContext):
+    # Visit a parse tree produced by transpilerParser#condition.
+    def visitCondition(self, ctx:transpilerParser.ConditionContext):
         return self.visitChildren(ctx)
 
 
@@ -184,6 +184,11 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by transpilerParser#TernaryPythonicExpr.
+    def visitTernaryPythonicExpr(self, ctx:transpilerParser.TernaryPythonicExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by transpilerParser#PrimaryExpr.
     def visitPrimaryExpr(self, ctx:transpilerParser.PrimaryExprContext):
         return self.visitChildren(ctx)
@@ -191,6 +196,11 @@ class transpilerVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by transpilerParser#ArrayAssignmentExpr.
     def visitArrayAssignmentExpr(self, ctx:transpilerParser.ArrayAssignmentExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by transpilerParser#TernaryTraditionalExpr.
+    def visitTernaryTraditionalExpr(self, ctx:transpilerParser.TernaryTraditionalExprContext):
         return self.visitChildren(ctx)
 
 

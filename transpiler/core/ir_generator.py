@@ -398,6 +398,33 @@ class MCGenerator(transpilerVisitor):
             return self._current_ctx.start.column
         return -1
 
+    def _ternary(self, cond, a, b):
+        if_id = next(self.cnt)
+
+        result_var = self._create_temp_var(DataType.NULL, "ternary")  # 此处数据类型需要根据后文得出
+        self._add_ir_instruction(IRDeclare(result_var))
+        with self.scoped_environment(f"ternary_{if_id}_a", StructureType.CONDITIONAL) as a_scope:
+            a_ref = self.visit(a).value
+            self._add_ir_instruction(IRAssign(result_var, a_ref))
+
+        with self.scoped_environment(f"ternary_{if_id}_b", StructureType.CONDITIONAL) as b_scope:
+            b_ref = self.visit(b).value
+            self._add_ir_instruction(IRAssign(result_var, b_ref))
+        # 将结果类型修改为实际类型
+        result_var.dtype = a_ref.get_data_type()
+        if a_ref.get_data_type() != b_ref.get_data_type():
+            raise TypeMismatchError(
+                expected_type=a_ref.get_data_type(),
+                actual_type=b_ref.get_data_type(),
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+
+        cond_ref = self.visit(cond).value
+        self._add_ir_instruction(IRCondJump(cond_ref.value, a_scope.name, b_scope.name))
+        return result_var
+
     @staticmethod
     def check_subset(list_primary, list_candidate) -> tuple[bool, set]:
         """
@@ -799,6 +826,18 @@ class MCGenerator(transpilerVisitor):
 
         return Result(Reference(ValueType.CLASS, class_))
 
+    def visitCondition(self, ctx: transpilerParser.ConditionContext):
+        result = self.visit(ctx.expr())
+        # 评估条件表达式
+        if result.value.get_data_type() != DataType.BOOLEAN:
+            raise InvalidSyntaxError(
+                ctx.expr().getText(),
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        return result
+
     def visitLiteral(self, ctx: transpilerParser.LiteralContext):
         value: str = ctx.getText()
         if value == 'true' or value == 'false':
@@ -814,104 +853,6 @@ class MCGenerator(transpilerVisitor):
 
     def visitParenExpr(self, ctx: transpilerParser.ParenExprContext):
         return self.visit(ctx.expr())
-
-    def visitBlock(self, ctx: transpilerParser.BlockContext):
-        # 遍历子节点
-        self.visitChildren(ctx)
-        return Result(None)
-
-    def visitWhileStmt(self, ctx: transpilerParser.WhileStmtContext):
-        loop_id = next(self.cnt)
-        with self.scoped_environment(f"while_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
-            with self.scoped_environment(f"while_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
-                self.visit(ctx.block())
-
-            # 从检查函数调用循环体
-            condition_ref = self.visit(ctx.expr()).value
-
-            # 评估条件表达式
-            if condition_ref.get_data_type() != DataType.BOOLEAN:
-                raise InvalidSyntaxError(
-                    ctx.expr().getText(),
-                    line=self._get_current_line(),
-                    column=self._get_current_column(),
-                    filename=self.filename
-                )
-
-            self._add_ir_instruction(IRCondJump(condition_ref.value, loop_body.name))
-            self._add_ir_instruction(IRCondJump(condition_ref.value, loop_check.name))
-        self._add_ir_instruction(IRJump(loop_check.name))
-
-    def visitForStmt(self, ctx: transpilerParser.ForStmtContext):
-        for_control: transpilerParser.ForControlContext = ctx.forControl()
-        if for_control:  # 传统for循环
-            loop_id = next(self.cnt)
-            if for_control.forInit():
-                # 处理初始化表达式
-                if for_control.forInit().varDecl():
-                    self.visit(for_control.forInit().varDecl())
-                else:
-                    self.visit(for_control.forInit().expr())
-            # 创建循环检查作用域
-            with self.scoped_environment(f"for_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
-                with self.scoped_environment(f"for_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
-
-                    # 处理循环体
-                    self.visit(ctx.block())
-
-                    # 处理更新表达式
-                    if ctx.forControl().forUpdate():
-                        self.visit(ctx.forControl().forUpdate().expr())
-                # 处理条件表达式
-                if for_control.forCondition():
-                    condition_ref = self.visit(for_control.forCondition().expr()).value
-                    if condition_ref.get_data_type() != DataType.BOOLEAN:
-                        raise InvalidSyntaxError(
-                            for_control.forCondition().expr().getText(),
-                            line=self._get_current_line(),
-                            column=self._get_current_column()
-                        )
-                else:
-                    condition_ref = Reference.literal(True)
-
-                self._add_ir_instruction(IRCondJump(condition_ref.value, loop_body.name))
-                self._add_ir_instruction(IRCondJump(condition_ref.value, loop_check.name))
-
-            self._add_ir_instruction(IRJump(loop_check.name))
-        else:  # 增强for循环
-            raise MissingImplementationError(
-                "增强for循环",
-                line=self._get_current_line(),
-                column=self._get_current_column(),
-                filename=self.filename
-            )  # TODO:增强for循环实现
-        return Result(None)
-
-    def visitIfStmt(self, ctx: transpilerParser.IfStmtContext):
-        # 生成唯一ID
-        if_id = next(self.cnt)
-        # 计算条件表达式
-        condition_ref = self.visit(ctx.expr()).value
-
-        if condition_ref.get_data_type() != DataType.BOOLEAN:
-            raise InvalidSyntaxError(
-                ctx.expr().getText(),
-                line=self._get_current_line(),
-                column=self._get_current_column(),
-                filename=self.filename
-            )
-
-        # 创建if分支作用域
-        with self.scoped_environment(f"if_{if_id}", StructureType.CONDITIONAL) as if_scope:
-            self.visit(ctx.block(0))
-        # 创建else分支作用域
-        if ctx.block(1):
-            with self.scoped_environment(f"else_{if_id}", StructureType.CONDITIONAL) as else_scope:
-                self.visit(ctx.block(1))
-            self._add_ir_instruction(IRCondJump(condition_ref.value, if_scope.name, else_scope.name))
-        else:
-            self._add_ir_instruction(IRCondJump(condition_ref.value, if_scope.name))
-        return Result(None)
 
     def visitCompareExpr(self, ctx):
         left: Reference = self.visit(ctx.expr(0)).value
@@ -940,7 +881,7 @@ class MCGenerator(transpilerVisitor):
         if left.get_data_type() != DataType.BOOLEAN or right.get_data_type() != DataType.BOOLEAN:
             raise TypeMismatchError(
                 expected_type="boolean与boolean",
-                actual_type=f"{left.get_data_type().value}{right.get_data_type().value}和",
+                actual_type=f"{left.get_data_type().value}和{right.get_data_type().value}",
                 line=ctx.expr(0).start.line,
                 column=ctx.expr(0).start.column,
                 filename=self.filename
@@ -968,8 +909,8 @@ class MCGenerator(transpilerVisitor):
 
         if left.get_data_type() != DataType.BOOLEAN or right.get_data_type() != DataType.BOOLEAN:
             raise TypeMismatchError(
-                expected_type=DataType.BOOLEAN,
-                actual_type=left.get_data_type(),
+                expected_type="boolean与boolean",
+                actual_type=f"{left.get_data_type().value}和{right.get_data_type().value}",
                 line=ctx.expr(0).start.line,
                 column=ctx.expr(0).start.column,
                 filename=self.filename
@@ -1150,6 +1091,12 @@ class MCGenerator(transpilerVisitor):
         else:
             return Result(Reference.literal(expr_result.value.value * -1))
 
+    def visitTernaryPythonicExpr(self, ctx: transpilerParser.TernaryPythonicExprContext):
+        return Result(Reference(ValueType.VARIABLE,self._ternary(ctx.expr(1), ctx.expr(0), ctx.expr(2))))
+
+    def visitTernaryTraditionalExpr(self, ctx: transpilerParser.TernaryTraditionalExprContext):
+        return Result(Reference(ValueType.VARIABLE,self._ternary(ctx.expr(0), ctx.expr(1), ctx.expr(2))))
+
     def visitFunctionCall(self, ctx: transpilerParser.FunctionCallContext):
         symbol: Symbol = self.visit(ctx.expr()).value.value
         symbol_name: str = symbol.get_name()
@@ -1285,6 +1232,81 @@ class MCGenerator(transpilerVisitor):
             )
         )
         return Result(Reference(member_symbol.value_type, result_var))
+
+    def visitBlock(self, ctx: transpilerParser.BlockContext):
+        # 遍历子节点
+        self.visitChildren(ctx)
+        return Result(None)
+
+    def visitWhileStmt(self, ctx: transpilerParser.WhileStmtContext):
+        loop_id = next(self.cnt)
+        with self.scoped_environment(f"while_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
+            with self.scoped_environment(f"while_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
+                self.visit(ctx.block())
+
+            # 从检查函数调用循环体
+            condition_ref = self.visit(ctx.condition()).value
+
+            self._add_ir_instruction(IRCondJump(condition_ref.value, loop_body.name))
+            self._add_ir_instruction(IRCondJump(condition_ref.value, loop_check.name))
+        self._add_ir_instruction(IRJump(loop_check.name))
+
+    def visitForStmt(self, ctx: transpilerParser.ForStmtContext):
+        for_control: transpilerParser.ForControlContext = ctx.forControl()
+        if for_control:  # 传统for循环
+            loop_id = next(self.cnt)
+            if for_control.forInit():
+                # 处理初始化表达式
+                if for_control.forInit().varDecl():
+                    self.visit(for_control.forInit().varDecl())
+                else:
+                    self.visit(for_control.forInit().expr())
+            # 创建循环检查作用域
+            with self.scoped_environment(f"for_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
+                with self.scoped_environment(f"for_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
+
+                    # 处理循环体
+                    self.visit(ctx.block())
+
+                    # 处理更新表达式
+                    if ctx.forControl().forUpdate():
+                        self.visit(ctx.forControl().forUpdate().expr())
+                # 处理条件表达式
+                if for_control.condition():
+                    condition_ref = self.visit(for_control.condition()).value
+                else:
+                    condition_ref = Reference.literal(True)
+
+                self._add_ir_instruction(IRCondJump(condition_ref.value, loop_body.name))
+                self._add_ir_instruction(IRCondJump(condition_ref.value, loop_check.name))
+
+            self._add_ir_instruction(IRJump(loop_check.name))
+        else:  # 增强for循环
+            raise MissingImplementationError(
+                "增强for循环",
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )  # TODO:增强for循环实现
+        return Result(None)
+
+    def visitIfStmt(self, ctx: transpilerParser.IfStmtContext):
+        # 生成唯一ID
+        if_id = next(self.cnt)
+        # 计算条件表达式
+        condition_ref = self.visit(ctx.condition()).value
+
+        # 创建if分支作用域
+        with self.scoped_environment(f"if_{if_id}", StructureType.CONDITIONAL) as if_scope:
+            self.visit(ctx.block(0))
+        # 创建else分支作用域
+        if ctx.block(1):
+            with self.scoped_environment(f"else_{if_id}", StructureType.CONDITIONAL) as else_scope:
+                self.visit(ctx.block(1))
+            self._add_ir_instruction(IRCondJump(condition_ref.value, if_scope.name, else_scope.name))
+        else:
+            self._add_ir_instruction(IRCondJump(condition_ref.value, if_scope.name))
+        return Result(None)
 
     def visitReturnStmt(self, ctx: transpilerParser.ReturnStmtContext):
         result_dtype: DataType | Class = DataType.NULL

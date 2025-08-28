@@ -1,0 +1,21 @@
+func t() -> boolean {
+    return true;
+}
+func f() -> boolean {
+    return false;
+}
+func a() -> string {
+    print("a")
+    return "fuck you"
+}
+func b() -> string {
+    print("b")
+    return "hello"
+}
+
+
+
+func main() {
+    print(a() if f() else b())
+
+}

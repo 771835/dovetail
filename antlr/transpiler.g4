@@ -86,7 +86,6 @@ statement
     | constDecl SEMI?                      // 常量声明
     | forStmt                              // for循环
     | whileStmt                            // while循环
-    //| assignment SEMI?                   // 赋值
     | expr SEMI?                           // 表达式语句
     | returnStmt SEMI?                     // 返回
     | ifStmt                               // 条件语句
@@ -110,7 +109,7 @@ forStmt
 
 
 forControl
-    : forInit? SEMI forCondition? SEMI forUpdate?
+    : forInit? SEMI condition? SEMI forUpdate?
     ;
 
 
@@ -119,7 +118,7 @@ forInit
     | expr
     ;
 
-forCondition
+condition
     : expr
     ;
 
@@ -129,7 +128,7 @@ forUpdate
 
 
 whileStmt
-    : WHILE LPAREN expr RPAREN block            // while循环
+    : WHILE LPAREN condition RPAREN block            // while循环
     ;
 
 constDecl
@@ -151,7 +150,7 @@ returnStmt
     ;
 
 ifStmt
-    : IF LPAREN expr RPAREN block (ELSE block)?  // 条件语句,expr必须是CompareExpr
+    : IF LPAREN condition RPAREN block (ELSE block)?  // 条件语句
     ;
 
 
@@ -173,6 +172,8 @@ expr
     | expr (GT | LT | EQ | NEQ | LTE | GTE) expr # CompareExpr      // 比较运算
     | expr AND expr                   #LogicalAndExpr             // and运算符
     | expr OR expr                   #LogicalOrExpr              // or运算符
+    | <assoc=right> expr '?' expr ':' expr  # TernaryTraditionalExpr
+    | <assoc=right> expr IF expr ELSE expr  # TernaryPythonicExpr
     | expr LBRACK expr RBRACK ASSIGN expr           # ArrayAssignmentExpr
     | expr '.' ID ASSIGN expr           # MemberAssignmentExpr
     | ID ASSIGN expr                    # LocalAssignmentExpr
@@ -218,11 +219,13 @@ RBRACE : '}';
 SEMI : ';';
 COMMA : ',';
 
-ARROW: ':'
+ARROW: COLON
     | '->'
     | 'fuck'
     | 'as'
     ;
+QUESTION : '?';
+COLON    : ':';
 DOUBLE_COLON: '::';
 
 // 关键字

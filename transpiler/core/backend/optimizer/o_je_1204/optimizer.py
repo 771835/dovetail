@@ -44,13 +44,11 @@ class Optimizer(IROptimizerSpec):
             # FIXME: 对于for循环的优化存在严重问题
             optimization_pass.append(ChainAssignEliminationPass)
         if self.level >= OptimizationLevel.O1:
-
             optimization_pass.append(ConstantFoldingPass)
             optimization_pass.append(DeadCodeEliminationPass)
             optimization_pass.append(DeclareCleanupPass)
             optimization_pass.append(UnreachableCodeRemovalPass)
         if self.level >= OptimizationLevel.O2:
-
             optimization_pass.append(UselessScopeRemovalPass)
 
         if self.level >= OptimizationLevel.O3:  # 测试性优化

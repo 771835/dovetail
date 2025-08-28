@@ -161,12 +161,12 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by transpilerParser#forCondition.
-    def enterForCondition(self, ctx:transpilerParser.ForConditionContext):
+    # Enter a parse tree produced by transpilerParser#condition.
+    def enterCondition(self, ctx:transpilerParser.ConditionContext):
         pass
 
-    # Exit a parse tree produced by transpilerParser#forCondition.
-    def exitForCondition(self, ctx:transpilerParser.ForConditionContext):
+    # Exit a parse tree produced by transpilerParser#condition.
+    def exitCondition(self, ctx:transpilerParser.ConditionContext):
         pass
 
 
@@ -323,6 +323,15 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by transpilerParser#TernaryPythonicExpr.
+    def enterTernaryPythonicExpr(self, ctx:transpilerParser.TernaryPythonicExprContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#TernaryPythonicExpr.
+    def exitTernaryPythonicExpr(self, ctx:transpilerParser.TernaryPythonicExprContext):
+        pass
+
+
     # Enter a parse tree produced by transpilerParser#PrimaryExpr.
     def enterPrimaryExpr(self, ctx:transpilerParser.PrimaryExprContext):
         pass
@@ -338,6 +347,15 @@ class transpilerListener(ParseTreeListener):
 
     # Exit a parse tree produced by transpilerParser#ArrayAssignmentExpr.
     def exitArrayAssignmentExpr(self, ctx:transpilerParser.ArrayAssignmentExprContext):
+        pass
+
+
+    # Enter a parse tree produced by transpilerParser#TernaryTraditionalExpr.
+    def enterTernaryTraditionalExpr(self, ctx:transpilerParser.TernaryTraditionalExprContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#TernaryTraditionalExpr.
+    def exitTernaryTraditionalExpr(self, ctx:transpilerParser.TernaryTraditionalExprContext):
         pass
 
 
