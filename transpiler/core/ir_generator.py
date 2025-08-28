@@ -1230,14 +1230,15 @@ class MCGenerator(transpilerVisitor):
 
         args_dict = self._process_call_arguments(method_symbol, ctx.argumentList(), instance_ref)
         if method_symbol.function_type == FunctionType.LIBRARY:
-            result_var = (self.builtin_func_table[f"{instance_type.get_name()}:{method_symbol.get_name()}"]
-                          (instance_ref, **args_dict))
+            result_var = self.builtin_func_table[f"{instance_type.get_name()}:{method_symbol.get_name()}"](**args_dict)
         else:
             result_var = self._create_temp_var(method_symbol.return_type, "result")
             self._add_ir_instruction(IRDeclare(result_var))
             self._add_ir_instruction(IRCallMethod(result_var, instance_type, method_symbol, args_dict))
-
-        return Result(Reference(ValueType.VARIABLE, result_var))
+        if method_symbol.return_type != DataType.NULL:
+            return Result(Reference(ValueType.VARIABLE, result_var))
+        else:
+            return Result(Reference.variable("result_null", DataType.NULL))
 
     def visitMemberAccess(self, ctx: transpilerParser.MemberAccessContext):
         instance_ref = self.visit(ctx.expr()).value

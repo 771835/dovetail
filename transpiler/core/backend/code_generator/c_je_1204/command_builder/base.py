@@ -3,6 +3,7 @@ import uuid
 
 from transpiler.core.enums import DataType
 from transpiler.core.symbols import Variable, Constant, Literal, Symbol
+from transpiler.utils.escape_processor import auto_escape
 from . import DataBuilder, ScoreboardBuilder, FunctionBuilder, Execute
 from ..code_generator_scope import CodeGeneratorScope
 
@@ -37,7 +38,7 @@ class BasicCommands:
                     )
                 )
             else:
-                value = _[1].replace("\\", "\\\\")
+                value = auto_escape(_[1])
                 # 此处可通过merge进行优化生成的指令的效率，但是暂不实现，也可以通过常量池预加载，但是也不实现qwq
                 commands.append(
                     DataBuilder.modify_storage_set_value(
@@ -68,9 +69,9 @@ class BasicCommands:
             - 保留空行（生成单独的#）
             - 自动去除行尾空白
 
-        Example:
-            Function.comment("第一行\n\n第三行")
-            -> ["# 第一行", "#", "# 第三行"]
+        Examples:
+            >>> BasicCommands.comment("第一行\n\n第三行")
+            >>> ["# 第一行", "#", "# 第三行"]
         """
         lines = message.split('\n')
         processed = []
@@ -118,11 +119,14 @@ class BasicCommands:
                 return DataBuilder.modify_storage_set_value(
                     target_objective,
                     target_scope.get_symbol_path(target.get_name()),
-                    f'"{source.value}"'
+                    f'"{auto_escape(source.value)}"'
                 )
             elif target.dtype in (DataType.INT, DataType.BOOLEAN) and source.dtype in (DataType.INT, DataType.BOOLEAN):
                 return ScoreboardBuilder.set_score(
-                    target_scope.get_symbol_path(target.get_name()), target_objective, int(source.value))
+                    target_scope.get_symbol_path(target.get_name()),
+                    target_objective,
+                    int(source.value)
+                )
             return None
 
         @staticmethod

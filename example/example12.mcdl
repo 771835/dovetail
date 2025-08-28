@@ -1,6 +1,7 @@
 include "int_list"
+include "random"
 func main() {
     let a = IntList()
-    a[1] = 1
-    
+    a.append(1)
+    print(str(a[0]))
 }

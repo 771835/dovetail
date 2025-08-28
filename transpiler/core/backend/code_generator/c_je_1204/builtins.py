@@ -3,7 +3,8 @@ import threading
 import warnings
 from typing import Callable
 
-from transpiler.core.backend.code_generator.c_je_1204.command_builder import BasicCommands, Execute, ScoreboardBuilder
+from transpiler.utils.escape_processor import auto_escape
+from .command_builder import BasicCommands, Execute, ScoreboardBuilder, DataBuilder
 from transpiler.core.backend.specification import CodeGeneratorSpec
 from transpiler.core.enums import ValueType, DataType
 from transpiler.core.symbols import Reference, Variable, Constant, Literal
@@ -11,7 +12,6 @@ from transpiler.core.symbols import Reference, Variable, Constant, Literal
 builtin_func = {
     "builtins/exec": "$$(command)",
     "builtins/strcat": "$data modify storage $(target) $(target_path) set value '$(dest)$(src)'",
-    "builtins/int2str": "$data modify storage $(target) $(target_path) set value '$(value)'",
     "builtins/str2int": "$scoreboard players set $(target) $(objective) $(value)'",
     "builtins/tellraw/tellraw_text": "$tellraw $(target) {\"storage\":\"$(objective)\",\"nbt\":\"$(path)\"}",
     "builtins/tellraw/tellraw_json": "$tellraw $(target) $(json)",
@@ -36,6 +36,11 @@ builtin_func = {
     "builtins/setblock/setblock_k_lava": "$setblock $(x) $(y) $(z) lava keep",
     "builtins/setblock/setblock_r_lava": "$setblock $(x) $(y) $(z) lava replace",
     "builtins/setblock/setblock_s_lava": "$setblock $(x) $(y) $(z) lava strict",
+    "builtins/data/list_setitem_value": "$data modify storage $(target) $(target_path)[$(index)] set value \"$(value)\"",
+    "builtins/data/list_setitem_from": "$data modify storage $(target) $(target_path)[$(index)] set from storage $(source) $(source_path)",
+    "builtins/data/list_getitem_storage": "$data modify storage $(target) $(target_path) set from storage $(source) $(source_path)[$(index)]",
+    "builtins/data/list_getitem_score": "$execute store result score $(target) $(objective) run data get storage $(source) $(source_path)[$(index)] 1.0",
+
 }
 
 
@@ -79,8 +84,8 @@ class Commands:
             target_ref = args["target"]
             message_ref = args["msg"]
             if message_ref.value_type == ValueType.LITERAL == target_ref.value_type:
-                message = str(message_ref.value.value).replace('"', '\\"')
-                generator.current_scope.add_command(f"tellraw {target_ref.value.value} \"{message}\"")
+                generator.current_scope.add_command(
+                    f"tellraw {target_ref.value.value} \"{auto_escape(message_ref.value.value)}\"")
             else:
                 if target_ref.value_type == ValueType.LITERAL:
                     generator.current_scope.add_command(
@@ -96,7 +101,7 @@ class Commands:
                         generator.var_objective,
                         {
                             "target": (
-                                True if target_ref.value_type != ValueType.LITERAL else False,
+                                target_ref.value_type != ValueType.LITERAL,
                                 target_ref.value.value if target_ref.value_type != ValueType.LITERAL
                                 else BasicCommands.get_symbol_path(generator.current_scope, target_ref),
                                 generator.var_objective,
@@ -152,13 +157,13 @@ class Commands:
                         generator.var_objective,
                         {
                             "target": (
-                                True if target_ref.value_type != ValueType.LITERAL else False,
+                                target_ref.value_type != ValueType.LITERAL,
                                 target_ref.value.value if target_ref.value_type != ValueType.LITERAL else generator.current_scope.get_symbol_path(
                                     target_ref.get_name()),
                                 generator.var_objective,
                             ),
                             "json": (
-                                True if json_ref.value_type != ValueType.LITERAL else False,
+                                json_ref.value_type != ValueType.LITERAL,
                                 json_ref.value.value if json_ref.value_type != ValueType.LITERAL else generator.current_scope.get_symbol_path(
                                     json_ref.get_name()),
                                 generator.var_objective,
@@ -468,31 +473,31 @@ class Commands:
                     generator.var_objective,
                     {
                         "x": (
-                            True if x.value_type != ValueType.LITERAL else False,
+                            x.value_type != ValueType.LITERAL,
                             generator.current_scope.get_symbol_path(
                                 x.get_name()) if x.value_type != ValueType.LITERAL else x.value.value,
                             generator.var_objective,
                         ),
                         "y": (
-                            True if y.value_type != ValueType.LITERAL else False,
+                            y.value_type != ValueType.LITERAL,
                             generator.current_scope.get_symbol_path(
                                 y.get_name()) if y.value_type != ValueType.LITERAL else y.value.value,
                             generator.var_objective,
                         ),
                         "z": (
-                            True if z.value_type != ValueType.LITERAL else False,
+                            z.value_type != ValueType.LITERAL,
                             generator.current_scope.get_symbol_path(
                                 z.get_name()) if z.value_type != ValueType.LITERAL else z.value.value,
                             generator.var_objective,
                         ),
                         "mode" if mode_id not in handler or mode_id is None else None: (
-                            True if mode_ref.value_type != ValueType.LITERAL else False,
+                            mode_ref.value_type != ValueType.LITERAL,
                             generator.current_scope.get_symbol_path(
                                 mode_ref.get_name()) if mode_ref.value_type != ValueType.LITERAL else mode_ref.value.value,
                             generator.var_objective,
                         ),
                         "block_id" if block_id not in Commands.Block.SETBLOCK_HANDLERS or block_id is None else None: (
-                            True if block_id_ref.value_type != ValueType.LITERAL else False,
+                            block_id_ref.value_type != ValueType.LITERAL,
                             generator.current_scope.get_symbol_path(
                                 block_id_ref.get_name()) if block_id_ref.value_type != ValueType.LITERAL else block_id_ref.value.value,
                             generator.var_objective,
@@ -851,6 +856,244 @@ class Commands:
                         )
                     )
 
+    class List:
+        @staticmethod
+        def init(result: Variable | Constant, generator, args: dict[str, Reference[Variable | Constant | Literal]]):
+            list_var = args["list"]
+            generator.current_scope.add_command(
+                DataBuilder.modify_storage_set_value(
+                    generator.var_objective,
+                    BasicCommands.get_symbol_path(generator.current_scope, list_var.value),
+                    "[]"
+                )
+            )
+
+        @staticmethod
+        def append(result: Variable | Constant, generator, args: dict[str, Reference[Variable | Constant | Literal]]):
+            list_var = args["list"]
+            value = args["value"]
+            if value.value_type == ValueType.LITERAL:
+                generator.current_scope.add_command(
+                    DataBuilder.modify_storage_append_value(
+                        generator.var_objective,
+                        BasicCommands.get_symbol_path(generator.current_scope, list_var),
+                        value.value.value if value.get_data_type() != DataType.STRING
+                        else f'"{auto_escape(value.value.value)}"'
+                    )
+                )
+            else:
+                generator.current_scope.add_command(
+                    DataBuilder.modify_storage_append_from_storage(
+                        generator.var_objective,
+                        BasicCommands.get_symbol_path(generator.current_scope, list_var),
+                        generator.var_objective,
+                        BasicCommands.get_symbol_path(generator.current_scope, value),
+                    )
+                )
+
+        @staticmethod
+        def setitem(result: Variable | Constant, generator, args: dict[str, Reference[Variable | Constant | Literal]]):
+            list_var = args["list"]
+            index = args["index"]
+            value = args["value"]
+            if index.value_type == ValueType.LITERAL:
+                if value.value_type != ValueType.LITERAL:
+                    if value.get_data_type() in (DataType.INT, DataType.BOOLEAN):
+                        generator.current_scope.add_command(
+                            BasicCommands.Copy.copy_score_to_storage(
+                                value.value,
+                                generator.current_scope,
+                                generator.var_objective,
+                            )
+                        )
+                    generator.current_scope.add_command(
+                        DataBuilder.modify_storage_set_from_storage(
+                            generator.var_objective,
+                            f"{BasicCommands.get_symbol_path(generator.current_scope, list_var)}[{index.value.value}]",
+                            generator.var_objective,
+                            BasicCommands.get_symbol_path(generator.current_scope, value),
+                        )
+                    )
+                else:
+                    generator.current_scope.add_command(
+                        DataBuilder.modify_storage_set_value(
+                            generator.var_objective,
+                            f"{BasicCommands.get_symbol_path(generator.current_scope, list_var)}[{index.value.value}]",
+                            value.value.value if value.get_data_type() != DataType.STRING
+                            else f'"{auto_escape(value.value.value)}"'
+                        )
+                    )
+            else:
+                if value.value_type != ValueType.LITERAL:
+                    if value.get_data_type() in (DataType.INT, DataType.BOOLEAN):
+                        generator.current_scope.add_command(
+                            BasicCommands.Copy.copy_score_to_storage(
+                                value.value,
+                                generator.current_scope,
+                                generator.var_objective,
+                            )
+                        )
+                    generator.current_scope.add_command(
+                        BasicCommands.call_macros_function(
+                            f"{generator.namespace}:builtins/data/list_setitem_from",
+                            generator.var_objective,
+                            {
+                                "target": (
+                                    False,
+                                    generator.var_objective,
+                                    None
+                                ),
+                                "target_path": (
+                                    False,
+                                    BasicCommands.get_symbol_path(generator.current_scope, list_var),
+                                    None
+                                ),
+                                "index": (
+                                    True,
+                                    BasicCommands.get_symbol_path(generator.current_scope, index),
+                                    generator.var_objective
+                                ),
+                                "source": (
+                                    False,
+                                    generator.var_objective,
+                                    None
+                                ),
+                                "source_path": (
+                                    False,
+                                    BasicCommands.get_symbol_path(generator.current_scope, value),
+                                    None
+                                )
+                            }
+                        )
+                    )
+                else:
+                    generator.current_scope.add_command(
+                        BasicCommands.call_macros_function(
+                            f"{generator.namespace}:list_setitem_value",
+                            generator.var_objective,
+                            {
+                                "target": (
+                                    False,
+                                    generator.var_objective,
+                                    None
+                                ),
+                                "target_path": (
+                                    False,
+                                    BasicCommands.get_symbol_path(generator.current_scope, list_var),
+                                    None
+                                ),
+                                "index": (
+                                    True,
+                                    BasicCommands.get_symbol_path(generator.current_scope, index),
+                                    generator.var_objective
+                                ),
+                                "value": (
+                                    False,
+                                    auto_escape(value.value.value),
+                                    None
+                                )
+                            }
+                        )
+                    )
+
+        @staticmethod
+        def getitem(result: Variable | Constant, generator, args: dict[str, Reference[Variable | Constant | Literal]]):
+            list_var = args["list"]
+            index = args["index"]
+            if index.value_type == ValueType.LITERAL:
+                if result.dtype == DataType.STRING:
+                    generator.current_scope.add_command(
+                        DataBuilder.modify_storage_set_from_storage(
+                            generator.var_objective,
+                            BasicCommands.get_symbol_path(generator.current_scope, result),
+                            generator.var_objective,
+                            f"{BasicCommands.get_symbol_path(generator.current_scope, list_var)}[{index.value.value}]",
+                        )
+                    )
+                elif result.dtype in (DataType.INT, DataType.BOOLEAN):
+                    generator.current_scope.add_command(
+                        Execute.execute()
+                        .store_result_score(
+                            BasicCommands.get_symbol_path(generator.current_scope, result),
+                            generator.var_objective
+                        )
+                        .run(
+                            DataBuilder.get_storage(
+                                generator.var_objective,
+                                f"{BasicCommands.get_symbol_path(generator.current_scope, list_var)}[{index.value.value}]",
+                            )
+                        )
+                    )
+            else:
+                if result.dtype == DataType.STRING:
+                    generator.current_scope.add_command(
+                        BasicCommands.call_macros_function(
+                            f"{generator.namespace}:list_getitem_storage",
+                            generator.var_objective,
+                            {
+                                "target": (
+                                    False,
+                                    generator.var_objective,
+                                    None
+                                ),
+                                "target_path": (
+                                    False,
+                                    BasicCommands.get_symbol_path(generator.current_scope, result),
+                                    None
+                                ),
+                                "index": (
+                                    True,
+                                    BasicCommands.get_symbol_path(generator.current_scope, index),
+                                    generator.var_objective
+                                ),
+                                "source": (
+                                    False,
+                                    generator.var_objective,
+                                    None
+                                ),
+                                "source_path": (
+                                    False,
+                                    BasicCommands.get_symbol_path(generator.current_scope, list_var),
+                                    None
+                                ),
+                            }
+                        )
+                    )
+                else:
+                    generator.current_scope.add_command(
+                        BasicCommands.call_macros_function(
+                            f"{generator.namespace}:list_getitem_score",
+                            generator.var_objective,
+                            {
+                                "objective": (
+                                    False,
+                                    generator.var_objective,
+                                    None
+                                ),
+                                "target": (
+                                    False,
+                                    BasicCommands.get_symbol_path(generator.current_scope, result),
+                                    None
+                                ),
+                                "index": (
+                                    True,
+                                    BasicCommands.get_symbol_path(generator.current_scope, index),
+                                    generator.var_objective
+                                ),
+                                "source": (
+                                    False,
+                                    generator.var_objective,
+                                    None
+                                ),
+                                "source_path": (
+                                    False,
+                                    BasicCommands.get_symbol_path(generator.current_scope, list_var),
+                                    None
+                                ),
+                            }
+                        )
+                    )
+
 
 class BuiltinFuncMapping:
     _lock = threading.Lock()
@@ -880,17 +1123,36 @@ class BuiltinFuncMapping:
         'abs': Commands.Math.abs,
         'min': Commands.Math.min,
         'max': Commands.Math.max,
+        'list_init': Commands.List.init,
+        'list_append': Commands.List.append,
+        'list_setitem': Commands.List.setitem,
+        'list_getitem': Commands.List.getitem,
+
     }
 
     @classmethod
     def registry(cls, name: str, func: Callable[[Variable | Constant, CodeGeneratorSpec, dict[str, Reference]], None]):
+        """
+        注册函数
+
+        Args:
+            name : 函数名
+            func : 函数实现
+        """
         with cls._lock:
             cls.builtin_map[name] = func
 
     @classmethod
     def get(cls, name: str):
+        """
+        获得函数名对应的函数实现
+
+        Args:
+            name : 函数名
+        """
         func = cls.builtin_map.get(name, None)
         if func:
             return func
         else:
+            # 没有函数实现返回空实现
             return lambda result, generator, args: warnings.warn(f"Builtin function '{name}' not found.", )
