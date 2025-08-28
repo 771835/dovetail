@@ -15,7 +15,6 @@ class Builtins(Library):
 
     def __init__(self, builder: IRBuilder):
         self.builder = builder
-
         self._constants = {}
         self._functions: dict[Function, Callable[..., Variable | Constant | Literal]] = {
             Function(
@@ -343,6 +342,5 @@ class Builtins(Library):
     def get_constants(self) -> dict[Constant, Reference]:
         return self._constants
 
-    def get_classes(self) -> list[Class]:
-        """获取库中定义的所有类"""
-        return []
+    def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Constant | Literal]]]:
+        return {}

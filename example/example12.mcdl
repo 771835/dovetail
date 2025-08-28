@@ -1,0 +1,6 @@
+include "int_list"
+func main() {
+    let a = IntList()
+    a[1] = 1
+    
+}

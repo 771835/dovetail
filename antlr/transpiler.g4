@@ -51,13 +51,13 @@ type
     ;
 
 functionDecl
-    : annotation* FUNC ID paramList (ARROW type)? block // 返回类型标注
+    : annotation* FUNC ID paramList ((ARROW | COLON) type)? block // 返回类型标注
     | annotation* FUNC type? ID paramList block
     ;
 
 
 methodDecl
-    : annotation* METHOD ID paramList (ARROW type)? block
+    : annotation* METHOD ID paramList ((ARROW | COLON) type)? block
     | annotation* METHOD type? ID paramList block
     ;
 
@@ -67,7 +67,7 @@ paramList
     ;
 
 paramDecl
-    : ID (ARROW type)   // 强制类型标注
+    : ID ((ARROW | COLON) type)   // 强制类型标注
     | type ID
     ;
 
@@ -104,7 +104,7 @@ continueStmt
 
 forStmt
     : FOR LPAREN forControl RPAREN block        // 传统for循环
-    | FOR LPAREN type ID ARROW expr RPAREN block       // 增强for循环 (expr需为可迭代class)
+    | FOR LPAREN type ID COLON expr RPAREN block       // 增强for循环 (expr需为可迭代class)
     ;
 
 
@@ -132,16 +132,16 @@ whileStmt
     ;
 
 constDecl
-    : CONST ID (ARROW type)? ('?')? (ASSIGN expr)  // 常量声明
+    : CONST ID ((ARROW | COLON) type)? ('?')? (ASSIGN expr)  // 常量声明
     | CONST type ID (ASSIGN expr)
     ;
 
 // 变量声明
 varDecl
-    : LET ID ('?')? (ASSIGN expr)
-    | ID (ARROW type) ('?')? (ASSIGN expr)?
+    : LET ID ('?')? ASSIGN expr
+    | ID (ARROW | COLON) type ('?')? (ASSIGN expr)?
     | type ID ('?')? (ASSIGN expr)? // 更符合大多数人习惯的变量声明
-    | LET ID ('?')? (ARROW type) (ASSIGN expr)
+    | LET ID ('?')? (ARROW | COLON) type ASSIGN expr
     ;
 
 
@@ -156,24 +156,30 @@ ifStmt
 
 /* 表达式系统 */
 expr
-    :
+    :primary                               # PrimaryExpr        // 基础表达式
+
     //| lambdaExpr                            # LambdaExpression   // Lambda
     //| methodReference                       # MethodRefExpr      // 方法引用
     //| expr '?' '.' ID                       # SafeNavigation     // 安全导航
-     expr '.' ID argumentList         # MethodCall         // 方法调用
+    | expr '.' ID argumentList         # MethodCall         // 方法调用
     | expr '.' ID                           # MemberAccess       // 成员访问
     | expr LBRACK expr RBRACK                     # ArrayAccess        // 数组访问
     | expr argumentList                # FunctionCall       // 函数调用
-    | primary                               # PrimaryExpr        // 基础表达式
+
     | SUB expr                              # NegExpr            // 负号
     | NOT expr                         #LogicalNotExpr             // not运算符
+
     | expr (MUL|DIV|MOD) expr                   # FactorExpr         // 算术运算
     | expr (ADD|SUB) expr                   # TermExpr
+
     | expr (GT | LT | EQ | NEQ | LTE | GTE) expr # CompareExpr      // 比较运算
+
     | expr AND expr                   #LogicalAndExpr             // and运算符
     | expr OR expr                   #LogicalOrExpr              // or运算符
-    | <assoc=right> expr '?' expr ':' expr  # TernaryTraditionalExpr
+
+    | <assoc=right> expr QUESTION expr COLON expr  # TernaryTraditionalExpr
     | <assoc=right> expr IF expr ELSE expr  # TernaryPythonicExpr
+
     | expr LBRACK expr RBRACK ASSIGN expr           # ArrayAssignmentExpr
     | expr '.' ID ASSIGN expr           # MemberAssignmentExpr
     | ID ASSIGN expr                    # LocalAssignmentExpr
@@ -218,14 +224,13 @@ LBRACE : '{';
 RBRACE : '}';
 SEMI : ';';
 COMMA : ',';
-
-ARROW: COLON
-    | '->'
+QUESTION : '?';
+ARROW: '->'
     | 'fuck'
     | 'as'
     ;
-QUESTION : '?';
-COLON    : ':';
+COLON : ':';
+
 DOUBLE_COLON: '::';
 
 // 关键字

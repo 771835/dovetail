@@ -57,8 +57,10 @@ class MCGenerator(transpilerVisitor):
             self.current_scope.add_symbol(constant)
             self._add_ir_instruction(IRDeclare(constant))
             self._add_ir_instruction(IRAssign(constant, value))
-        for class_ in library.get_classes():
+        for class_, method_handlers in library.get_classes().items():
             self.current_scope.add_symbol(class_)
+            for method_name, handler in method_handlers.items():
+                self.builtin_func_table[f"{class_.name}:{method_name}"] = handler
 
         # TODO: 实现其他加载
 
@@ -1008,6 +1010,47 @@ class MCGenerator(transpilerVisitor):
         self._add_ir_instruction(IRSetField(instance_ref.value, field_name, value))
         return Result(value)
 
+    def visitArrayAssignmentExpr(self, ctx: transpilerParser.ArrayAssignmentExprContext):
+        array = self.visit(ctx.expr(0)).value
+        index = self.visit(ctx.expr(1)).value
+        value = self.visit(ctx.expr(2)).value
+        array_type = array.get_data_type()
+        if isinstance(array_type, DataType):
+            raise PrimitiveTypeOperationError(
+                "数组修改",
+                array_type.name,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        getitem_method = method_symbol = next(
+            (
+                method for method in array_type.methods
+                if method.get_name() == "__setitem__"
+            ),
+            None
+        )
+        if method_symbol is None:
+            raise UndefinedFunctionError(
+                "__setitem__",
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        # TODO:进行更完整的检测和效验参数类型
+        if getitem_method.function_type != FunctionType.LIBRARY:
+            self._add_ir_instruction(
+                IRCallMethod(
+                    None,
+                    array_type,
+                    getitem_method,
+                    {"self": array, "index": index, "value": value}
+                )
+            )
+        else:
+            self.builtin_func_table[f"{array_type.get_name()}:__setitem__"](array, index, value)
+        return Result(value)
+
     def visitFactorExpr(self, ctx: transpilerParser.FactorExprContext):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
@@ -1092,10 +1135,10 @@ class MCGenerator(transpilerVisitor):
             return Result(Reference.literal(expr_result.value.value * -1))
 
     def visitTernaryPythonicExpr(self, ctx: transpilerParser.TernaryPythonicExprContext):
-        return Result(Reference(ValueType.VARIABLE,self._ternary(ctx.expr(1), ctx.expr(0), ctx.expr(2))))
+        return Result(Reference(ValueType.VARIABLE, self._ternary(ctx.expr(1), ctx.expr(0), ctx.expr(2))))
 
     def visitTernaryTraditionalExpr(self, ctx: transpilerParser.TernaryTraditionalExprContext):
-        return Result(Reference(ValueType.VARIABLE,self._ternary(ctx.expr(0), ctx.expr(1), ctx.expr(2))))
+        return Result(Reference(ValueType.VARIABLE, self._ternary(ctx.expr(0), ctx.expr(1), ctx.expr(2))))
 
     def visitFunctionCall(self, ctx: transpilerParser.FunctionCallContext):
         symbol: Symbol = self.visit(ctx.expr()).value.value
@@ -1232,6 +1275,47 @@ class MCGenerator(transpilerVisitor):
             )
         )
         return Result(Reference(member_symbol.value_type, result_var))
+
+    def visitArrayAccess(self, ctx: transpilerParser.ArrayAccessContext):
+        array = self.visit(ctx.expr(0)).value
+        index = self.visit(ctx.expr(1)).value
+        array_type = array.get_data_type()
+        if isinstance(array_type, DataType):
+            raise PrimitiveTypeOperationError(
+                "数组访问",
+                array_type.name,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        getitem_method = method_symbol = next(
+            (
+                method for method in array_type.methods
+                if method.get_name() == "__getitem__"
+            ),
+            None
+        )
+        if method_symbol is None:
+            raise UndefinedFunctionError(
+                "__getitem__",
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        if getitem_method.function_type != FunctionType.LIBRARY:
+            # TODO:进行更完整的检测和效验参数类型
+            result_var = self._create_temp_var(array_type, "result")
+            self._add_ir_instruction(
+                IRCallMethod(
+                    result_var,
+                    array_type,
+                    getitem_method,
+                    {"self": array, "index": index}
+                )
+            )
+        else:
+            result_var = self.builtin_func_table[f"{array_type.get_name()}:__getitem__"](array, index)
+        return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitBlock(self, ctx: transpilerParser.BlockContext):
         # 遍历子节点

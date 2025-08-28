@@ -1,0 +1,14 @@
+func fizz_buzz(int n): null {
+    for (int i = 1; i <= n; i = i + 1) {
+        if (i % 3 == 0 or i % 5 == 0) {
+            print((i % 3 == 0 ? "Fizz" : "") + (i % 5 == 0 ? "Buzz" : ""))
+        } else {
+            print(str(i))
+        }
+    }
+}
+
+@init
+func main(): null {
+    fizz_buzz(100)
+}

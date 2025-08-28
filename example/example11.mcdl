@@ -17,5 +17,4 @@ func b() -> string {
 
 func main() {
     print(a() if f() else b())
-
 }

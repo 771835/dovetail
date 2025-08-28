@@ -32,6 +32,6 @@ class Library(metaclass=ABCMeta):
         """获取库中定义的所有常量"""
         pass
 
-    def get_classes(self) -> list[Class]:
+    def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Constant | Literal]]]:
         """获取库中定义的所有类"""
-        return []
+        return {}

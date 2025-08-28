@@ -118,7 +118,10 @@ func reverse_number(n: int) -> int {
 }
 /**
  * 计算给定整数 x 的整数平方根（向下取整）
- * 使用分段线性近似 + 牛顿迭代法优化，适用于 32 位整数范围内的输入
+ * 使用双曲近似 + 牛顿迭代法优化，适用于 32 位整数范围内的输入
+ *
+ * 算法来自：https://github.com/Triton365/fast_integer_sqrt
+ * 感谢 Triton365 提供的高效整数平方根近似方法。
  *
  * 参数:
  *   x - 要计算平方根的非负整数（0 <= x <= 2147483647）
@@ -147,7 +150,7 @@ func sqrt(int x): int {
 
     res = (res + x / res) / 2
 
-    if (res * res > x) {
+    if (res > x / res) {
         res=res - 1
     }
     return res
