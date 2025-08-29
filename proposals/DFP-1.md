@@ -21,59 +21,64 @@
 
 ## 摘要
 
-本提案定义 McFuncDSL 的基础语法规范，包括程序结构、类型系统、控制流、类与接口定义等核心语言特性，为后续高级特性提供语法基础。
+该提案定义了 Dovetail 的基础语法规范，涵盖了程序结构、类型系统、类与接口、控制流和表达式等内容。目标是为 Dovetail
+提供一套结构化、安全且可扩展的基础语法体系，为后续模块提供语法与语义基础支持。
 
 ## 动机
 
-Minecraft 命令系统缺乏结构化编程能力，现有解决方案存在以下问题：
+当前 Minecraft 中的命令编写方式存在以下问题：
 
-1. 代码复用困难
-2. 类型安全性缺失
-3. 复杂逻辑表达能力有限
-4. 缺乏面向对象特性
+1. 代码复用性差：缺乏模块化与完整函数定义机制
+2. 类型安全性不足：无法检查数据流动和使用上的错误
+3. 表达能力有限：逻辑越复杂越难以维护
+4. 缺乏面向对象能力：无法构建可复用的实体结构。
 
-通过建立标准化的基础语法体系，可实现：
+通过引入面向对象与结构化的语法设计，Dovetail 将实现如下改进：
 
-- 更好的代码组织能力
-- 编译时类型检查
-- 面向对象编程支持
-- 与其他工具链的兼容性
+- 代码结构更具模块性和可维护性
+- 提供**编译时类型检查**
+- 支持**类与接口定义**，增强模块间交互
+- 更易于与现代开发工具链集成
 
 ## 技术规范
 
 ### 1. 程序结构
 
-    import "minecraft_utils.mcdl";  // 模块导入
-    
-    class Entity extends BaseEntity implements Trackable {
-        var health: int = 20;  // 字段声明
-        
-        constructor(name: string) {
-            // 初始化逻辑
-        }
-        
-        method takeDamage(amount: int): void {
-            this.health = amount;
-        }
+Dovetail 支持模块化开发，允许导入与模块组织：
+
+```dovetail
+include "math";  // 模块导入
+
+class Entity extends BaseEntity implements Trackable {
+    var health: int = 20;  // 字段声明
+
+    method __init__(self: Entity, name: string) {
+        // 初始化逻辑
     }
-    
-    func main():void {
-        for (e : new Selector("@e[type=zombie]")) {
-            // 命令执行块
-        }
+
+    method takeDamage(self: Entity, amount: int) {
+        this.health = this.health - amount;
     }
+}
+
+func main(): void {
+    for (entity : Selector("@e[type=zombie]")) {
+        entity.takeDamage(5);
+    }
+}
+
+```
 
 ### 2. 类型系统
 
 #### 基础类型
 
-| 类型       | 说明       | 示例值          |
-|----------|----------|--------------|
-| int      | 32位整数    | 42           |
-| string   | UTF-8字符串 | "Hello"      |
-| boolean  | 布尔值      | true/false   |
-| Selector | 实体选择器    | @e[type=cow] |
-| void     | 无返回值类型   | -            |
+| 类型      | 说明     | 示例值        |
+|---------|--------|------------|
+| int     | 32位整数  | 42         |
+| string  | 字符串    | "Hello"    |
+| boolean | 布尔值    | true/false |
+| null    | 无返回值/空 | -          |
 
 #### 复合类型
 
@@ -87,14 +92,14 @@ Minecraft 命令系统缺乏结构化编程能力，现有解决方案存在以�
     class Zombie extends Mob implements Damageable, Trackable {
         const MAX_HEALTH: int = 20;  // 类常量
         
-        method attack(target: Entity): void {
-            cmd f"effect give ${target} minecraft:poison 30 1"!;
+        method attack(target: Entity) {
+            exec(f"effect give ${target} minecraft:poison 30 1"!);
         }
     }
 
     // 接口定义
     interface Damageable {
-        method takeDamage(amount: int): void;
+        method takeDamage(amount: int);
     }
 
 ### 4. 控制流语句
@@ -128,56 +133,44 @@ Minecraft 命令系统缺乏结构化编程能力，现有解决方案存在以�
 
 #### 运算符优先级（从高到低）
 
-1. () . [] (成员访问/方法调用)
-2. \- (负号) ! (非)
-3. \* /
-4. \+ \-
-5. \> < >= <=
-6. == !=
-7. && ||
-
-#### 类型转换规则
-
-    var num: int = (int) 3.14;  // 显式类型转换
-    var str: string = "Count: " + (10).toString();
-
-## 兼容性影响
-
-1. 新增关键字（class/interface/extends等）可能导致现有标识符冲突
-2. 强制类型标注要求现有无类型代码需添加类型声明
-3. 选择器类型化需要重写原始字符串选择器
-
-迁移方案：
-
-- 提供自动类型推导工具
-- 兼容模式允许省略类型标注（需@SuppressWarnings注解）
-- 选择器字符串自动包装为Selector类型
+| 运算符             | 描述        |
+|-----------------|-----------|
+| `() . []`       | 成员访问/方法调用 |
+| `-, !`          | 一元负号、逻辑非  |
+| `*, /, %`       | 乘除、模运算    |
+| `+, -`          | 加减        |
+| `> , <, >=, <=` | 大小比较      |
+| `==, !=`        | 等值判断      |
+| `&&`            | 逻辑与       |
+| `\|\|`          | 逻辑或       |
+| `?:, if/else`   | 三元表达式     |
 
 ## 参考实现
 
-[语法解析器实现（ANTLR4）]
+[语法解析器实现（ANTLR4）](../antlr/transpiler.g4)
 
     // 节选自提案附带的语法规则
     expr
-     : cmdExpr                            #CmdExpression
-     | expr '.' ID argumentList          #MethodCall
-     | expr '.' ID                       #MemberAccess
-     | ID argumentList                   #DirectFuncCall
-     | primary                           #PrimaryExpr
-     | '-' expr                          #NegExpr
-     | expr ('*'|'/') expr               #MulDivExpr
-     | expr ('+'|'-') expr               #AddSubExpr
-     | expr ('>'|'<'|'=='|'!='|'<='|'>=') expr #CompareExpr
-     ;
-
-    primary
-     : 'new' 'Selector' '(' STRING ')'   #NewSelectorExpr
-     | ID                                #VarExpr
-     | literal                           #LiteralExpr
-     | '(' expr ')'                      #ParenExpr
-     | 'new' ID argumentList             #NewObjectExpr
-     ;
+    : primary                              # PrimaryExpr
+    | expr '.' ID argumentList             # MethodCall
+    | expr '.' ID                          # MemberAccess
+    | expr '[' expr ']'                    # ArrayAccess
+    | expr argumentList                    # FunctionCall
+    | '-' expr                             # NegExpr
+    | '!' expr                             # LogicalNotExpr
+    | expr ('*' | '/' | '%') expr          # FactorExpr
+    | expr ('+' | '-') expr                # TermExpr
+    | expr ('>' | '<' | '==' | '!=' | '<=' | '>=') expr  # CompareExpr
+    | expr '&&' expr                       # LogicalAndExpr
+    | expr '||' expr                       # LogicalOrExpr
+    | <assoc=right> expr '?' expr ':' expr # TernaryTraditionalExpr
+    | <assoc=right> expr IF expr ELSE expr # TernaryPythonicExpr
+    | expr '[' expr ']' '=' expr           # ArrayAssignmentExpr
+    | expr '.' ID '=' expr                 # MemberAssignmentExpr
+    | ID '=' expr                          # LocalAssignmentExpr
+    ;
 
 ## 变更日志
 
 - 2025-06-06 初版草案
+- 2025-08-26 更新了文档

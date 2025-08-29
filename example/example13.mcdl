@@ -1,8 +1,7 @@
-func greet(name: string = "bob") {
+func greet(name: string = "World") {
     print(f"Hello, {name}");
 }
 @init
 func main() {
-    greet("World")
     greet()
 }

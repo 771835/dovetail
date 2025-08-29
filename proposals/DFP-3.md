@@ -54,22 +54,21 @@
 
 #### 2.1 存储位置决策矩阵
 
-| 类型     | 存储位置       | 四则运算                      | 拼接                       | 布尔条件判断                  |
-|--------|------------|---------------------------|--------------------------|-------------------------|
-| int    | Scoreboard | 直接使用 Scoreboard operation | 不支持                      | 使用 execute if score     |
-| bool   | 同int       | 视作0/1的int                 | 同int                     | 同int                    |
-| string | Storage    | 不支持                       | 通过 storage 的 append 操作实现 | 需转存为 0/1 的 Scoreboard 值 |
+| 类型     | 存储位置       | 四则运算                      | 拼接      | 布尔条件判断                  |
+|--------|------------|---------------------------|---------|-------------------------|
+| int    | Scoreboard | 直接使用 Scoreboard operation | 不支持     | 使用 execute if score     |
+| bool   | 同int       | 视作0/1的int                 | 同int    | 同int                    |
+| string | Storage    | 不支持                       | 通过宏函数实现 | 需转存为 0/1 的 Scoreboard 值 |
 
-#### 2.2 变量生命周期示例
+#### 2.2 变量示例
 
-    var a:int = 10;  // 生成: scoreboard objectives add mcfdsl dummy
-                   // scoreboard players set global.a mcfdsl 10
+    var a:int = 10;
     
-    var b:string = "text"; // 生成: data modify storage mcfdsl:var global.data.b set value "text"
+    var b:string = "text";
 
 ### 3. 表达式求值机制
 
-#### 3.1 类型提升规则
+#### 3.1 类型提升规则(待实现)
 
     Operand1 | Operand2 | ResultType
     int      | int      | int
@@ -94,7 +93,7 @@
 | string     | `==` `!=`         | string     | `execute store success storage <target> <path> int 1.0 run data modify storage <target> <path> set from storage <target> <path>` 命令执行失败即相等 |
 | string/int | `==` `!=`         | string/int | 不相等                                                                                                                                        |
 | class      | `==` `!=`         | any        | 由class的__eq__方法决定,不存在则不相等                                                                                                                  |
-| class      | `<` `<=` `>` `>=` | any        | 由class的指定魔法方法决定,不存在则不相等                                                                                                                    | 
+| class      | `<` `<=` `>` `>=` | any        | 由class的对应魔法方法决定,不存在则不相等                                                                                                                    | 
 
 ### 4. 控制流实现
 
