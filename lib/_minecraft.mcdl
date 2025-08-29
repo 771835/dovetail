@@ -1,0 +1,92 @@
+// _minecraft.mcdl - 临时内置函数实现
+func tp(string target,string x,string y,string z) {
+    exec(f"tp {target} x y z")
+}
+func give(string target,string item_id,int count) {
+    exec(f"give {target} {item_id} {count}")
+}
+
+func summon(string entity_id,string x,string y,string z) {
+    exec(f"summon {entity_id} {x} {y} {z}")
+}
+
+func summon_nbt(string entity_id,string x,string y,string z,string nbt) {
+    exec(f"summon {entity_id} {x} {y} {z} {nbt}")
+}
+
+func kill(string target) {
+    exec(f"kill {target}")
+}
+
+func time_set_day() {
+    exec("time set day")
+}
+
+func time_set_midnight() {
+    exec("time set midnight")
+}
+
+func time_set_night() {
+    exec("time set night")
+}
+
+func time_set_noon() {
+    exec("time set noon")
+}
+
+func time_set(int value) {
+    exec(f"time set {value}")
+}
+
+func time_set_d(int value) {
+    exec(f"time set {value}d")
+}
+
+func time_set_t(int value) {
+    exec(f"time set {value}t")
+}
+
+func time_set_s(int value) {
+    exec(f"time set {value}s")
+}
+
+func weather(string type) {
+    exec(f"weather {type}")
+}
+
+func difficulty(string level) {
+    exec(f"difficulty {level}")
+}
+
+func gamerule(string rule,string value) {
+    exec(f"gamerule {rule} {value}")
+}
+
+func fill(string x1,string y1,string z1,string x2,string y2,string z2, string block_id) {
+    exec(f"fill {x1} {y1} {z1} {x2} {y2} {z2} {block_id}")
+}
+
+func fill_type(string x1,string y1,string z1,string x2,string y2,string z2, string block_id, string fill_type) {
+    exec(f"fill {x1} {y1} {z1} {x2} {y2} {z2} {block_id} {fill_type}")
+}
+
+func effect(string target,string effect) {
+    exec(f"effect {target} {effect}")
+}
+
+func attribute_set(string target,string attr,int value) {
+    exec(f"attribute {target} {attr} base set {value}")
+}
+
+func tag_add(string target,string tag) {
+    exec(f"tag {target} add {tag}")
+}
+
+func damage(string target,int amount) {
+    exec(f"damage {target} {amount}")
+}
+
+func damage_source(string target,int amount,int source) {
+    exec(f"damage {target} {amount} {source}")
+}
+

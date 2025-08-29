@@ -860,6 +860,13 @@ class Commands:
         @staticmethod
         def init(result: Variable | Constant, generator, args: dict[str, Reference[Variable | Constant | Literal]]):
             list_var = args["list"]
+            # 删除旧列表并创建新列表
+            generator.current_scope.add_command(
+                DataBuilder.remove_storage(
+                    generator.var_objective,
+                    BasicCommands.get_symbol_path(generator.current_scope, list_var.value)
+                )
+            )
             generator.current_scope.add_command(
                 DataBuilder.modify_storage_set_value(
                     generator.var_objective,

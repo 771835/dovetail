@@ -43,13 +43,12 @@ class IntList(Library):
                     DataType.NULL,
                     FunctionType.LIBRARY
                 ),
-
                 Function(
                     "__init__",
                     int_list_init_params,
                     DataType.NULL,
                     FunctionType.LIBRARY
-                ),
+                )
             },
             None,
             None,
@@ -247,28 +246,30 @@ class IntList(Library):
         return result_var
 
     def _int_list_init(_self, self: Reference[Variable | Constant]) -> None:
-        _self.builder.insert(
-            IRCall(
-                self.value,
-                Function(
-                    "list_init",
-                    [
-                        Parameter(
-                            Variable(
-                                "list",
-                                DataType.NULL,
-                                VariableType.PARAMETER
-                            )
-                        )
-                    ],
-                    DataType.NULL,
-                    FunctionType.BUILTIN
-                ),
-                {
-                    "list": self
-                }
-            )
-        )
+        # 似乎完全没必要初始化，因为有bug
+        # _self.builder.insert(
+        #     IRCall(
+        #         self.value,
+        #         Function(
+        #             "list_init",
+        #             [
+        #                 Parameter(
+        #                     Variable(
+        #                         "list",
+        #                         DataType.NULL,
+        #                         VariableType.PARAMETER
+        #                     )
+        #                 )
+        #             ],
+        #             DataType.NULL,
+        #             FunctionType.BUILTIN
+        #         ),
+        #         {
+        #             "list": self
+        #         }
+        #     )
+        # )
+        return
 
     def __str__(self) -> str:
         return "int_list"

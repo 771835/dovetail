@@ -112,17 +112,9 @@ class Builtins(Library):
                 DataType.INT,
                 FunctionType.BUILTIN
             ): None,
-            Function(
-                "is_block",
-                [
-                    Parameter(Variable("x", DataType.INT)),
-                    Parameter(Variable("y", DataType.INT)),
-                    Parameter(Variable("z", DataType.INT)),
-                    Parameter(Variable("block_id", DataType.STRING))
-                ],
-                DataType.INT,
-                FunctionType.BUILTIN
-            ): None,
+        }
+        """
+        
             Function(
                 "item_spawn",
                 [
@@ -277,7 +269,7 @@ class Builtins(Library):
                 DataType.INT,
                 FunctionType.BUILTIN
             ): None,
-        }
+            """
 
     def _int(self, value: Reference[Variable | Constant | Literal]) -> Variable:
         result: Variable = Variable(uuid.uuid4().hex, DataType.INT)
