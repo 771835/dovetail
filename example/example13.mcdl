@@ -1,14 +1,8 @@
-func fizz_buzz(int n): null {
-    for (int i = 1; i <= n; i = i + 1) {
-        if (i % 3 == 0 or i % 5 == 0) {
-            print((i % 3 == 0 ? "Fizz" : "") + (i % 5 == 0 ? "Buzz" : ""))
-        } else {
-            print(str(i))
-        }
-    }
+func greet(name: string = "bob") {
+    print(f"Hello, {name}");
 }
-
 @init
-func main(): null {
-    fizz_buzz(100)
+func main() {
+    greet("World")
+    greet()
 }

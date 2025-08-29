@@ -128,7 +128,7 @@ class MCGenerator(transpilerVisitor):
         available_params = func_symbol.params[param_start_index:] if func_symbol.params else []
 
         # 获取参数数量限制（不包括实例参数）
-        min_args: int = sum(param.optional for param in available_params)
+        min_args: int = sum(not param.optional for param in available_params)
         max_args: int = len(available_params)
 
         # 如果有参数列表
@@ -198,6 +198,111 @@ class MCGenerator(transpilerVisitor):
                     args_dict[param.get_name()] = param.default
 
         return args_dict
+
+    def _process_function_declaration(
+            self,
+            ctx: transpilerParser.FunctionDeclContext | transpilerParser.MethodDeclContext,
+            func_type: FunctionType,
+            check_name_conflict: bool = False,
+            process_annotations: bool = False
+    ) -> Result:
+        """通用函数/方法声明处理"""
+        func_name = ctx.ID().getText()
+        return_type = self._get_type_definition(ctx.type_().getText(), True) if ctx.type_() else DataType.NULL
+
+        # 检查重复定义
+        if self.current_scope.has_symbol(func_name):
+            raise DuplicateDefinitionError(
+                func_name,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+
+        # 检查函数名冲突（仅函数需要）
+        if check_name_conflict and not self.config.enable_same_name_function_nesting:
+            current = self.current_scope
+            while current:
+                if current.get_name() == func_name:
+                    raise FunctionNameConflictError(
+                        name=func_name,
+                        scope_name=current.get_name(),
+                        line=self._get_current_line(),
+                        column=self._get_current_column(),
+                        filename=self.filename
+                    )
+                current = current.parent
+
+        # 处理参数列表
+        params_list: list[Parameter] = []
+        params: transpilerParser.ParamListContext = ctx.paramList()
+        if params.paramDecl():
+            for param in params.paramDecl():
+                param_name = param.ID().getText()
+                param_type = self._get_type_definition(param.type_().getText())
+                param_default = self.visit(param.expr()).value if param.expr() else None
+                if param_default and param_default.get_data_type() != param_type:
+                    raise ArgumentTypeMismatchError(
+                        param_name,
+                        param_type,
+                        param_default.get_data_type(),
+                        self._get_current_line(),
+                        self._get_current_column(),
+                        self.filename
+                    )
+                var = Variable(
+                    param_name,
+                    param_type,
+                    VariableType.PARAMETER
+                )
+                params_list.append(
+                    Parameter(
+                        var,
+                        param.expr() is not None,
+                        param_default
+                    )
+                )
+
+        # 处理注解
+        annotations = []
+        if process_annotations:
+            annotations = [annotation.ID().getText() for annotation in ctx.annotation()]
+
+        # 创建函数对象
+        func = Function(
+            func_name,
+            params_list,
+            return_type,
+            func_type,
+            annotations
+        )
+
+        # 添加到符号表
+        if not self.current_scope.add_symbol(func):
+            raise DuplicateDefinitionError(
+                func_name,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        self._add_ir_instruction(IRFunction(func))
+
+        # 创建作用域并处理函数体
+        with self.scoped_environment(func_name, StructureType.FUNCTION):
+            for param in params_list:
+                if not self.current_scope.add_symbol(param):
+                    raise DuplicateDefinitionError(
+                        param.get_name(),
+                        line=self._get_current_line(),
+                        column=self._get_current_column(),
+                        filename=self.filename
+                    )
+                self._add_ir_instruction(IRDeclare(param.var))
+
+            # 处理函数体
+            self.visit(ctx.block())
+
+        return Result(Reference(ValueType.FUNCTION, func))
 
     def _resolve_identifier(self, identifier_name: str) -> Symbol:
         """
@@ -583,138 +688,19 @@ class MCGenerator(transpilerVisitor):
         self._add_ir_instruction(IRAssign(constant, value))
         return Result(Reference(ValueType.CONSTANT, constant))
 
-    # 处理函数定义
     def visitFunctionDecl(self, ctx: transpilerParser.FunctionDeclContext):
-        func_name = ctx.ID().getText()
-        return_type = self._get_type_definition(ctx.type_().getText(), True) if ctx.type_() else DataType.NULL
-
-        if self.current_scope.has_symbol(func_name):
-            raise DuplicateDefinitionError(
-                func_name,
-                line=self._get_current_line(),
-                column=self._get_current_column(),
-                filename=self.filename
-            )
-
-        if not self.config.enable_same_name_function_nesting:
-            current = self.current_scope
-            # 使用列表记录作用域路径，便于错误提示
-            scope_path = []
-            while current:
-                scope_path.append(current.get_name())
-                if current.get_name() == func_name:
-                    # 构建作用域链字符串
-                    raise FunctionNameConflictError(
-                        name=func_name,
-                        scope_name=current.get_name(),
-                        line=self._get_current_line(),
-                        column=self._get_current_column(),
-                        filename=self.filename
-                    )
-                current = current.parent
-
-        params_list: list[Parameter] = []
-        params: transpilerParser.ParamListContext = ctx.paramList()
-        if params.paramDecl():
-            for param in params.paramDecl():
-                param_name = param.ID().getText()
-                param_type = self._get_type_definition(param.type_().getText())
-                var = Variable(
-                    param_name,
-                    param_type,
-                    VariableType.PARAMETER
-                )
-                params_list.append(Parameter(var))
-
-        func = Function(
-            func_name,
-            params_list,
-            return_type,
+        return self._process_function_declaration(
+            ctx,
             FunctionType.FUNCTION,
-            [annotation.ID().getText() for annotation in ctx.annotation()]
+            check_name_conflict=True,
+            process_annotations=True
         )
-
-        if not self.current_scope.add_symbol(func):
-            raise DuplicateDefinitionError(
-                func_name,
-                line=self._get_current_line(),
-                column=self._get_current_column(),
-                filename=self.filename
-            )
-        self._add_ir_instruction(IRFunction(func))
-
-        with self.scoped_environment(func_name, StructureType.FUNCTION):
-            for i in params_list:
-                if not self.current_scope.add_symbol(i):
-                    raise DuplicateDefinitionError(
-                        i.get_name(),
-                        line=self._get_current_line(),
-                        column=self._get_current_column(),
-                        filename=self.filename
-                    )
-                self._add_ir_instruction(IRDeclare(i.var))
-
-            # 处理函数体
-            self.visit(ctx.block())
-
-        return Result(Reference(ValueType.FUNCTION, func))
 
     def visitMethodDecl(self, ctx: transpilerParser.MethodDeclContext):
-        func_name = ctx.ID().getText()
-        return_type = self._get_type_definition(ctx.type_().getText(), True) if ctx.type_() else DataType.NULL
-
-        if self.current_scope.has_symbol(func_name):
-            raise DuplicateDefinitionError(
-                func_name,
-                line=self._get_current_line(),
-                column=self._get_current_column(),
-                filename=self.filename
-            )
-
-        params_list: list[Parameter] = []
-        params: transpilerParser.ParamListContext = ctx.paramList()
-        if params.paramDecl():
-            for param in params.paramDecl():
-                param_name = param.ID().getText()
-                param_type = self._get_type_definition(param.type_().getText())
-                var = Variable(
-                    param_name,
-                    param_type,
-                    VariableType.PARAMETER
-                )
-                params_list.append(Parameter(var))
-
-        func = Function(
-            func_name,
-            params_list,
-            return_type,
+        return self._process_function_declaration(
+            ctx,
             FunctionType.METHOD
         )
-
-        if not self.current_scope.add_symbol(func):
-            raise DuplicateDefinitionError(
-                func_name,
-                line=self._get_current_line(),
-                column=self._get_current_column(),
-                filename=self.filename
-            )
-        self._add_ir_instruction(IRFunction(func))
-
-        with self.scoped_environment(func_name, StructureType.FUNCTION):
-            for i in params_list:
-                if not self.current_scope.add_symbol(i):
-                    raise DuplicateDefinitionError(
-                        i.get_name(),
-                        line=self._get_current_line(),
-                        column=self._get_current_column(),
-                        filename=self.filename
-                    )
-                self._add_ir_instruction(IRDeclare(i.var))
-
-            # 处理函数体
-            self.visit(ctx.block())
-
-        return Result(Reference(ValueType.FUNCTION, func))
 
     def visitClassDecl(self, ctx: transpilerParser.ClassDeclContext):
         class_name = ctx.ID().getText()

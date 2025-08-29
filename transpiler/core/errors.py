@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from transpiler.core.enums import DataType
+from transpiler.core.symbols import Class
 
 
 class CompilationError(Exception):
@@ -119,7 +120,7 @@ class DuplicateDefinitionError(ASTSyntaxError):
 class TypeMismatchError(ASTSemanticError):
     """类型错误基类"""
 
-    def __init__(self, expected_type: str | DataType, actual_type: str | DataType,
+    def __init__(self, expected_type: str | DataType | Class, actual_type: str | DataType | Class,
                  line: int = None, column: int = None, filename: str = None, msg=None):
         if msg is None:
             msg = f"类型不匹配: 期望 {expected_type}，实际为 {actual_type}。"
@@ -131,7 +132,7 @@ class TypeMismatchError(ASTSemanticError):
 class UndefinedTypeError(TypeMismatchError):
     """使用未定义的类型"""
 
-    def __init__(self, type_name: str, line: int = None,
+    def __init__(self, type_name: str | DataType | Class, line: int = None,
                  column: int = None, filename: str = None):
         msg = f"未定义的类型 '{type_name}'"
         super().__init__(
@@ -147,7 +148,7 @@ class UndefinedTypeError(TypeMismatchError):
 class ArgumentTypeMismatchError(TypeMismatchError):
     """函数参数类型不匹配"""
 
-    def __init__(self, param_name: str, expected: str, actual: str,
+    def __init__(self, param_name: str, expected: str | DataType | Class, actual: str | DataType | Class,
                  line: int = None, column: int = None, filename: str = None):
         super().__init__(expected, actual, line=line, column=column, filename=filename)
         self.param_name = param_name

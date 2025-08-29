@@ -67,8 +67,8 @@ paramList
     ;
 
 paramDecl
-    : ID ((ARROW | COLON) type)   // 强制类型标注
-    | type ID
+    : ID (ARROW | COLON) type (ASSIGN expr)?   // 强制类型标注
+    | type ID (ASSIGN expr)?
     ;
 
 
