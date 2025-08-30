@@ -128,12 +128,12 @@ class IntList(Library):
                 )
             ]
         )
-        self.classes[int_list_class] = {"__init__": self._int_list_init, "__getitem__": self._int_list_getitem,
-                                        "append": self._int_list_append, "__setitem__": self._int_list_setitem}
+        self.classes[int_list_class] = {"__init__": self._init, "__getitem__": self._getitem,
+                                        "append": self._append, "__setitem__": self._setitem}
 
-    def _int_list_setitem(_self, self: Reference[Variable | Constant | Literal],
-                          index: Reference[Variable | Constant | Literal],
-                          value: Reference[Variable | Constant | Literal]) -> None:
+    def _setitem(_self, self: Reference[Variable | Constant | Literal],
+                 index: Reference[Variable | Constant | Literal],
+                 value: Reference[Variable | Constant | Literal]) -> None:
         _self.builder.insert(
             IRCall(
                 self.value,
@@ -173,8 +173,8 @@ class IntList(Library):
             )
         )
 
-    def _int_list_append(_self, self: Reference[Variable | Constant | Literal],
-                          value: Reference[Variable | Constant | Literal]) -> None:
+    def _append(_self, self: Reference[Variable | Constant | Literal],
+                value: Reference[Variable | Constant | Literal]) -> None:
         _self.builder.insert(
             IRCall(
                 self.value,
@@ -207,8 +207,8 @@ class IntList(Library):
         )
 
 
-    def _int_list_getitem(_self, self: Reference[Variable | Constant | Literal],
-                          index: Reference[Variable | Constant | Literal]):
+    def _getitem(_self, self: Reference[Variable | Constant | Literal],
+                 index: Reference[Variable | Constant | Literal]):
         result_var = Variable(
             "result_" + uuid.uuid4().hex[:8],
             DataType.INT,
@@ -243,9 +243,10 @@ class IntList(Library):
                 }
             )
         )
+
         return result_var
 
-    def _int_list_init(_self, self: Reference[Variable | Constant]) -> None:
+    def _init(_self, self: Reference[Variable | Constant]) -> None:
         # 似乎完全没必要初始化，因为有bug
         # _self.builder.insert(
         #     IRCall(
@@ -272,7 +273,7 @@ class IntList(Library):
         return
 
     def __str__(self) -> str:
-        return "int_list"
+        return "IntList"
 
     def load(self) -> list[IRInstruction]:
         return []

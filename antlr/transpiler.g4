@@ -11,7 +11,7 @@ program
     ;
 
 includeStmt
-    : INCLUDE literal SEMI?             // 包含库文件，如：include "minecraft_utils.mcdl";
+    : INCLUDE literal SEMI?             // 包含库文件，如：include "mathlib.mcdl";
     ;
 
 /* 2. 注解系统 */
