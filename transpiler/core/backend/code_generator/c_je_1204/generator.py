@@ -143,7 +143,7 @@ class CodeGenerator(CodeGeneratorSpec):
 
     def _write_datapack_meta(self):
         """写入数据包元数据"""
-        datapack_meta_path = self.target / self.namespace /  "pack.mcmeta"
+        datapack_meta_path = self.target / self.namespace / "pack.mcmeta"
         with open(datapack_meta_path, 'w', encoding='utf-8') as f:
             f.write(f"""{{"pack": {{"pack_format": 26,"description": "{self.namespace}"}}}}""")
 

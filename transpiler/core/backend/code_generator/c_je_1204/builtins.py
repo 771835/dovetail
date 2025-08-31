@@ -508,8 +508,8 @@ class Commands:
             )
 
         @staticmethod
-        def is_block(result: Variable | Constant, generator: CodeGeneratorSpec,
-                     args: dict[str, Reference[Variable | Constant | Literal]]):
+        def get_block(result: Variable | Constant, generator: CodeGeneratorSpec,
+                      args: dict[str, Reference[Variable | Constant | Literal]]):
             pass
 
     @staticmethod
@@ -1188,7 +1188,7 @@ class BuiltinFuncMapping:
         'tellraw_json': Commands.Tellraw.tellraw_json,
         'randint': Commands.Random.randint,
         'setblock': Commands.Block.setblock,
-        'is_block': Commands.Block.is_block,
+        'get_block': Commands.Block.get_block,
         'item_spawn': Commands.item_spawn,
         'tp': Commands.tp,
         'give': Commands.give,

@@ -51,14 +51,16 @@ type
     ;
 
 functionDecl
-    : annotation* FUNC ID paramList ((ARROW | COLON) type)? block // 返回类型标注
-    | annotation* FUNC type? ID paramList block
+    : annotation* FUNC ID paramList block
+    | annotation* FUNC ID paramList ((ARROW | COLON) type) block // 返回类型标注
+    | annotation* FUNC type ID paramList block
     ;
 
 
 methodDecl
-    : annotation* METHOD ID paramList ((ARROW | COLON) type)? block
-    | annotation* METHOD type? ID paramList block
+    : annotation* METHOD ID paramList block
+    | annotation* METHOD ID paramList ((ARROW | COLON) type) block
+    | annotation* METHOD type ID paramList block
     ;
 
 paramList

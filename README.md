@@ -1,5 +1,7 @@
 # Dovetail
 
+[English Version](README_EN.md) | [中文版本](README.md)
+
 > Minecraft数据包编译语言 | 面向对象的Minecraft DSL  
 > 该项目部分参考了[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)
 > 该项目的实现不够成熟，若需要生产环境使用，请考虑其他相对成熟的项目    
@@ -39,18 +41,24 @@ A: 你可以在github上开启一个issue提交这个问题
 Q: 明明我的代码没有错误，生成出的指令却无法正确执行  
 A: 请先尝试添加参数 `-O0` ，若是再次生成的指令正确执行，请以`ir优化错误`为issue标题前缀,否则以`未知错误`作为标题前缀    
 Q: 生成出来的指令执行到一半就中止  
-A: 请尝试使用gamerule指令适当提高maxCommandChainLength规则的数量  
+A: 请尝试使用gamerule指令适当提高maxCommandChainLength规则的数量
 
 ## 许可证
 
 本项目采用 Apache 2.0 授权
 
 ## 鸣谢
+
 ### 参与测试
+
 - 4424 在项目前期发现了诸多bug并提出了大量具有建设性的意见
+
 ### 代码使用
+
 - 项目[fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) 快速整数开方
+
 ### 思路来源/大佬鸣谢
+
 - 大佬[zmr-233](https://github.com/zmr-233/) 提出了cps变换的解决递归的思路
 - 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 处理堆栈一条不同技术路线
 
