@@ -40,6 +40,7 @@ builtin_func = {
     "builtins/data/list_setitem_from": "$data modify storage $(target) $(target_path)[$(index)] set from storage $(source) $(source_path)",
     "builtins/data/list_getitem_storage": "$data modify storage $(target) $(target_path) set from storage $(source) $(source_path)[$(index)]",
     "builtins/data/list_getitem_score": "$execute store result score $(target) $(objective) run data get storage $(source) $(source_path)[$(index)] 1.0",
+    "builtins/data/list_remove": "$data remove storage $(target) $(target_path)[$(index)]",
 
 }
 
@@ -1119,6 +1120,65 @@ class Commands:
                         )
                     )
 
+        @staticmethod
+        def clear(result: Variable | Constant, generator, args: dict[str, Reference[Variable | Constant | Literal]]):
+            list_var = args["list"]
+            generator.current_scope.add_command(
+                DataBuilder.remove_storage(
+                    generator.var_objective,
+                    BasicCommands.get_symbol_path(generator.current_scope, list_var),
+                )
+            )
+
+        @staticmethod
+        def pop(result: Variable | Constant, generator, args: dict[str, Reference[Variable | Constant | Literal]]):
+            list_var = args["list"]
+            index = args["index"]
+
+            if result:
+                Commands.List.getitem(result, generator, args)
+
+            if index.value_type == ValueType.LITERAL:
+                generator.current_scope.add_command(
+                    DataBuilder.remove_storage(
+                        generator.var_objective,
+                        f"{BasicCommands.get_symbol_path(generator.current_scope, list_var)}[{index.value.value}]",
+                    )
+                )
+            else:
+                if index.get_data_type() in (DataType.INT, DataType.BOOLEAN):
+                    generator.current_scope.add_command(
+                        BasicCommands.Copy.copy_score_to_storage(
+                            index.value,
+                            generator.current_scope,
+                            generator.var_objective,
+                        )
+                    )
+
+                generator.current_scope.add_command(
+                    BasicCommands.call_macros_function(
+                        f"{generator.namespace}:builtins/data/list_remove",
+                        generator.var_objective,
+                        {
+                            "target": (
+                                False,
+                                generator.var_objective,
+                                None
+                            ),
+                            "target_path": (
+                                False,
+                                BasicCommands.get_symbol_path(generator.current_scope, list_var),
+                                None
+                            ),
+                            "index": (
+                                True,
+                                BasicCommands.get_symbol_path(generator.current_scope, index),
+                                generator.var_objective
+                            )
+                        }
+                    )
+                )
+
 
 class BuiltinFuncMapping:
     _lock = threading.Lock()
@@ -1152,6 +1212,8 @@ class BuiltinFuncMapping:
         'list_append': Commands.List.append,
         'list_setitem': Commands.List.setitem,
         'list_getitem': Commands.List.getitem,
+        'list_clear': Commands.List.clear,
+        'list_pop': Commands.List.pop,
 
     }
 

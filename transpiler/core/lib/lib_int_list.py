@@ -20,8 +20,9 @@ class IntList(Library):
         int_list_setitem_params = []
         int_list_getitem_params = []
         int_list_append_params = []
-
+        int_list_clear_params = []
         int_list_init_params = []
+        int_list_pop_params = []
         int_list_class = Class(
             "IntList",
             {
@@ -47,6 +48,18 @@ class IntList(Library):
                     "__init__",
                     int_list_init_params,
                     DataType.NULL,
+                    FunctionType.LIBRARY
+                ),
+                Function(
+                    "clear",
+                    int_list_init_params,
+                    DataType.NULL,
+                    FunctionType.LIBRARY
+                ),
+                Function(
+                    "pop",
+                    int_list_pop_params,
+                    DataType.INT,
                     FunctionType.LIBRARY
                 )
             },
@@ -128,8 +141,70 @@ class IntList(Library):
                 )
             ]
         )
-        self.classes[int_list_class] = {"__init__": self._init, "__getitem__": self._getitem,
-                                        "append": self._append, "__setitem__": self._setitem}
+        int_list_clear_params.extend(
+            [
+                Parameter(
+                    Variable(
+                        "self",
+                        int_list_class,
+                        VariableType.PARAMETER
+                    )
+                )
+            ]
+        )
+        int_list_pop_params.extend(
+            [
+                Parameter(
+                    Variable(
+                        "self",
+                        int_list_class,
+                        VariableType.PARAMETER
+                    )
+                ),
+                Parameter(
+                    Variable(
+                        "index",
+                        DataType.INT,
+                        VariableType.PARAMETER
+                    ),
+                    True,
+                    Reference.literal(-1)
+                )
+            ]
+        )
+
+        self.classes[int_list_class] = {
+            "__init__": self._init,
+            "__getitem__": self._getitem,
+            "__setitem__": self._setitem,
+            "append": self._append,
+            "clear": self._clear,
+            "pop": self._pop
+        }
+
+    def _clear(_self, self: Reference[Variable | Constant | Literal]):
+        _self.builder.insert(
+            IRCall(
+                self.value,
+                Function(
+                    "list_clear",
+                    [
+                        Parameter(
+                            Variable(
+                                "list",
+                                DataType.NULL,
+                                VariableType.PARAMETER
+                            )
+                        )
+                    ],
+                    DataType.NULL,
+                    FunctionType.BUILTIN
+                ),
+                {
+                    "list": self
+                }
+            )
+        )
 
     def _setitem(_self, self: Reference[Variable | Constant | Literal],
                  index: Reference[Variable | Constant | Literal],
@@ -206,7 +281,6 @@ class IntList(Library):
             )
         )
 
-
     def _getitem(_self, self: Reference[Variable | Constant | Literal],
                  index: Reference[Variable | Constant | Literal]):
         result_var = Variable(
@@ -234,7 +308,7 @@ class IntList(Library):
                             )
                         )
                     ],
-                    DataType.NULL,
+                    DataType.INT,
                     FunctionType.BUILTIN
                 ),
                 {
@@ -271,6 +345,44 @@ class IntList(Library):
         #     )
         # )
         return
+
+    def _pop(_self, self: Reference[Variable | Constant], index: Reference[Variable | Constant | Literal] ):
+        result_var = Variable(
+            "result_" + uuid.uuid4().hex[:8],
+            DataType.INT,
+            VariableType.PARAMETER)
+        _self.builder.insert(
+            IRCall(
+                result_var,
+                Function(
+                    "list_pop",
+                    [
+                        Parameter(
+                            Variable(
+                                "list",
+                                DataType.NULL,
+                                VariableType.PARAMETER
+                            )
+                        ),
+                        Parameter(
+                            Variable(
+                                "index",
+                                DataType.INT,
+                                VariableType.PARAMETER
+                            )
+                        )
+                    ],
+                    DataType.INT,
+                    FunctionType.BUILTIN
+                ),
+                {
+                    "list": self,
+                    "index": index,
+                }
+            )
+        )
+
+        return result_var
 
     def __str__(self) -> str:
         return "IntList"

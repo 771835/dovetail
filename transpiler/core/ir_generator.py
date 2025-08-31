@@ -115,6 +115,7 @@ class MCGenerator(transpilerVisitor):
         Returns:
             dict[str, Reference]: 参数名到参数值的映射字典
         """
+
         args_dict: dict[str, Reference] = {}
 
         # 如果提供了实例引用，将其作为第一个参数处理
