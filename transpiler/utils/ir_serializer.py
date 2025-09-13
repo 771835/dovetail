@@ -4,12 +4,12 @@ import time
 import uuid
 from enum import Enum
 
-from transpiler.core.backend.ir_builder import IRBuilder
+from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.enums import DataType
 from transpiler.core.symbols import Symbol, Variable, Constant, Literal, Parameter, Reference, Class, Function
 from transpiler.utils.binary_serializer import BinarySerializer
 
-version = "1.0.0"
+version = "1.0.1"
 
 
 class IRSymbolSerializer:
@@ -30,7 +30,7 @@ class IRSymbolSerializer:
         }
         if isinstance(symbol, (int, float, bool, str)):
             metadata['value'] = symbol
-        elif isinstance(symbol, (list, tuple)):
+        elif isinstance(symbol, (list, tuple, set)):
             metadata['value'] = [id(i) for i in symbol]
         elif isinstance(symbol, dict):
             metadata['value'] = {}
@@ -58,17 +58,18 @@ class IRSymbolSerializer:
             metadata['methods'] = [id(func_symbol) for func_symbol in symbol.methods]
             metadata['interface'] = id(symbol.interface)
             metadata['parent'] = id(symbol.parent)
-            metadata['constants'] = [id(const_symbol) for const_symbol in symbol.constants]
-            metadata['variables'] = [id(var_symbol) for var_symbol in symbol.variables]
+            metadata['properties'] = [id(var_symbol) for var_symbol in symbol.properties]
             metadata['type'] = id(symbol.type)
 
         return metadata
 
-    def _add_symbol_id_map(self, symbol: Symbol | Enum | list | dict | bool):
+    def _add_symbol_id_map(self, symbol: Symbol | Enum | list | dict | bool | set):
         # 将自身加入映射表
         if id(symbol) not in self.symbol_id_map:
             self.symbol_id_map[id(symbol)] = symbol
-        # 将符号中所有符号也加入其中
+        else:
+            return
+        # 将符号中所有子符号也加入其中
         if isinstance(symbol, Reference):
             self._add_symbol_id_map(symbol.value)
             self._add_symbol_id_map(symbol.value_type)
@@ -84,7 +85,13 @@ class IRSymbolSerializer:
             self._add_symbol_id_map(symbol.var)
             self._add_symbol_id_map(symbol.optional)
             self._add_symbol_id_map(symbol.default)
-        elif isinstance(symbol, (list, tuple)):
+        elif isinstance(symbol, Class):
+            self._add_symbol_id_map(symbol.properties)
+            self._add_symbol_id_map(symbol.methods)
+            self._add_symbol_id_map(symbol.type)
+            self._add_symbol_id_map(symbol.interface)
+            self._add_symbol_id_map(symbol.parent)
+        elif isinstance(symbol, (list, tuple, set)):
             for i in symbol:
                 self._add_symbol_id_map(i)
         elif isinstance(symbol, dict):
@@ -105,7 +112,7 @@ class IRSymbolSerializer:
             'version': version,
             'time': time.time_ns(),
             'minecraft_version': '2.0',
-            uuid.uuid4().hex: uuid.uuid4().hex,
+            'uuid': uuid.uuid4().hex,
         }
         result['symbol'] = {
             id_: self._extract_metadata(metadata)

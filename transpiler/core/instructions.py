@@ -4,6 +4,31 @@ from transpiler.core.enums import StructureType, CompareOps, BinaryOps, UnaryOps
 from transpiler.core.safe_enum import SafeEnum
 from transpiler.core.symbols import Literal, Class, Constant, Function, Reference, Variable, Symbol
 
+# 明确指定要导出的公共类和枚举
+__all__ = [
+    'IROpCode',
+    'IRInstruction',
+    'IRJump',
+    'IRCondJump',
+    'IRFunction',
+    'IRReturn',
+    'IRCall',
+    'IRScopeBegin',
+    'IRScopeEnd',
+    'IRBreak',
+    'IRContinue',
+    'IRDeclare',
+    'IRAssign',
+    'IRUnaryOp',
+    'IROp',
+    'IRCompare',
+    'IRCast',
+    'IRClass',
+    'IRNewObj',
+    'IRGetProperty',
+    'IRSetProperty',
+    'IRCallMethod'
+]
 
 class IROpCode(SafeEnum):
     # ===== 控制流指令 (0x00-0x1F) =====
@@ -51,6 +76,18 @@ class IROpCode(SafeEnum):
 
 
 class IRInstruction:
+    """
+    中间表示指令基类
+
+    Args:
+        opcode: 指令操作码
+        operands: 操作数列表
+        line: 源代码行号
+        column: 源代码列号
+        filename: 源文件名
+        flags: 指令标志位
+    """
+
     def __init__(
             self,
             opcode: IROpCode,
@@ -129,8 +166,13 @@ class IRInstruction:
 
 # 具体指令实现
 class IRJump(IRInstruction):
-    def __init__(self, scope: str, line: int = -1,
-                 column: int = -1, filename: str = None):
+    def __init__(
+            self,
+            scope: str,
+            line: int = -1,
+            column: int = -1,
+            filename: str = None
+    ):
         operands = [
             scope
         ]
@@ -138,13 +180,19 @@ class IRJump(IRInstruction):
 
 
 class IRCondJump(IRInstruction):
-    def __init__(self, cond: Variable | Literal, true_scope: str, false_scope: str = None, line: int = -1,
-                 column: int = -1,
-                 filename: str = None):
-        assert cond.dtype == DataType.BOOLEAN
+    def __init__(
+            self,
+            condition: Variable | Literal,
+            true_scope: str,
+            false_scope: str = None,
+            line: int = -1,
+            column: int = -1,
+            filename: str = None
+    ):
+        assert condition.dtype == DataType.BOOLEAN
 
         operands = [
-            cond,
+            condition,
             true_scope,
             false_scope
         ]
@@ -152,8 +200,13 @@ class IRCondJump(IRInstruction):
 
 
 class IRFunction(IRInstruction):
-    def __init__(self, function: Function, line: int = -1, column: int = -1,
-                 filename: str = None):
+    def __init__(
+            self,
+            function: Function,
+            line: int = -1,
+            column: int = -1,
+            filename: str = None
+    ):
         operands = [
             function
         ]
@@ -161,8 +214,13 @@ class IRFunction(IRInstruction):
 
 
 class IRReturn(IRInstruction):
-    def __init__(self, value: Reference[Variable | Constant | Literal] | None = None, line: int = -1, column: int = -1,
-                 filename: str = None):
+    def __init__(
+            self,
+            value: Reference[Variable | Constant | Literal] | None = None,
+            line: int = -1,
+            column: int = -1,
+            filename: str = None
+    ):
         operands = [
             value,
         ]
@@ -170,9 +228,14 @@ class IRReturn(IRInstruction):
 
 
 class IRCall(IRInstruction):
-    def __init__(self, result: Variable | Constant | None, func: Function,
-                 args: dict[str, Reference[Variable | Constant | Literal]] = None, line: int = -1, column: int = -1,
-                 filename: str = None):
+    def __init__(
+            self,
+            result: Variable | Constant | None,
+            func: Function,
+            args: dict[str, Reference[Variable | Constant | Literal]] = None,
+            line: int = -1, column: int = -1,
+            filename: str = None
+    ):
         if args is None:
             args = []
         operands = [
@@ -184,8 +247,14 @@ class IRCall(IRInstruction):
 
 
 class IRScopeBegin(IRInstruction):
-    def __init__(self, name: str, stype: StructureType,
-                 line: int = -1, column: int = -1, filename: str = None):
+    def __init__(
+            self,
+            name: str,
+            stype: StructureType,
+            line: int = -1,
+            column: int = -1,
+            filename: str = None
+    ):
         operands = [
             name,
             stype
@@ -194,7 +263,14 @@ class IRScopeBegin(IRInstruction):
 
 
 class IRScopeEnd(IRInstruction):
-    def __init__(self, name: str, stype: StructureType, line: int = -1, column: int = -1, filename: str = None):
+    def __init__(
+            self,
+            name: str,
+            stype: StructureType,
+            line: int = -1,
+            column: int = -1,
+            filename: str = None
+    ):
         operands = [
             name,
             stype
@@ -308,34 +384,47 @@ class IRNewObj(IRInstruction):
         super().__init__(IROpCode.NEW_OBJ, operands, line, column, filename)
 
 
-class IRGetField(IRInstruction):
-    def __init__(self, result: Variable, obj: Reference[Variable | Constant], field: str, line: int = -1,
+class IRGetProperty(IRInstruction):
+    def __init__(self, result: Variable, obj: Variable | Constant, property_name: str, line: int = -1,
                  column: int = -1,
                  filename: str = None):
         operands = [
             result,
             obj,
-            field
+            property_name
         ]
         super().__init__(IROpCode.GET_FIELD, operands, line, column, filename)
 
 
-class IRSetField(IRInstruction):
-    def __init__(self, obj: Variable, field: str, value: Reference[Variable | Constant | Literal], line: int = -1,
-                 column: int = -1,
-                 filename: str = None):
+class IRSetProperty(IRInstruction):
+    def __init__(
+            self,
+            obj: Variable | Constant,
+            property_name: str,
+            value: Reference[Variable | Constant | Literal],
+            line: int = -1,
+            column: int = -1,
+            filename: str = None
+    ):
         operands = [
             obj,
-            field,
+            property_name,
             value
         ]
         super().__init__(IROpCode.SET_FIELD, operands, line, column, filename)
 
 
 class IRCallMethod(IRInstruction):
-    def __init__(self, result: Variable | None, class_: Class, method: Function,
-                 args: dict[str, Reference] = None, line: int = -1,
-                 column: int = -1, filename: str = None):
+    def __init__(
+            self,
+            result: Variable | None,
+            class_: Class,
+            method: Function,
+            args: dict[str, Reference] = None,
+            line: int = -1,
+            column: int = -1,
+            filename: str = None
+    ):
         operands = [
             result,
             class_,
@@ -343,3 +432,4 @@ class IRCallMethod(IRInstruction):
             args
         ]
         super().__init__(IROpCode.CALL_METHOD, operands, line, column, filename)
+

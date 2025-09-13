@@ -17,9 +17,9 @@ from transpiler.core.ir_generator import MCGenerator
 from antlr4 import FileStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 
-from transpiler.core.backend.code_generator.c_je_1204 import CodeGenerator
-from transpiler.core.backend.optimizer.o_je_1204 import Optimizer
-from transpiler.core.backend.specification import MinecraftVersion
+from transpiler.core.backend.je_1204 import CodeGenerator
+from transpiler.core.optimizer.optimizer import Optimizer
+from transpiler.core.specification import MinecraftVersion
 from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel
 from transpiler.core.parser import transpilerLexer
 from transpiler.core.parser import transpilerParser
@@ -42,6 +42,7 @@ class Compile:
     def compile(self, source_path: Path, target_path: Path):
         source_path = Path(source_path)
         target_path = Path(target_path)
+
         source_dir = source_path.parent if source_path.is_file() else Path.cwd()
         s_t = time.time()
         tree = self.parser_file(source_path)
@@ -51,6 +52,7 @@ class Compile:
             return -1
         generator: MCGenerator = MCGenerator(self.config)
         with chdir(source_dir):
+            target_path.mkdir(parents=True, exist_ok=True)
             try:
                 s_t = time.time()
                 generator.visit(tree)
@@ -61,7 +63,7 @@ class Compile:
                 ir_builder = Optimizer(ir_builder, self.config).optimize()
                 print(f"IR优化用时：{time.time() - s_t}")
                 if self.config.output_temp_file:
-                    with open(target_path.with_name(f"{target_path.stem}.mcdc"), "wb") as f:
+                    with open(target_path / f"{self.config.namespace}.mcdc" , "wb") as f:
                         f.write(IRSymbolSerializer.dump(ir_builder, "eb9a736010764a6da0a3448874db8e2c"))
                     print(IRSymbolSerializer(ir_builder).serialize())
 

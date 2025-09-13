@@ -62,7 +62,6 @@ class Composite:
         commands = []
         result_path = result_scope.get_symbol_path(result.get_name())
 
-
         # 左项为字面量
         if left.value_type == ValueType.LITERAL:
             left_name = uuid.uuid4().hex
@@ -299,7 +298,6 @@ class Composite:
             result_objective: str
     ) -> list[str] | None:
 
-
         if op in (CompareOps.EQ, CompareOps.NE):
             return Composite.compare_base_type_equality(
                 left,
@@ -348,7 +346,7 @@ class Composite:
         :return: 生成的指令
         """
         result_path = result_scope.get_symbol_path(result.get_name())
-        if left in (DataType.BOOLEAN, DataType.INT):
+        if left.dtype in (DataType.BOOLEAN, DataType.INT):
             return [
                 ScoreboardBuilder.set_score(
                     result_path,
@@ -359,7 +357,7 @@ class Composite:
                     )
                 )
             ]
-        elif left == DataType.STRING:
+        elif left.dtype == DataType.STRING:
             if op == BinaryOps.ADD:
                 return [
                     DataBuilder.modify_storage_set_value(
@@ -368,8 +366,6 @@ class Composite:
                         f"{str(left.value)}{str(right.value)}"
                     )
                 ]
-            return None
-
         return None
 
     @staticmethod
@@ -571,7 +567,7 @@ class Composite:
             namespace: str = ""
     ) -> list[str] | None:
 
-        if left.value_type == ValueType.LITERAL and right.value_type == ValueType.LITERAL:
+        if left.value_type == ValueType.LITERAL == right.value_type:
             # 左右项均为字面量
             return Composite.op_base_type_literal_literal(
                 result,

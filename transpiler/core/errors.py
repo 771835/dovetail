@@ -1,8 +1,61 @@
 # coding=utf-8
+"""
+编译错误类定义
+"""
 from pathlib import Path
 
 from transpiler.core.enums import DataType
 from transpiler.core.symbols import Class
+
+__all__ = [
+    # 基础异常类
+    'CompilationError',
+
+    # 编译阶段错误
+    'ASTError',
+    'IROptimizationError',
+    'GenerationError',
+
+    # AST阶段细分错误
+    'ASTSyntaxError',
+    'ASTSemanticError',
+    'ASTInternalError',
+
+    # 具体错误类型
+    'InvalidSyntaxError',
+    'MissingTokenError',
+    'InvalidOperatorError',
+    'DuplicateDefinitionError',
+    'TypeMismatchError',
+    'UndefinedTypeError',
+    'ArgumentTypeMismatchError',
+    'NotCallableError',
+    'PrimitiveTypeOperationError',
+    'SymbolResolutionError',
+    'UndefinedVariableError',
+    'UndefinedFunctionError',
+    'SymbolCategoryError',
+    'ControlFlowError',
+    'InvalidControlFlowError',
+    'CompileRecursionError',
+    'InterfaceError',
+    'UnimplementedInterfaceMethodsError',
+    'CompileNotImplementedError',
+    'MissingImplementationError',
+    'FunctionNameConflictError',
+    'UnexpectedError',
+    'CompilerIncludeError',
+
+    # IR优化阶段错误
+    'IRTypeError',
+    'IRStructureError',
+    'IROptimizationLimitError',
+
+    # 代码生成阶段错误
+    'CodeGenerationError',
+    'TargetError',
+    'OutputError'
+]
 
 
 class CompilationError(Exception):

@@ -10,7 +10,7 @@ from transpiler.core.enums import ClassType, DataTypeBase
 from .base import Symbol
 
 if TYPE_CHECKING:
-    from . import Reference, Constant, Function, Variable
+    from . import Function, Variable
 
 
 @define(slots=True)
@@ -19,13 +19,20 @@ class Class(Symbol, DataTypeBase):
     methods: set[Function] = field(validator=validators.instance_of(set))
     interface: Optional[Class] = field(validator=validators.instance_of(Optional[DataTypeBase]))
     parent: Optional[Class] = field(validator=validators.instance_of(Optional[DataTypeBase]))
-    constants: set[Reference[Constant]] = field(validator=validators.instance_of(set))
-    variables: set[Reference[Variable]] = field(validator=validators.instance_of(set))
+    properties: set[Variable] = field(validator=validators.instance_of(set))
     type: ClassType = field(default=ClassType.CLASS, validator=validators.instance_of(ClassType))
 
     def get_name(self) -> str:
         return self.name
 
     def __hash__(self):
-        return hash((self.name, tuple(self.methods), id(self.interface), id(self.parent), tuple(self.constants),
-                     tuple(self.variables), self.type))
+        return hash(
+            (
+                self.name,
+                tuple(self.methods),
+                id(self.interface),
+                id(self.parent),
+                tuple(self.properties),
+                self.type
+            )
+        )

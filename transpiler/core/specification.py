@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from transpiler.core.backend.ir_builder import IRBuilder
+from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.generator_config import MinecraftVersion, GeneratorConfig
 
 
@@ -19,12 +19,6 @@ class IROptimizerSpec(ABC):
     @abstractmethod
     def optimize(self) -> IRBuilder:
         """对原始IR优化"""
-
-    @classmethod
-    @abstractmethod
-    def is_support(
-            cls, version: MinecraftVersion) -> bool:
-        """判断是否支持该版本"""
 
 
 class IROptimizationPass(ABC):

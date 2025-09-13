@@ -14,20 +14,19 @@ includeStmt
     : INCLUDE literal SEMI?             // 包含库文件，如：include "mathlib.mcdl";
     ;
 
-/* 2. 注解系统 */
+/* 注解系统 */
 
 annotation
     : '@' ID     // 仅允许使用预定义注解
     ;
 
-/* 3. 类系统 */
+/* 类 */
 classDecl
     : annotation* CLASS ID
       (EXTENDS type)?                      // 单继承
       (IMPLEMENTS type)?               // 单接口实现
       LBRACE // 构造函数为__init__
-        (varDecl SEMI?
-        | constDecl SEMI?
+        (classPropertyDecl SEMI?
         | methodDecl 
         )*
 
@@ -38,13 +37,18 @@ interfaceDecl
     : annotation* INTERFACE ID
       (EXTENDS type)?                  // 接口单继承
       LBRACE 
-        (methodDecl)*
+        (classPropertyDecl SEMI?
+        | methodDecl
+        )*
       RBRACE
     ;
 
+classPropertyDecl
+    : type ID QUESTION?
+    | LET ID QUESTION? (ARROW | COLON) type
+    ;
 
-
-/* 4. 类型系统(阉割版) */
+/* 类型系统(阉割版) */
 type
     : ID // ('[' (type ',')* ']')?
     | NULL
@@ -81,7 +85,7 @@ block
     ;
 
 
-/* 6. 流程控制 */
+/* 流程控制 */
 statement
     : functionDecl                         // 函数定义
     | varDecl SEMI?                        // 变量声明
@@ -134,16 +138,16 @@ whileStmt
     ;
 
 constDecl
-    : CONST ID ((ARROW | COLON) type)? ('?')? (ASSIGN expr)  // 常量声明
+    : CONST ID ((ARROW | COLON) type)? QUESTION? (ASSIGN expr)  // 常量声明
     | CONST type ID (ASSIGN expr)
     ;
 
 // 变量声明
 varDecl
-    : LET ID ('?')? ASSIGN expr
-    | ID (ARROW | COLON) type ('?')? (ASSIGN expr)?
-    | type ID ('?')? (ASSIGN expr)? // 更符合大多数人习惯的变量声明
-    | LET ID ('?')? (ARROW | COLON) type ASSIGN expr
+    : LET ID QUESTION? ASSIGN expr
+    | ID (ARROW | COLON) type QUESTION? (ASSIGN expr)?
+    | type ID QUESTION? (ASSIGN expr)? // 更符合大多数人习惯的变量声明
+    | LET ID QUESTION? (ARROW | COLON) type ASSIGN expr
     ;
 
 
@@ -250,11 +254,9 @@ FOR: 'for';
 WHILE: 'while';
 IF: 'if';
 ELSE: 'else';
-NEW: 'new';
 TRUE: 'true';
 FALSE: 'false';
 NULL: 'null';
-IN: 'in';
 BREAK: 'break';
 CONTINUE: 'continue';
 

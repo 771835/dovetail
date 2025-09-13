@@ -5,7 +5,7 @@ from typing import Callable
 
 from transpiler.utils.escape_processor import auto_escape
 from .command_builder import BasicCommands, Execute, ScoreboardBuilder, DataBuilder
-from transpiler.core.backend.specification import CodeGeneratorSpec
+from transpiler.core.specification import CodeGeneratorSpec
 from transpiler.core.enums import ValueType, DataType
 from transpiler.core.symbols import Reference, Variable, Constant, Literal
 
@@ -13,6 +13,11 @@ builtin_func = {
     "builtins/exec": "$$(command)",
     "builtins/strcat": "$data modify storage $(target) $(target_path) set value '$(dest)$(src)'",
     "builtins/str2int": "$scoreboard players set $(target) $(objective) $(value)'",
+    "builtins/oop/get_property_score": "$execute store result score $(target) $(objective) run data get storage $(source) object.$(id).$(property) 1",
+    "builtins/oop/get_property_storage": "$data modify storage $(target) $(target_path) set from storage $(source) object.$(id).$(property)",
+    "builtins/oop/set_property_storage": "$data modify storage $(target) object.$(id).$(property) set from storage $(source) $(source_path)",
+    "builtins/oop/set_property_storage_value": "$data modify storage $(target) object.$(id).$(property) set value \"$(value)\"",
+    "builtins/oop/set_property_score_value": "$data modify storage $(target) object.$(id).$(property) set value $(value)",
     "builtins/tellraw/tellraw_text": "$tellraw $(target) {\"storage\":\"$(objective)\",\"nbt\":\"$(path)\"}",
     "builtins/tellraw/tellraw_json": "$tellraw $(target) $(json)",
     "builtins/tellraw/tellraw_json_a": "$tellraw @a $(json)",
@@ -41,7 +46,6 @@ builtin_func = {
     "builtins/data/list_getitem_storage": "$data modify storage $(target) $(target_path) set from storage $(source) $(source_path)[$(index)]",
     "builtins/data/list_getitem_score": "$execute store result score $(target) $(objective) run data get storage $(source) $(source_path)[$(index)] 1.0",
     "builtins/data/list_remove": "$data remove storage $(target) $(target_path)[$(index)]",
-
 }
 
 
@@ -86,7 +90,7 @@ class Commands:
             message_ref = args["msg"]
             if message_ref.value_type == ValueType.LITERAL == target_ref.value_type:
                 generator.current_scope.add_command(
-                    f"tellraw {target_ref.value.value} \"{auto_escape(message_ref.value.value)}\"")
+                    f"tellraw {target_ref.value.value} \"{message_ref.value.value}\"")
             else:
                 if target_ref.value_type == ValueType.LITERAL:
                     generator.current_scope.add_command(

@@ -1,11 +1,14 @@
 # coding=utf-8
+"""
+生成1.20.4版本最终指令
+"""
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from transpiler.core.backend.ir_builder import IRBuilder, IRBuilderIterator, IRBuilderReversibleIterator
-from transpiler.core.backend.specification import CodeGeneratorSpec
+from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator, IRBuilderReversibleIterator
+from transpiler.core.specification import CodeGeneratorSpec
 from transpiler.core.enums import *
 from transpiler.core.generator_config import MinecraftEdition, GeneratorConfig, MinecraftVersion
 from transpiler.core.instructions import IROpCode, IRInstruction
@@ -13,15 +16,16 @@ from transpiler.core.symbols import *
 from .builtins import builtin_func, BuiltinFuncMapping
 from .code_generator_scope import CodeGeneratorScope
 from .command_builder import *
+from .command_builder.oop import OOP
 
 
 class CodeGenerator(CodeGeneratorSpec):
     def __init__(self, builder: IRBuilder, target: Path, config: GeneratorConfig):
-        self.iterator: IRBuilderIterator | None = None
         self.target = target
         self.config = config
         self.builder = builder
         self.namespace = config.namespace
+        self.iterator: IRBuilderIterator | None = None
         self.uuid_namespace = uuid.uuid4()
         self.top_scope = CodeGeneratorScope(
             "global",
@@ -29,10 +33,22 @@ class CodeGenerator(CodeGeneratorSpec):
             StructureType.GLOBAL,
             self.namespace
         )
+        # 作用域堆栈
         self.scope_stack = [self.top_scope]
         self.current_scope = self.top_scope
-        self.var_objective = "var"  # 存储变量记分板
-        self.statement_objective = "stmt"  # 存储变量记分板
+        # 变量记分板名
+        self.var_objective = "var"
+        # 语句记分板
+        self.statement_objective = "stmt"
+        self.init_functions = [self.top_scope.get_minecraft_function_path()]
+        self.tick_functions = []
+        # 生成初始化指令
+        self._generate_init_code()
+
+    def _generate_init_code(self):
+        """
+        初始化记分板
+        """
         self.current_scope.add_command(
             ScoreboardBuilder.add_objective(
                 self.var_objective,
@@ -47,8 +63,14 @@ class CodeGenerator(CodeGeneratorSpec):
                 "Statement"
             )
         )
-        self.init_functions = [self.top_scope.get_minecraft_function_path()]
-        self.tick_functions = []
+        # 保证类id累加器被初始化
+        self.current_scope.add_command(
+            ScoreboardBuilder.add_score(
+                "#new_obj_id",
+                self.statement_objective,
+                0
+            )
+        )
 
     @staticmethod
     def is_support(config: GeneratorConfig) -> bool:
@@ -169,10 +191,10 @@ class CodeGenerator(CodeGeneratorSpec):
             IROpCode.CAST: self._cast,
 
             # ===== 面向对象指令 (0x40-0x5F) =====
-            # IROpCode.CLASS: self._class_def,
-            # IROpCode.NEW_OBJ: self._new_object,
-            # IROpCode.GET_FIELD: self._get_field,
-            # IROpCode.SET_FIELD: self._set_field,
+            IROpCode.CLASS: self._class,
+            IROpCode.NEW_OBJ: self._new_object,
+            IROpCode.GET_FIELD: self._get_property,
+            IROpCode.SET_FIELD: self._set_property,
             # IROpCode.CALL_METHOD: self._call_method,
 
             # ===== 命令生成指令 (0x60-0x7F) =====
@@ -193,7 +215,7 @@ class CodeGenerator(CodeGeneratorSpec):
         self.iterator = None
 
     def _handle_jump_flags(self, scope_name: str, jump_instr: IRInstruction):
-        # TODO:fuck! 这函数执行一次要30ms+纯纯性能刺客，我当时写下这函数是人我吃
+        # FIXME:这函数执行一次要30ms+纯纯性能刺客，我当时写下这函数是人我吃
         # 反向搜索
         iterator = self.iterator.__reversed__()
         # 向前搜索到需要跳转到的作用域的头部
@@ -333,6 +355,9 @@ class CodeGenerator(CodeGeneratorSpec):
         for annotation in function.annotations:
             self._handle_annotation(function, annotation)
 
+    def _class(self, instr: IRInstruction):
+        pass
+
     def _return(self, instr: IRInstruction):
         value: Reference[Variable | Constant | Literal] = instr.get_operands()[0]
         function_scope = self.current_scope.find_parent_scope_by_type(StructureType.FUNCTION)
@@ -346,20 +371,17 @@ class CodeGenerator(CodeGeneratorSpec):
                 value.get_data_type()
             )
             function_scope.add_symbol(return_var, force=True)
-            if isinstance(value.get_data_type(), DataType):
-                self.current_scope.add_command(
-                    BasicCommands.Copy.copy_base_type(
-                        return_var,
-                        self.current_scope,
-                        self.var_objective,
-                        value.value,
-                        self.current_scope,
-                        self.var_objective
-                    )
+
+            self.current_scope.add_command(
+                BasicCommands.Copy.copy(
+                    return_var,
+                    self.current_scope,
+                    self.var_objective,
+                    value.value,
+                    self.current_scope,
+                    self.var_objective
                 )
-            else:  # Class
-                assert isinstance(value.get_data_type(), Class)
-                pass  # TODO:实现类的赋值
+            )
 
         name = "#return_" + function_scope.get_unique_name(".")
         instr.add_flag(
@@ -440,27 +462,22 @@ class CodeGenerator(CodeGeneratorSpec):
             return
         jump_scope = self.current_scope.resolve_scope(func.name)
         for (param_name, arg), param in zip(args.items(), func.params):
-            if isinstance(arg.get_data_type(), DataType):
-                self.current_scope.add_command(
-                    BasicCommands.Copy.copy_base_type(
-                        param.var,
-                        jump_scope,
-                        self.var_objective,
-                        arg.value,
-                        self.current_scope,
-                        self.var_objective
-                    )
+            self.current_scope.add_command(
+                BasicCommands.Copy.copy(
+                    param.var,
+                    jump_scope,
+                    self.var_objective,
+                    arg.value,
+                    self.current_scope,
+                    self.var_objective
                 )
-            else:  # Class
-                assert isinstance(arg.get_data_type(), Class)
-                pass  # TODO:实现类的赋值
-
+            )
         self.current_scope.add_command(
             FunctionBuilder.run(
                 jump_scope.get_minecraft_function_path()
             )
         )
-        if isinstance(func.return_type, DataType) and func.return_type != DataType.NULL:
+        if func.return_type != DataType.NULL:
             self.current_scope.add_command(
                 BasicCommands.Copy.copy_variable_base_type(
                     result,
@@ -478,26 +495,21 @@ class CodeGenerator(CodeGeneratorSpec):
                     self.var_objective
                 )
             )
-        elif isinstance(func.return_type, Class):  # Class
-            pass  # TODO:实现类的赋值
 
     def _assign(self, instr: IRInstruction):
         target: Variable | Constant = instr.get_operands()[0]
         source: Reference[Variable | Constant | Literal] = instr.get_operands()[1]
-        if isinstance(target.dtype, DataType):
-            self.current_scope.add_command(
-                BasicCommands.Copy.copy_base_type(
-                    target,
-                    self.current_scope,
-                    self.var_objective,
-                    source.value,
-                    self.current_scope,
-                    self.var_objective
-                )
+
+        self.current_scope.add_command(
+            BasicCommands.Copy.copy(
+                target,
+                self.current_scope,
+                self.var_objective,
+                source.value,
+                self.current_scope,
+                self.var_objective
             )
-        else:  # Class
-            assert isinstance(target.dtype, Class)
-            pass  # TODO:实现类的赋值
+        )
 
     def _unary_op(self, instr: IRInstruction):
         result: Variable | Constant = instr.get_operands()[0]
@@ -538,9 +550,8 @@ class CodeGenerator(CodeGeneratorSpec):
                     self.namespace
                 )
             )
-        else:  # TODO:实现类的比较？
-            assert isinstance(result.dtype, Class)
-            pass
+        else:
+            assert False, "不支持的比较"
 
     def _compare(self, instr: IRInstruction):
         result: Variable | Constant = instr.get_operands()[0]
@@ -644,3 +655,61 @@ class CodeGenerator(CodeGeneratorSpec):
 
     def _declare(self, instr: IRInstruction):
         self.current_scope.add_symbol(instr.get_operands()[0])
+
+    def _new_object(self, instr: IRInstruction):
+        result: Variable = instr.get_operands()[0]
+        class_: Class = instr.get_operands()[1]
+        # 为新建的对象分配id
+        self.current_scope.add_command(
+            ScoreboardBuilder.set_op(
+                BasicCommands.get_symbol_path(
+                    self.current_scope,
+                    result
+                ),
+                self.var_objective,
+                "#new_obj_id",
+                self.statement_objective
+            )
+        )
+        self.current_scope.add_command(
+            ScoreboardBuilder.add_score(
+                "#new_obj_id",
+                self.statement_objective,
+                1
+            )
+        )
+
+    def _get_property(self, instr: IRInstruction):
+        result: Variable = instr.get_operands()[0]
+        obj: Variable | Constant = instr.get_operands()[1]
+        property_name: str = instr.get_operands()[2]
+        if result is None:
+            return
+        self.current_scope.add_command(
+            OOP.get_property(
+                result,
+                self.current_scope,
+                self.var_objective,
+                obj,
+                self.current_scope,
+                self.var_objective,
+                property_name
+            )
+        )
+    def _set_property(self, instr: IRInstruction):
+        obj: Variable | Constant = instr.get_operands()[0]
+        property_name: str = instr.get_operands()[1]
+        value: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+        if value is None:
+            return
+        self.current_scope.add_command(
+            OOP.set_property(
+                obj,
+                self.current_scope,
+                self.var_objective,
+                value,
+                self.current_scope,
+                self.var_objective,
+                property_name
+            )
+        )

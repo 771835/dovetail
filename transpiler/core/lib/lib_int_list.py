@@ -5,7 +5,7 @@ int数组
 import uuid
 from typing import Callable
 
-from transpiler.core.backend.ir_builder import IRBuilder
+from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.enums import DataType, FunctionType, VariableType
 from transpiler.core.instructions import IRInstruction, IRCall
 from transpiler.core.lib.library import Library
@@ -65,7 +65,6 @@ class IntList(Library):
             },
             None,
             None,
-            set(),
             set()
         )
         int_list_setitem_params.extend(

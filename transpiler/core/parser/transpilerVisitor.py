@@ -34,6 +34,11 @@ class transpilerVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by transpilerParser#classPropertyDecl.
+    def visitClassPropertyDecl(self, ctx:transpilerParser.ClassPropertyDeclContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by transpilerParser#type.
     def visitType(self, ctx:transpilerParser.TypeContext):
         return self.visitChildren(ctx)

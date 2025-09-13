@@ -22,7 +22,6 @@ class CodeGeneratorScope:
         return self._commands
 
     def add_command(self, commands: str | list[str]):
-
         if isinstance(commands, str):
             self._commands.append(commands)
         else:

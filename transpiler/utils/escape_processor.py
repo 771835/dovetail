@@ -80,7 +80,7 @@ class EscapeProcessor:
             return result[1:-1]
         return result
 
-    def batch_escape(self, texts, method='escape'):
+    def batch_escape(self, texts: list[str], method='escape'):
         """
         批量处理多个字符串
         """
@@ -129,7 +129,7 @@ class EscapeProcessor:
 
 
 # 便捷函数
-def auto_escape(text, method='escape'):
+def auto_escape(text: str, method='escape'):
     """
     便捷的转义函数
 
@@ -147,25 +147,17 @@ def auto_escape(text, method='escape'):
         'json': processor.escape_for_json,
         'python': processor.escape_for_python_string
     }
-
     if method in methods:
         return methods[method](text)
     else:
         raise ValueError(f"不支持的方法: {method}")
 
 
-# 使用示例
-if __name__ == "__main__":
+def main():
     # 创建处理器实例
     processor = EscapeProcessor()
 
     print("=== 基本转义示例 ===")
-    # 你的例子
-    test_text = '\\"'
-    escaped = processor.escape(test_text)
-    print(f'原文: {repr(test_text)}')
-    print(f'转义后: {repr(escaped)}')
-    print(f'显示: {escaped}')
 
     print("\n=== 各种转义字符处理 ===")
     test_cases = [
@@ -201,3 +193,8 @@ if __name__ == "__main__":
     print("\n=== 便捷函数使用 ===")
     result = auto_escape('This is a "test" string with \'quotes\' and \\backslashes\\')
     print(f'便捷转义结果: {repr(result)}')
+
+
+# 使用示例
+if __name__ == "__main__":
+    main()

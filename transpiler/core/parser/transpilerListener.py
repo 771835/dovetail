@@ -53,6 +53,15 @@ class transpilerListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by transpilerParser#classPropertyDecl.
+    def enterClassPropertyDecl(self, ctx:transpilerParser.ClassPropertyDeclContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#classPropertyDecl.
+    def exitClassPropertyDecl(self, ctx:transpilerParser.ClassPropertyDeclContext):
+        pass
+
+
     # Enter a parse tree produced by transpilerParser#type.
     def enterType(self, ctx:transpilerParser.TypeContext):
         pass

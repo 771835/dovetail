@@ -1,20 +1,18 @@
 # coding=utf-8
 import itertools
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Callable
 
 from antlr4 import FileStream, CommonTokenStream
 
-from transpiler.core.backend.ir_builder import IRBuilder
+from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.enums import ValueType, VariableType, FunctionType, ClassType, StructureType, BinaryOps, \
-    CompareOps, UnaryOps
+    CompareOps, UnaryOps, DataType
 from transpiler.core.errors import *
 from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.include_manager import IncludeManager
-from transpiler.core.instructions import (IRInstruction, IRAssign, IRDeclare, IRFunction, IROp,
-                                          IRCallMethod, IRCall, IRJump, IRCondJump, IRCast, IRCompare,
-                                          IRBreak, IRClass, IRReturn, IRContinue, IRScopeEnd,
-                                          IRScopeBegin, IRGetField, IRNewObj, IRUnaryOp, IRSetField)
+from transpiler.core.instructions import *
 from transpiler.core.lib.library import Library
 from transpiler.core.lib.library_mapping import StdBuiltinMapping
 from transpiler.core.parser.transpilerLexer import transpilerLexer
@@ -26,7 +24,6 @@ from transpiler.core.symbols import *
 
 
 class MCGenerator(transpilerVisitor):
-
     def __init__(self, config: GeneratorConfig):
         self._current_ctx = None
         self.config = config
@@ -715,8 +712,7 @@ class MCGenerator(transpilerVisitor):
             self._get_type_definition(
                 types[0].getText()) if not ctx.EXTENDS() and ctx.IMPLEMENTS() else None
         )
-        constants: set[Reference[Constant]] = set()
-        variables: set[Reference[Variable]] = set()
+        properties: set[Variable] = set()
         methods: set[Function] = set()
 
         class_ = Class(
@@ -724,8 +720,7 @@ class MCGenerator(transpilerVisitor):
             methods=methods,
             interface=interface,
             parent=parent,
-            constants=constants,
-            variables=variables
+            properties=properties
         )
 
         if not self.current_scope.add_symbol(class_):
@@ -747,13 +742,21 @@ class MCGenerator(transpilerVisitor):
                     filename=self.filename
                 )  # TODO:处理继承
 
-            # 处理字段和方法
-
-            for constant in ctx.constDecl():
-                constants.add(self.visit(constant).value)
-
-            for var in ctx.varDecl():
-                variables.add(self.visit(var).value)
+            # 处理实例属性和方法
+            property_ctx: transpilerParser.ClassPropertyDeclContext
+            for property_ctx in ctx.classPropertyDecl():
+                class_property = Variable(
+                    property_ctx.ID().getText(),
+                    self._get_type_definition(property_ctx.type_().getText())
+                )
+                if not self.current_scope.add_symbol(class_property):
+                    raise DuplicateDefinitionError(
+                        class_property.name,
+                        line=self._get_current_line(),
+                        column=self._get_current_column(),
+                        filename=self.filename
+                    )
+                properties.add(class_property)
 
             for method in ctx.methodDecl():
                 methods.add(self.visit(method).value.value)
@@ -779,16 +782,14 @@ class MCGenerator(transpilerVisitor):
     def visitInterfaceDecl(self, ctx: transpilerParser.InterfaceDeclContext):
         class_name = ctx.ID().getText()
         extends = self._get_type_definition(ctx.type_().getText())
-        constants: set[Reference[Constant]] = set()
-        variables: set[Reference[Variable]] = set()
+        properties: set[Variable] = set()
         methods: set[Function] = set()
 
         class_ = Class(class_name,
                        methods=methods,
                        interface=None,
                        parent=extends,
-                       constants=constants,
-                       variables=variables,
+                       properties=properties,
                        type=ClassType.INTERFACE)
 
         if not self.current_scope.add_symbol(class_):
@@ -982,7 +983,7 @@ class MCGenerator(transpilerVisitor):
         # 搜索被修改的变量或常量
         member_symbol = next(
             (
-                symbol for symbol in instance_type.variables  # NOQA
+                symbol for symbol in instance_type.properties
                 if symbol.get_name() == field_name
             ),
             None
@@ -994,7 +995,7 @@ class MCGenerator(transpilerVisitor):
                 column=self._get_current_column(),
                 filename=self.filename
             )
-        self._add_ir_instruction(IRSetField(instance_ref.value, field_name, value))
+        self._add_ir_instruction(IRSetProperty(instance_ref.value, field_name, value))
         return Result(value)
 
     def visitArrayAssignmentExpr(self, ctx: transpilerParser.ArrayAssignmentExprContext):
@@ -1230,7 +1231,7 @@ class MCGenerator(transpilerVisitor):
     def visitMemberAccess(self, ctx: transpilerParser.MemberAccessContext):
         instance_ref = self.visit(ctx.expr()).value
         instance_type = instance_ref.get_data_type()
-        field_name = ctx.ID().getText()
+        property_name = ctx.ID().getText()
         if isinstance(instance_type, DataType):
             raise PrimitiveTypeOperationError(
                 "成员访问",
@@ -1242,27 +1243,27 @@ class MCGenerator(transpilerVisitor):
         # 搜索被访问的变量或常量
         member_symbol = next(
             (
-                symbol for symbol in itertools.chain(instance_type.variables, instance_type.constants)  # NOQA
-                if symbol.get_name() == field_name
+                symbol for symbol in itertools.chain(instance_type.properties)
+                if symbol.get_name() == property_name
             ),
             None
         )
         if member_symbol is None:
             raise UndefinedVariableError(
-                field_name,
+                property_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filename
             )
-        result_var = self._create_temp_var(member_symbol.get_data_type(), "result")
+        result_var = self._create_temp_var(member_symbol.dtype, "result")
         self._add_ir_instruction(
-            IRGetField(
+            IRGetProperty(
                 result_var,
-                instance_ref,
-                field_name
+                instance_ref.value,
+                property_name
             )
         )
-        return Result(Reference(member_symbol.value_type, result_var))
+        return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitArrayAccess(self, ctx: transpilerParser.ArrayAccessContext):
         array = self.visit(ctx.expr(0)).value

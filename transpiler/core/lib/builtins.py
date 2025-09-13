@@ -2,7 +2,7 @@
 import uuid
 from typing import Callable
 
-from transpiler.core.backend.ir_builder import IRBuilder
+from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.enums import DataType, ValueType, BinaryOps, FunctionType
 from transpiler.core.errors import ASTSyntaxError, InvalidControlFlowError
 from transpiler.core.instructions import IRInstruction, IRCast, IRDeclare, IROp, IRScopeBegin, \

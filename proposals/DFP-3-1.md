@@ -41,8 +41,8 @@
 |-------------|-----------------------------|---------|
 | CLASS       | class                       | 声明类结构   |
 | NEW_OBJ     | result class [args...]      | 创建对象实例  |
-| GET_FIELD   | result obj field            | 获取对象字段值 |
-| SET_FIELD   | obj field value             | 设置对象字段值 |
+| GET_FIELD   | result obj property         | 获取对象属性值 |
+| SET_FIELD   | obj property value          | 设置对象属性值 |
 | CALL_METHOD | result obj method [args...] | 调用对象方法  |
 
 ## 关键实现细节

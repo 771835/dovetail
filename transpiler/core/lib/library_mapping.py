@@ -2,7 +2,7 @@
 import threading
 from functools import lru_cache
 
-from transpiler.core.backend.ir_builder import IRBuilder
+from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.lib.builtins import Builtins
 from transpiler.core.lib.experimental import Experimental
 from transpiler.core.lib.lib_int_list import IntList

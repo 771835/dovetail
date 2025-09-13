@@ -8,13 +8,14 @@ from itertools import count
 
 from attrs import define, field, validators
 
-from transpiler.core.backend.ir_builder import IRBuilder, IRBuilderIterator
-from transpiler.core.backend.specification import IROptimizerSpec, \
-    IROptimizationPass, MinecraftVersion
-from transpiler.core.enums import ValueType, VariableType, DataTypeBase
-from transpiler.core.generator_config import GeneratorConfig, MinecraftEdition, OptimizationLevel
+from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator
+from transpiler.core.specification import IROptimizerSpec, \
+    IROptimizationPass
+from transpiler.core.enums import ValueType, VariableType, DataTypeBase, DataType, BinaryOps, StructureType, UnaryOps, \
+    CompareOps
+from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel
 from transpiler.core.instructions import *
-from transpiler.core.symbols import Variable, Reference, Constant, Literal
+from transpiler.core.symbols import Variable, Reference, Constant, Literal, Function, Class
 
 
 class Optimizer(IROptimizerSpec):
@@ -25,18 +26,9 @@ class Optimizer(IROptimizerSpec):
         self.level = config.optimization_level
         self.initial_builder = builder
         self.builder = copy.deepcopy(builder)  # 防止修改初始状态
-        self.passes = []  # 存储启用的优化通道
-
-    @classmethod
-    def is_support(
-            cls, version: MinecraftVersion) -> bool:
-
-        if version.major == 1 and version.minor == 20 and version.patch == 4 and version.edition == MinecraftEdition.JAVA_EDITION:
-            return True
-        else:
-            return False
 
     def optimize(self) -> IRBuilder:
+        # 存储启用的优化通道
         optimization_pass: list[type[IROptimizationPass]] = []
         if self.level == OptimizationLevel.O0:
             return self.builder
@@ -701,7 +693,8 @@ class DeadCodeEliminationPass(IROptimizationPass):
     def _has_side_effect(self, instr):
         """判断指令是否有副作用"""
         return isinstance(instr,
-                          (IRAssign, IRCast, IRReturn, IRCall, IRCallMethod, IRNewObj, IRGetField, IRSetField, IROp,
+                          (IRAssign, IRCast, IRReturn, IRCall, IRCallMethod, IRNewObj, IRGetProperty, IRSetProperty,
+                           IROp,
                            IRCompare, IRUnaryOp))
 
     def _is_declaration_exists(self, var_name):
@@ -1317,9 +1310,9 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 self._handle_unary_op(iterator, instr, visible_aliases)
             elif isinstance(instr, IRCast):
                 self._handle_cast(iterator, instr, visible_aliases)
-            elif isinstance(instr, IRGetField):
+            elif isinstance(instr, IRGetProperty):
                 self._handle_get_field(iterator, instr, visible_aliases)
-            elif isinstance(instr, IRSetField):
+            elif isinstance(instr, IRSetProperty):
                 self._handle_set_field(iterator, instr, visible_aliases)
 
     def _handle_assign(self, iterator, instr: IRAssign, visible_aliases: dict):
@@ -1493,7 +1486,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
                     new_instr = IRCast(result, dtype, final_alias)
                     iterator.set_current(new_instr)
 
-    def _handle_get_field(self, iterator, instr: IRGetField, visible_aliases: dict):
+    def _handle_get_field(self, iterator, instr: IRGetProperty, visible_aliases: dict):
         """处理字段获取中的对象引用替换"""
         result, obj_ref, field = instr.get_operands()
 
@@ -1503,10 +1496,10 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 final_alias = visible_aliases[obj_name]
                 if (isinstance(final_alias, Reference) and
                         (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != obj_name)):
-                    new_instr = IRGetField(result, final_alias, field)
+                    new_instr = IRGetProperty(result, final_alias, field)
                     iterator.set_current(new_instr)
 
-    def _handle_set_field(self, iterator, instr: IRSetField, visible_aliases: dict):
+    def _handle_set_field(self, iterator, instr: IRSetProperty, visible_aliases: dict):
         """处理字段设置中的对象引用和值引用替换"""
         obj_ref, field, value_ref = instr.get_operands()
         changed = False
@@ -1534,5 +1527,5 @@ class ChainAssignEliminationPass(IROptimizationPass):
                     changed = True
 
         if changed:
-            new_instr = IRSetField(new_obj, field, new_value)
+            new_instr = IRSetProperty(new_obj, field, new_value)
             iterator.set_current(new_instr)
