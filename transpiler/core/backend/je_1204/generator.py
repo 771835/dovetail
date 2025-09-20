@@ -195,7 +195,7 @@ class CodeGenerator(CodeGeneratorSpec):
             IROpCode.NEW_OBJ: self._new_object,
             IROpCode.GET_FIELD: self._get_property,
             IROpCode.SET_FIELD: self._set_property,
-            # IROpCode.CALL_METHOD: self._call_method,
+            IROpCode.CALL_METHOD: self._method_call,
 
             # ===== 命令生成指令 (0x60-0x7F) =====
         }
@@ -496,6 +496,51 @@ class CodeGenerator(CodeGeneratorSpec):
                 )
             )
 
+    def _method_call(self, instr: IRInstruction):
+        # TODO:完善测试
+        result: Variable | Constant = instr.get_operands()[0]
+        class_: Class = instr.get_operands()[1]
+        func: Function = instr.get_operands()[2]
+        args: dict[str, Reference[Variable | Constant | Literal]] = instr.get_operands()[3]
+        if func.function_type == FunctionType.BUILTIN:
+            BuiltinFuncMapping.get(f"{class_.get_name()}:{func.get_name()}")(result, self, args)
+            return
+        jump_scope = self.current_scope.resolve_scope(class_.name).find_scope(func.name)
+        for (param_name, arg), param in zip(args.items(), func.params):
+            self.current_scope.add_command(
+                BasicCommands.Copy.copy(
+                    param.var,
+                    jump_scope,
+                    self.var_objective,
+                    arg.value,
+                    self.current_scope,
+                    self.var_objective
+                )
+            )
+        self.current_scope.add_command(
+            FunctionBuilder.run(
+                jump_scope.get_minecraft_function_path()
+            )
+        )
+        if func.return_type != DataType.NULL:
+            self.current_scope.add_command(
+                BasicCommands.Copy.copy_variable_base_type(
+                    result,
+                    self.current_scope,
+                    self.var_objective,
+                    Variable(
+                        "return_" +
+                        uuid.uuid5(
+                            self.uuid_namespace,
+                            jump_scope.get_unique_name('.')
+                        ).hex[:8],
+                        func.return_type
+                    ),
+                    jump_scope,
+                    self.var_objective
+                )
+            )
+
     def _assign(self, instr: IRInstruction):
         target: Variable | Constant = instr.get_operands()[0]
         source: Reference[Variable | Constant | Literal] = instr.get_operands()[1]
@@ -696,6 +741,7 @@ class CodeGenerator(CodeGeneratorSpec):
                 property_name
             )
         )
+
     def _set_property(self, instr: IRInstruction):
         obj: Variable | Constant = instr.get_operands()[0]
         property_name: str = instr.get_operands()[1]

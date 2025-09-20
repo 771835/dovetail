@@ -1,4 +1,7 @@
 # coding=utf-8
+"""
+遍历AST，生成中间指令
+"""
 import itertools
 from contextlib import contextmanager
 from pathlib import Path
@@ -95,6 +98,64 @@ class MCGenerator(transpilerVisitor):
     def get_ir(self) -> IRBuilder:
         return self.ir_builder
 
+    def _validate_function_call_with_result(
+            self,
+            func_symbol: Function,
+            argument_list: list,
+    ) -> dict[str, Reference]:
+        """
+        验证函数调用参数并返回参数字典
+
+        Args:
+            func_symbol: 被调用的函数符号
+            argument_list: 参数列表
+
+        Returns:
+            dict[str, Reference]: 参数名到参数值引用的映射字典
+
+        Raises:
+            InvalidSyntaxError: 当参数数量不匹配时
+            ArgumentTypeMismatchError: 当参数类型不匹配时
+        """
+
+        min_args: int = sum(not param.optional for param in func_symbol.params)
+        max_args: int = len(func_symbol.params)
+        # 参数字典
+        args_dict: dict[str, Reference] = {}
+
+        # 检查参数数量是否在有效范围内
+        if len(argument_list) > max_args:
+            raise InvalidSyntaxError(
+                f"参数数量不匹配: 期望最多 {max_args} 个参数，实际 {len(argument_list)} 个",
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+        elif len(argument_list) < min_args:
+            raise InvalidSyntaxError(
+                f"参数数量不匹配: 期望至少 {min_args} 个参数，实际 {len(argument_list)} 个",
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
+
+        # 效验数据并记录参数字典
+        for i, (arg_ref, param) in enumerate(itertools.zip_longest(argument_list, func_symbol.params)):
+            arg_value = arg_ref or param.default
+            args_dict[param.get_name()] = arg_value
+            # 类型检查
+            if param.get_data_type() != arg_value.get_data_type():
+                raise ArgumentTypeMismatchError(
+                    param_name=param.get_name(),
+                    expected=param.get_data_type().name,
+                    actual=arg_value.get_data_type().name,
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
+                    filename=self.filename
+                )
+
+        return args_dict
+
     def _process_call_arguments(
             self,
             func_symbol: Function,
@@ -113,89 +174,14 @@ class MCGenerator(transpilerVisitor):
             dict[str, Reference]: 参数名到参数值的映射字典
         """
 
-        args_dict: dict[str, Reference] = {}
+        args_list: list[Reference] = []
 
-        # 如果提供了实例引用，将其作为第一个参数处理
         if instance_ref is not None and func_symbol.params:
-            # 将实例作为第一个参数
-            first_param = func_symbol.params[0]
-            args_dict[first_param.get_name()] = instance_ref
-
-        # 计算实际需要处理的参数范围
-        param_start_index = 1 if instance_ref is not None and func_symbol.params else 0
-        available_params = func_symbol.params[param_start_index:] if func_symbol.params else []
-
-        # 获取参数数量限制（不包括实例参数）
-        min_args: int = sum(not param.optional for param in available_params)
-        max_args: int = len(available_params)
-
-        # 如果有参数列表
-        if argument_list_ctx and argument_list_ctx.exprList():
-            expr_list = argument_list_ctx.exprList()
-            arg_exprs = expr_list.expr() if expr_list else []
-
-            # 检查参数数量是否在有效范围内
-            if len(arg_exprs) > max_args:
-                raise InvalidSyntaxError(
-                    f"参数数量不匹配: 期望最多 {max_args} 个参数，实际 {len(arg_exprs)} 个",
-                    line=self._get_current_line(),
-                    column=self._get_current_column(),
-                    filename=self.filename
-                )
-
-            # 处理每个参数（跳过实例参数的位置）
-            for i, (arg_expr, param) in enumerate(itertools.zip_longest(arg_exprs, available_params)):
-                if arg_expr:
-                    # 计算参数值
-                    arg_value = self.visit(arg_expr).value
-
-                    # 类型检查
-                    if param.get_data_type() != arg_value.get_data_type():
-                        raise ArgumentTypeMismatchError(
-                            param_name=param.get_name(),
-                            expected=param.get_data_type().name,
-                            actual=arg_value.get_data_type().name,
-                            line=arg_expr.start.line,
-                            column=arg_expr.start.column,
-                            filename=self.filename
-                        )
-
-                    args_dict[param.get_name()] = arg_value
-                else:
-                    # 处理缺少的参数（如果有默认值）
-                    if param and param.optional:
-                        arg_value = param.default
-                        if arg_value:
-                            args_dict[param.get_name()] = arg_value
-                        else:
-                            raise InvalidSyntaxError(
-                                f"参数 '{param.get_name()}' 缺少且没有默认值",
-                                line=self._get_current_line(),
-                                column=self._get_current_column(),
-                                filename=self.filename
-                            )
-                    elif param:
-                        raise InvalidSyntaxError(
-                            f"参数数量不匹配: 期望至少 {min_args} 个参数，实际 {i} 个",
-                            line=self._get_current_line(),
-                            column=self._get_current_column(),
-                            filename=self.filename
-                        )
-        else:
-            # 没有提供参数，检查是否允许（只检查非实例参数）
-            if min_args > 0:
-                raise InvalidSyntaxError(
-                    f"参数数量不匹配: 期望至少 {min_args} 个参数，实际 0 个",
-                    line=self._get_current_line(),
-                    column=self._get_current_column(),
-                    filename=self.filename
-                )
-            # 处理可选参数的默认值
-            for param in available_params:
-                if param.optional and param.default:
-                    args_dict[param.get_name()] = param.default
-
-        return args_dict
+            args_list.append(instance_ref)
+        if argument_list_ctx.exprList() and argument_list_ctx.exprList().expr():
+            for expr in argument_list_ctx.exprList().expr():
+                args_list.append(self.visit(expr).value)
+        return self._validate_function_call_with_result(func_symbol, args_list)
 
     def _process_function_declaration(
             self,
@@ -1011,7 +997,7 @@ class MCGenerator(transpilerVisitor):
                 column=self._get_current_column(),
                 filename=self.filename
             )
-        getitem_method = method_symbol = next(
+        setitem_method = method_symbol = next(
             (
                 method for method in array_type.methods
                 if method.get_name() == "__setitem__"
@@ -1026,13 +1012,13 @@ class MCGenerator(transpilerVisitor):
                 filename=self.filename
             )
         # TODO:进行更完整的检测和效验参数类型
-        if getitem_method.function_type != FunctionType.LIBRARY:
+        if setitem_method.function_type != FunctionType.LIBRARY:
             self._add_ir_instruction(
                 IRCallMethod(
                     None,
                     array_type,
-                    getitem_method,
-                    {"self": array, "index": index, "value": value}
+                    setitem_method,
+                    self._validate_function_call_with_result(setitem_method, [array, index, value])
                 )
             )
         else:
@@ -1292,14 +1278,13 @@ class MCGenerator(transpilerVisitor):
                 filename=self.filename
             )
         if getitem_method.function_type != FunctionType.LIBRARY:
-            # TODO:进行更完整的检测和效验参数类型
             result_var = self._create_temp_var(array_type, "result")
             self._add_ir_instruction(
                 IRCallMethod(
                     result_var,
                     array_type,
                     getitem_method,
-                    {"self": array, "index": index}
+                    self._validate_function_call_with_result(getitem_method, [array, index])
                 )
             )
         else:
