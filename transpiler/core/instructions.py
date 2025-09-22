@@ -30,6 +30,7 @@ __all__ = [
     'IRCallMethod'
 ]
 
+
 class IROpCode(SafeEnum):
     # ===== 控制流指令 (0x00-0x1F) =====
     JUMP = 0x00  # 无条件跳转
@@ -432,4 +433,3 @@ class IRCallMethod(IRInstruction):
             args
         ]
         super().__init__(IROpCode.CALL_METHOD, operands, line, column, filename)
-

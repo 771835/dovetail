@@ -2,8 +2,8 @@
 from abc import ABCMeta, abstractmethod
 from typing import Callable
 
-from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.instructions import IRInstruction
+from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.symbols import Constant, Class, Function, Reference, Variable, Literal
 
 

@@ -3,10 +3,10 @@
 面对对象特性的指令生成函数
 """
 from transpiler.core.enums import DataType, ValueType
+from transpiler.core.symbols import Variable, Constant, Reference, Literal
 from transpiler.utils.escape_processor import auto_escape
 from . import BasicCommands
 from ..code_generator_scope import CodeGeneratorScope
-from transpiler.core.symbols import Variable, Constant, Reference, Literal
 
 
 class OOP:

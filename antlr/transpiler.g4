@@ -164,7 +164,6 @@ ifStmt
 expr
     :primary                               # PrimaryExpr        // 基础表达式
 
-    //| lambdaExpr                            # LambdaExpression   // Lambda
     //| methodReference                       # MethodRefExpr      // 方法引用
     //| expr '?' '.' ID                       # SafeNavigation     // 安全导航
     | expr '.' ID argumentList         # MethodCall         // 方法调用

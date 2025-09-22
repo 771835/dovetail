@@ -2,6 +2,7 @@
 import argparse
 import sys
 import time
+import warnings
 from contextlib import chdir
 from pathlib import Path
 
@@ -19,8 +20,7 @@ from antlr4.error.ErrorListener import ErrorListener
 
 from transpiler.core.backend.je_1204 import CodeGenerator
 from transpiler.core.optimizer.optimizer import Optimizer
-from transpiler.core.specification import MinecraftVersion
-from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel
+from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel, MinecraftVersion
 from transpiler.core.parser import transpilerLexer
 from transpiler.core.parser import transpilerParser
 from transpiler.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
@@ -63,10 +63,10 @@ class Compile:
                 ir_builder = Optimizer(ir_builder, self.config).optimize()
                 print(f"IR优化用时：{time.time() - s_t}")
                 if self.config.output_temp_file:
-                    with open(target_path / f"{self.config.namespace}.mcdc" , "wb") as f:
-                        f.write(IRSymbolSerializer.dump(ir_builder, "eb9a736010764a6da0a3448874db8e2c"))
-                    print(IRSymbolSerializer(ir_builder).serialize())
+                    with open(target_path / f"{self.config.namespace}.mcdc", "wb") as f:
+                        f.write(IRSymbolSerializer.dump(ir_builder, f"mcdc-{repr(self.config.minecraft_version)}"))
 
+                if self.config.debug:
                     depth = 0
                     for i in ir_builder:
                         if isinstance(i, IRScopeEnd):
@@ -184,9 +184,6 @@ if __name__ == "__main__":
 
         transpiler.easter_egg.main()
     if args.disable_warnings:
-        import warnings
-
-
         @Mixin(warnings, force=True)
         class WarningsMixin:
             @staticmethod

@@ -5,9 +5,9 @@ int数组
 import uuid
 from typing import Callable
 
-from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.enums import DataType, FunctionType, VariableType
 from transpiler.core.instructions import IRInstruction, IRCall
+from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.lib.library import Library
 from transpiler.core.symbols import Constant, Reference, Function, Variable, Literal, Class, Parameter
 
@@ -345,7 +345,7 @@ class IntList(Library):
         # )
         return
 
-    def _pop(_self, self: Reference[Variable | Constant], index: Reference[Variable | Constant | Literal] ):
+    def _pop(_self, self: Reference[Variable | Constant], index: Reference[Variable | Constant | Literal]):
         result_var = Variable(
             "result_" + uuid.uuid4().hex[:8],
             DataType.INT,

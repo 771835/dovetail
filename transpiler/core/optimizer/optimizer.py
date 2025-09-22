@@ -8,13 +8,13 @@ from itertools import count
 
 from attrs import define, field, validators
 
-from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator
-from transpiler.core.specification import IROptimizerSpec, \
-    IROptimizationPass
 from transpiler.core.enums import ValueType, VariableType, DataTypeBase, DataType, BinaryOps, StructureType, UnaryOps, \
     CompareOps
 from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel
 from transpiler.core.instructions import *
+from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator
+from transpiler.core.specification import IROptimizerSpec, \
+    IROptimizationPass
 from transpiler.core.symbols import Variable, Reference, Constant, Literal, Function, Class
 
 
@@ -1127,7 +1127,8 @@ class EmptyScopeRemovalPass(IROptimizationPass):
 
             if isinstance(instr, IRScopeBegin):
                 scope_name = instr.get_operands()[0]
-                if scope_name in self.empty_scopes:
+                stype = instr.get_operands()[1]
+                if scope_name in self.empty_scopes and stype not in (StructureType.FUNCTION, StructureType.CLASS):
                     iterator.remove_current()
                     deleting_scope = scope_name
             elif isinstance(instr, IRScopeEnd):
@@ -1494,8 +1495,8 @@ class ChainAssignEliminationPass(IROptimizationPass):
             obj_name = obj_ref.get_name()
             if obj_name in visible_aliases:
                 final_alias = visible_aliases[obj_name]
-                if (isinstance(final_alias, Reference) and
-                        (final_alias.value_type != ValueType.VARIABLE or final_alias.get_name() != obj_name)):
+                if (isinstance(final_alias, (Variable, Constant)) and
+                        final_alias.get_name() != obj_name):
                     new_instr = IRGetProperty(result, final_alias, field)
                     iterator.set_current(new_instr)
 

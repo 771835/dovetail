@@ -9,13 +9,12 @@ from typing import Callable
 
 from antlr4 import FileStream, CommonTokenStream
 
-from transpiler.core.ir_builder import IRBuilder
-from transpiler.core.enums import ValueType, VariableType, FunctionType, ClassType, StructureType, BinaryOps, \
-    CompareOps, UnaryOps, DataType
+from transpiler.core.enums import *
 from transpiler.core.errors import *
 from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.include_manager import IncludeManager
 from transpiler.core.instructions import *
+from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.lib.library import Library
 from transpiler.core.lib.library_mapping import StdBuiltinMapping
 from transpiler.core.parser.transpilerLexer import transpilerLexer
@@ -181,6 +180,7 @@ class MCGenerator(transpilerVisitor):
         if argument_list_ctx.exprList() and argument_list_ctx.exprList().expr():
             for expr in argument_list_ctx.exprList().expr():
                 args_list.append(self.visit(expr).value)
+
         return self._validate_function_call_with_result(func_symbol, args_list)
 
     def _process_function_declaration(
@@ -1011,7 +1011,6 @@ class MCGenerator(transpilerVisitor):
                 column=self._get_current_column(),
                 filename=self.filename
             )
-        # TODO:进行更完整的检测和效验参数类型
         if setitem_method.function_type != FunctionType.LIBRARY:
             self._add_ir_instruction(
                 IRCallMethod(

@@ -4,8 +4,8 @@ import time
 import uuid
 from enum import Enum
 
-from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.enums import DataType
+from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.symbols import Symbol, Variable, Constant, Literal, Parameter, Reference, Class, Function
 from transpiler.utils.binary_serializer import BinarySerializer
 

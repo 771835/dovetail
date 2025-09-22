@@ -7,19 +7,22 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator, IRBuilderReversibleIterator
-from transpiler.core.specification import CodeGeneratorSpec
 from transpiler.core.enums import *
 from transpiler.core.generator_config import MinecraftEdition, GeneratorConfig, MinecraftVersion
 from transpiler.core.instructions import IROpCode, IRInstruction
+from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator, IRBuilderReversibleIterator
+from transpiler.core.specification import CodeGeneratorSpec
 from transpiler.core.symbols import *
 from .builtins import builtin_func, BuiltinFuncMapping
 from .code_generator_scope import CodeGeneratorScope
 from .command_builder import *
-from .command_builder.oop import OOP
 
 
 class CodeGenerator(CodeGeneratorSpec):
+    """
+    je1.20.4指令生成后端
+    """
+
     def __init__(self, builder: IRBuilder, target: Path, config: GeneratorConfig):
         self.target = target
         self.config = config
@@ -63,12 +66,12 @@ class CodeGenerator(CodeGeneratorSpec):
                 "Statement"
             )
         )
-        # 保证类id累加器被初始化
+        # 保证类id累加器被初始化,同时保证0为null唯一使用(但是每次重新启动都将使id缺失一个)
         self.current_scope.add_command(
             ScoreboardBuilder.add_score(
                 "#new_obj_id",
                 self.statement_objective,
-                0
+                1
             )
         )
 
@@ -89,12 +92,13 @@ class CodeGenerator(CodeGeneratorSpec):
         """处理单个IR指令"""
         handler = handlers.get(instr.opcode, self._fallback_handler)
 
-        # 添加调试注释
-        if instr.opcode not in (IROpCode.SCOPE_BEGIN, IROpCode.SCOPE_END,
-                                IROpCode.FUNCTION, IROpCode.CLASS):
-            self.current_scope.add_command(
-                BasicCommands.comment(f"{self.current_scope.name}:{instr}")
-            )
+        if self.config.debug:
+            # 添加调试注释
+            if instr.opcode not in (IROpCode.SCOPE_BEGIN, IROpCode.SCOPE_END,
+                                    IROpCode.FUNCTION, IROpCode.CLASS):
+                self.current_scope.add_command(
+                    BasicCommands.comment(f"{self.current_scope.name}:{instr}")
+                )
 
         # 处理指令
         handler(instr)
@@ -133,13 +137,16 @@ class CodeGenerator(CodeGeneratorSpec):
 
         while stack:
             current: CodeGeneratorScope = stack.pop()
-            file_path = self.target / self.namespace / "data" / current.get_file_path()
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(file_path, 'w', encoding='utf-8') as f:
-                # 写入文件位置及信息
-                f.write(f"# {current.get_file_path()} time:{datetime.now()} version:{self.config.minecraft_version}\n")
-                # 写入实际指令
-                f.write('\n'.join(current.get_commands()))
+            if current.get_commands():
+                file_path = self.target / self.namespace / "data" / current.get_file_path()
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    if self.config.debug:
+                        # 写入文件位置及信息
+                        f.write(
+                            f"# {current.get_file_path()} time:{datetime.now()} version:{self.config.minecraft_version}\n")
+                    # 写入实际指令
+                    f.write('\n'.join(current.get_commands()))
             stack.extend(reversed(current.children))
 
     def _write_builtin_functions(self):
@@ -477,7 +484,7 @@ class CodeGenerator(CodeGeneratorSpec):
                 jump_scope.get_minecraft_function_path()
             )
         )
-        if func.return_type != DataType.NULL:
+        if func.return_type != DataType.NULL and result is not None:
             self.current_scope.add_command(
                 BasicCommands.Copy.copy_variable_base_type(
                     result,
@@ -497,7 +504,6 @@ class CodeGenerator(CodeGeneratorSpec):
             )
 
     def _method_call(self, instr: IRInstruction):
-        # TODO:完善测试
         result: Variable | Constant = instr.get_operands()[0]
         class_: Class = instr.get_operands()[1]
         func: Function = instr.get_operands()[2]
@@ -522,9 +528,9 @@ class CodeGenerator(CodeGeneratorSpec):
                 jump_scope.get_minecraft_function_path()
             )
         )
-        if func.return_type != DataType.NULL:
+        if func.return_type != DataType.NULL and result is not None:
             self.current_scope.add_command(
-                BasicCommands.Copy.copy_variable_base_type(
+                BasicCommands.Copy.copy(
                     result,
                     self.current_scope,
                     self.var_objective,
@@ -703,7 +709,6 @@ class CodeGenerator(CodeGeneratorSpec):
 
     def _new_object(self, instr: IRInstruction):
         result: Variable = instr.get_operands()[0]
-        class_: Class = instr.get_operands()[1]
         # 为新建的对象分配id
         self.current_scope.add_command(
             ScoreboardBuilder.set_op(
@@ -716,6 +721,7 @@ class CodeGenerator(CodeGeneratorSpec):
                 self.statement_objective
             )
         )
+        # 增加id值
         self.current_scope.add_command(
             ScoreboardBuilder.add_score(
                 "#new_obj_id",

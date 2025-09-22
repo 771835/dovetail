@@ -1,6 +1,7 @@
 class a {
     int i;
-    method __init__(self:a) -> a {
+
+    method __init__() -> a {
 
     }
 }

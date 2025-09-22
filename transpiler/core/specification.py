@@ -4,8 +4,14 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.ir_builder import IRBuilder
-from transpiler.core.generator_config import MinecraftVersion, GeneratorConfig
+
+__all__ = [
+    'IROptimizerSpec',
+    'IROptimizationPass',
+    'CodeGeneratorSpec'
+]
 
 
 class IROptimizerSpec(ABC):

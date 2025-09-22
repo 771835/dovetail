@@ -3,12 +3,11 @@ import random
 import sys
 import time
 
-from transpiler.core.enums import DataType, ValueType
+from transpiler.core.enums import DataType
 from transpiler.core.errors import CompilationError
 from transpiler.core.instructions import IRInstruction
 from transpiler.core.ir_generator import MCGenerator
 from transpiler.core.result import Result
-from transpiler.core.symbols import Reference, Literal
 from transpiler.utils.mixin_manager import Mixin, At, Inject, CallbackInfoReturnable
 
 
@@ -48,7 +47,7 @@ class SpecialEasterEggMixin:
         if hasattr(SpecialEasterEggMixin, 'easter_egg_mode') and SpecialEasterEggMixin.easter_egg_mode:
             if ci.return_value and ci.return_value.value.get_data_type() == DataType.INT:
                 new_val = ci.return_value.value.value.value * 2
-                ci.set_return_value(Result.from_literal(new_val,DataType.INT))
+                ci.set_return_value(Result.from_literal(new_val, DataType.INT))
 
 
 @Mixin(sys)

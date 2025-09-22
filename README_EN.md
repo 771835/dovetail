@@ -11,7 +11,7 @@
 ## Goals
 
 - [ ] Write once, compile anywhere
-- [ ] Object-oriented support
+- [x] Object-oriented support
 - [ ] Complete dependency libraries, no need to write commands manually
 - [ ] Lower learning curve
 
@@ -22,12 +22,14 @@
 - Python 3.10+
 
 ### Quick Start
+
 ```bash
 git clone https://github.com/771835/dovetail.git
 cd dovetail
 pip install -r requirements.txt
 python main.py -O2 xxx.mcdl
 ```
+
 ## FAQ
 
 Q: Why is recursion not supported?  

@@ -1,7 +1,7 @@
 # coding=utf-8
 from __future__ import annotations
 
-from enum import IntEnum, auto
+from enum import IntEnum
 from pathlib import Path
 
 from attrs import define, field, validators
@@ -30,7 +30,7 @@ class MinecraftEdition(SafeEnum):
     BEDROCK_EDITION = "bedrock_edition"  # 基岩版 (BE)
 
 
-@define(frozen=True, slots=True, eq=True,repr=False)
+@define(frozen=True, slots=True, eq=True, repr=False)
 class MinecraftVersion:
     major: int = field(converter=int)
     minor: int = field(converter=int)
@@ -51,6 +51,7 @@ class MinecraftVersion:
             patch=version_[2] if len(version_) > 2 else 0,
             edition=minecraft_edition
         )
+
     def __repr__(self):
         return f"{self.edition.value}-{self.major}.{self.minor}.{self.patch}"
 

@@ -1,4 +1,7 @@
 # coding=utf-8
+"""
+内置库映射表
+"""
 import threading
 from functools import lru_cache
 
@@ -15,10 +18,15 @@ class StdBuiltinMapping:
     _lock = threading.Lock()
     builtin_map: dict[str, type[Library]] = {
         "builtins": Builtins,
+        "builtin.builtins": Builtins,
         "experimental": Experimental,
+        "builtin.experimental": Experimental,
         "random": Random,
+        "builtin.math.random": Random,
         "math": Math,
-        "int_list":IntList,
+        "builtin.math": Math,
+        "int_list": IntList,
+        "builtin.list.int_list": IntList,
     }
 
     @classmethod

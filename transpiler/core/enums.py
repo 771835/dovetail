@@ -1,7 +1,17 @@
 # coding=utf-8
-from __future__ import annotations
-
 from transpiler.core.safe_enum import SafeEnum
+
+__all__ = [
+    "ValueType",
+    "VariableType",
+    "FunctionType",
+    "ClassType",
+    "StructureType",
+    "BinaryOps",
+    "CompareOps",
+    "UnaryOps",
+    "DataType"
+]
 
 
 class FunctionType(SafeEnum):

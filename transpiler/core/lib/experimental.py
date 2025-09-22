@@ -1,8 +1,8 @@
 # coding=utf-8
 from typing import Callable
 
-from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.instructions import IRInstruction
+from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.lib.library import Library
 from transpiler.core.symbols import Constant, Reference, Function, Variable, Literal
 
