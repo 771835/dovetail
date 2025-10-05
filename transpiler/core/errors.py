@@ -32,6 +32,7 @@ __all__ = [
     'NotCallableError',
     'PrimitiveTypeOperationError',
     'SymbolResolutionError',
+    'UndefinedSymbolError',
     'UndefinedVariableError',
     'UndefinedFunctionError',
     'SymbolCategoryError',
@@ -235,6 +236,14 @@ class SymbolResolutionError(ASTSemanticError):
                  msg: str = None, line: int = None, column: int = None, filename: str = None):
         msg = msg or f"{category} '{symbol_name}' 未找到"
         super().__init__(msg, line=line, column=column, filename=filename)
+
+
+class UndefinedSymbolError(SymbolResolutionError):
+    """未定义变量"""
+
+    def __init__(self, var_name: str, line: int = None,
+                 column: int = None, filename: str = None):
+        super().__init__(var_name, "符号", line=line, column=column, filename=filename)
 
 
 class UndefinedVariableError(SymbolResolutionError):

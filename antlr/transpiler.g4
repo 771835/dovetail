@@ -297,9 +297,9 @@ FSTRING: 'f"' ( '\\' [\\"] | ~["\\$] | '${' )* '"' ; // 合并处理插值
 fragment ESC: '\\' [btnfr"\\$];  // 正确转义字符集
 fragment SAFE_CHAR: ~["\\\r\n];  // 安全字符
 
-// 最后定义ID
-ID  : [a-zA-Z_] [a-zA-Z0-9_]*;
-
+// 定义ID
+//ID  : [a-zA-Z_] [a-zA-Z0-9_]*;
+ID  : [_\p{L}] [_\p{L}\p{N}]*;
 
 
 // 空白处理

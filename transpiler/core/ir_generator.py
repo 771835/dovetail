@@ -6,6 +6,7 @@ import itertools
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable
+from functools import lru_cache
 
 from antlr4 import FileStream, CommonTokenStream
 
@@ -23,9 +24,14 @@ from transpiler.core.parser.transpilerVisitor import transpilerVisitor
 from transpiler.core.result import Result
 from transpiler.core.scope import Scope
 from transpiler.core.symbols import *
+from transpiler.utils.naming import NameNormalizer
 
 
 class MCGenerator(transpilerVisitor):
+    """"
+    遍历ast，生成ir
+    """
+
     def __init__(self, config: GeneratorConfig):
         self._current_ctx = None
         self.config = config
@@ -47,6 +53,7 @@ class MCGenerator(transpilerVisitor):
         if self.config.enable_experimental:
             self._load_library(StdBuiltinMapping.get("experimental", self.ir_builder))
 
+    @lru_cache(maxsize=None)
     def _load_library(self, library: Library):
         self._add_ir_instruction(library.load())
         for function, handler in library.get_functions().items():
@@ -95,6 +102,11 @@ class MCGenerator(transpilerVisitor):
         return None
 
     def get_ir(self) -> IRBuilder:
+        """
+        返回IRBuilder
+
+        :return: IRBuilder对象
+        """
         return self.ir_builder
 
     def _validate_function_call_with_result(
@@ -191,7 +203,7 @@ class MCGenerator(transpilerVisitor):
             process_annotations: bool = False
     ) -> Result:
         """通用函数/方法声明处理"""
-        func_name = ctx.ID().getText()
+        func_name = NameNormalizer.normalize(ctx.ID().getText())
         return_type = self._get_type_definition(ctx.type_().getText(), True) if ctx.type_() else DataType.NULL
 
         # 检查重复定义
@@ -302,9 +314,9 @@ class MCGenerator(transpilerVisitor):
             UndefinedVariableError: 当标识符未定义时
             SymbolCategoryError: 当标识符类型不正确时
         """
-        symbol: Symbol = self.current_scope.resolve_symbol(identifier_name)
+        symbol: Symbol = self.current_scope.resolve_symbol(NameNormalizer.normalize(identifier_name))
         if symbol is None:
-            raise UndefinedVariableError(
+            raise UndefinedSymbolError(
                 identifier_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
@@ -565,7 +577,7 @@ class MCGenerator(transpilerVisitor):
 
     def visitVarDecl(self, ctx: transpilerParser.VarDeclContext):
         """处理变量声明"""
-        var_name = ctx.ID().getText()
+        var_name = NameNormalizer.normalize(ctx.ID().getText())
         dtype: DataType | Class = self._get_type_definition(ctx.type_().getText()) if ctx.type_() else DataType.NULL
         var_value: Reference | None = None
 
@@ -626,7 +638,7 @@ class MCGenerator(transpilerVisitor):
         return Result(Reference(ValueType.VARIABLE, var))
 
     def visitConstDecl(self, ctx: transpilerParser.ConstDeclContext):
-        name = ctx.ID().getText()
+        name = NameNormalizer.normalize(ctx.ID().getText())
         dtype: DataType | Class = self._get_type_definition(ctx.type_().getText()) if ctx.type_() else DataType.NULL
         result = self.visit(ctx.expr())  # 处理初始化表达式
         # 如果没有显式指定类型，则根据初始值推断类型
@@ -687,7 +699,7 @@ class MCGenerator(transpilerVisitor):
         )
 
     def visitClassDecl(self, ctx: transpilerParser.ClassDeclContext):
-        class_name = ctx.ID().getText()
+        class_name = NameNormalizer.normalize(ctx.ID().getText())
         types = ctx.type_()
         # 使用规则显式检查
         parent: Class | None = self._get_type_definition(
@@ -766,7 +778,7 @@ class MCGenerator(transpilerVisitor):
         return Result(Reference(ValueType.CLASS, class_))
 
     def visitInterfaceDecl(self, ctx: transpilerParser.InterfaceDeclContext):
-        class_name = ctx.ID().getText()
+        class_name = NameNormalizer.normalize(ctx.ID().getText())
         extends = self._get_type_definition(ctx.type_().getText())
         properties: set[Variable] = set()
         methods: set[Function] = set()
@@ -956,7 +968,7 @@ class MCGenerator(transpilerVisitor):
     def visitMemberAssignmentExpr(self, ctx: transpilerParser.MemberAssignmentExprContext):
         instance_ref = self.visit(ctx.expr(0)).value
         instance_type = instance_ref.get_data_type()
-        field_name = ctx.ID().getText()
+        field_name = NameNormalizer.normalize(ctx.ID().getText())
         value = self.visit(ctx.expr(1)).value
         if isinstance(instance_type, DataType):
             raise PrimitiveTypeOperationError(
@@ -1000,13 +1012,13 @@ class MCGenerator(transpilerVisitor):
         setitem_method = method_symbol = next(
             (
                 method for method in array_type.methods
-                if method.get_name() == "__setitem__"
+                if method.get_name() == NameNormalizer.normalize("__setitem__")
             ),
             None
         )
         if method_symbol is None:
             raise UndefinedFunctionError(
-                "__setitem__",
+                NameNormalizer.normalize("__setitem__"),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filename
@@ -1135,7 +1147,8 @@ class MCGenerator(transpilerVisitor):
             return Result(Reference(ValueType.VARIABLE, result_var))
         elif isinstance(symbol, Class):
             if init_func := next(
-                    (method for method in list(symbol.methods) if method.get_name() == "__init__"), None):
+                    (method for method in list(symbol.methods) if
+                     method.get_name() == NameNormalizer.normalize("__init__")), None):
                 instance = self._create_temp_var(symbol, "instance")
                 self._add_ir_instruction(IRDeclare(instance))
                 self._add_ir_instruction(
@@ -1216,7 +1229,7 @@ class MCGenerator(transpilerVisitor):
     def visitMemberAccess(self, ctx: transpilerParser.MemberAccessContext):
         instance_ref = self.visit(ctx.expr()).value
         instance_type = instance_ref.get_data_type()
-        property_name = ctx.ID().getText()
+        property_name = NameNormalizer.normalize(ctx.ID().getText())
         if isinstance(instance_type, DataType):
             raise PrimitiveTypeOperationError(
                 "成员访问",
@@ -1265,7 +1278,7 @@ class MCGenerator(transpilerVisitor):
         getitem_method = method_symbol = next(
             (
                 method for method in array_type.methods
-                if method.get_name() == "__getitem__"
+                if method.get_name() == NameNormalizer.normalize("__getitem__")
             ),
             None
         )

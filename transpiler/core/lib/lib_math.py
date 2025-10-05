@@ -14,7 +14,6 @@ class Math(Library):
         self._constant: dict[Constant, Reference] = {
             Constant("INT_MAX", DataType.INT): Reference.literal(2147483647),
             Constant("INT_MIN", DataType.INT): Reference.literal(-2147483648),
-            Constant("DEADBEEF", DataType.INT): Reference.literal(0xdeadbeef),
         }
         self._functions: dict[Function, Callable[..., Variable | Constant | Literal] | None] = {
             Function(

@@ -1,3 +1,4 @@
+# 过时的示例，请不要使用他
 include "int_list"
 include "random"
 

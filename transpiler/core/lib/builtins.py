@@ -9,6 +9,7 @@ from transpiler.core.instructions import IRInstruction, IRCast, IRDeclare, IROp,
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.lib.library import Library
 from transpiler.core.symbols import Constant, Class, Function, Reference, Variable, Literal, Parameter
+from transpiler.utils.naming import NameNormalizer
 
 
 class Builtins(Library):
@@ -34,7 +35,7 @@ class Builtins(Library):
                 FunctionType.LIBRARY
             ): self._str,
             Function(
-                "str_i",
+                NameNormalizer.normalize("str_i"),
                 [
                     Parameter(Variable("value", DataType.INT))
                 ],
@@ -42,7 +43,7 @@ class Builtins(Library):
                 FunctionType.LIBRARY
             ): self._str,
             Function(
-                "str_b",
+                NameNormalizer.normalize("str_b"),
                 [
                     Parameter(Variable("value", DataType.BOOLEAN))
                 ],
@@ -67,7 +68,7 @@ class Builtins(Library):
                 FunctionType.LIBRARY
             ): self._strcat,
             Function(
-                "_call",
+                "__call",
                 [
                     Parameter(Variable("scope", DataType.STRING)),
                 ],

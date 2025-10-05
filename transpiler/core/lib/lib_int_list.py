@@ -10,6 +10,7 @@ from transpiler.core.instructions import IRInstruction, IRCall
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.lib.library import Library
 from transpiler.core.symbols import Constant, Reference, Function, Variable, Literal, Class, Parameter
+from transpiler.utils.naming import NameNormalizer
 
 
 class IntList(Library):
@@ -24,28 +25,28 @@ class IntList(Library):
         int_list_init_params = []
         int_list_pop_params = []
         int_list_class = Class(
-            "IntList",
+            NameNormalizer.normalize("IntList"),
             {
                 Function(
-                    "__setitem__",
+                    NameNormalizer.normalize("__setitem__"),
                     int_list_setitem_params,
                     DataType.NULL,
                     FunctionType.LIBRARY
                 ),
                 Function(
-                    "__getitem__",
+                    NameNormalizer.normalize("__getitem__"),
                     int_list_setitem_params,
                     DataType.INT,
                     FunctionType.LIBRARY
                 ),
                 Function(
-                    "append",
+                    NameNormalizer.normalize("append"),
                     int_list_append_params,
                     DataType.NULL,
                     FunctionType.LIBRARY
                 ),
                 Function(
-                    "__init__",
+                    NameNormalizer.normalize("__init__"),
                     int_list_init_params,
                     DataType.NULL,
                     FunctionType.LIBRARY
@@ -320,29 +321,28 @@ class IntList(Library):
         return result_var
 
     def _init(_self, self: Reference[Variable | Constant]) -> None:
-        # 似乎完全没必要初始化，因为有bug
-        # _self.builder.insert(
-        #     IRCall(
-        #         self.value,
-        #         Function(
-        #             "list_init",
-        #             [
-        #                 Parameter(
-        #                     Variable(
-        #                         "list",
-        #                         DataType.NULL,
-        #                         VariableType.PARAMETER
-        #                     )
-        #                 )
-        #             ],
-        #             DataType.NULL,
-        #             FunctionType.BUILTIN
-        #         ),
-        #         {
-        #             "list": self
-        #         }
-        #     )
-        # )
+        _self.builder.insert(
+            IRCall(
+                self.value,
+                Function(
+                    "list_init",
+                    [
+                        Parameter(
+                            Variable(
+                                "list",
+                                DataType.NULL,
+                                VariableType.PARAMETER
+                            )
+                        )
+                    ],
+                    DataType.NULL,
+                    FunctionType.BUILTIN
+                ),
+                {
+                    "list": self
+                }
+            )
+        )
         return
 
     def _pop(_self, self: Reference[Variable | Constant], index: Reference[Variable | Constant | Literal]):

@@ -1,11 +1,11 @@
 include "_minecraft.mcdl"
 
 func foo():int{
-    return 404259;
+    return 350234;
 }
 @init
 func bar(){
-    if (foo()==404259/1) {
+    if (foo()==350234/1) {
         exec("say 1");
         print("1")
     }else {

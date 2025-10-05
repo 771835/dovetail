@@ -6,6 +6,8 @@ import warnings
 from contextlib import chdir
 from pathlib import Path
 
+from transpiler.utils.naming import NameNormalizer
+
 start_time = time.time()
 
 from transpiler.core.instructions import IRScopeEnd, IRScopeBegin
@@ -146,26 +148,9 @@ if __name__ == "__main__":
     args_parser.add_argument('input', type=str, help='输入文件路径')
     args_parser.add_argument('--minecraft_version', '-mcv', metavar='version', type=str, help='游戏版本',
                              default="1.20.4")
-    args_parser.add_argument(
-        '--output',
-        '-o',
-        metavar='path',
-        type=str,
-        help='输出文件路径')
-    args_parser.add_argument(
-        '--lib-path',
-        '-L',
-        metavar='path',
-        type=str,
-        help='强制指定标准库路径')
-
-    args_parser.add_argument(
-        '--namespace',
-        '-n',
-        metavar='namespace',
-        type=str,
-        help='输出数据包命名空间')
-
+    args_parser.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
+    args_parser.add_argument('--lib-path', '-L', metavar='path', type=str, help='强制指定标准库路径')
+    args_parser.add_argument('--namespace', '-n', metavar='namespace', type=str, help='输出数据包命名空间')
     args_parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')
     args_parser.add_argument('--no-generate-commands', action='store_true', help='不生成指令')
     args_parser.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
@@ -174,6 +159,7 @@ if __name__ == "__main__":
     # args_parser.add_argument('--enable-first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
     args_parser.add_argument('--enable-experimental', action='store_true', help='启用扩展模式(测试性功能)')
     args_parser.add_argument('--disable-warnings', action='store_true', help='禁用警告')
+    args_parser.add_argument('--disable-names-normalizer', action='store_true', help='禁用命名规范化')
     args_parser.add_argument('--debug', action='store_true', help='启用调试模式')
     args_parser.add_argument('--wtf-mixin', action='store_true',
                              help='来点神奇的mixin(警告:这将会严重破坏编译器的功能)')
@@ -181,8 +167,8 @@ if __name__ == "__main__":
     args = args_parser.parse_args()
     if args.wtf_mixin:
         import transpiler.easter_egg
-
         transpiler.easter_egg.main()
+    NameNormalizer.enable = not args.disable_names_normalizer
     if args.disable_warnings:
         @Mixin(warnings, force=True)
         class WarningsMixin:

@@ -36,15 +36,17 @@ class SpecialEasterEggMixin:
     @Inject("visitLiteral", At(At.HEAD))
     def literal_injection(ci, self, ctx):
         # 检测到特定数字序列时激活
-        if ctx.getText() == "404259":
+        if ctx.getText() == "350234":
+            if hasattr(self, 'easter_egg_mode') and self.easter_egg_mode:
+                return
             print("\n🔥 恭喜发现隐藏模式！所有表达式值自动翻倍")
-            SpecialEasterEggMixin.easter_egg_mode = True
+            self.easter_egg_mode = True
 
     @staticmethod
     @Inject("visitLiteral", At(At.RETURN), cancellable=True)
     def literal_value_injection(ci, self, ctx):
         # 隐藏模式：所有数字翻倍
-        if hasattr(SpecialEasterEggMixin, 'easter_egg_mode') and SpecialEasterEggMixin.easter_egg_mode:
+        if hasattr(self, 'easter_egg_mode') and self.easter_egg_mode:
             if ci.return_value and ci.return_value.value.get_data_type() == DataType.INT:
                 new_val = ci.return_value.value.value.value * 2
                 ci.set_return_value(Result.from_literal(new_val, DataType.INT))
