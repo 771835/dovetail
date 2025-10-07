@@ -71,4 +71,4 @@ class GeneratorConfig:
     enable_same_name_function_nesting: bool = field(validator=validators.instance_of(bool), default=False)
     enable_first_class_functions: bool = field(validator=validators.instance_of(bool), default=False)
     enable_experimental: bool = field(validator=validators.instance_of(bool), default=False)
-    lib_path: Path = field(validator=validators.instance_of(Path), default=Path("lib").absolute())
+    lib_path: Path = field(validator=validators.instance_of(Path), default=Path("lib").resolve())

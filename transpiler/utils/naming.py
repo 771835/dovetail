@@ -1,5 +1,6 @@
 class NameNormalizer:
     enable = False
+
     @staticmethod
     def normalize(name: str) -> str:
         """将原始字符串规范化"""

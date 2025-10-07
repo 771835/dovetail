@@ -1,0 +1,11 @@
+{
+  "plugin_name": "LoaderPlugin",
+  "plugin_main": "main.py",
+  "plugin_version": "1.0.0",
+  "plugin_backend": [],
+  "plugin_optimize_pass": [],
+  "min_permission_level": 1,
+  "plugin_type": "loader",
+  "plugin_main_class": "LoaderPlugin",
+  "plugin_author": ["771835"]
+}

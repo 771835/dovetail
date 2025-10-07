@@ -10,6 +10,10 @@ from ..code_generator_scope import CodeGeneratorScope
 
 
 class OOP:
+    """
+    面对对象特性生成
+    """
+
     @staticmethod
     def get_property(
             result: Variable,

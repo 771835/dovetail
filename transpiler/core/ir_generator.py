@@ -4,9 +4,9 @@
 """
 import itertools
 from contextlib import contextmanager
+from functools import lru_cache
 from pathlib import Path
 from typing import Callable
-from functools import lru_cache
 
 from antlr4 import FileStream, CommonTokenStream
 
@@ -46,7 +46,7 @@ class MCGenerator(transpilerVisitor):
         self.scope_stack = [self.top_scope]
         self.cnt = itertools.count()
         self.filename = "<main>"
-        self.ir_builder: IRBuilder = IRBuilder()
+        self.ir_builder = IRBuilder()
 
         #  加载内置库
         self._load_library(StdBuiltinMapping.get("builtins", self.ir_builder))
@@ -469,6 +469,7 @@ class MCGenerator(transpilerVisitor):
             type_name: str,
             allow_null=False) -> DataType | Class:
         """获取类型的具体定义（内置类型返回DataType，类返回Class实例）null特殊处理"""
+        type_name = NameNormalizer.normalize(type_name)
         try:
             if builtin_type := DataType.get_by_value(type_name):
                 if builtin_type == DataType.NULL and not allow_null:
@@ -1441,7 +1442,7 @@ class MCGenerator(transpilerVisitor):
                 self.include_manager.add_include_path(include_path)
             else:
                 raise CompilerIncludeError(
-                    include_path.absolute(),
+                    include_path.resolve(),
                     "找不到文件",
                     line=self._get_current_line(),
                     column=self._get_current_column(),
@@ -1451,7 +1452,7 @@ class MCGenerator(transpilerVisitor):
         # 处理导入的文件
         try:
             old_filename = self.filename
-            self.filename = str(include_path.absolute())
+            self.filename = str(include_path.resolve())
             input_stream = FileStream(self.filename, encoding='utf-8')
             lexer = transpilerLexer(input_stream)
             stream = CommonTokenStream(lexer)
@@ -1464,7 +1465,7 @@ class MCGenerator(transpilerVisitor):
             self.filename = old_filename
         except Exception as e:
             raise CompilerIncludeError(
-                str(include_path.absolute()),
+                str(include_path.resolve()),
                 e.__repr__(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
