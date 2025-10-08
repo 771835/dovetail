@@ -64,6 +64,7 @@ class GeneratorConfig:
     namespace: str = field(validator=validators.instance_of(str))
     optimization_level: OptimizationLevel = field(validator=validators.instance_of(OptimizationLevel))
     minecraft_version: MinecraftVersion = field(validator=validators.instance_of(MinecraftVersion))
+    backend_name: str = field(validator=validators.instance_of(str), default="")
     debug: bool = field(validator=validators.instance_of(bool), default=False)
     no_generate_commands: bool = field(validator=validators.instance_of(bool), default=False)
     output_temp_file: bool = field(validator=validators.instance_of(bool), default=False)

@@ -53,3 +53,8 @@ class CodeGeneratorSpec(ABC):
     @abstractmethod
     def is_support(config: GeneratorConfig) -> bool:
         """判断是否支持该配置"""
+
+    @staticmethod
+    @abstractmethod
+    def get_name() -> str:
+        """获得后端名称"""

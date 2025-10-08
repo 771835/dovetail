@@ -17,7 +17,7 @@ from transpiler.core.include_manager import IncludeManager
 from transpiler.core.instructions import *
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.lib.library import Library
-from transpiler.core.lib.library_mapping import StdBuiltinMapping
+from transpiler.core.lib.library_mapping import LibraryMapping
 from transpiler.core.parser.transpilerLexer import transpilerLexer
 from transpiler.core.parser.transpilerParser import transpilerParser
 from transpiler.core.parser.transpilerVisitor import transpilerVisitor
@@ -49,9 +49,9 @@ class MCGenerator(transpilerVisitor):
         self.ir_builder = IRBuilder()
 
         #  加载内置库
-        self._load_library(StdBuiltinMapping.get("builtins", self.ir_builder))
+        self._load_library(LibraryMapping.get("builtins", self.ir_builder))
         if self.config.enable_experimental:
-            self._load_library(StdBuiltinMapping.get("experimental", self.ir_builder))
+            self._load_library(LibraryMapping.get("experimental", self.ir_builder))
 
     @lru_cache(maxsize=None)
     def _load_library(self, library: Library):
@@ -1431,7 +1431,7 @@ class MCGenerator(transpilerVisitor):
             return Result(None)
 
         # 判断是否为内置库
-        if library := StdBuiltinMapping.get(include_path_ref.value, self.ir_builder):
+        if library := LibraryMapping.get(include_path_ref.value, self.ir_builder):
             self._load_library(library)
             self.include_manager.add_include_path(include_path)
             return Result(None)

@@ -7,28 +7,24 @@ import warnings
 from contextlib import chdir
 from pathlib import Path
 
+from antlr4 import FileStream, CommonTokenStream
+from antlr4.error.ErrorListener import ErrorListener
 from jsonschema import validate, ValidationError
 
-from transpiler.core.ir_builder import IRBuilder
-
+from transpiler.core import registry
+from transpiler.core.errors import CompilationError
+from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel, MinecraftVersion
 from transpiler.core.instructions import IRScopeEnd, IRScopeBegin
+from transpiler.core.ir_builder import IRBuilder
+from transpiler.core.ir_generator import MCGenerator
+from transpiler.core.optimize.optimizer import Optimizer
+from transpiler.core.parser import transpilerLexer
+from transpiler.core.parser import transpilerParser
 from transpiler.core.scope import Scope
 from transpiler.plugins import load_plugin
 from transpiler.utils.ir_serializer import IRSymbolSerializer
-from transpiler.utils.naming import NameNormalizer
-
-from transpiler.core.errors import CompilationError
-from transpiler.core.ir_generator import MCGenerator
-
-from antlr4 import FileStream, CommonTokenStream
-from antlr4.error.ErrorListener import ErrorListener
-
-from transpiler.core.backend.je_1204 import CodeGenerator
-from transpiler.core.optimizer.optimizer import Optimizer
-from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel, MinecraftVersion
-from transpiler.core.parser import transpilerLexer
-from transpiler.core.parser import transpilerParser
 from transpiler.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
+from transpiler.utils.naming import NameNormalizer
 
 
 @Mixin(ErrorListener)  # 相比于正常继承，使用mixin会慢0.001-0.01左右，但是可以减少代码量，而且好酷qwq
@@ -69,7 +65,8 @@ class Compile:
         """
         source_path = Path(source_path)
         target_path = Path(target_path)
-        self._load_plugin("load_plugin", 1)
+        self._load_plugin("load_plugin")
+        self._load_plugin("je1204")
         if source_path.exists():
             if source_path.is_file():
                 return self._compile_file(source_path, target_path)
@@ -78,8 +75,8 @@ class Compile:
         else:
             raise FileNotFoundError(f"{source_path} does not exist")
 
-    def _load_plugin(self, plugin_name: str, permission_level=1):
-        load_plugin.plugin_loader.load_plugin(plugin_name, permission_level)
+    def _load_plugin(self, plugin_name: str):
+        load_plugin.plugin_loader.load_plugin(plugin_name)
 
     def _compile_directory(self, source_path: Path, target_path: Path):
         pack_config_path = source_path / "pack.config"
@@ -126,8 +123,23 @@ class Compile:
                     self._print_ir_builder(ir_builder)
                 if not self.config.no_generate_commands:
                     # 输出到target目录
+                    if self.config.backend_name:
+                        used_backend = registry.backends.get(self.config.backend_name, None)
+                        if used_backend is None:
+                            print(f"找不到名为{self.config.backend_name}的后端")
+                            return -1
+                    else:
+                        for name, backend in registry.backends.items():
+                            if backend.is_support(self.config):
+                                print(f"自动选择{name}后端")
+                                used_backend = backend
+                                break
+                        else:
+                            print(f"找不到可用后端")
+                            return -1
+
                     code_generator_start_time = time.time()
-                    CodeGenerator(ir_builder, target_path, self.config).generate_commands()
+                    used_backend(ir_builder, target_path, self.config).generate_commands()
                     print(f"最终代码生成与写入总用时：{time.time() - code_generator_start_time}")
             except CompilationError as e:
                 time.sleep(0.1)  # 保证前面的输出完成
@@ -207,6 +219,7 @@ if __name__ == "__main__":
                              default="1.20.4")
     args_parser.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
     args_parser.add_argument('--lib-path', '-L', metavar='path', type=str, help='强制指定标准库路径')
+    args_parser.add_argument('--backend-name', '-B', metavar='name', type=str, help='强制指定后端名称', default="")
     args_parser.add_argument('--namespace', '-n', metavar='namespace', type=str, help='输出数据包命名空间')
     args_parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')
     args_parser.add_argument('--no-generate-commands', action='store_true', help='不生成指令')
@@ -240,6 +253,7 @@ if __name__ == "__main__":
             args.namespace or "namespace",
             OptimizationLevel(args.O),
             MinecraftVersion.from_str(args.minecraft_version),
+            args.backend_name,
             args.debug,
             args.no_generate_commands,
             args.output_temp_file,

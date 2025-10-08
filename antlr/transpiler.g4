@@ -260,7 +260,12 @@ BREAK: 'break';
 CONTINUE: 'continue';
 
 
-
+ASSIGN : '=';
+ADD_ASSIGN : '+=';
+SUB_ASSIGN : '-=';
+MUL_ASSIGN : '*=';
+DIV_ASSIGN : '/=';
+MOD_ASSIGN : '%=';
 
 // 运算符
 NOT : '!'
@@ -283,7 +288,6 @@ AND : '&&'
 OR  : '||'
     | 'or'
     ;
-ASSIGN : '=';
 
 
 // 数字

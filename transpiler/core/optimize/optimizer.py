@@ -8,6 +8,7 @@ from itertools import count
 
 from attrs import define, field, validators
 
+from transpiler.core import registry
 from transpiler.core.enums import ValueType, VariableType, DataTypeBase, DataType, BinaryOps, StructureType, UnaryOps, \
     CompareOps
 from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel
@@ -19,8 +20,8 @@ from transpiler.core.symbols import Variable, Reference, Constant, Literal, Func
 
 
 class Optimizer(IROptimizerSpec):
-    def __init__(self, builder: IRBuilder,
-                 config: GeneratorConfig):
+
+    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
         self.config = config
         self.debug = config.debug
         self.level = config.optimization_level
@@ -32,20 +33,17 @@ class Optimizer(IROptimizerSpec):
         optimization_pass: list[type[IROptimizationPass]] = []
         if self.level == OptimizationLevel.O0:
             return self.builder
-        if self.level >= OptimizationLevel.O3:  # 测试性优化
-            # FIXME: 对于for循环的优化存在严重问题
-            optimization_pass.append(ChainAssignEliminationPass)
         if self.level >= OptimizationLevel.O1:
             optimization_pass.append(ConstantFoldingPass)
             optimization_pass.append(DeadCodeEliminationPass)
             optimization_pass.append(DeclareCleanupPass)
             optimization_pass.append(UnreachableCodeRemovalPass)
+            optimization_pass.extend(registry.optimization_pass.get(OptimizationLevel.O1, []))
         if self.level >= OptimizationLevel.O2:
             optimization_pass.append(UselessScopeRemovalPass)
-
-        if self.level >= OptimizationLevel.O3:  # 测试性优化
-            # FIXME:当函数嵌套且名称重复时会出现删除错误,故临时放在测试性优化，等待修复
-            optimization_pass.append(EmptyScopeRemovalPass)
+            optimization_pass.extend(registry.optimization_pass.get(OptimizationLevel.O2, []))
+        if self.level >= OptimizationLevel.O3:
+            optimization_pass.extend(registry.optimization_pass.get(OptimizationLevel.O3, []))
 
         last_hash = hash(tuple(self.builder.get_instructions()))
         iteration = count()
@@ -1054,6 +1052,7 @@ class UselessScopeRemovalPass(IROptimizationPass):
 class EmptyScopeRemovalPass(IROptimizationPass):
 
     def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+        # FIXME:当函数嵌套且名称重复时会出现删除错误,故临时放在测试性优化，等待修复
         self.builder = builder
         self.scope_instructions = {}  # 作用域 -> 指令列表
         self.empty_scopes = set()  # 空作用域集合
@@ -1179,6 +1178,8 @@ class UnreachableCodeRemovalPass(IROptimizationPass):
 
 class ChainAssignEliminationPass(IROptimizationPass):
     def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+        # FIXME: 对于for循环的优化存在严重问题
+
         self.builder = builder
         self.config = config
 

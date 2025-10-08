@@ -84,6 +84,10 @@ class CodeGenerator(CodeGeneratorSpec):
             return False
         return True
 
+    @staticmethod
+    def get_name() -> str:
+        return "je1204"
+
     def _process_instruction(
             self,
             instr: IRInstruction,

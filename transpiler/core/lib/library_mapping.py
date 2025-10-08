@@ -14,7 +14,7 @@ from transpiler.core.lib.lib_random import Random
 from transpiler.core.lib.library import Library
 
 
-class StdBuiltinMapping:
+class LibraryMapping:
     _lock = threading.Lock()
     builtin_map: dict[str, type[Library]] = {
         "builtins": Builtins,
