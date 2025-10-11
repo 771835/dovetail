@@ -4,3 +4,4 @@ from transpiler.core.specification import CodeGeneratorSpec, IROptimizationPass
 
 backends: dict[str, type[CodeGeneratorSpec]] = {}
 optimization_pass: dict[OptimizationLevel, list[type[IROptimizationPass]]] = {}
+#events: dict[str, list[type[Event]]] = {}

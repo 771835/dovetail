@@ -12,3 +12,6 @@ class JE1204(Plugin):
 
     def unload(self):
         pass
+
+    def validate(self):
+        return True

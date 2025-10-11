@@ -1,5 +1,6 @@
 # coding=utf-8
 import json
+import os
 from pathlib import Path
 
 from jsonschema import ValidationError, validate
@@ -22,7 +23,7 @@ class PluginLoader:
     plugin_meta_schema = {
         "type": "object",
         "properties": {
-            "plugin_name": {
+            "display_name": {
                 "type": "string"
             },
             "plugin_main": {
@@ -35,7 +36,7 @@ class PluginLoader:
                 "type": "string",
                 "enum": ["plugin", "library", "loader"]
             },
-            "plugin_main_class": {
+            "main_class_name": {
                 "type": "string"
             },
             "plugin_author": {
@@ -45,12 +46,12 @@ class PluginLoader:
                 }
             }
         },
-        "required": [  # 所有字段都是必需的
-            "plugin_name",
+        "required": [  # 必需的字段
+            "display_name",
             "plugin_main",
             "plugin_version",
             "plugin_type",
-            "plugin_main_class",
+            "main_class_name",
             "plugin_author"
         ],
         "additionalProperties": False  # 不允许额外属性
@@ -61,7 +62,7 @@ class PluginLoader:
         self.plugins_main_class: dict[str, Plugin] = {}
 
     def load_plugin(self, plugin_name):
-        # 根据插件名获取插件入口代码
+        # 根据插件目录名获取插件入口代码
         for plugins_path in PluginLoader.plugins_paths:
             plugin_path = Path(plugins_path) / plugin_name
             if plugin_path.exists() and plugin_path.is_dir():
@@ -74,13 +75,15 @@ class PluginLoader:
                         validate(instance=metadata, schema=self.plugin_meta_schema)
                     except (json.decoder.JSONDecodeError, ValidationError):
                         print(f"Plugin '{plugin_path}' is invalid")
-                        continue
+                        if os.environ and os.environ.get("PLUGIN_DEBUG"):
+                            raise
+                        else:
+                            continue
                     # 读取入口文件
-                    plugin_main = Path(plugin_path) / metadata["plugin_main"]
+                    plugin_main = Path(plugin_path) / metadata.get("plugin_main")
                     if plugin_main.exists() and plugin_main.is_file():
                         with open(plugin_main) as plugin_main_file:
                             code = plugin_main_file.read()
-
                     else:
                         print(f"Plugin '{plugin_path}' is invalid")
                         continue
@@ -107,9 +110,10 @@ class PluginLoader:
             global_env.update(plugin_locals)
             self.plugins_locals[plugin_name] = plugin_locals
             # 搜索入口类
-            if plugin_main_class := plugin_locals.get(metadata["plugin_main_class"], None):
+            if plugin_main_class := plugin_locals.get(metadata["main_class_name"], None):
                 self.plugins_main_class[plugin_name] = plugin_main_class()
-
+                if not self.plugins_main_class[plugin_name].validate():
+                    raise RuntimeError(f"Plugin '{plugin_name}' has invalid configuration")
                 self.plugins_main_class[plugin_name].load()
             else:
                 raise ModuleNotFoundError(f"Plugin '{plugin_name}' is invalid")
@@ -119,7 +123,8 @@ class PluginLoader:
                 del self.plugins_locals[plugin_name]
             if self.plugins_main_class.get(plugin_name, None):
                 del self.plugins_main_class[plugin_name]
-            raise
+            if os.environ and os.environ.get("PLUGIN_DEBUG"):
+                raise
 
 
 plugin_loader = PluginLoader()

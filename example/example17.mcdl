@@ -1,0 +1,272 @@
+include "mathlib.mcdl"
+
+class Fraction {
+    int numerator;
+    int denominator;
+
+    method __init__(Fraction self, int num, int den) {
+        if (den == 0) den = 1;
+
+        int gcd_val = gcd(abs(num), abs(den));
+        self.numerator = num / gcd_val;
+        self.denominator = den / gcd_val;
+
+        if (self.denominator < 0) {
+            self.numerator = -self.numerator;
+            self.denominator = -self.denominator;
+        }
+    }
+
+    method add(Fraction self, Fraction other): Fraction {
+        return Fraction(
+            self.numerator * other.denominator + other.numerator * self.denominator,
+            self.denominator * other.denominator
+        );
+    }
+
+    method subtract(Fraction self, Fraction other): Fraction {
+        return Fraction(
+            self.numerator * other.denominator - other.numerator * self.denominator,
+            self.denominator * other.denominator
+        );
+    }
+
+    method multiply(Fraction self, Fraction other): Fraction {
+        return Fraction(self.numerator * other.numerator, self.denominator * other.denominator);
+    }
+
+    method divide(Fraction self, Fraction other): Fraction {
+        return Fraction(self.numerator * other.denominator, self.denominator * other.numerator);
+    }
+
+    method square_root(Fraction self): Fraction {
+        return Fraction(sqrt(self.numerator), sqrt(self.denominator));
+    }
+
+    method exponential(Fraction self): Fraction {
+        // 泰勒级数近似 exp(x)
+        Fraction result = Fraction(1, 1);
+        Fraction term = Fraction(1, 1);
+        Fraction x = Fraction(self.numerator, self.denominator);
+
+        for (int i = 1; i <= 8; i = i + 1) {
+            term = term.multiply(x).divide(Fraction(i, 1));
+            result = result.add(term);
+
+            if (result.denominator > 100000) {
+                result = Fraction(result.numerator / 100, result.denominator / 100);
+            }
+        }
+        return result;
+    }
+
+    method to_scaled_int(Fraction self): int {
+        return (self.numerator * 10000) / self.denominator;
+    }
+}
+// 测试辅助函数：使用计分板显示数值
+func display_fraction(Fraction f, string name) {
+    // 在 Minecraft 中使用计分板显示分子和分母
+    // 假设有预定义的计分板 "numerator" 和 "denominator"
+    int n = f.numerator;
+    int d = f.denominator;
+    print(f"{name}:{n}/{d}")
+}
+
+// 验证函数：返回布尔值而不是打印
+func verify_fraction(Fraction f, int expected_num, int expected_den): boolean {
+    return (f.numerator == expected_num && f.denominator == expected_den);
+}
+
+// 主测试函数
+func test_fraction_comprehensive() {
+    int passed_tests = 0;
+    int total_tests = 0;
+
+    // 1. 构造函数测试
+    total_tests = total_tests + 1;
+    Fraction f1 = Fraction(6, 8);  // 应该简化为 3/4
+    if (verify_fraction(f1, 3, 4)) {
+        passed_tests = passed_tests + 1;
+        display_fraction(f1, "test1_pass");
+    } else {
+        display_fraction(f1, "test1_fail");
+    }
+
+    total_tests = total_tests + 1;
+    Fraction f2 = Fraction(-15, 20);  // 应该简化为 -3/4
+    if (verify_fraction(f2, -3, 4)) {
+        passed_tests = passed_tests + 1;
+        display_fraction(f2, "test2_pass");
+    } else {
+        display_fraction(f2, "test2_fail");
+    }
+
+    total_tests = total_tests + 1;
+    Fraction f3 = Fraction(10, -5);   // 应该简化为 -2/1
+    if (verify_fraction(f3, -2, 1)) {
+        passed_tests = passed_tests + 1;
+        display_fraction(f3, "test3_pass");
+    } else {
+        display_fraction(f3, "test3_fail");
+    }
+
+    // 2. 加法测试
+    total_tests = total_tests + 1;
+    Fraction sum1 = Fraction(1, 4).add(Fraction(1, 4));  // 1/4 + 1/4 = 1/2
+    if (verify_fraction(sum1, 1, 2)) {
+        passed_tests = passed_tests + 1;
+        display_fraction(sum1, "add1_pass");
+    } else {
+        display_fraction(sum1, "add1_fail");
+    }
+
+    total_tests = total_tests + 1;
+    Fraction sum2 = Fraction(1, 3).add(Fraction(1, 6));  // 1/3 + 1/6 = 2/6 + 1/6 = 1/2
+    if (verify_fraction(sum2, 1, 2)) {
+        passed_tests = passed_tests + 1;
+        display_fraction(sum2, "add2_pass");
+    } else {
+        display_fraction(sum2, "add2_fail");
+    }
+
+    // 3. 减法测试
+    total_tests = total_tests + 1;
+    Fraction diff1 = Fraction(3, 4).subtract(Fraction(1, 4));  // 3/4 - 1/4 = 1/2
+    if (verify_fraction(diff1, 1, 2)) {
+        passed_tests = passed_tests + 1;
+        display_fraction(diff1, "sub1_pass");
+    } else {
+        display_fraction(diff1, "sub1_fail");
+    }
+
+    // 4. 乘法测试
+    total_tests = total_tests + 1;
+    Fraction prod1 = Fraction(2, 3).multiply(Fraction(3, 4));  // 2/3 * 3/4 = 6/12 = 1/2
+    if (verify_fraction(prod1, 1, 2)) {
+        passed_tests = passed_tests + 1;
+        display_fraction(prod1, "mul1_pass");
+    } else {
+        display_fraction(prod1, "mul1_fail");
+    }
+
+    // 5. 除法测试
+    total_tests = total_tests + 1;
+    Fraction quot1 = Fraction(1, 2).divide(Fraction(1, 4));  // 1/2 ÷ 1/4 = 1/2 * 4/1 = 2/1
+    if (verify_fraction(quot1, 2, 1)) {
+        passed_tests = passed_tests + 1;
+        display_fraction(quot1, "div1_pass");
+    } else {
+        display_fraction(quot1, "div1_fail");
+    }
+
+    // 6. 缩放整数测试
+    total_tests = total_tests + 1;
+    int scaled = Fraction(3, 4).to_scaled_int();  // 3/4 * 10000 = 7500
+    if (scaled == 7500) {
+        passed_tests = passed_tests + 1;
+        print(f"scaled_test:pass:{scaled}")
+    } else {
+        print(f"scaled_test:fail:{scaled}")
+    }
+
+    // 7. 复合运算测试
+    total_tests = total_tests + 1;
+    Fraction complex = Fraction(1, 2).add(Fraction(1, 4)).multiply(Fraction(4, 3));
+    // (1/2 + 1/4) * 4/3 = (2/4 + 1/4) * 4/3 = 3/4 * 4/3 = 1/1
+    if (verify_fraction(complex, 1, 1)) {
+        passed_tests = passed_tests + 1;
+        display_fraction(complex, "complex_pass");
+    } else {
+        display_fraction(complex, "complex_fail");
+    }
+
+    // 显示测试结果统计
+    print("--- 测试结果统计 ---");
+    int failed_tests = total_tests - passed_tests;
+    print(f"总测试数: {total_tests}");
+    print(f"通过测试: {passed_tests}");
+    print(f"失败测试: {failed_tests}");
+}
+
+// 交互式演示函数
+func interactive_fraction_demo() {
+    print("=== 交互式分数演示 ===");
+
+    // π 的不同近似值比较
+    Fraction pi_rough = Fraction(22, 7);      // 粗略近似
+    Fraction pi_fine = Fraction(355, 113);    // 精确近似
+
+    display_fraction(pi_rough, "π粗略近似");
+    display_fraction(pi_fine, "π精确近似");
+
+    // 计算差异
+    Fraction pi_diff = pi_fine.subtract(pi_rough);
+    display_fraction(pi_diff, "π近似差异");
+
+    // 计算平均值
+    Fraction pi_avg = pi_rough.add(pi_fine).divide(Fraction(2, 1));
+    display_fraction(pi_avg, "π平均近似");
+
+    // 缩放整数展示
+    print("--- 缩放整数展示 ---");
+    int pi_rough_scaled = pi_rough.to_scaled_int();
+    int pi_fine_scaled = pi_fine.to_scaled_int();
+    int pi_diff_scaled = pi_diff.to_scaled_int();
+
+    print(f"π粗略近似(缩放): {pi_rough_scaled}");
+    print(f"π精确近似(缩放): {pi_fine_scaled}");
+    print(f"差异(缩放): {pi_diff_scaled}");
+}
+
+// 性能测试函数
+func performance_test() {
+    Fraction start = Fraction(1, 1000);
+    Fraction accumulator = Fraction(0, 1);
+
+    // 模拟求和：1/1000 + 2/1000 + 3/1000 + ... + 100/1000
+    for (int i = 1; i <= 100; i = i + 1) {
+        Fraction current = Fraction(i, 1000);
+        accumulator = accumulator.add(current);
+
+        // 每10次迭代显示一次中间结果
+        if (i % 10 == 0) {
+            display_fraction(accumulator, f"前{i}项和");
+            // 显示缩放整数版本便于比较
+            int scaled = accumulator.to_scaled_int();
+            print(f"  缩放值: {scaled}");
+        }
+    }
+
+    display_fraction(accumulator, "final_sum");
+    // 理论结果应该是 (1+2+...+100)/1000 = 5050/1000 = 101/20
+}
+
+// 辅助函数：将整数转换为简单的标识符
+func to_scaled_string(int value): string {
+    // 这里需要实现一个简单的整数到字符串的映射
+    // 在实际的 MCDL 环境中，可能需要使用不同的方法
+    if (value == 10) return "ten";
+    if (value == 20) return "twenty";
+    if (value == 30) return "thirty";
+    if (value == 40) return "forty";
+    if (value == 50) return "fifty";
+    if (value == 60) return "sixty";
+    if (value == 70) return "seventy";
+    if (value == 80) return "eighty";
+    if (value == 90) return "ninety";
+    if (value == 100) return "hundred";
+    return "other";
+}
+
+// 主函数
+func main() {
+    // 运行所有测试
+    test_fraction_comprehensive();
+
+    // 运行交互式演示
+    interactive_fraction_demo();
+
+    // 可选：运行性能测试
+    performance_test();
+}

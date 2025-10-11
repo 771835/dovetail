@@ -21,7 +21,7 @@ from transpiler.core.optimize.optimizer import Optimizer
 from transpiler.core.parser import transpilerLexer
 from transpiler.core.parser import transpilerParser
 from transpiler.core.scope import Scope
-from transpiler.plugins import load_plugin
+from transpiler.plugins.load_plugin.plugin_loader import plugin_loader
 from transpiler.utils.ir_serializer import IRSymbolSerializer
 from transpiler.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
 from transpiler.utils.naming import NameNormalizer
@@ -76,7 +76,7 @@ class Compile:
             raise FileNotFoundError(f"{source_path} does not exist")
 
     def _load_plugin(self, plugin_name: str):
-        load_plugin.plugin_loader.load_plugin(plugin_name)
+        plugin_loader.load_plugin(plugin_name)
 
     def _compile_directory(self, source_path: Path, target_path: Path):
         pack_config_path = source_path / "pack.config"

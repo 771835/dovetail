@@ -11,3 +11,6 @@ class LoaderPlugin(Plugin):
 
     def unload(self):
         pass
+
+    def validate(self):
+        return True

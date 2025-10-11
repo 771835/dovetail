@@ -234,7 +234,7 @@ class MCGenerator(transpilerVisitor):
         params: transpilerParser.ParamListContext = ctx.paramList()
         if params.paramDecl():
             for param in params.paramDecl():
-                param_name = param.ID().getText()
+                param_name = NameNormalizer.normalize(param.ID().getText())
                 param_type = self._get_type_definition(param.type_().getText())
                 param_default = self.visit(param.expr()).value if param.expr() else None
                 if param_default and param_default.get_data_type() != param_type:
@@ -425,7 +425,7 @@ class MCGenerator(transpilerVisitor):
     def _append_variable_to_result(self, current_var: Variable, var_name: str) -> Variable:
         """将变量内容追加到结果字符串"""
         # 解析变量符号
-        var_symbol = self.current_scope.resolve_symbol(var_name)
+        var_symbol = self.current_scope.resolve_symbol(NameNormalizer.normalize(var_name))
         if var_symbol is None:
             raise UndefinedVariableError(var_name, self._get_current_line(), self._get_current_column())
         if isinstance(var_symbol, Parameter):
@@ -1190,7 +1190,7 @@ class MCGenerator(transpilerVisitor):
     def visitMethodCall(self, ctx: transpilerParser.MethodCallContext):
         instance_ref = self.visit(ctx.expr()).value
         instance_type = instance_ref.get_data_type()
-        method_name = ctx.ID().getText()
+        method_name = NameNormalizer.normalize(ctx.ID().getText())
         if isinstance(instance_type, DataType):
             raise PrimitiveTypeOperationError(
                 "方法调用",

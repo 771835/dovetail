@@ -1,3 +1,5 @@
 # coding=utf-8
 from .plugin import Plugin
-from .transpiler import *
+from .registry import *
+from .metadata import *
+

@@ -1,8 +1,8 @@
 {
-  "plugin_name": "je1204",
+  "display_name": "je1204",
   "plugin_main": "main.py",
   "plugin_version": "1.0.0",
   "plugin_type": "plugin",
-  "plugin_main_class": "JE1204",
+  "main_class_name": "JE1204",
   "plugin_author": ["771835"]
 }

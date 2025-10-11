@@ -1,8 +1,8 @@
 {
-  "plugin_name": "PluginAPI",
+  "display_name": "PluginAPI",
   "plugin_main": "main.py",
   "plugin_version": "1.0.0",
   "plugin_type": "library",
-  "plugin_main_class": "API",
+  "main_class_name": "API",
   "plugin_author": ["771835"]
 }
