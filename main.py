@@ -36,6 +36,7 @@ class ErrorListenerMixin:
         ci.cancel()
 
 
+
 class Compile:
     """
     分析并编译mcdl代码
@@ -104,7 +105,6 @@ class Compile:
             return -1
         tree = self._parser_file(source_path)
         generator: MCGenerator = MCGenerator(self.config)
-        target_path.mkdir(parents=True, exist_ok=True)
         with chdir(cwd_path):
             try:
                 ir_build_start_time = time.time()
@@ -270,3 +270,4 @@ if __name__ == "__main__":
             args.output or "target"
         )
     )
+
