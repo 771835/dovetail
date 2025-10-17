@@ -3,6 +3,6 @@
   "plugin_main": "main.py",
   "plugin_version": "1.0.0",
   "plugin_type": "library",
-  "main_class_name": "API",
+  "main_class_name": "PluginApi",
   "plugin_author": ["771835"]
 }

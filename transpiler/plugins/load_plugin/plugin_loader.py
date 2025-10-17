@@ -74,7 +74,7 @@ class PluginLoader:
                         # 效验插件配置文件是否正确
                         validate(instance=metadata, schema=self.plugin_meta_schema)
                     except (json.decoder.JSONDecodeError, ValidationError):
-                        print(f"Plugin '{plugin_path}' is invalid")
+                        print(f"Plugin metadata '{metadata_path}' is invalid")
                         if os.environ and os.environ.get("PLUGIN_DEBUG"):
                             raise
                         else:
@@ -82,7 +82,7 @@ class PluginLoader:
                     # 读取入口文件
                     plugin_main = Path(plugin_path) / metadata.get("plugin_main")
                     if plugin_main.exists() and plugin_main.is_file():
-                        with open(plugin_main) as plugin_main_file:
+                        with open(plugin_main,encoding="utf-8") as plugin_main_file:
                             code = plugin_main_file.read()
                     else:
                         print(f"Plugin '{plugin_path}' is invalid")

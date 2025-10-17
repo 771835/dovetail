@@ -46,8 +46,8 @@ class CodeGeneratorSpec(ABC):
         """初始化"""
 
     @abstractmethod
-    def generate_commands(self):
-        """将优化的IR编译为Minecraft命令"""
+    def generate(self):
+        """将优化的IR编译为目标语言"""
 
     @staticmethod
     @abstractmethod

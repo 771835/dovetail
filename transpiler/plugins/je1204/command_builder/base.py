@@ -3,7 +3,7 @@ import uuid
 
 from transpiler.core.enums import DataType
 from transpiler.core.symbols import Variable, Constant, Literal, Symbol, Class
-from transpiler.utils.escape_processor import auto_escape
+from ..escape_processor import auto_escape
 from . import DataBuilder, ScoreboardBuilder, FunctionBuilder, Execute
 from ..code_generator_scope import CodeGeneratorScope
 

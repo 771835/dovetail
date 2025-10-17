@@ -4,7 +4,7 @@
 """
 from transpiler.core.enums import DataType, ValueType
 from transpiler.core.symbols import Variable, Constant, Reference, Literal
-from transpiler.utils.escape_processor import auto_escape
+from ..escape_processor import auto_escape
 from . import BasicCommands
 from ..code_generator_scope import CodeGeneratorScope
 

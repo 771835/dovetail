@@ -2,7 +2,7 @@
 from transpiler.plugins.plugin_api_v1.plugin import Plugin
 
 
-class LoaderPlugin(Plugin):
+class PluginApi(Plugin):
     def __init__(self):
         super().__init__()
 
@@ -11,3 +11,6 @@ class LoaderPlugin(Plugin):
 
     def unload(self):
         pass
+
+    def validate(self):
+        return True

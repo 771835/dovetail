@@ -211,7 +211,7 @@ class CodeGenerator(CodeGeneratorSpec):
             # ===== 命令生成指令 (0x60-0x7F) =====
         }
 
-    def generate_commands(self):
+    def generate(self):
         self.iterator = self.builder.__iter__()
         for instr in self.iterator:
             self._process_instruction(instr, self._get_opcode_handler())

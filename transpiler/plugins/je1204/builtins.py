@@ -6,7 +6,7 @@ from typing import Callable
 from transpiler.core.enums import ValueType, DataType
 from transpiler.core.specification import CodeGeneratorSpec
 from transpiler.core.symbols import Reference, Variable, Constant, Literal
-from transpiler.utils.escape_processor import auto_escape
+from .escape_processor import auto_escape
 from .command_builder import BasicCommands, Execute, ScoreboardBuilder, DataBuilder
 
 builtin_func = {

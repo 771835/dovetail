@@ -1,4 +1,7 @@
 # coding=utf-8
+"""
+处理转义字符
+"""
 
 
 class EscapeProcessor:
@@ -22,12 +25,11 @@ class EscapeProcessor:
         # 反向映射（用于解码）
         self.unescape_map = {v: k for k, v in self.escape_map.items()}
 
-    def escape(self, text):
+    def escape(self, text: str):
         """
         对字符串进行转义处理
         """
-        if not isinstance(text, str):
-            text = str(text)
+        text = str(text)
 
         result = text
         # 按照转义字符映射进行替换
@@ -36,12 +38,11 @@ class EscapeProcessor:
 
         return result
 
-    def unescape(self, text):
+    def unescape(self, text: str):
         """
         对已转义的字符串进行解码
         """
-        if not isinstance(text, str):
-            text = str(text)
+        text = str(text)
 
         result = text
         # 按照反向映射进行替换（注意顺序，长的在前）
@@ -53,23 +54,22 @@ class EscapeProcessor:
 
         return result
 
-    def escape_for_json(self, text):
+    def escape_for_json(self, text: str):
         """
         为JSON格式转义字符串
         """
-        if not isinstance(text, str):
-            text = str(text)
+
+        text = str(text)
 
         # 使用json模块处理
         import json
         return json.dumps(text)[1:-1]  # 去掉首尾的双引号
 
-    def escape_for_python_string(self, text):
+    def escape_for_python_string(self, text: str):
         """
         为Python字符串字面量转义
         """
-        if not isinstance(text, str):
-            text = str(text)
+        text = str(text)
 
         # 使用repr函数获取Python字符串表示
         result = repr(text)
@@ -95,7 +95,7 @@ class EscapeProcessor:
             raise ValueError(f"不支持的方法: {method}")
 
         processor = methods[method]
-        return [processor(text) for text in texts]
+        return [processor(text) for text in texts] # NOQA
 
     def smart_escape(self, text, context='general'):
         """
@@ -148,7 +148,7 @@ def auto_escape(text: str, method='escape'):
         'python': processor.escape_for_python_string
     }
     if method in methods:
-        return methods[method](text)
+        return methods[method](text) # NOQA
     else:
         raise ValueError(f"不支持的方法: {method}")
 

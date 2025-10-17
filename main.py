@@ -3,12 +3,10 @@ import argparse
 import json
 import sys
 import time
-import warnings
 from contextlib import chdir
 from pathlib import Path
 
 from antlr4 import FileStream, CommonTokenStream
-from antlr4.error.ErrorListener import ErrorListener
 from jsonschema import validate, ValidationError
 
 from transpiler.core import registry
@@ -18,23 +16,10 @@ from transpiler.core.instructions import IRScopeEnd, IRScopeBegin
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.ir_generator import MCGenerator
 from transpiler.core.optimize.optimizer import Optimizer
-from transpiler.core.parser import transpilerLexer
-from transpiler.core.parser import transpilerParser
-from transpiler.core.scope import Scope
+from transpiler.core.parser import transpilerLexer, transpilerParser
 from transpiler.plugins.load_plugin.plugin_loader import plugin_loader
 from transpiler.utils.ir_serializer import IRSymbolSerializer
-from transpiler.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
 from transpiler.utils.naming import NameNormalizer
-
-
-@Mixin(ErrorListener)  # 相比于正常继承，使用mixin会慢0.001-0.01左右，但是可以减少代码量，而且好酷qwq
-class ErrorListenerMixin:
-    @staticmethod
-    @Inject("syntaxError", At(At.HEAD), cancellable=True)
-    def syntaxError(ci: CallbackInfoReturnable, self, recognizer, offending_symbol, line, column, msg, e):
-        sys.stderr.write(f"Syntax error at line {line}:{column} - {msg} \n")
-        ci.cancel()
-
 
 
 class Compile:
@@ -67,7 +52,6 @@ class Compile:
         source_path = Path(source_path)
         target_path = Path(target_path)
         self._load_plugin("load_plugin")
-        self._load_plugin("je1204")
         if source_path.exists():
             if source_path.is_file():
                 return self._compile_file(source_path, target_path)
@@ -124,27 +108,28 @@ class Compile:
                 if not self.config.no_generate_commands:
                     # 输出到target目录
                     if self.config.backend_name:
-                        used_backend = registry.backends.get(self.config.backend_name, None)
-                        if used_backend is None:
+                        current_backend = registry.backends.get(self.config.backend_name, None)
+                        if current_backend is None:
                             print(f"找不到名为{self.config.backend_name}的后端")
                             return -1
                     else:
                         for name, backend in registry.backends.items():
                             if backend.is_support(self.config):
                                 print(f"自动选择{name}后端")
-                                used_backend = backend
+                                current_backend = backend
                                 break
                         else:
                             print(f"找不到可用后端")
                             return -1
 
                     code_generator_start_time = time.time()
-                    used_backend(ir_builder, target_path, self.config).generate_commands()
+                    current_backend(ir_builder, target_path, self.config).generate()
                     print(f"最终代码生成与写入总用时：{time.time() - code_generator_start_time}")
             except CompilationError as e:
                 time.sleep(0.1)  # 保证前面的输出完成
                 if generator:
-                    self._print_error_info(generator.scope_stack)
+                    print("作用域结构:")
+                    self._print_scope_tree(generator.scope_stack[0])
                 print(e.__repr__())
                 if self.config.debug:
                     # 重新抛出异常显示错误详情
@@ -152,8 +137,6 @@ class Compile:
                 return -1
             except Exception:
                 time.sleep(0.1)
-                if generator:
-                    self._print_error_info(generator.scope_stack)
                 print("意外的错误，以下为详细堆栈信息")
                 time.sleep(0.1)
                 # 重新抛出异常显示错误详情
@@ -176,6 +159,7 @@ class Compile:
             lexer = transpilerLexer.transpilerLexer(input_stream)
             stream = CommonTokenStream(lexer)
             parser = transpilerParser.transpilerParser(stream)
+
             return parser.program()
         else:
             return None
@@ -195,22 +179,6 @@ class Compile:
             Compile._print_scope_tree(
                 child, new_prefix, index == len(children) - 1)
 
-    @staticmethod
-    def _print_error_info(scope_stack: list[Scope]):
-        # 定义作用域树打印函数
-
-        # 打印错误信息
-        print("\n⚠️ Compilation Error ⚠️")
-        print("Current scope structure:")
-        Compile._print_scope_tree(scope_stack[0])
-
-        # 打印当前作用域栈（调用链）
-        print("\nScope call stack:")
-        for i, scope in enumerate(scope_stack):
-            indent = "  " * i
-            type_str = f" ({scope.type.value})" if scope.type else ""
-            print(f"{indent}{scope.name}{type_str}")
-
 
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(description="dovetail")
@@ -228,7 +196,6 @@ if __name__ == "__main__":
     args_parser.add_argument('--enable-same-name-function-nesting', action='store_true', help='启用同名函数嵌套')
     # args_parser.add_argument('--enable-first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
     args_parser.add_argument('--enable-experimental', action='store_true', help='启用扩展模式(测试性功能)')
-    args_parser.add_argument('--disable-warnings', action='store_true', help='禁用警告')
     args_parser.add_argument('--disable-names-normalizer', action='store_true', help='禁用命名规范化')
     args_parser.add_argument('--debug', action='store_true', help='启用调试模式')
     args_parser.add_argument('--debug-mixin', action='store_true',
@@ -240,13 +207,6 @@ if __name__ == "__main__":
 
         transpiler.easter_egg.main()
     NameNormalizer.enable = not args.disable_names_normalizer
-    if args.disable_warnings:
-        @Mixin(warnings, force=True)
-        class WarningsMixin:
-            @staticmethod
-            @Inject("warn", At(At.HEAD), cancellable=True)
-            def inject_warn(ci, *_args, **_kwargs):
-                ci.cancel()
 
     compile_obj = Compile(
         GeneratorConfig(
@@ -270,4 +230,3 @@ if __name__ == "__main__":
             args.output or "target"
         )
     )
-
