@@ -1,0 +1,8 @@
+{
+  "display_name": "decompiler",
+  "plugin_main": "main.py",
+  "plugin_version": "1.0.0",
+  "plugin_type": "plugin",
+  "main_class_name": "Decompiler",
+  "plugin_author": ["771835"]
+}
