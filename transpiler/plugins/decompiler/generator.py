@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-将ir反编译回原始代码的核心 - 语法修复版本
+将ir反编译回原始代码的核心
 """
 import os
 import shutil

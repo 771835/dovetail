@@ -2,6 +2,7 @@
 """
 生成1.20.4版本最终指令
 """
+import shutil
 import uuid
 from datetime import datetime
 from pathlib import Path

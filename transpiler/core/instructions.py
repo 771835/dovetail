@@ -106,7 +106,7 @@ class IRInstruction:
         self.flags: dict[str, int] = flags or {}
 
     def __repr__(self):
-        return f"{self.opcode}(operands={self.operands}, line={self.line}, column={self.column}, flags={self.flags})"
+        return f"{self.opcode}(operands={self.operands}, line={self.line}, column={self.column})"
 
     def __hash__(self):
         # 处理操作数的哈希值计算
@@ -137,7 +137,7 @@ class IRInstruction:
             return tuple(self._flatten_nested(item) for item in obj)
         elif isinstance(obj, dict):
             return tuple(sorted((k, self._flatten_nested(v)) for k, v in obj.items()))
-        elif hasattr(obj, '__hash__'):
+        elif hasattr(obj, '__hash__') and callable(obj.__hash__):
             return hash(obj)
         elif hasattr(obj, 'unique_id') and callable(obj.unique_id):
             return obj.unique_id()

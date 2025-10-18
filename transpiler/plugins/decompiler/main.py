@@ -1,7 +1,7 @@
 # coding=utf-8
 import os
 
-from .cora import CodeGenerator
+from .generator import CodeGenerator
 from transpiler.plugins.plugin_api_v1 import Plugin, registry_backend
 
 
