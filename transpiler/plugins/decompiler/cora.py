@@ -10,8 +10,9 @@ from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.instructions import IROpCode
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.specification import CodeGeneratorSpec
-from transpiler.core.enums import StructureType, DataType, VariableType
-from transpiler.core.symbols import Class, Reference
+from transpiler.core.enums import StructureType, DataType, VariableType, FunctionType
+from transpiler.core.symbols import Class, Reference, Function
+from transpiler.utils.naming import NameNormalizer
 
 
 class CodeGenerator(CodeGeneratorSpec):
@@ -263,8 +264,12 @@ class CodeGenerator(CodeGeneratorSpec):
     def _handle_call(self, instr):
         """处理函数调用"""
         result, func, args = instr.operands
-
+        func: Function
         func_name = func.name if hasattr(func, 'name') else str(func)
+
+        # 对于函数为内置函数的情况下反归一化函数命名
+        if func.function_type == FunctionType.BUILTIN:
+            func_name = NameNormalizer.denormalize(func_name)
 
         args_list = []
         if args:
@@ -384,10 +389,7 @@ class CodeGenerator(CodeGeneratorSpec):
 
     @staticmethod
     def is_support(config: GeneratorConfig) -> bool:
-        if os.environ.get("DECOMPILER", None):
-            return True
-        else:
-            return False
+        return bool(os.environ.get("DECOMPILER", None))
 
     @staticmethod
     def get_name() -> str:

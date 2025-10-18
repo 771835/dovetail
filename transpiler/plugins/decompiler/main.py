@@ -1,4 +1,6 @@
 # coding=utf-8
+import os
+
 from .cora import CodeGenerator
 from transpiler.plugins.plugin_api_v1 import Plugin, registry_backend
 
@@ -14,4 +16,4 @@ class Decompiler(Plugin):
         pass
 
     def validate(self):
-        return True
+        return bool(os.environ.get("DECOMPILER", None))

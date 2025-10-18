@@ -70,7 +70,7 @@ class IROpCode(SafeEnum):
     # 预留 0x80-0xFF 用于未来补充
 
     # ==== 其他指令集 (0x100+) ====
-    # 预留 0x100+ 用于用户自行使用
+    # 预留 0x100+ 用于插件自行使用
 
     def __hash__(self):
         return hash(self.value)

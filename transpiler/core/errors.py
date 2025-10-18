@@ -76,8 +76,8 @@ class CompilationError(Exception):
         self.filename = filename
 
         # 构建完整错误信息
-        full_msg = self._format_message()
-        super().__init__(full_msg)
+        self.full_msg = self._format_message()
+        super().__init__(self.full_msg)
 
     def _format_message(self) -> str:
         """标准错误格式：filename:line:column: error"""
@@ -96,7 +96,7 @@ class CompilationError(Exception):
         return f"{':'.join(location)}: {self.msg}"
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}: {self.msg}>" + """"""
+        return f"{self.__class__.__name__}:{self.full_msg}"
 
 
 # ==================== 编译阶段错误 ====================
@@ -138,9 +138,9 @@ class ASTInternalError(ASTError):
 class InvalidSyntaxError(ASTSyntaxError):
     """无效语法结构错误"""
 
-    def __init__(self, token: str, line: int = None,
+    def __init__(self, reason: str, line: int = None,
                  column: int = None, filename: str = None):
-        msg = f"无效语法: 意外的符号 '{token}'"
+        msg = f"无效语法: {reason}"
         super().__init__(msg, line=line, column=column, filename=filename)
 
 
