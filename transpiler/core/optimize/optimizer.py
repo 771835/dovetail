@@ -38,6 +38,7 @@ class Optimizer(IROptimizerSpec):
             optimization_pass.append(DeadCodeEliminationPass)
             optimization_pass.append(DeclareCleanupPass)
             optimization_pass.append(UnreachableCodeRemovalPass)
+            optimization_pass.append(UnusedFunctionEliminationPass)
             optimization_pass.extend(registry.optimization_pass.get(OptimizationLevel.O1, []))
         if self.level >= OptimizationLevel.O2:
             optimization_pass.append(UselessScopeRemovalPass)
@@ -1531,3 +1532,265 @@ class ChainAssignEliminationPass(IROptimizationPass):
         if changed:
             new_instr = IRSetProperty(new_obj, field, new_value)
             iterator.set_current(new_instr)
+
+
+class UnusedFunctionEliminationPass(IROptimizationPass):
+    """未使用函数消除优化管道 - 正确处理同名嵌套函数"""
+
+    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+        self.builder = builder
+        self.config = config
+        self.debug = config.debug
+
+    def exec(self):
+        """执行未使用函数的消除优化"""
+        if self.debug:
+            print("[DEBUG: UnusedFunctionEliminationPass] Starting unused function elimination...")
+
+        self._eliminate_unused_functions()
+
+        if self.debug:
+            print("[DEBUG: UnusedFunctionEliminationPass] Unused function elimination completed.")
+
+    def _eliminate_unused_functions(self):
+        """消除未被调用的函数定义及其完整函数体，正确处理同名嵌套函数"""
+        # 第一步：构建函数层次结构，生成唯一标识符
+        function_hierarchy = self._build_function_hierarchy()
+
+        # 第二步：统计函数调用，使用唯一标识符
+        function_call_counts = self._count_function_calls(function_hierarchy)
+
+        # 第三步：标记需要移除的函数
+        functions_to_remove = self._identify_unused_functions(function_hierarchy, function_call_counts)
+
+        # 第四步：执行移除操作
+        self._remove_functions(functions_to_remove, function_hierarchy)
+
+    def _build_function_hierarchy(self):
+        """构建函数的层次结构，为每个函数生成唯一标识符"""
+        instructions = self.builder.get_instructions()
+        hierarchy = {}
+        function_stack = []  # 用于追踪嵌套层次
+        function_counter = {}  # 用于同名函数计数
+
+        for i, instr in enumerate(instructions):
+            if isinstance(instr, IRFunction):
+                func_name = instr.operands[0].name
+
+                # 生成唯一标识符：包含路径和计数
+                parent_path = function_stack[-1]['unique_id'] if function_stack else ""
+                scope_key = f"{parent_path}::{func_name}" if parent_path else func_name
+
+                # 处理同名函数
+                if scope_key not in function_counter:
+                    function_counter[scope_key] = 0
+                else:
+                    function_counter[scope_key] += 1
+
+                unique_id = f"{scope_key}#{function_counter[scope_key]}" if function_counter[
+                                                                                scope_key] > 0 else scope_key
+
+                parent_func = function_stack[-1]['unique_id'] if function_stack else None
+
+                func_info = {
+                    'unique_id': unique_id,
+                    'name': func_name,
+                    'start_idx': i,
+                    'end_idx': None,
+                    'parent': parent_func,
+                    'children': [],
+                    'depth': len(function_stack),
+                    'instruction': instr  # 保存指令引用用于调用匹配
+                }
+
+                hierarchy[unique_id] = func_info
+
+                if parent_func:
+                    hierarchy[parent_func]['children'].append(unique_id)
+
+                function_stack.append(func_info)
+
+            elif isinstance(instr, IRScopeEnd):
+                # 检查是否是函数结束
+                if function_stack and self._is_function_end_scope(instructions, i, function_stack):
+                    current_func = function_stack.pop()
+                    hierarchy[current_func['unique_id']]['end_idx'] = i + 1
+
+        # 处理文件末尾的函数
+        for func_info in function_stack:
+            hierarchy[func_info['unique_id']]['end_idx'] = len(instructions)
+
+        return hierarchy
+
+    def _is_function_end_scope(self, instructions, scope_end_idx, function_stack):
+        """判断这个scope end是否真的是当前函数的结束"""
+        if not function_stack:
+            return False
+
+        current_func_start = function_stack[-1]['start_idx']
+        scope_depth = 0
+
+        # 从函数开始到当前位置，计算作用域平衡
+        for i in range(current_func_start + 1, scope_end_idx + 1):
+            instr = instructions[i]
+            if isinstance(instr, IRScopeBegin):
+                scope_depth += 1
+            elif isinstance(instr, IRScopeEnd):
+                scope_depth -= 1
+                if scope_depth == 0 and i == scope_end_idx:
+                    return True
+
+        return False
+
+    def _count_function_calls(self, hierarchy):
+        """统计函数调用，正确匹配到具体的函数实例"""
+        call_counts = {unique_id: 0 for unique_id in hierarchy.keys()}
+        instructions = self.builder.get_instructions()
+
+        for i, instr in enumerate(instructions):
+            if isinstance(instr, IRCall):
+                called_func = instr.operands[1]  # Function对象
+                target_func_id = self._resolve_function_call(called_func, i, hierarchy)
+                if target_func_id:
+                    call_counts[target_func_id] += 1
+
+            elif isinstance(instr, IRCallMethod):
+                method_func = instr.operands[2]  # Function对象
+                target_func_id = self._resolve_function_call(method_func, i, hierarchy)
+                if target_func_id:
+                    call_counts[target_func_id] += 1
+
+        return call_counts
+
+    def _resolve_function_call(self, func_obj, call_position, hierarchy):
+        """
+        解析函数调用，确定调用的是哪个具体的函数实例
+        根据作用域规则和调用位置来确定目标函数
+        """
+        func_name = func_obj.name
+
+        # 找到调用点所在的作用域
+        call_scope = self._find_call_scope(call_position, hierarchy)
+
+        # 从调用作用域开始，向上查找可见的同名函数
+        candidates = self._find_visible_functions(func_name, call_scope, hierarchy)
+
+        if not candidates:
+            # 没找到匹配的函数，可能是外部函数或内置函数
+            if self.debug:
+                print(
+                    f"[DEBUG: UnusedFunctionEliminationPass] Could not resolve function call: {func_name} at position {call_position}")
+            return None
+
+        # 选择最近的匹配函数（作用域链中最近的）
+        return candidates[0]
+
+    def _find_call_scope(self, call_position, hierarchy):
+        """找到调用点所在的函数作用域"""
+        current_scope = None
+
+        for unique_id, func_info in hierarchy.items():
+            start_idx = func_info['start_idx']
+            end_idx = func_info['end_idx'] or len(self.builder.get_instructions())
+
+            if start_idx <= call_position < end_idx:
+                # 调用在这个函数范围内
+                if current_scope is None or func_info['depth'] > hierarchy[current_scope]['depth']:
+                    # 选择嵌套层次最深的函数（最内层的作用域）
+                    current_scope = unique_id
+
+        return current_scope
+
+    def _find_visible_functions(self, func_name, call_scope, hierarchy):
+        """
+        根据作用域规则查找可见的同名函数
+        返回按优先级排序的候选函数列表
+        """
+        candidates = []
+        current_scope = call_scope
+
+        # 向上遍历作用域链
+        while current_scope:
+            func_info = hierarchy[current_scope]
+
+            # 检查当前作用域的兄弟函数（同级定义的函数）
+            parent = func_info['parent']
+            if parent:
+                siblings = hierarchy[parent]['children']
+            else:
+                # 顶级函数
+                siblings = [uid for uid, info in hierarchy.items() if info['parent'] is None]
+
+            for sibling_id in siblings:
+                if hierarchy[sibling_id]['name'] == func_name and sibling_id != current_scope:
+                    candidates.append(sibling_id)
+
+            # 检查父作用域中定义的函数
+            if parent:
+                parent_info = hierarchy[parent]
+                if parent_info['name'] == func_name:
+                    candidates.append(parent)
+
+            # 移动到父作用域
+            current_scope = parent
+
+        # 检查全局作用域的函数
+        for unique_id, func_info in hierarchy.items():
+            if func_info['parent'] is None and func_info['name'] == func_name:
+                if unique_id not in candidates:
+                    candidates.append(unique_id)
+
+        return candidates
+
+    def _identify_unused_functions(self, hierarchy, call_counts):
+        """识别未使用的函数"""
+        functions_to_remove = []
+
+        for unique_id, func_info in hierarchy.items():
+            if func_info['instruction'].operands[0].annotations:
+                if self.debug:
+                    print(f"[DEBUG: UnusedFunctionEliminationPass] Skipping protected function: {func_info['name']} [{unique_id}]")
+                continue
+            if call_counts.get(unique_id, 0) == 0:
+                functions_to_remove.append(unique_id)
+
+                if self.debug:
+                    parent = func_info['parent']
+                    depth_str = "  " * func_info['depth']
+                    parent_str = f" (nested in {hierarchy[parent]['name']})" if parent else ""
+                    print(
+                        f"[DEBUG: UnusedFunctionEliminationPass] {depth_str}Marking unused function: {func_info['name']} [{unique_id}]{parent_str}")
+
+        return functions_to_remove
+
+    def _remove_functions(self, functions_to_remove, hierarchy):
+        """移除指定的函数"""
+        if not functions_to_remove:
+            return
+
+        instructions = self.builder.get_instructions()
+
+        # 按照在代码中的位置逆序移除（避免索引偏移问题）
+        removal_ranges = []
+        for unique_id in functions_to_remove:
+            func_info = hierarchy[unique_id]
+            removal_ranges.append((func_info['start_idx'], func_info['end_idx'], func_info['name'], unique_id))
+
+        # 按start_idx逆序排序
+        removal_ranges.sort(key=lambda x: x[0], reverse=True)
+
+        removed_count = 0
+        for start_idx, end_idx, func_name, unique_id in removal_ranges:
+            if self.debug:
+                print(
+                    f"[DEBUG: UnusedFunctionEliminationPass] Removing function {func_name} [{unique_id}]: instructions {start_idx}-{end_idx}")
+
+            del instructions[start_idx:end_idx]
+            removed_count += (end_idx - start_idx)
+
+        # 更新指令列表
+        self.builder._instructions = instructions
+
+        if self.debug:
+            print(
+                f"[DEBUG: UnusedFunctionEliminationPass] Total removed {len(functions_to_remove)} functions, {removed_count} instructions")
