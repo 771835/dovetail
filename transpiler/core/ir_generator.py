@@ -1081,15 +1081,14 @@ class MCGenerator(transpilerVisitor):
 
         op = BinaryOps(ctx.getChild(1).getText())
 
-        if left_type != right_type:
-            if not left_type.issubclass(right_type) or not right_type.issubclass(left_type):
-                raise TypeMismatchError(
-                    expected_type=left_type,
-                    actual_type=right_type,
-                    line=self._get_current_line(),
-                    column=self._get_current_column(),
-                    filename=self.filename
-                )
+        if not left_type.issubclass(right_type) and not right_type.issubclass(left_type):
+            raise TypeMismatchError(
+                expected_type=left_type,
+                actual_type=right_type,
+                line=self._get_current_line(),
+                column=self._get_current_column(),
+                filename=self.filename
+            )
 
         if left_type == DataType.STRING and op != BinaryOps.ADD:
             raise InvalidOperatorError(
