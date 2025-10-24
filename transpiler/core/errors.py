@@ -4,7 +4,7 @@
 """
 from pathlib import Path
 
-from transpiler.core.enums import DataType
+from transpiler.core.enums import DataType, DataTypeBase
 from transpiler.core.symbols import Class
 
 __all__ = [
@@ -174,7 +174,7 @@ class DuplicateDefinitionError(ASTSyntaxError):
 class TypeMismatchError(ASTSemanticError):
     """类型错误基类"""
 
-    def __init__(self, expected_type: str | DataType | Class, actual_type: str | DataType | Class,
+    def __init__(self, expected_type: str | DataTypeBase, actual_type: str | DataTypeBase,
                  line: int = None, column: int = None, filename: str = None, msg=None):
         if msg is None:
             msg = f"类型不匹配: 期望 {expected_type}，实际为 {actual_type}。"
@@ -186,7 +186,7 @@ class TypeMismatchError(ASTSemanticError):
 class UndefinedTypeError(TypeMismatchError):
     """使用未定义的类型"""
 
-    def __init__(self, type_name: str | DataType | Class, line: int = None,
+    def __init__(self, type_name: str | DataTypeBase, line: int = None,
                  column: int = None, filename: str = None):
         msg = f"未定义的类型 '{type_name}'"
         super().__init__(

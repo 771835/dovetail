@@ -10,7 +10,8 @@ __all__ = [
     "BinaryOps",
     "CompareOps",
     "UnaryOps",
-    "DataType"
+    "DataType",
+    'DataTypeBase'
 ]
 
 
@@ -60,8 +61,20 @@ class CompareOps(SafeEnum):
 
 
 class DataTypeBase:
+    """
+    类型基类
+    """
+
     def get_name(self) -> str:
-        ...
+        """
+        获取类型名称
+        """
+
+    def issubclass(self, other) -> bool:
+        """
+        是否是另一个 DataTypeBase 的子类
+        """
+        return self is other
 
 
 class DataType(DataTypeBase, SafeEnum):
@@ -70,11 +83,17 @@ class DataType(DataTypeBase, SafeEnum):
     STRING = 'string'
     BOOLEAN = 'boolean'
     NULL = 'null'  # 特殊类型，不可为声明变量时的类型
-    Function = 'function'
+    #Function = 'function' # 特殊类型，待使用
 
     def get_name(self) -> str:
         return self.name
 
+    def issubclass(self, other):
+        if self is other:
+            return True
+        if self == DataType.BOOLEAN and other == DataType.INT:
+            return True
+        return False
 
 class StructureType(SafeEnum):
     """结构类型：表示作用域类型"""

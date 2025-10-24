@@ -11,7 +11,7 @@ from transpiler.core.instructions import IROpCode
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.specification import CodeGeneratorSpec
 from transpiler.core.enums import StructureType, DataType, VariableType, FunctionType
-from transpiler.core.symbols import Class, Reference, Function
+from transpiler.core.symbols import Class, Reference, Function, Literal
 from transpiler.utils.naming import NameNormalizer
 
 
@@ -20,7 +20,7 @@ class CodeGenerator(CodeGeneratorSpec):
         self.builder = builder
         self.target = target
         self.config = config
-        self.code = []
+        self.code = ['include "math"','include "random"']
         self.depth = 0
         self.instructions = list(builder)
         self.current_index = 0
@@ -71,9 +71,11 @@ class CodeGenerator(CodeGeneratorSpec):
             target = ref
 
         # 处理字面量
-        if hasattr(target, 'value') and hasattr(target, 'dtype'):
-            if hasattr(target.dtype, 'value') and target.dtype.value == 'string':
+        if isinstance(target, Literal):
+            if target.dtype == DataType.STRING:
                 return f'"{target.value}"'
+            elif target.dtype == DataType.BOOLEAN:
+                return str(target.value).lower()
             else:
                 return str(target.value)
 
@@ -126,7 +128,7 @@ class CodeGenerator(CodeGeneratorSpec):
         }
 
     def _handle_function(self, instr):
-        """处理函数定义 - 修复参数和注解处理"""
+        """处理函数定义"""
         func = instr.operands[0]
 
         # 处理函数注解
@@ -385,7 +387,7 @@ class CodeGenerator(CodeGeneratorSpec):
                 shutil.rmtree(self.target)
             else:
                 self.target.unlink()
-        self.target.write_text("\n".join(self.code))
+        self.target.write_text("\n".join(self.code),encoding='utf-8')
 
     @staticmethod
     def is_support(config: GeneratorConfig) -> bool:

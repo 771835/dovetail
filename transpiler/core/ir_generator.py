@@ -71,7 +71,10 @@ class MCGenerator(transpilerVisitor):
         # TODO: 实现其他加载
 
     @contextmanager
-    def scoped_environment(self, name: str, scope_type: StructureType):
+    def _scoped_environment(self, name: str, scope_type: StructureType):
+        """
+        作用域管理器
+        """
         new_scope = self.current_scope.create_child(name, scope_type)
         self.current_scope = new_scope
         self.scope_stack.append(new_scope)
@@ -284,7 +287,7 @@ class MCGenerator(transpilerVisitor):
         self._add_ir_instruction(IRFunction(func))
 
         # 创建作用域并处理函数体
-        with self.scoped_environment(func_name, StructureType.FUNCTION):
+        with self._scoped_environment(func_name, StructureType.FUNCTION):
             for param in params_list:
                 if not self.current_scope.add_symbol(param):
                     raise DuplicateDefinitionError(
@@ -405,7 +408,7 @@ class MCGenerator(transpilerVisitor):
 
         return Reference(ValueType.VARIABLE, result_var)
 
-    def _create_temp_var(self, dtype: DataType | Class, prefix: str) -> Variable:
+    def _create_temp_var(self, dtype: DataTypeBase, prefix: str) -> Variable:
         """创建带唯一编号的临时变量"""
         temp_var = Variable(f"{prefix}_{next(self.cnt)}", dtype)
         if not self.current_scope.add_symbol(temp_var):
@@ -507,11 +510,11 @@ class MCGenerator(transpilerVisitor):
 
         result_var = self._create_temp_var(DataType.NULL, "ternary")  # 此处数据类型需要根据后文得出
         self._add_ir_instruction(IRDeclare(result_var))
-        with self.scoped_environment(f"ternary_{if_id}_a", StructureType.CONDITIONAL) as a_scope:
+        with self._scoped_environment(f"ternary_{if_id}_a", StructureType.CONDITIONAL) as a_scope:
             a_ref = self.visit(a).value
             self._add_ir_instruction(IRAssign(result_var, a_ref))
 
-        with self.scoped_environment(f"ternary_{if_id}_b", StructureType.CONDITIONAL) as b_scope:
+        with self._scoped_environment(f"ternary_{if_id}_b", StructureType.CONDITIONAL) as b_scope:
             b_ref = self.visit(b).value
             self._add_ir_instruction(IRAssign(result_var, b_ref))
         # 将结果类型修改为实际类型
@@ -567,6 +570,9 @@ class MCGenerator(transpilerVisitor):
         return is_subset_result, missing_elements
 
     def visit(self, tree) -> Result:
+        """
+        遍历ast树
+        """
         previous_ctx = self._current_ctx
         self._current_ctx = tree
 
@@ -731,7 +737,7 @@ class MCGenerator(transpilerVisitor):
             )
         self._add_ir_instruction(IRClass(class_))
 
-        with self.scoped_environment(class_name, StructureType.CLASS):
+        with self._scoped_environment(class_name, StructureType.CLASS):
             # 处理继承
             if parent:
                 raise MissingImplementationError(
@@ -800,7 +806,7 @@ class MCGenerator(transpilerVisitor):
             )
         self._add_ir_instruction(IRClass(class_))
 
-        with self.scoped_environment(class_name, StructureType.CLASS):
+        with self._scoped_environment(class_name, StructureType.CLASS):
             # 处理继承
             if extends:
                 raise MissingImplementationError(
@@ -1070,19 +1076,22 @@ class MCGenerator(transpilerVisitor):
     def visitTermExpr(self, ctx: transpilerParser.TermExprContext):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
+        left_type: DataTypeBase = left.value.get_data_type()
+        right_type: DataTypeBase = right.value.get_data_type()
+
         op = BinaryOps(ctx.getChild(1).getText())
 
-        if left.value.get_data_type() != right.value.get_data_type():
-            if (left.value.get_data_type() not in (DataType.BOOLEAN, DataType.INT)
-                    or right.value.get_data_type() not in (DataType.BOOLEAN, DataType.INT)):
+        if left_type != right_type:
+            if not left_type.issubclass(right_type) or not right_type.issubclass(left_type):
                 raise TypeMismatchError(
-                    expected_type=left.value.get_data_type(),
-                    actual_type=right.value.get_data_type(),
+                    expected_type=left_type,
+                    actual_type=right_type,
                     line=self._get_current_line(),
                     column=self._get_current_column(),
                     filename=self.filename
                 )
-        if left.value.get_data_type() == DataType.STRING and op != BinaryOps.ADD:
+
+        if left_type == DataType.STRING and op != BinaryOps.ADD:
             raise InvalidOperatorError(
                 str(op.value),
                 line=self._get_current_line(),
@@ -1091,7 +1100,11 @@ class MCGenerator(transpilerVisitor):
             )
 
         # 生成唯一结果变量
-        result_var = self._create_temp_var(left.value.get_data_type(), "calc")
+        result_type = left_type
+        if left_type == DataType.BOOLEAN or left_type == DataType.BOOLEAN:
+            #  类型提升
+            result_type = DataType.INT
+        result_var = self._create_temp_var(result_type, "calc")
 
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(IROp(result_var, op, left.value, right.value))
@@ -1311,8 +1324,8 @@ class MCGenerator(transpilerVisitor):
 
     def visitWhileStmt(self, ctx: transpilerParser.WhileStmtContext):
         loop_id = next(self.cnt)
-        with self.scoped_environment(f"while_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
-            with self.scoped_environment(f"while_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
+        with self._scoped_environment(f"while_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
+            with self._scoped_environment(f"while_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
                 self.visit(ctx.block())
 
             # 从检查函数调用循环体
@@ -1333,8 +1346,8 @@ class MCGenerator(transpilerVisitor):
                 else:
                     self.visit(for_control.forInit().expr())
             # 创建循环检查作用域
-            with self.scoped_environment(f"for_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
-                with self.scoped_environment(f"for_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
+            with self._scoped_environment(f"for_{loop_id}_check", StructureType.LOOP_CHECK) as loop_check:
+                with self._scoped_environment(f"for_{loop_id}_body", StructureType.LOOP_BODY) as loop_body:
 
                     # 处理循环体
                     self.visit(ctx.block())
@@ -1368,11 +1381,11 @@ class MCGenerator(transpilerVisitor):
         condition_ref = self.visit(ctx.condition()).value
 
         # 创建if分支作用域
-        with self.scoped_environment(f"if_{if_id}", StructureType.CONDITIONAL) as if_scope:
+        with self._scoped_environment(f"if_{if_id}", StructureType.CONDITIONAL) as if_scope:
             self.visit(ctx.block(0))
         # 创建else分支作用域
         if ctx.block(1):
-            with self.scoped_environment(f"else_{if_id}", StructureType.CONDITIONAL) as else_scope:
+            with self._scoped_environment(f"else_{if_id}", StructureType.CONDITIONAL) as else_scope:
                 self.visit(ctx.block(1))
             self._add_ir_instruction(IRCondJump(condition_ref.value, if_scope.name, else_scope.name))
         else:

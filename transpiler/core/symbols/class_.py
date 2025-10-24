@@ -25,6 +25,16 @@ class Class(Symbol, DataTypeBase):
     def get_name(self) -> str:
         return self.name
 
+    def issubclass(self, other):
+        if self is other:
+            return True
+        current_class = self.parent
+        while current_class:
+            if current_class.parent is other:
+                return True
+            current_class = current_class.parent
+        return False
+
     def __hash__(self):
         return hash(
             (
