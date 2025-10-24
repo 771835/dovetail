@@ -17,14 +17,13 @@ class LoaderPlugin(Plugin):
                 for plugin_dir in plugins_path.iterdir():
                     plugin_name = plugin_dir.name
                     # 对于已加载或名称前缀为特殊符号的跳过加载
-                    if metadata.get_plugin(plugin_name) is not None or plugin_name[0] in ("_",".",""):
+                    if metadata.get_plugin(plugin_name) is not None or plugin_name[0] in ("_", ".", ""):
                         continue
                     if plugin_dir.is_dir():
                         metadata.load_plugin(plugin_name)
-
 
     def unload(self):
         pass
 
     def validate(self):
-        return True
+        return True, None

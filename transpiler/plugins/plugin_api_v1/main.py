@@ -13,4 +13,4 @@ class PluginApi(Plugin):
         pass
 
     def validate(self):
-        return True
+        return True, None

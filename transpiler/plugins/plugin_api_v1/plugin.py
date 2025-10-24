@@ -23,14 +23,13 @@ class Plugin(ABC):
         pass
 
     @abstractmethod
-    def validate(self) -> bool:
-        """插件加载前的验证，检查依赖和兼容性"""
+    def validate(self) -> tuple[bool, str | None]:
+        """插件加载前的验证，检查依赖和兼容性并返回失败理由"""
         pass
 
     def initialize(self) -> None:
         """插件初始化，在validate之后，load之前调用"""
         pass
-
 
     def get_dependencies(self) -> list[str]:
         """获取插件依赖列表"""

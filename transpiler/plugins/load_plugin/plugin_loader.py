@@ -112,8 +112,9 @@ class PluginLoader:
             # 搜索入口类
             if plugin_main_class := plugin_locals.get(metadata["main_class_name"], None):
                 self.plugins_main_class[plugin_name] = plugin_main_class()
-                if not self.plugins_main_class[plugin_name].validate():
-                    raise RuntimeError(f"Plugin '{plugin_name}' has invalid configuration")
+                is_validate, reason = self.plugins_main_class[plugin_name].validate()
+                if not is_validate:
+                    raise Exception(reason)
                 self.plugins_main_class[plugin_name].load()
             else:
                 raise ModuleNotFoundError(f"Plugin '{plugin_name}' is invalid")

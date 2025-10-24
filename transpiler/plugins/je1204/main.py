@@ -14,4 +14,4 @@ class JE1204(Plugin):
         pass
 
     def validate(self):
-        return True
+        return True, None
