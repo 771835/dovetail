@@ -1,7 +1,10 @@
 # coding=utf-8
+import json
 from functools import lru_cache
 
-from transpiler.plugins.plugin_api_v1 import Plugin
+from jsonschema import ValidationError
+
+from .plugin import Plugin
 
 
 @lru_cache(maxsize=None)
@@ -9,7 +12,7 @@ def get_loader_instance():
     """
     返回加载器实例
     """
-    from ..load_plugin.plugin_loader import plugin_loader
+    from ..plugin_loader.loader import plugin_loader
     return plugin_loader
 
 
@@ -19,10 +22,11 @@ def get_loaded_plugins() -> dict[str, Plugin]:
 
 
 def get_plugin(plugin_name: str) -> Plugin | None:
+    """根据插件名称获得插件实例"""
     return get_loaded_plugins().get(plugin_name, None)
 
 
-def load_plugin(plugin_name: str) -> tuple[bool, Exception | None]:
+def load_plugin(plugin_name: str) -> bool:
     """
     加载插件
 
@@ -31,9 +35,9 @@ def load_plugin(plugin_name: str) -> tuple[bool, Exception | None]:
     """
     try:
         get_loader_instance().load_plugin(plugin_name)
-        return True, None
-    except Exception as e:
-        return False, e
+        return True
+    except (json.decoder.JSONDecodeError, ValidationError, ModuleNotFoundError) as e:
+        return False
 
 
 def get_plugin_config(plugin_name: str) -> dict:

@@ -1,7 +1,8 @@
 # coding=utf-8
 import os
 
-from transpiler.plugins.plugin_api_v1 import Plugin, registry_backend
+from transpiler.plugins.plugin_api_v1 import Plugin
+from transpiler.plugins.plugin_api_v1.registry import registry_backend
 
 
 class Decompiler(Plugin):
@@ -17,3 +18,6 @@ class Decompiler(Plugin):
 
     def validate(self):
         return bool(os.environ.get("DECOMPILER", None)), "未启用DECOMPILER环境变量"
+
+    def handle_message(self, sender: Plugin, message):
+        print(f"从 {sender} 收到消息: {message}")

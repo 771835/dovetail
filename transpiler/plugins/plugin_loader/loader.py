@@ -102,7 +102,8 @@ class PluginLoader:
                     "__path__": str(plugin_path.resolve()),
                     "__package__": str(plugin_path.resolve().relative_to(Path.cwd())).replace("\\", "."),
                     "__name__": plugin_name,
-                    "__file__": str(plugin_main.resolve())
+                    "__file__": str(plugin_main.resolve()),
+                    "__plugin_name__": plugin_name
                 }
             )
             # 执行代码
@@ -114,7 +115,8 @@ class PluginLoader:
                 self.plugins_main_class[plugin_name] = plugin_main_class()
                 is_validate, reason = self.plugins_main_class[plugin_name].validate()
                 if not is_validate:
-                    raise Exception(reason)
+                    raise RuntimeWarning(reason)
+                self.plugins_main_class[plugin_name].initialize()
                 self.plugins_main_class[plugin_name].load()
             else:
                 raise ModuleNotFoundError(f"Plugin '{plugin_name}' is invalid")
@@ -124,7 +126,7 @@ class PluginLoader:
                 del self.plugins_locals[plugin_name]
             if self.plugins_main_class.get(plugin_name, None):
                 del self.plugins_main_class[plugin_name]
-            if os.environ and os.environ.get("PLUGIN_DEBUG"):
+            if os.environ.get("PLUGIN_DEBUG",None):
                 raise
 
 

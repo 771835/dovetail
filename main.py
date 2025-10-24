@@ -17,7 +17,7 @@ from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.ir_generator import MCGenerator
 from transpiler.core.optimize.optimizer import Optimizer
 from transpiler.core.parser import transpilerLexer, transpilerParser
-from transpiler.plugins.load_plugin.plugin_loader import plugin_loader
+from transpiler.plugins.plugin_loader.loader import plugin_loader
 from transpiler.utils.ir_serializer import IRSymbolSerializer
 from transpiler.utils.naming import NameNormalizer
 
@@ -51,7 +51,7 @@ class Compile:
         """
         source_path = Path(source_path)
         target_path = Path(target_path)
-        self._load_plugin("load_plugin")
+        self._load_plugin("plugin_loader")
         if source_path.exists():
             if source_path.is_file():
                 return self._compile_file(source_path, target_path)

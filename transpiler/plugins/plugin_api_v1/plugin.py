@@ -4,6 +4,8 @@ from abc import abstractmethod, ABC
 from typing import Any
 
 
+
+
 class Plugin(ABC):
     """
         插件基类
@@ -19,7 +21,7 @@ class Plugin(ABC):
 
     @abstractmethod
     def unload(self) -> bool:
-        """插件被正常加载时调用(仅其他插件卸载时)"""
+        """插件被正常卸载时调用(仅其他插件卸载时)"""
         pass
 
     @abstractmethod
@@ -39,10 +41,6 @@ class Plugin(ABC):
         """获取与此插件冲突的插件列表"""
         return []
 
-    def get_default_config(self) -> dict:
-        """获取默认配置"""
-        return {}
-
     def get_memory_usage(self) -> int:
         """获取插件内存占用（字节）"""
         return -1
@@ -50,3 +48,8 @@ class Plugin(ABC):
     def handle_message(self, sender: Plugin, message: Any) -> Any:
         """处理来自其他插件的消息"""
         pass
+
+    def send_message(self, target: str | Plugin, message: Any) -> Any:
+        """发送消息给其他插件"""
+        from .messaging import send_message
+        send_message(self, target, message)

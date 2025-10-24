@@ -1,6 +1,7 @@
 # coding=utf-8
-from transpiler.plugins.plugin_api_v1 import registry_backend, Plugin
+from transpiler.plugins.plugin_api_v1 import Plugin
 from .generator import CodeGenerator
+from ..plugin_api_v1.registry import registry_backend
 
 
 class JE1204(Plugin):
