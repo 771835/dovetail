@@ -6,11 +6,11 @@ import os
 import shutil
 from pathlib import Path
 
+from transpiler.core.enums import StructureType, DataType, VariableType, FunctionType
 from transpiler.core.generator_config import GeneratorConfig
 from transpiler.core.instructions import IROpCode
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.specification import CodeGeneratorSpec
-from transpiler.core.enums import StructureType, DataType, VariableType, FunctionType
 from transpiler.core.symbols import Class, Reference, Function, Literal
 from transpiler.utils.naming import NameNormalizer
 
@@ -20,7 +20,7 @@ class CodeGenerator(CodeGeneratorSpec):
         self.builder = builder
         self.target = target
         self.config = config
-        self.code = ['include "math"','include "random"']
+        self.code = ['include "math"', 'include "random"']
         self.depth = 0
         self.instructions = list(builder)
         self.current_index = 0
@@ -387,7 +387,7 @@ class CodeGenerator(CodeGeneratorSpec):
                 shutil.rmtree(self.target)
             else:
                 self.target.unlink()
-        self.target.write_text("\n".join(self.code),encoding='utf-8')
+        self.target.write_text("\n".join(self.code), encoding='utf-8')
 
     @staticmethod
     def is_support(config: GeneratorConfig) -> bool:

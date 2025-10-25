@@ -82,7 +82,7 @@ class PluginLoader:
                     # 读取入口文件
                     plugin_main = Path(plugin_path) / metadata.get("plugin_main")
                     if plugin_main.exists() and plugin_main.is_file():
-                        with open(plugin_main,encoding="utf-8") as plugin_main_file:
+                        with open(plugin_main, encoding="utf-8") as plugin_main_file:
                             code = plugin_main_file.read()
                     else:
                         print(f"Plugin '{plugin_path}' is invalid")
@@ -126,7 +126,7 @@ class PluginLoader:
                 del self.plugins_locals[plugin_name]
             if self.plugins_main_class.get(plugin_name, None):
                 del self.plugins_main_class[plugin_name]
-            if os.environ.get("PLUGIN_DEBUG",None):
+            if os.environ.get("PLUGIN_DEBUG", None):
                 raise
 
 

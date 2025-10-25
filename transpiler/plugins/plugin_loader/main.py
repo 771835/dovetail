@@ -1,5 +1,4 @@
 # coding=utf-8
-import os
 from pathlib import Path
 
 from transpiler.plugins.plugin_api_v1 import plugin_manager

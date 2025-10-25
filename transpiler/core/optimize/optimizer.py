@@ -1545,12 +1545,12 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
     def exec(self):
         """执行未使用函数的消除优化"""
         if self.debug:
-            print("[DEBUG: UnusedFunctionEliminationPass] Starting unused function elimination...")
+            print(f"[DEBUG: {self.__class__.__name__}] Starting unused function elimination...")
 
         self._eliminate_unused_functions()
 
         if self.debug:
-            print("[DEBUG: UnusedFunctionEliminationPass] Unused function elimination completed.")
+            print(f"[DEBUG: {self.__class__.__name__}] Unused function elimination completed.")
 
     def _eliminate_unused_functions(self):
         """消除未被调用的函数定义及其完整函数体，正确处理同名嵌套函数"""
@@ -1679,7 +1679,7 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
             # 没找到匹配的函数，可能是外部函数或内置函数
             if self.debug:
                 print(
-                    f"[DEBUG: UnusedFunctionEliminationPass] Could not resolve function call: {func_name} at position {call_position}")
+                    f"[DEBUG: {self.__class__.__name__}] Could not resolve function call: {func_name} at position {call_position}")
             return None
 
         # 选择最近的匹配函数（作用域链中最近的）
@@ -1749,7 +1749,8 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
         for unique_id, func_info in hierarchy.items():
             if func_info['instruction'].operands[0].annotations:
                 if self.debug:
-                    print(f"[DEBUG: UnusedFunctionEliminationPass] Skipping protected function: {func_info['name']} [{unique_id}]")
+                    print(
+                        f"[DEBUG: {self.__class__.__name__}] Skipping protected function: {func_info['name']} [{unique_id}]")
                 continue
             if call_counts.get(unique_id, 0) == 0:
                 functions_to_remove.append(unique_id)
@@ -1759,7 +1760,7 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
                     depth_str = "  " * func_info['depth']
                     parent_str = f" (nested in {hierarchy[parent]['name']})" if parent else ""
                     print(
-                        f"[DEBUG: UnusedFunctionEliminationPass] {depth_str}Marking unused function: {func_info['name']} [{unique_id}]{parent_str}")
+                        f"[DEBUG: {self.__class__.__name__}] {depth_str}Marking unused function: {func_info['name']} [{unique_id}]{parent_str}")
 
         return functions_to_remove
 
@@ -1783,7 +1784,7 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
         for start_idx, end_idx, func_name, unique_id in removal_ranges:
             if self.debug:
                 print(
-                    f"[DEBUG: UnusedFunctionEliminationPass] Removing function {func_name} [{unique_id}]: instructions {start_idx}-{end_idx}")
+                    f"[DEBUG: {self.__class__.__name__}] Removing function {func_name} [{unique_id}]: instructions {start_idx}-{end_idx}")
 
             del instructions[start_idx:end_idx]
             removed_count += (end_idx - start_idx)
@@ -1793,4 +1794,4 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
 
         if self.debug:
             print(
-                f"[DEBUG: UnusedFunctionEliminationPass] Total removed {len(functions_to_remove)} functions, {removed_count} instructions")
+                f"[DEBUG: {self.__class__.__name__}] Total removed {len(functions_to_remove)} functions, {removed_count} instructions")

@@ -95,7 +95,7 @@ class EscapeProcessor:
             raise ValueError(f"不支持的方法: {method}")
 
         processor = methods[method]
-        return [processor(text) for text in texts] # NOQA
+        return [processor(text) for text in texts]  # NOQA
 
     def smart_escape(self, text, context='general'):
         """
@@ -148,7 +148,7 @@ def auto_escape(text: str, method='escape'):
         'python': processor.escape_for_python_string
     }
     if method in methods:
-        return methods[method](text) # NOQA
+        return methods[method](text)  # NOQA
     else:
         raise ValueError(f"不支持的方法: {method}")
 

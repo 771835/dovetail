@@ -8,6 +8,8 @@ from abc import ABC
 from typing import Callable, TypeVar
 
 T = TypeVar('T', bound='Event')
+
+
 class Event(ABC):
     @classmethod
     def register_handler(cls, handler: Callable[[T], None]):
