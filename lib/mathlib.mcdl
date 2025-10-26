@@ -42,7 +42,10 @@ func factorial(n: int) -> int {
  */
 func pow(base: int, exp: int) -> int {
     if (exp < 0) {
-        return 0; // 假设我们不处理分数
+        return 0; // 假设我们不处理负数次幂
+    }
+    else if (exp == 0) {
+        return 1;
     }
 
     let result = 1;
@@ -129,7 +132,7 @@ func reverse_number(n: int) -> int {
  * 返回值:
  *   返回 x 的整数平方根（即 floor(sqrt(x))）
  */
-func sqrt(int x): int {
+func sqrt(int x) -> int {
     int res = 0
 
     if (0 <= x and x <= 19310) {
@@ -169,7 +172,7 @@ func sqrt(int x): int {
  *   - 对于大于等于 2 的数，只需检查到 sqrt(x) 即可
  *   - 若存在能整除 x 的因数，则不是质数
  */
-func is_prime(int x): boolean {
+func is_prime(int x) -> boolean {
     if (x < 2) {
         return false
     }
@@ -182,4 +185,52 @@ func is_prime(int x): boolean {
     }
 
     return true
+}
+
+/**
+ * 将值限制在指定范围内
+ */
+func clamp(value: int, min_val: int, max_val: int) -> int {
+    return max(min_val, min(value, max_val));
+}
+
+
+/**
+ * 计算组合数 C(n, k)
+ */
+func combination(n: int, k: int) -> int {
+    if (k > n || k < 0) {
+        return 0;
+    }
+    if (k == 0 || k == n) {
+        return 1;
+    }
+
+    // 优化：使用较小的k值
+    if (k > n - k) {
+        k = n - k;
+    }
+
+    let result = 1;
+    for (i: int = 0; i < k; i = i + 1) {
+        result = result * (n - i) / (i + 1);
+    }
+
+    return result;
+}
+
+/**
+ * 计算排列数 P(n, k)
+ */
+func permutation(n: int, k: int) -> int {
+    if (k > n || k < 0) {
+        return 0;
+    }
+
+    let result = 1;
+    for (i: int = 0; i < k; i = i + 1) {
+        result = result * (n - i);
+    }
+
+    return result;
 }
