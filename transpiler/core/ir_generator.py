@@ -158,11 +158,11 @@ class MCGenerator(transpilerVisitor):
             arg_value = arg_ref or param.default
             args_dict[param.get_name()] = arg_value
             # 类型检查
-            if param.get_data_type() != arg_value.get_data_type():
+            if not arg_value.get_data_type().is_subclass_of(param.get_data_type()):
                 raise ArgumentTypeMismatchError(
                     param_name=param.get_name(),
-                    expected=param.get_data_type().name,
-                    actual=arg_value.get_data_type().name,
+                    expected=param.get_data_type(),
+                    actual=arg_value.get_data_type(),
                     line=self._get_current_line(),
                     column=self._get_current_column(),
                     filename=self.filename
@@ -1081,7 +1081,7 @@ class MCGenerator(transpilerVisitor):
 
         op = BinaryOps(ctx.getChild(1).getText())
 
-        if not left_type.issubclass(right_type) and not right_type.issubclass(left_type):
+        if not left_type.is_subclass_of(right_type) and not right_type.is_subclass_of(left_type):
             raise TypeMismatchError(
                 expected_type=left_type,
                 actual_type=right_type,

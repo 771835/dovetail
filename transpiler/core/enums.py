@@ -70,9 +70,9 @@ class DataTypeBase:
         获取类型名称
         """
 
-    def issubclass(self, other) -> bool:
+    def is_subclass_of(self, other) -> bool:
         """
-        是否是另一个 DataTypeBase 的子类
+        自身是否是other的子类
         """
         return self is other
 
@@ -89,7 +89,7 @@ class DataType(DataTypeBase, SafeEnum):
     def get_name(self) -> str:
         return self.name
 
-    def issubclass(self, other):
+    def is_subclass_of(self, other):
         if self is other:
             return True
         if self == DataType.BOOLEAN and other == DataType.INT:

@@ -202,7 +202,7 @@ class UndefinedTypeError(TypeMismatchError):
 class ArgumentTypeMismatchError(TypeMismatchError):
     """函数参数类型不匹配"""
 
-    def __init__(self, param_name: str, expected: str | DataType | Class, actual: str | DataType | Class,
+    def __init__(self, param_name: str, expected: str | DataTypeBase, actual: str | DataTypeBase,
                  line: int = None, column: int = None, filename: str = None):
         super().__init__(expected, actual, line=line, column=column, filename=filename)
         self.param_name = param_name
