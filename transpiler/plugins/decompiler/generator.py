@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 
 from transpiler.core.enums import StructureType, DataType, VariableType, FunctionType
-from transpiler.core.generator_config import GeneratorConfig
+from transpiler.core.generator_config import CompileConfig
 from transpiler.core.instructions import IROpCode
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.specification import CodeGeneratorSpec
@@ -16,7 +16,7 @@ from transpiler.utils.naming import NameNormalizer
 
 
 class CodeGenerator(CodeGeneratorSpec):
-    def __init__(self, builder: IRBuilder, target: Path, config: GeneratorConfig):
+    def __init__(self, builder: IRBuilder, target: Path, config: CompileConfig):
         self.builder = builder
         self.target = target
         self.config = config
@@ -390,7 +390,7 @@ class CodeGenerator(CodeGeneratorSpec):
         self.target.write_text("\n".join(self.code), encoding='utf-8')
 
     @staticmethod
-    def is_support(config: GeneratorConfig) -> bool:
+    def is_support(config: CompileConfig) -> bool:
         return bool(os.environ.get("DECOMPILER", None))
 
     @staticmethod

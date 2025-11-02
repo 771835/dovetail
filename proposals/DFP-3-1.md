@@ -182,7 +182,6 @@ class Class(Symbol, DataTypeBase):
 #### 常量定义 (Constant)
 
 ```python
-\
 
 @define(slots=True)
 class Constant(Symbol):

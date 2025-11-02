@@ -1,22 +1,16 @@
 # coding=utf-8
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from attrs import define, field, validators
 
-from transpiler.core.enums import DataType, VariableType, DataTypeBase
+from transpiler.core.enums import VariableType, DataTypeBase
 from .base import Symbol
-
-if TYPE_CHECKING:
-    # 仅类型检查时导入Class类
-    from . import Class
 
 
 @define(slots=True)
 class Constant(Symbol):
     name: str = field(validator=validators.instance_of(str))
-    dtype: DataType | Class = field(validator=validators.instance_of(DataTypeBase))
+    dtype: DataTypeBase = field(validator=validators.instance_of(DataTypeBase))
     var_type: VariableType = field(validator=validators.instance_of(VariableType), default=VariableType.COMMON)
 
     def get_name(self) -> str:

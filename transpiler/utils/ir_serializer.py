@@ -4,7 +4,7 @@ import time
 import uuid
 from enum import Enum
 
-from transpiler.core.enums import DataType
+from transpiler.core.enums import DataType, DataTypeBase
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.symbols import Symbol, Variable, Constant, Literal, Parameter, Reference, Class, Function
 from transpiler.utils.binary_serializer import BinarySerializer
@@ -63,7 +63,7 @@ class IRSymbolSerializer:
 
         return metadata
 
-    def _add_symbol_id_map(self, symbol: Symbol | Enum | list | dict | bool | set):
+    def _add_symbol_id_map(self, symbol: Symbol | Enum | list | dict | bool | set | DataTypeBase):
         # 将自身加入映射表
         if id(symbol) not in self.symbol_id_map:
             self.symbol_id_map[id(symbol)] = symbol

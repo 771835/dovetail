@@ -6,10 +6,10 @@ func foo():int{
 @init
 func bar(){
     if (foo()==350234/1) {
-        exec("say 1");
+        exec("say 1")
         print("1")
     }else {
-        exec("say 2");
+        exec("say 2")
         gamerule("doFireTick","true")
     }
 }

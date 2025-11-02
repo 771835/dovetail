@@ -11,7 +11,7 @@ from attrs import define, field, validators
 from transpiler.core import registry
 from transpiler.core.enums import ValueType, VariableType, DataTypeBase, DataType, BinaryOps, StructureType, UnaryOps, \
     CompareOps
-from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel
+from transpiler.core.generator_config import CompileConfig, OptimizationLevel
 from transpiler.core.instructions import *
 from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator
 from transpiler.core.specification import IROptimizerSpec, \
@@ -21,7 +21,7 @@ from transpiler.core.symbols import Variable, Reference, Constant, Literal, Func
 
 class Optimizer(IROptimizerSpec):
 
-    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+    def __init__(self, builder: IRBuilder, config: CompileConfig):
         self.config = config
         self.debug = config.debug
         self.level = config.optimization_level
@@ -249,7 +249,7 @@ class ConstantFoldingPass(IROptimizationPass):
             """同 set"""
             self.set(name, value)
 
-    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+    def __init__(self, builder: IRBuilder, config: CompileConfig):
         self.builder = builder
         # 根符号表，等价于 GLOBAL_SCOPE
         self.global_table = ConstantFoldingPass.SymbolTable("global", StructureType.GLOBAL)
@@ -584,7 +584,7 @@ class ConstantFoldingPass(IROptimizationPass):
 
 
 class DeadCodeEliminationPass(IROptimizationPass):
-    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+    def __init__(self, builder: IRBuilder, config: CompileConfig):
         self.builder = builder
         self.def_use_graph = {}  # 定义使用图 {var: [uses]}
         self.use_def_graph = {}  # 使用定义图 {var: [defs]}
@@ -716,7 +716,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
 
 
 class DeclareCleanupPass(IROptimizationPass):
-    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+    def __init__(self, builder: IRBuilder, config: CompileConfig):
         self.builder = builder
         self.scope_tree = {}  # 作用域树 {scope: parent}
         self.var_scopes = {}  # 变量作用域 {var: scope}
@@ -1052,7 +1052,7 @@ class UselessScopeRemovalPass(IROptimizationPass):
 
 class EmptyScopeRemovalPass(IROptimizationPass):
 
-    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+    def __init__(self, builder: IRBuilder, config: CompileConfig):
         # FIXME:当函数嵌套且名称重复时会出现删除错误,故临时放在测试性优化，等待修复
         self.builder = builder
         self.scope_instructions = {}  # 作用域 -> 指令列表
@@ -1145,7 +1145,7 @@ class EmptyScopeRemovalPass(IROptimizationPass):
 
 
 class UnreachableCodeRemovalPass(IROptimizationPass):
-    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+    def __init__(self, builder: IRBuilder, config: CompileConfig):
         self.builder = builder
         self.config = config
 
@@ -1178,7 +1178,7 @@ class UnreachableCodeRemovalPass(IROptimizationPass):
 
 
 class ChainAssignEliminationPass(IROptimizationPass):
-    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+    def __init__(self, builder: IRBuilder, config: CompileConfig):
         # FIXME: 对于for循环的优化存在严重问题
 
         self.builder = builder
@@ -1537,7 +1537,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
 class UnusedFunctionEliminationPass(IROptimizationPass):
     """未使用函数消除优化管道 - 正确处理同名嵌套函数"""
 
-    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+    def __init__(self, builder: IRBuilder, config: CompileConfig):
         self.builder = builder
         self.config = config
         self.debug = config.debug

@@ -6,7 +6,7 @@ import time
 from transpiler.core.enums import DataType
 from transpiler.core.errors import CompilationError
 from transpiler.core.instructions import IRInstruction
-from transpiler.core.ir_generator import MCGenerator
+from transpiler.core.ir_generator import IRGenerator
 from transpiler.core.result import Result
 from transpiler.utils.mixin_manager import Mixin, At, Inject, CallbackInfoReturnable
 
@@ -28,7 +28,7 @@ class IRInstructionMixin:
         return ci.set_return_value(names.get(name, f"✨ {name}") + ci.return_value.split(name)[1])
 
 
-@Mixin(MCGenerator)
+@Mixin(IRGenerator)
 class SpecialEasterEggMixin:
     """特殊模式彩蛋Mixin"""
 

@@ -11,10 +11,10 @@ from jsonschema import validate, ValidationError
 
 from transpiler.core import registry
 from transpiler.core.errors import CompilationError
-from transpiler.core.generator_config import GeneratorConfig, OptimizationLevel, MinecraftVersion
+from transpiler.core.generator_config import CompileConfig, OptimizationLevel, MinecraftVersion
 from transpiler.core.instructions import IRScopeEnd, IRScopeBegin
 from transpiler.core.ir_builder import IRBuilder
-from transpiler.core.ir_generator import MCGenerator
+from transpiler.core.ir_generator import IRGenerator
 from transpiler.core.optimize.optimizer import Optimizer
 from transpiler.core.parser import transpilerLexer, transpilerParser
 from transpiler.plugins.plugin_loader.loader import plugin_loader
@@ -22,7 +22,7 @@ from transpiler.utils.ir_serializer import IRSymbolSerializer
 from transpiler.utils.naming import NameNormalizer
 
 
-class Compile:
+class Compiler:
     """
     分析并编译mcdl代码
     """
@@ -38,27 +38,21 @@ class Compile:
         "required": ["main"]
     }
 
-    def __init__(self, config: GeneratorConfig):
+    def __init__(self, config: CompileConfig):
         self.config = config
 
-    def compile(self, source_path: Path, target_path: Path):
+    def compile(self):
         """
         编译文件并生成数据包
-
-        :param source_path: 代码数据
-        :param target_path: 目标生成路径
-        :return:
         """
-        source_path = Path(source_path)
-        target_path = Path(target_path)
         self._load_plugin("plugin_loader")
-        if source_path.exists():
-            if source_path.is_file():
-                return self._compile_file(source_path, target_path)
+        if self.config.source_path.exists():
+            if self.config.source_path.is_file():
+                return self._compile_file(self.config.source_path, self.config.target_path)
             else:
-                return self._compile_directory(source_path, target_path)
+                return self._compile_directory(self.config.source_path, self.config.target_path)
         else:
-            raise FileNotFoundError(f"{source_path} does not exist")
+            raise FileNotFoundError(f"{self.config.source_path} does not exist")
 
     def _load_plugin(self, plugin_name: str):
         plugin_loader.load_plugin(plugin_name)
@@ -70,26 +64,26 @@ class Compile:
             return -1
         # 尝试解析配置文件
         try:
-            with open(pack_config_path, encoding='utf-8') as f:
-                pack_config = json.load(f)
-            if not isinstance(pack_config, dict):
+            with open(pack_config_path, encoding='utf-8') as config_file:
+                pack_config_data = json.load(config_file)
+            if not isinstance(pack_config_data, dict):
                 print("Error: The file 'pack.config' has an invalid format.")
                 return -1
             # 检查配置文件格式是否正确
-            validate(instance=pack_config, schema=self.pack_config_schema)
+            validate(instance=pack_config_data, schema=self.pack_config_schema)
         except (json.JSONDecodeError, ValidationError):
-            print("Error: The file 'pack.config' has an invalid format.")
+            print(f"Error: The file 'pack.config' has an invalid format.")
             return -1
-        return self._compile_file(Path(source_path / pack_config["main"]).resolve(), target_path, source_path)
+        return self._compile_file(Path(source_path / pack_config_data["main"]).resolve(), target_path, source_path)
 
-    def _compile_file(self, source_path: Path, target_path: Path, cwd_path: Path | None = None):
-        cwd_path = cwd_path or source_path.parent
+    def _compile_file(self, source_path: Path, target_dir_path: Path, working_directory: Path | None = None):
+        working_directory = working_directory or source_path.parent
         if not source_path.exists():
             print(f"Error: The path '{source_path}' is not valid.")
             return -1
         tree = self._parser_file(source_path)
-        generator: MCGenerator = MCGenerator(self.config)
-        with chdir(cwd_path):
+        generator: IRGenerator = IRGenerator(self.config)
+        with chdir(working_directory):
             try:
                 ir_build_start_time = time.time()
                 generator.visit(tree)
@@ -99,7 +93,7 @@ class Compile:
                 ir_builder = Optimizer(ir_builder, self.config).optimize()
                 print(f"IR优化用时：{time.time() - ir_optimize_start_time}")
                 if self.config.output_temp_file:
-                    with open(target_path / f"{self.config.namespace}.mcdc", "wb") as f:
+                    with open(target_dir_path / f"{self.config.namespace}.mcdc", "wb") as f:
                         f.write(IRSymbolSerializer.dump(ir_builder, f"dovetail-{repr(self.config.minecraft_version)}"))
 
                 if self.config.debug:
@@ -123,7 +117,7 @@ class Compile:
                             return -1
 
                     code_generator_start_time = time.time()
-                    current_backend(ir_builder, target_path, self.config).generate()
+                    current_backend(ir_builder, target_dir_path, self.config).generate()
                     print(f"最终代码生成与写入总用时：{time.time() - code_generator_start_time}")
             except CompilationError as e:
                 time.sleep(0.1)  # 保证前面的输出完成
@@ -167,23 +161,24 @@ class Compile:
     @staticmethod
     def _print_scope_tree(node, prefix="", is_tail=True):
         """递归打印作用域树结构"""
-        # 节点显示：作用域名 (类型)
-        scope_type_str = f" ({node.type.value})" if node.type else ""
-        line = f"{prefix}{'└── ' if is_tail else '├── '}{node.name}{scope_type_str}"
-        print(line)
+        # 更明确的变量名
+        scope_type_display = f" ({node.stype.value})" if node.stype else ""
+        tree_line = f"{prefix}{'└── ' if is_tail else '├── '}{node.name}{scope_type_display}"
+        print(tree_line)
 
-        # 处理子节点
-        children = node.children
-        for index, child in enumerate(children):
-            new_prefix = prefix + ("    " if is_tail else "│   ")
-            Compile._print_scope_tree(
-                child, new_prefix, index == len(children) - 1)
+        # 子节点处理
+        child_nodes = node.children
+        for child_index, child_node in enumerate(child_nodes):
+            child_prefix = prefix + ("    " if is_tail else "│   ")
+            Compiler._print_scope_tree(
+                child_node, child_prefix, child_index == len(child_nodes) - 1)
 
 
-if __name__ == "__main__":
+def main():
+    """主函数"""
     args_parser = argparse.ArgumentParser(description="dovetail")
     args_parser.add_argument('input', type=str, help='输入文件路径')
-    args_parser.add_argument('--minecraft_version', '-mcv', metavar='version', type=str, help='游戏版本',
+    args_parser.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本',
                              default="1.20.4")
     args_parser.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
     args_parser.add_argument('--lib-path', '-L', metavar='path', type=str, help='强制指定标准库路径')
@@ -198,35 +193,36 @@ if __name__ == "__main__":
     args_parser.add_argument('--enable-experimental', action='store_true', help='启用扩展模式(测试性功能)')
     args_parser.add_argument('--disable-names-normalizer', action='store_true', help='禁用命名规范化')
     args_parser.add_argument('--debug', action='store_true', help='启用调试模式')
-    args_parser.add_argument('--debug-mixin', action='store_true',
+    args_parser.add_argument('--easter-egg', action='store_true',
                              help='奇奇怪怪的修改(警告:这将会严重破坏编译器的功能)')
 
-    args = args_parser.parse_args()
-    if args.debug_mixin:
+    parsed_args = args_parser.parse_args()
+    source_path = Path(parsed_args.input)
+    target_path = Path(parsed_args.output or "target")
+    if parsed_args.easter_egg:
         import transpiler.easter_egg
-
         transpiler.easter_egg.main()
-    NameNormalizer.enable = not args.disable_names_normalizer
-
-    compile_obj = Compile(
-        GeneratorConfig(
-            args.namespace or "namespace",
-            OptimizationLevel(args.O),
-            MinecraftVersion.from_str(args.minecraft_version),
-            args.backend_name,
-            args.debug,
-            args.no_generate_commands,
-            args.output_temp_file,
-            args.enable_recursion,
-            args.enable_same_name_function_nesting,
+    NameNormalizer.enable = not parsed_args.disable_names_normalizer
+    compiler = Compiler(
+        CompileConfig(
+            source_path,
+            target_path,
+            parsed_args.namespace or "namespace",
+            OptimizationLevel(parsed_args.O),
+            MinecraftVersion.from_str(parsed_args.minecraft_version),
+            parsed_args.backend_name,
+            parsed_args.debug,
+            parsed_args.no_generate_commands,
+            parsed_args.output_temp_file,
+            parsed_args.enable_recursion,
+            parsed_args.enable_same_name_function_nesting,
             False,
-            args.enable_experimental,
-            Path(args.lib_path).resolve() if args.lib_path else Path(__file__).parent / "lib"
+            parsed_args.enable_experimental,
+            Path(parsed_args.lib_path).resolve() if parsed_args.lib_path else Path("lib").resolve()
         )
     )
-    sys.exit(
-        compile_obj.compile(
-            args.input,
-            args.output or "target"
-        )
-    )
+    sys.exit(compiler.compile())
+
+
+if __name__ == "__main__":
+    main()

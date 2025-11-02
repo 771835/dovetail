@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING
 
 from attrs import define, field, validators
 
-from transpiler.core.enums import DataType
+from transpiler.core.enums import DataTypeBase
 from .base import Symbol
 from .reference import Reference
 from .variable import Variable
 
 if TYPE_CHECKING:
-    from . import Literal, Constant, Class
+    from . import Literal, Constant
 
 
 @define(slots=True)
@@ -24,7 +24,7 @@ class Parameter(Symbol):
     def get_name(self) -> str:
         return self.var.get_name()
 
-    def get_data_type(self) -> Class | DataType:
+    def get_data_type(self) -> DataTypeBase:
         return self.var.dtype
 
     def __hash__(self):

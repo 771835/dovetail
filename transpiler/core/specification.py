@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from transpiler.core.generator_config import GeneratorConfig
+from transpiler.core.generator_config import CompileConfig
 from transpiler.core.ir_builder import IRBuilder
 
 __all__ = [
@@ -19,7 +19,7 @@ class IROptimizerSpec(ABC):
 
     @abstractmethod
     def __init__(self, builder: IRBuilder,
-                 config: GeneratorConfig):
+                 config: CompileConfig):
         """初始化"""
 
     @abstractmethod
@@ -29,7 +29,7 @@ class IROptimizerSpec(ABC):
 
 class IROptimizationPass(ABC):
     @abstractmethod
-    def __init__(self, builder: IRBuilder, config: GeneratorConfig):
+    def __init__(self, builder: IRBuilder, config: CompileConfig):
         """初始化"""
 
     @abstractmethod
@@ -42,7 +42,7 @@ class CodeGeneratorSpec(ABC):
 
     @abstractmethod
     def __init__(self, builder: IRBuilder,
-                 target: Path, config: GeneratorConfig):
+                 target: Path, config: CompileConfig):
         """初始化"""
 
     @abstractmethod
@@ -51,7 +51,7 @@ class CodeGeneratorSpec(ABC):
 
     @staticmethod
     @abstractmethod
-    def is_support(config: GeneratorConfig) -> bool:
+    def is_support(config: CompileConfig) -> bool:
         """判断是否支持该配置"""
 
     @staticmethod

@@ -24,7 +24,7 @@ class BinarySerializer:
     def _encode_key(self, key):
         """编码键为二进制格式"""
         if isinstance(key, str):
-            key_bytes = key.encode('utf-8')
+            key_bytes = key.encode()
             return struct.pack('>BH', 0xDA, len(key_bytes)) + key_bytes
         elif isinstance(key, bool):
             return struct.pack('>B', 0xBA if key else 0xBB)
@@ -47,7 +47,7 @@ class BinarySerializer:
         else:
             # 其他类型转换为字符串
             key_str = str(key)
-            key_bytes = key_str.encode('utf-8')
+            key_bytes = key_str.encode()
             return struct.pack('>BH', 0xDA, len(key_bytes)) + key_bytes
 
     def _decode_key(self, binary_data, index):
@@ -124,7 +124,7 @@ class BinarySerializer:
             return result
 
         elif isinstance(obj, str):
-            encoded = obj.encode('utf-8')
+            encoded = obj.encode()
             return struct.pack('>BI', 0xDC, len(encoded)) + encoded
 
         elif isinstance(obj, bool):

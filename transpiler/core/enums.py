@@ -83,8 +83,8 @@ class DataType(DataTypeBase, SafeEnum):
     STRING = 'string'
     BOOLEAN = 'boolean'
     NULL = 'null'  # 特殊类型，不可为声明变量时的类型
-
-    # Function = 'function' # 特殊类型，待使用
+    Function = 'function'  # 特殊类型，待使用
+    Type = 'type'  # 特殊类型，待使用
 
     def get_name(self) -> str:
         return self.name
@@ -95,6 +95,9 @@ class DataType(DataTypeBase, SafeEnum):
         if self == DataType.BOOLEAN and other == DataType.INT:
             return True
         return False
+
+    def __repr__(self):
+        return self.name
 
 
 class StructureType(SafeEnum):

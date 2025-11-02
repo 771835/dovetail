@@ -4,10 +4,7 @@ import sys
 
 from antlr4 import *
 
-if sys.version_info[1] > 5:
-    from typing import TextIO
-else:
-    from typing.io import TextIO
+from typing import TextIO
 
 
 def serializedATN():

@@ -186,7 +186,7 @@ def main():
 
     print("\n=== 批量处理 ===")
     texts = ['Hello "World"', "It's great", "Line\nbreak"]
-    escaped_texts = processor.batch_escape(texts, 'escape')
+    escaped_texts = processor.batch_escape(texts)
     for original, escaped in zip(texts, escaped_texts):
         print(f'{repr(original)} -> {repr(escaped)}')
 

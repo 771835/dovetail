@@ -4,8 +4,7 @@
 """
 from pathlib import Path
 
-from transpiler.core.enums import DataType, DataTypeBase
-from transpiler.core.symbols import Class
+from transpiler.core.enums import DataTypeBase
 
 __all__ = [
     # 基础异常类
@@ -39,12 +38,14 @@ __all__ = [
     'ControlFlowError',
     'InvalidControlFlowError',
     'CompileRecursionError',
+    'RecursionLimitError',
     'InterfaceError',
     'UnimplementedInterfaceMethodsError',
     'CompileNotImplementedError',
     'MissingImplementationError',
     'FunctionNameConflictError',
     'UnexpectedError',
+    'LibraryLoadError',
     'CompilerIncludeError',
 
     # IR优化阶段错误
@@ -55,14 +56,26 @@ __all__ = [
     # 代码生成阶段错误
     'CodeGenerationError',
     'TargetError',
-    'OutputError'
+    'OutputError',
+
+    #其他错误
+    'MemoryLimitError',
+    'VersionCompatibilityError',
 ]
 
 
 class CompilationError(Exception):
     """
     编译器错误异常基类
+
     用法：raise CompilationError("错误描述", line=行号, column=列号, filename="文件名")
+
+    Attributes:
+        msg: 错误消息
+        line: 行号
+        column: 列号
+        filename: 文件名
+        full_msg: 完整格式化的错误消息
     """
 
     def __init__(self, msg: str, line: int = None,
@@ -98,6 +111,28 @@ class CompilationError(Exception):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}:{self.full_msg}"
 
+# ==================== 其他错误 ====================
+
+class VersionCompatibilityError(CompilationError):
+    """版本兼容性错误"""
+
+    def __init__(self, feature: str, required_version: str, current_version: str,
+                 line: int = None, column: int = None, filename: str = None):
+        msg = f"功能 '{feature}' 需要版本 {required_version}，当前版本 {current_version}"
+        super().__init__(msg, line=line, column=column, filename=filename)
+        self.feature = feature
+        self.required_version = required_version
+        self.current_version = current_version
+
+class MemoryLimitError(CompilationError):
+    """内存限制错误"""
+
+    def __init__(self, operation: str, limit: str, line: int = None,
+                 column: int = None, filename: str = None):
+        msg = f"操作 '{operation}' 超过内存限制 ({limit})"
+        super().__init__(msg, line=line, column=column, filename=filename)
+        self.operation = operation
+        self.limit = limit
 
 # ==================== 编译阶段错误 ====================
 
@@ -305,6 +340,17 @@ class CompileRecursionError(ControlFlowError):
                          line=line, column=column, filename=filename)
 
 
+class RecursionLimitError(CompileRecursionError):
+    """递归深度限制错误"""
+
+    def __init__(self, func_name: str, max_depth: int, line: int = None,
+                 column: int = None, filename: str = None):
+        msg = f"函数 '{func_name}' 超过最大递归深度限制 ({max_depth})"
+        super().__init__(msg, line=line, column=column, filename=filename)
+        self.func_name = func_name
+        self.max_depth = max_depth
+
+
 class InterfaceError(ASTSemanticError):
     """接口相关错误"""
     pass
@@ -384,6 +430,17 @@ class UnexpectedError(ASTInternalError):
             "  1. 最小化复现代码\n"
             "  2. 完整错误日志"
         )
+
+
+class LibraryLoadError(ASTInternalError):
+    """库加载错误"""
+
+    def __init__(self, library_name: str, reason: str, line: int = None,
+                 column: int = None, filename: str = None):
+        msg = f"无法加载库 '{library_name}': {reason}"
+        super().__init__(msg, line=line, column=column, filename=filename)
+        self.library_name = library_name
+        self.reason = reason
 
 
 class CompilerIncludeError(ASTError):

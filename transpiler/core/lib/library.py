@@ -35,3 +35,7 @@ class Library(metaclass=ABCMeta):
     def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Constant | Literal]]]:
         """获取库中定义的所有类"""
         return {}
+
+    def get_name(self) -> str:
+        """获取库的名字"""
+        return self.__class__.__name__

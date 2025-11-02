@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable
 
 from transpiler.core.enums import *
-from transpiler.core.generator_config import MinecraftEdition, GeneratorConfig, MinecraftVersion
+from transpiler.core.generator_config import MinecraftEdition, CompileConfig, MinecraftVersion
 from transpiler.core.instructions import IROpCode, IRInstruction
 from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator, IRBuilderReversibleIterator
 from transpiler.core.specification import CodeGeneratorSpec
@@ -23,7 +23,7 @@ class CodeGenerator(CodeGeneratorSpec):
     je1.20.4指令生成后端
     """
 
-    def __init__(self, builder: IRBuilder, target: Path, config: GeneratorConfig):
+    def __init__(self, builder: IRBuilder, target: Path, config: CompileConfig):
         self.target = target
         self.config = config
         self.builder = builder
@@ -76,7 +76,7 @@ class CodeGenerator(CodeGeneratorSpec):
         )
 
     @staticmethod
-    def is_support(config: GeneratorConfig) -> bool:
+    def is_support(config: CompileConfig) -> bool:
         version = config.minecraft_version
         if version != MinecraftVersion(1, 20, 4, MinecraftEdition.JAVA_EDITION):
             return False

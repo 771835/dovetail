@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, TypeVar, Generic
 
 from attrs import define, field, validators
 
-from transpiler.core.enums import ValueType, DataType, VariableType
+from transpiler.core.enums import ValueType, DataType, VariableType, DataTypeBase
 from .base import Symbol
 from .literal import Literal
 from .variable import Variable
@@ -39,7 +39,7 @@ class Reference(Symbol, Generic[T]):
         """
         return self.value.get_name()
 
-    def get_data_type(self) -> DataType | Class:
+    def get_data_type(self) -> DataTypeBase:
         """
         返回所引用的符号的数据类型
 
