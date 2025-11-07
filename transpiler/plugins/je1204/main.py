@@ -1,5 +1,5 @@
 # coding=utf-8
-from transpiler.plugins.plugin_api_v1 import Plugin
+from ..plugin_api_v1 import Plugin
 from .generator import CodeGenerator
 from ..plugin_api_v1.registry import registry_backend
 

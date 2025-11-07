@@ -1,8 +1,5 @@
 # coding=utf-8
-import json
 from functools import lru_cache
-
-from jsonschema import ValidationError
 
 from .plugin import Plugin
 
@@ -36,7 +33,7 @@ def load_plugin(plugin_name: str) -> bool:
     try:
         get_loader_instance().load_plugin(plugin_name)
         return True
-    except (json.decoder.JSONDecodeError, ValidationError, ModuleNotFoundError) as e:
+    except Exception as e:
         return False
 
 

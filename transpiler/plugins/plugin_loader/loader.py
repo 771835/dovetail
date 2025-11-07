@@ -3,13 +3,50 @@ import json
 import os
 from pathlib import Path
 
-from jsonschema import ValidationError, validate
+import fastjsonschema
 
 from transpiler.plugins.plugin_api_v1.plugin import Plugin
 
 __all__ = [
     "plugin_loader",
 ]
+
+plugin_meta_validator = fastjsonschema.compile({
+    "type": "object",
+    "properties": {
+        "display_name": {
+            "type": "string"
+        },
+        "plugin_main": {
+            "type": "string"
+        },
+        "plugin_version": {
+            "type": "string"
+        },
+        "plugin_type": {
+            "type": "string",
+            "enum": ["plugin", "library", "loader"]
+        },
+        "main_class_name": {
+            "type": "string"
+        },
+        "plugin_author": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": [  # 必需的字段
+        "display_name",
+        "plugin_main",
+        "plugin_version",
+        "plugin_type",
+        "main_class_name",
+        "plugin_author"
+    ],
+    "additionalProperties": False  # 不允许额外属性
+})
 
 
 class PluginLoader:
@@ -20,43 +57,6 @@ class PluginLoader:
         "transpiler/plugins",
         "plugins",
     ]
-    plugin_meta_schema = {
-        "type": "object",
-        "properties": {
-            "display_name": {
-                "type": "string"
-            },
-            "plugin_main": {
-                "type": "string"
-            },
-            "plugin_version": {
-                "type": "string"
-            },
-            "plugin_type": {
-                "type": "string",
-                "enum": ["plugin", "library", "loader"]
-            },
-            "main_class_name": {
-                "type": "string"
-            },
-            "plugin_author": {
-                "type": "array",
-                "items": {
-                    "type": "string"
-                }
-            }
-        },
-        "required": [  # 必需的字段
-            "display_name",
-            "plugin_main",
-            "plugin_version",
-            "plugin_type",
-            "main_class_name",
-            "plugin_author"
-        ],
-        "additionalProperties": False  # 不允许额外属性
-    }
-
     def __init__(self):
         self.plugins_locals: dict[str, dict] = {}
         self.plugins_main_class: dict[str, Plugin] = {}
@@ -71,14 +71,16 @@ class PluginLoader:
                     try:
                         with open(metadata_path) as metadata_file:
                             metadata: dict = json.load(metadata_file)
+                    except json.decoder.JSONDecodeError:
+                        print(f"Error: The file 'plugin.metadata' has an invalid format.")
+                        continue
+                    try:
                         # 效验插件配置文件是否正确
-                        validate(instance=metadata, schema=self.plugin_meta_schema)
-                    except (json.decoder.JSONDecodeError, ValidationError):
-                        print(f"Plugin metadata '{metadata_path}' is invalid")
-                        if os.environ and os.environ.get("PLUGIN_DEBUG"):
-                            raise
-                        else:
-                            continue
+
+                        plugin_meta_validator(metadata)
+
+                    except Exception as e:
+                        print(f"Error: The file 'plugin.metadata' has an invalid format.")
                     # 读取入口文件
                     plugin_main = Path(plugin_path) / metadata.get("plugin_main")
                     if plugin_main.exists() and plugin_main.is_file():

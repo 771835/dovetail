@@ -3,12 +3,11 @@ import argparse
 import json
 import sys
 import time
+import fastjsonschema
 from contextlib import chdir
 from pathlib import Path
 
 from antlr4 import FileStream, CommonTokenStream
-from jsonschema import validate, ValidationError
-
 from transpiler.core import registry
 from transpiler.core.errors import CompilationError
 from transpiler.core.generator_config import CompileConfig, OptimizationLevel, MinecraftVersion
@@ -21,22 +20,22 @@ from transpiler.plugins.plugin_loader.loader import plugin_loader
 from transpiler.utils.ir_serializer import IRSymbolSerializer
 from transpiler.utils.naming import NameNormalizer
 
+pack_config_validator = fastjsonschema.compile({
+    "type": "object",
+    "title": "目录配置文件",
+    "properties": {
+        "main": {
+            "type": "string",
+        }
+    },
+    "required": ["main"]
+})
+
 
 class Compiler:
     """
     分析并编译mcdl代码
     """
-
-    pack_config_schema = {
-        "type": "object",
-        "title": "目录配置文件",
-        "properties": {
-            "main": {
-                "type": "string",
-            }
-        },
-        "required": ["main"]
-    }
 
     def __init__(self, config: CompileConfig):
         self.config = config
@@ -70,8 +69,8 @@ class Compiler:
                 print("Error: The file 'pack.config' has an invalid format.")
                 return -1
             # 检查配置文件格式是否正确
-            validate(instance=pack_config_data, schema=self.pack_config_schema)
-        except (json.JSONDecodeError, ValidationError):
+            pack_config_validator(pack_config_data)
+        except (json.JSONDecodeError, fastjsonschema.JsonSchemaException):
             print(f"Error: The file 'pack.config' has an invalid format.")
             return -1
         return self._compile_file(Path(source_path / pack_config_data["main"]).resolve(), target_path, source_path)
