@@ -1,2 +1,2 @@
 python -m nuitka --standalone --lto=yes --deployment --include-data-dir=lib=lib --include-data-dir=docs=docs --include-data-dir=proposals=proposals --include-data-dir=example=example --output-dir=build --output-filename=dovetail.exe  .\main.py
-copy transpiler\plugins\* build\main.dist\plugins\
+xcopy transpiler\plugins\ build\main.dist\plugins\ /s /y
