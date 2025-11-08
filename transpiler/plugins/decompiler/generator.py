@@ -6,8 +6,8 @@ import os
 import shutil
 from pathlib import Path
 
-from transpiler.core.enums import StructureType, DataType, VariableType, FunctionType
-from transpiler.core.generator_config import CompileConfig
+from transpiler.core.compile_config import CompileConfig
+from transpiler.core.enums.types import FunctionType, DataType, StructureType, VariableType
 from transpiler.core.instructions import IROpCode
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.specification import CodeGeneratorSpec

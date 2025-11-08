@@ -3,6 +3,6 @@
   "plugin_main": "main.py",
   "plugin_version": "1.0.0-beta",
   "plugin_type": "plugin",
-  "main_class_name": "Decompiler",
+  "main_class": "Decompiler",
   "plugin_author": ["771835","Claude 4 Sonnet AI Assistant"]
 }

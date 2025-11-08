@@ -2,7 +2,7 @@
 
 from typing import Self
 
-from transpiler.core.enums import StructureType
+from transpiler.core.enums.types import StructureType
 from transpiler.core.symbols.base import Symbol
 
 

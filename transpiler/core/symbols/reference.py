@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, TypeVar, Generic
 
 from attrs import define, field, validators
 
-from transpiler.core.enums import ValueType, DataType, VariableType, DataTypeBase
 from .base import Symbol
 from .literal import Literal
 from .variable import Variable
+from ..enums.types import DataTypeBase, DataType, ValueType, VariableType
 
 if TYPE_CHECKING:
     from . import Class, Function

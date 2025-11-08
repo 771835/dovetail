@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from attrs import define, field, validators
 
-from transpiler.core.enums import VariableType, DataTypeBase
 from .base import Symbol
+from ..enums.types import DataTypeBase, VariableType
 
 
 @define(slots=True)

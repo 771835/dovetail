@@ -1,7 +1,7 @@
 # coding=utf-8
 import uuid
 
-from transpiler.core.enums import DataType
+from transpiler.core.enums.types import DataType
 from transpiler.core.symbols import Variable, Constant, Literal, Symbol, Class
 from . import DataBuilder, ScoreboardBuilder, FunctionBuilder, Execute
 from ..code_generator_scope import CodeGeneratorScope

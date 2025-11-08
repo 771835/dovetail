@@ -1,65 +1,31 @@
 # coding=utf-8
 import json
 import os
+import traceback
 from pathlib import Path
 
-import fastjsonschema
-
+from transpiler.core.config import PLUGIN_METADATA_VALIDATOR
 from transpiler.plugins.plugin_api_v1.plugin import Plugin
 
 __all__ = [
     "plugin_loader",
 ]
 
-plugin_meta_validator = fastjsonschema.compile({
-    "type": "object",
-    "properties": {
-        "display_name": {
-            "type": "string"
-        },
-        "plugin_main": {
-            "type": "string"
-        },
-        "plugin_version": {
-            "type": "string"
-        },
-        "plugin_type": {
-            "type": "string",
-            "enum": ["plugin", "library", "loader"]
-        },
-        "main_class_name": {
-            "type": "string"
-        },
-        "plugin_author": {
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        }
-    },
-    "required": [  # 必需的字段
-        "display_name",
-        "plugin_main",
-        "plugin_version",
-        "plugin_type",
-        "main_class_name",
-        "plugin_author"
-    ],
-    "additionalProperties": False  # 不允许额外属性
-})
-
 
 class PluginLoader:
     """
     插件加载器
     """
+
+    # 插件搜索路径
     plugins_paths = [
         "transpiler/plugins",
         "plugins",
     ]
+
     def __init__(self):
         self.plugins_locals: dict[str, dict] = {}
-        self.plugins_main_class: dict[str, Plugin] = {}
+        self.plugins_instance: dict[str, Plugin] = {}
 
     def load_plugin(self, plugin_name):
         # 根据插件目录名获取插件入口代码
@@ -71,16 +37,18 @@ class PluginLoader:
                     try:
                         with open(metadata_path) as metadata_file:
                             metadata: dict = json.load(metadata_file)
-                    except json.decoder.JSONDecodeError:
+                    except json.decoder.JSONDecodeError as e:
                         print(f"Error: The file 'plugin.metadata' has an invalid format.")
+                        if os.environ.get("PLUGIN_DEBUG", None):
+                            traceback.print_tb(e.__traceback__)
                         continue
                     try:
                         # 效验插件配置文件是否正确
-
-                        plugin_meta_validator(metadata)
-
+                        PLUGIN_METADATA_VALIDATOR(metadata)
                     except Exception as e:
                         print(f"Error: The file 'plugin.metadata' has an invalid format.")
+                        if os.environ.get("PLUGIN_DEBUG", None):
+                            traceback.print_tb(e.__traceback__)
                     # 读取入口文件
                     plugin_main = Path(plugin_path) / metadata.get("plugin_main")
                     if plugin_main.exists() and plugin_main.is_file():
@@ -105,7 +73,7 @@ class PluginLoader:
                     "__package__": str(plugin_path.resolve().relative_to(Path.cwd())).replace("\\", "."),
                     "__name__": plugin_name,
                     "__file__": str(plugin_main.resolve()),
-                    "__plugin_name__": plugin_name
+                    "__plugin_name__": metadata.get("display_name")
                 }
             )
             # 执行代码
@@ -113,23 +81,23 @@ class PluginLoader:
             global_env.update(plugin_locals)
             self.plugins_locals[plugin_name] = plugin_locals
             # 搜索入口类
-            if plugin_main_class := plugin_locals.get(metadata["main_class_name"], None):
-                self.plugins_main_class[plugin_name] = plugin_main_class()
-                is_validate, reason = self.plugins_main_class[plugin_name].validate()
+            if plugin_main_class := plugin_locals.get(metadata["main_class"], None):
+                self.plugins_instance[plugin_name] = plugin_main_class()
+                is_validate, reason = self.plugins_instance[plugin_name].validate()
                 if not is_validate:
-                    raise RuntimeWarning(reason)
-                self.plugins_main_class[plugin_name].initialize()
-                self.plugins_main_class[plugin_name].load()
+                    raise Warning(reason)
+                self.plugins_instance[plugin_name].initialize()
+                self.plugins_instance[plugin_name].load()
             else:
                 raise ModuleNotFoundError(f"Plugin '{plugin_name}' is invalid")
         except Exception as e:
             print(f"加载插件{plugin_name}失败，原因：{e.__str__()}")
             if self.plugins_locals.get(plugin_name, None):
                 del self.plugins_locals[plugin_name]
-            if self.plugins_main_class.get(plugin_name, None):
-                del self.plugins_main_class[plugin_name]
+            if self.plugins_instance.get(plugin_name, None):
+                del self.plugins_instance[plugin_name]
             if os.environ.get("PLUGIN_DEBUG", None):
-                raise
+                traceback.print_tb(e.__traceback__)
 
 
 plugin_loader = PluginLoader()

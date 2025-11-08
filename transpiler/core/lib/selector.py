@@ -1,6 +1,6 @@
 # coding=utf-8
 from transpiler.core.lib.library import Library
-from transpiler.core.safe_enum import SafeEnum
+from transpiler.utils.safe_enum import SafeEnum
 
 
 class TargetSelectorVariables(SafeEnum):

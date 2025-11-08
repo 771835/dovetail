@@ -1,5 +1,5 @@
 # coding=utf-8
-from transpiler.core.generator_config import OptimizationLevel
+from transpiler.core.enums.optimization import OptimizationLevel
 from transpiler.core.specification import CodeGeneratorSpec, IROptimizationPass
 
 backends: dict[str, type[CodeGeneratorSpec]] = {}

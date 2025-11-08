@@ -3,7 +3,7 @@ import random
 import sys
 import time
 
-from transpiler.core.enums import DataType
+from transpiler.core.enums.types import DataType
 from transpiler.core.errors import CompilationError
 from transpiler.core.instructions import IRInstruction
 from transpiler.core.ir_generator import IRGenerator

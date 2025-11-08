@@ -2,8 +2,8 @@
 
 from attrs import define, field, validators
 
-from transpiler.core.enums import DataType, DataTypeBase
 from .base import Symbol
+from ..enums.types import DataTypeBase, DataType
 
 
 @define(slots=True, frozen=True)

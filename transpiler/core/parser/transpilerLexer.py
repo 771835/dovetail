@@ -1,10 +1,9 @@
 # coding=utf-8
 # Generated from E:/python/minecraft-datapack-language/antlr/transpiler.g4 by ANTLR 4.13.2
 import sys
+from typing import TextIO
 
 from antlr4 import *
-
-from typing import TextIO
 
 
 def serializedATN():

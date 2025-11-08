@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from transpiler.core.generator_config import CompileConfig
+from transpiler.core.compile_config import CompileConfig
 from transpiler.core.ir_builder import IRBuilder
 
 __all__ = [

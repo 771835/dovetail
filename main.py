@@ -3,14 +3,18 @@ import argparse
 import json
 import sys
 import time
-import fastjsonschema
 from contextlib import chdir
 from pathlib import Path
 
+import fastjsonschema
 from antlr4 import FileStream, CommonTokenStream
+
 from transpiler.core import registry
+from transpiler.core.compile_config import CompileConfig
+from transpiler.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR
+from transpiler.core.enums.minecraft import MinecraftVersion
+from transpiler.core.enums.optimization import OptimizationLevel
 from transpiler.core.errors import CompilationError
-from transpiler.core.generator_config import CompileConfig, OptimizationLevel, MinecraftVersion
 from transpiler.core.instructions import IRScopeEnd, IRScopeBegin
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.ir_generator import IRGenerator
@@ -19,17 +23,6 @@ from transpiler.core.parser import transpilerLexer, transpilerParser
 from transpiler.plugins.plugin_loader.loader import plugin_loader
 from transpiler.utils.ir_serializer import IRSymbolSerializer
 from transpiler.utils.naming import NameNormalizer
-
-pack_config_validator = fastjsonschema.compile({
-    "type": "object",
-    "title": "目录配置文件",
-    "properties": {
-        "main": {
-            "type": "string",
-        }
-    },
-    "required": ["main"]
-})
 
 
 class Compiler:
@@ -69,7 +62,7 @@ class Compiler:
                 print("Error: The file 'pack.config' has an invalid format.")
                 return -1
             # 检查配置文件格式是否正确
-            pack_config_validator(pack_config_data)
+            PACK_CONFIG_VALIDATOR(pack_config_data)
         except (json.JSONDecodeError, fastjsonschema.JsonSchemaException):
             print(f"Error: The file 'pack.config' has an invalid format.")
             return -1
@@ -92,7 +85,7 @@ class Compiler:
                 ir_builder = Optimizer(ir_builder, self.config).optimize()
                 print(f"IR优化用时：{time.time() - ir_optimize_start_time}")
                 if self.config.output_temp_file:
-                    with open(target_dir_path / f"{self.config.namespace}.mcdc", "wb") as f:
+                    with open(target_dir_path / f"{self.config.namespace}{CACHE_FILE_PREFIX}", "wb") as f:
                         f.write(IRSymbolSerializer.dump(ir_builder, f"dovetail-{repr(self.config.minecraft_version)}"))
 
                 if self.config.debug:

@@ -9,9 +9,10 @@ from itertools import count
 from attrs import define, field, validators
 
 from transpiler.core import registry
-from transpiler.core.enums import ValueType, VariableType, DataTypeBase, DataType, BinaryOps, StructureType, UnaryOps, \
-    CompareOps
-from transpiler.core.generator_config import CompileConfig, OptimizationLevel
+from transpiler.core.compile_config import CompileConfig
+from transpiler.core.enums.operations import UnaryOps, BinaryOps, CompareOps
+from transpiler.core.enums.optimization import OptimizationLevel
+from transpiler.core.enums.types import DataTypeBase, DataType, StructureType, ValueType, VariableType
 from transpiler.core.instructions import *
 from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator
 from transpiler.core.specification import IROptimizerSpec, \

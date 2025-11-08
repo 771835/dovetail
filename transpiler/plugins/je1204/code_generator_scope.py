@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Callable, Any
 
-from transpiler.core.enums import StructureType
+from transpiler.core.enums.types import StructureType
 from transpiler.core.symbols import Symbol
 
 

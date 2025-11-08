@@ -3,6 +3,6 @@
   "plugin_main": "main.py",
   "plugin_version": "1.0.0",
   "plugin_type": "loader",
-  "main_class_name": "LoaderPlugin",
+  "main_class": "LoaderPlugin",
   "plugin_author": ["771835"]
 }

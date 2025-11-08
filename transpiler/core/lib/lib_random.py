@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Callable
 
-from transpiler.core.enums import DataType, FunctionType
+from transpiler.core.enums.types import FunctionType, DataType
 from transpiler.core.instructions import IRInstruction
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.lib.library import Library

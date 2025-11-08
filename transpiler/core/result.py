@@ -4,7 +4,7 @@ from typing import Any
 
 from attrs import define, field, validators
 
-from transpiler.core.enums import DataType, ValueType
+from transpiler.core.enums.types import DataType, ValueType
 from transpiler.core.symbols.literal import Literal
 from transpiler.core.symbols.reference import Reference
 

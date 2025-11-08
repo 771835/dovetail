@@ -5,7 +5,7 @@ int数组
 import uuid
 from typing import Callable
 
-from transpiler.core.enums import DataType, FunctionType, VariableType
+from transpiler.core.enums.types import FunctionType, DataType, VariableType
 from transpiler.core.instructions import IRInstruction, IRCall
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.lib.library import Library

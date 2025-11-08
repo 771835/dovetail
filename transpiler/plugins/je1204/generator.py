@@ -7,8 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from transpiler.core.enums import *
-from transpiler.core.generator_config import MinecraftEdition, CompileConfig, MinecraftVersion
+from transpiler.core.compile_config import CompileConfig
 from transpiler.core.instructions import IROpCode, IRInstruction
 from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator, IRBuilderReversibleIterator
 from transpiler.core.specification import CodeGeneratorSpec
@@ -16,6 +15,9 @@ from transpiler.core.symbols import *
 from .builtins import builtin_func, BuiltinFuncMapping
 from .code_generator_scope import CodeGeneratorScope
 from .command_builder import *
+from ...core.enums.minecraft import MinecraftEdition, MinecraftVersion
+from ...core.enums.operations import UnaryOps, BinaryOps, CompareOps
+from ...core.enums.types import FunctionType, DataType, StructureType
 
 
 class CodeGenerator(CodeGeneratorSpec):

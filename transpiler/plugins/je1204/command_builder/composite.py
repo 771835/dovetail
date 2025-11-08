@@ -3,7 +3,8 @@ import typing
 import uuid
 import warnings
 
-from transpiler.core.enums import DataType, ValueType, CompareOps, BinaryOps
+from transpiler.core.enums.operations import BinaryOps, CompareOps
+from transpiler.core.enums.types import DataType, ValueType
 from transpiler.core.symbols import Constant, Variable, Reference, Literal
 from ._data import DataBuilder
 from ._execute import Execute

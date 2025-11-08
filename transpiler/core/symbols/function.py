@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 
 from attrs import define, field, validators
 
-from transpiler.core.enums import FunctionType, DataTypeBase, DataType
 from .base import Symbol
+from ..enums.types import FunctionType, DataTypeBase, DataType
 
 if TYPE_CHECKING:
     # 仅类型检查时导入

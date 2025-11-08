@@ -9,13 +9,14 @@ def get_loader_instance():
     """
     返回加载器实例
     """
+    # 延迟导入防止循环依赖
     from ..plugin_loader.loader import plugin_loader
     return plugin_loader
 
 
 def get_loaded_plugins() -> dict[str, Plugin]:
     """获取已加载的插件列表"""
-    return get_loader_instance().plugins_main_class
+    return get_loader_instance().plugins_instance
 
 
 def get_plugin(plugin_name: str) -> Plugin | None:
@@ -26,9 +27,6 @@ def get_plugin(plugin_name: str) -> Plugin | None:
 def load_plugin(plugin_name: str) -> bool:
     """
     加载插件
-
-    :param plugin_name:被加载的插件的目录名
-    :return:
     """
     try:
         get_loader_instance().load_plugin(plugin_name)
@@ -46,4 +44,4 @@ def get_api_version() -> tuple[int, int, int]:
     """
     获取api版本号
     """
-    return 1, 0, 0
+    return 1, 0, 1

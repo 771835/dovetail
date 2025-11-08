@@ -2,7 +2,7 @@
 """
 面对对象特性的指令生成函数
 """
-from transpiler.core.enums import DataType, ValueType
+from transpiler.core.enums.types import DataType, ValueType
 from transpiler.core.symbols import Variable, Constant, Reference, Literal
 from . import BasicCommands
 from ..code_generator_scope import CodeGeneratorScope

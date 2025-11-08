@@ -2,7 +2,8 @@
 import uuid
 from typing import Callable
 
-from transpiler.core.enums import DataType, ValueType, BinaryOps, FunctionType
+from transpiler.core.enums.operations import BinaryOps
+from transpiler.core.enums.types import FunctionType, DataType, ValueType
 from transpiler.core.errors import ASTSyntaxError, InvalidControlFlowError
 from transpiler.core.instructions import IRInstruction, IRCast, IRDeclare, IROp, IRScopeBegin, \
     IRJump, IRCall

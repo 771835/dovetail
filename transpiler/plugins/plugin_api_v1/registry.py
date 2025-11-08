@@ -1,6 +1,6 @@
 # coding=utf-8
 from transpiler.core import registry
-from transpiler.core.generator_config import OptimizationLevel
+from transpiler.core.enums.optimization import OptimizationLevel
 
 from transpiler.core.lib.library import Library
 from transpiler.core.lib.library_mapping import LibraryMapping

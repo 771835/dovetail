@@ -1,8 +1,9 @@
 # coding=utf-8
 
-from transpiler.core.enums import StructureType, CompareOps, BinaryOps, UnaryOps, DataType
-from transpiler.core.safe_enum import SafeEnum
+from transpiler.core.enums.operations import UnaryOps, BinaryOps, CompareOps
+from transpiler.core.enums.types import DataType, StructureType
 from transpiler.core.symbols import Literal, Class, Constant, Function, Reference, Variable, Symbol
+from transpiler.utils.safe_enum import SafeEnum
 
 # 明确指定要导出的公共类和枚举
 __all__ = [

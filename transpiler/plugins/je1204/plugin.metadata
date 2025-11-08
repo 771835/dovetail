@@ -3,6 +3,6 @@
   "plugin_main": "main.py",
   "plugin_version": "1.0.0",
   "plugin_type": "plugin",
-  "main_class_name": "JE1204",
+  "main_class": "JE1204",
   "plugin_author": ["771835"]
 }

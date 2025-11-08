@@ -4,7 +4,7 @@
 """
 from pathlib import Path
 
-from transpiler.core.enums import DataTypeBase
+from transpiler.core.enums.types import DataTypeBase
 
 __all__ = [
     # 基础异常类
@@ -58,7 +58,7 @@ __all__ = [
     'TargetError',
     'OutputError',
 
-    #其他错误
+    # 其他错误
     'MemoryLimitError',
     'VersionCompatibilityError',
 ]
@@ -111,6 +111,7 @@ class CompilationError(Exception):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}:{self.full_msg}"
 
+
 # ==================== 其他错误 ====================
 
 class VersionCompatibilityError(CompilationError):
@@ -124,6 +125,7 @@ class VersionCompatibilityError(CompilationError):
         self.required_version = required_version
         self.current_version = current_version
 
+
 class MemoryLimitError(CompilationError):
     """内存限制错误"""
 
@@ -133,6 +135,7 @@ class MemoryLimitError(CompilationError):
         super().__init__(msg, line=line, column=column, filename=filename)
         self.operation = operation
         self.limit = limit
+
 
 # ==================== 编译阶段错误 ====================
 
