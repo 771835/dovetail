@@ -260,6 +260,7 @@ func to_scaled_string(int value): string {
 }
 
 // 主函数
+@init
 func main() {
     // 运行所有测试
     test_fraction_comprehensive();

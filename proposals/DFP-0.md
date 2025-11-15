@@ -1,6 +1,6 @@
 # DFP 0: Dovetail Enhancement Proposals Index
 
-> ⚠️ 迁移提示：本提案体系原名 `MCFP`（McFuncDSL Enhancement Proposals）
+> ⚠️ 迁移提示：本提案体系原名 `MCFP`（McFuncDSL Enhancement Proposals）  
 > 自 2025-07-15 起正式更名为 `DFP`（Dovetail Enhancement Proposals）
 
 ## 元提案
@@ -8,7 +8,7 @@
 **状态**: Active  
 **作者**: 771835 <2790834181@qq.com>  
 **创建日期**: 2025-06-06  
-**最新更新**: 2025-07-15
+**最新更新**: 2025-11-15
 
 ---
 
@@ -31,11 +31,12 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 | DFP 0     | McFuncDSL 提案索引与流程 | Active    | 元提案      | -  |
 | DFP 1     | 基础语法规范            | Draft     | 核心语言     | -  |
 | DFP 2     | IR 设计与规范          | Active    | 核心语言     | -  |
-| DFP 5     | 支持数组              | Deferred  | 核心语言     | -  |
+| DFP 5     | 数组支持              | Deferred  | 核心语言     | -  |
+| DFP 6     | 内置注解规范            | Proposed  | 核心语言     |    |
 | DFP 300   | 内置函数              | Active    | 标准库      | -  |
 | DFP 301   | 后端指令生成内置函数表       | Active    | 内置模块     | -  |
 | DFP 600   | 语言服务器协议           | Deferred  | 工具链      | -  |
-| DFP 601   | 发行版管理规则           | Active    | 编译器      |    |
+| DFP 901   | 发行版管理规则           | Active    | 编译器      |    |
 | DFP 10000 | 指令生成规范            | Abandoned | 已过时-核心语言 | -  |
 
 ---

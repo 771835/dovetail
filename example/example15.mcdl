@@ -192,6 +192,7 @@ func matrix8x8_multiply(
 
 }
 // 8×8随机矩阵乘法测试
+@export
 func main() {
     print("=== 8×8随机矩阵乘法测试 ===");
     print("");

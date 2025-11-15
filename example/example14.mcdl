@@ -620,10 +620,10 @@ func matrix16x16_multiply(
     print("");
     print("矩阵乘法计算完成!");
 }
-@init
-// 随机16×16矩阵乘法测试
+@export
+// 16×16矩阵乘法测试
 func main() {
-    print("=== 随机16×16矩阵乘法测试 ===");
+    print("=== 16×16矩阵乘法测试 ===");
     print("");
 
     // 定义矩阵A的参数

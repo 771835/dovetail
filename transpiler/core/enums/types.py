@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-MCDL 转译器类型系统枚举模块
+转译器类型系统枚举模块
 
 此模块包含构成类型系统骨干的所有类型相关枚举，
 包括数据类型、结构类型、值类别和类相关类型等。
@@ -143,7 +143,7 @@ class VariableType(SafeEnum):
     """
     不同变量声明上下文的变量类别
 
-    影响生成的 Minecraft 命令中的存储分配和生命周期管理。
+    影响生成的 Minecraft 命令中的生命周期管理。
 
     Attributes:
         PARAMETER: 函数参数变量

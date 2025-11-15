@@ -16,8 +16,9 @@ includeStmt
 
 /* 注解系统 */
 
-annotation
-    : '@' ID     // 仅允许使用预定义注解
+annotation // 仅允许使用内置注解及插件注解
+    : '@' ID
+    | '@' ID LPAREN literal (COMMA literal)* RPAREN
     ;
 
 /* 类 */
@@ -185,9 +186,9 @@ expr
 
 
 primary
-    :ID                                    # IdentifierExpr      // 标识符（变量、函数、类等）
-    | literal                               # LiteralExpr        // 字面量
-    | LPAREN expr RPAREN                          # ParenExpr          // 括号
+    :ID                                    # IdentifierExpr     // 标识符（变量、函数、类等）
+    | literal                              # LiteralExpr        // 字面量
+    | LPAREN expr RPAREN                   # ParenExpr          // 括号
     ;
 
 
@@ -206,8 +207,8 @@ literal
     : NUMBER                                // 数字
     | STRING                                // 普通字符串
     | FSTRING                               // 插值字符串
-    | TRUE | FALSE                      // 布尔值
-    | NULL                                // 空值
+    | TRUE | FALSE                          // 布尔值
+    | NULL                                  // 空值
     ;
 
 // 词法规则
