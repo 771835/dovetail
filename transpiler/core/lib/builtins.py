@@ -275,11 +275,13 @@ class Builtins(Library):
 
     def _int(self, value: Reference[Variable | Constant | Literal]) -> Variable:
         result: Variable = Variable(uuid.uuid4().hex, DataType.INT)
+        self.builder.insert(IRDeclare(result))
         self.builder.insert(IRCast(result, DataType.INT, value))
         return result
 
     def _str(self, value: Reference[Variable | Constant | Literal]) -> Variable:
         result: Variable = Variable(uuid.uuid4().hex, DataType.STRING)
+        self.builder.insert(IRDeclare(result))
         self.builder.insert(IRCast(result, DataType.STRING, value))
         return result
 
