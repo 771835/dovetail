@@ -2,7 +2,7 @@
 """
 MCDL 转译器类型系统枚举模块
 
-此模块包含构成 MCDL 类型系统骨干的所有类型相关枚举，
+此模块包含构成类型系统骨干的所有类型相关枚举，
 包括数据类型、结构类型、值类别和类相关类型等。
 """
 from transpiler.utils.safe_enum import SafeEnum
@@ -10,7 +10,7 @@ from transpiler.utils.safe_enum import SafeEnum
 
 class FunctionType(SafeEnum):
     """
-    MCDL 中不同类别可调用函数的枚举
+    不同类别可调用函数的枚举
 
     使用场景：
     - 符号解析器：用于函数分类
@@ -18,13 +18,13 @@ class FunctionType(SafeEnum):
     - 调用栈管理器：用于分发逻辑
 
     Attributes:
-        FUNCTION: 用户定义的 MCDL 函数
-        LIBRARY: 从 MCDL 库加载的函数
+        FUNCTION: 用户定义的函数
+        LIBRARY: 从库加载的函数
         BUILTIN: 转译器内置函数
         METHOD: 类方法函数
     """
-    FUNCTION = "function"  # 用户定义的 MCDL 函数
-    LIBRARY = "library"  # 从 MCDL 库加载的函数
+    FUNCTION = "function"  # 用户定义的函数
+    LIBRARY = "library"  # 从库加载的函数
     BUILTIN = "built-in"  # 后端内建函数
     METHOD = "method"  # 类方法函数
 
@@ -48,7 +48,7 @@ class DataTypeBase:
 
 class DataType(DataTypeBase, SafeEnum):
     """
-    MCDL 中表示变量存储类型的基础数据类型
+    表示变量存储类型的基础数据类型
 
     这些类型对应于可以存储在 Minecraft 命令系统和
     计分板操作中的基本数据表示。
@@ -89,7 +89,7 @@ class DataType(DataTypeBase, SafeEnum):
 
 class StructureType(SafeEnum):
     """
-    MCDL 中表示不同作用域上下文的结构类型
+    表示不同作用域上下文的结构类型
 
     由作用域管理器使用，用于在不同代码结构中维护
     正确的变量可见性。
@@ -104,21 +104,17 @@ class StructureType(SafeEnum):
         GLOBAL: 全局作用域
         FUNCTION: 函数作用域
         CLASS: 类定义作用域
-        LOOP: 循环体作用域
         LOOP_CHECK: 循环条件检查作用域
         LOOP_BODY: 循环体执行作用域
         INTERFACE: 接口定义作用域
-        BLOCK: 代码块作用域
         CONDITIONAL: 条件语句作用域
     """
     GLOBAL = "global"
     FUNCTION = "function"
     CLASS = "class"
-    LOOP = "loop"
     LOOP_CHECK = "loop_check"
     LOOP_BODY = "loop_body"
     INTERFACE = 'interface'
-    BLOCK = 'block'
     CONDITIONAL = "conditional"
 
 
@@ -161,7 +157,7 @@ class VariableType(SafeEnum):
 
 class ClassType(SafeEnum):
     """
-    MCDL 面向对象系统中的类声明类型
+    面向对象系统中的类声明类型
 
     用于在继承检查和方法解析过程中区分
     具体类和接口契约。

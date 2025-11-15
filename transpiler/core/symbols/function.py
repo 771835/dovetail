@@ -1,27 +1,22 @@
 # coding=utf-8
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from attrs import define, field, validators
 
 from .base import Symbol
-from ..enums.types import FunctionType, DataTypeBase, DataType
-
-if TYPE_CHECKING:
-    # 仅类型检查时导入
-    from . import Parameter, Class
+from .parameter import Parameter
+from ..enums.types import FunctionType, DataTypeBase
 
 
 @define(slots=True)
 class Function(Symbol):
     name: str = field(validator=validators.instance_of(str))
     params: list[Parameter] = field(validator=validators.instance_of(list))
-    return_type: DataType | Class = field(validator=validators.instance_of(DataTypeBase))
+    return_type: DataTypeBase = field(validator=validators.instance_of(DataTypeBase))
     function_type: FunctionType = field(validator=validators.instance_of(FunctionType), default=FunctionType.FUNCTION)
     annotations: list[str] = field(validator=validators.instance_of(list), default=[])
 
-    def get_name(self):
+    def get_name(self) -> str:
         """
         获得函数名称
 

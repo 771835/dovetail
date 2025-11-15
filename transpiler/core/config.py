@@ -4,6 +4,7 @@
 """
 import fastjsonschema
 
+PROJECT_NAME = "Dovetail"
 CACHE_FILE_PREFIX = ".mcdc"
 PACK_CONFIG_VALIDATOR = fastjsonschema.compile({
     "type": "object",

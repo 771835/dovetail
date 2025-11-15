@@ -162,32 +162,25 @@ ifStmt
 
 /* 表达式系统 */
 expr
-    :primary                               # PrimaryExpr        // 基础表达式
-
-    //| methodReference                       # MethodRefExpr      // 方法引用
-    //| expr '?' '.' ID                       # SafeNavigation     // 安全导航
-    | expr '.' ID argumentList         # MethodCall         // 方法调用
-    | expr '.' ID                           # MemberAccess       // 成员访问
-    | expr LBRACK expr RBRACK                     # ArrayAccess        // 数组访问
-    | expr argumentList                # FunctionCall       // 函数调用
-
-    | SUB expr                              # NegExpr            // 负号
-    | NOT expr                         #LogicalNotExpr             // not运算符
-
-    | expr (MUL|DIV|MOD) expr                   # FactorExpr         // 算术运算
-    | expr (ADD|SUB) expr                   # TermExpr
-
-    | expr (GT | LT | EQ | NEQ | LTE | GTE) expr # CompareExpr      // 比较运算
-
-    | expr AND expr                   #LogicalAndExpr             // and运算符
-    | expr OR expr                   #LogicalOrExpr              // or运算符
-
-    | <assoc=right> expr QUESTION expr COLON expr  # TernaryTraditionalExpr
-    | <assoc=right> expr IF expr ELSE expr  # TernaryPythonicExpr
-
-    | expr LBRACK expr RBRACK ASSIGN expr           # ArrayAssignmentExpr
-    | expr '.' ID ASSIGN expr           # MemberAssignmentExpr
-    | ID ASSIGN expr                    # LocalAssignmentExpr
+    : primary                                                # PrimaryExpr              // 基础表达式
+    //| methodReference                                      # MethodRefExpr            // 方法引用
+    //| expr '?' '.' ID                                      # SafeNavigation           // 安全导航
+    | expr '.' ID argumentList                               # MethodCall               // 方法调用
+    | expr '.' ID                                            # MemberAccess             // 成员访问
+    | expr LBRACK expr RBRACK                                # ArrayAccess              // 数组访问
+    | expr argumentList                                      # FunctionCall             // 函数调用
+    | SUB expr                                               # NegExpr                  // 负号
+    | NOT expr                                               # LogicalNotExpr           // not运算符
+    | expr (MUL | DIV | MOD) expr                            # FactorExpr               // 乘除模运算
+    | expr (ADD | SUB) expr                                  # TermExpr                 // 加减运算
+    | expr (GT | LT | EQ | NEQ | LTE | GTE) expr             # CompareExpr              // 比较运算
+    | expr AND expr                                          # LogicalAndExpr           // and运算符
+    | expr OR expr                                           # LogicalOrExpr            // or运算符
+    | <assoc=right> expr QUESTION expr COLON expr            # TernaryTraditionalExpr   // 传统三元运算符
+    | <assoc=right> expr IF expr ELSE expr                   # TernaryPythonicExpr      // Python风格三元运算符
+    | expr LBRACK expr RBRACK ASSIGN expr                    # ArrayAssignmentExpr      // 数组元素赋值
+    | expr '.' ID ASSIGN expr                                # MemberAssignmentExpr     // 成员属性访问
+    | ID ASSIGN expr                                         # LocalAssignmentExpr      // 变量赋值
     ;
 
 

@@ -25,7 +25,7 @@ class Class(Symbol, DataTypeBase):
     def get_name(self) -> str:
         return self.name
 
-    def is_subclass_of(self, other):
+    def is_subclass_of(self, other) -> bool:
         if self is other:
             return True
         current_class = self.parent

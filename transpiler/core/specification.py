@@ -28,12 +28,15 @@ class IROptimizerSpec(ABC):
 
 
 class IROptimizationPass(ABC):
+    """IR 优化管道"""
+
     @abstractmethod
     def __init__(self, builder: IRBuilder, config: CompileConfig):
         """初始化"""
 
     @abstractmethod
     def exec(self):
+        """执行优化"""
         pass
 
 

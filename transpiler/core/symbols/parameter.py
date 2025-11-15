@@ -6,12 +6,13 @@ from typing import TYPE_CHECKING
 from attrs import define, field, validators
 
 from .base import Symbol
+from .literal import Literal
 from .reference import Reference
 from .variable import Variable
 from ..enums.types import DataTypeBase
 
 if TYPE_CHECKING:
-    from . import Literal, Constant
+    from . import Constant
 
 
 @define(slots=True)
