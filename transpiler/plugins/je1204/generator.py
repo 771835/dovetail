@@ -668,22 +668,15 @@ class CodeGenerator(CodeGeneratorSpec):
                 )
             )
         elif dtype in (DataType.INT, DataType.BOOLEAN) and value.get_data_type() == DataType.STRING:  # string -> int
-            temp_path = uuid.uuid4().hex
+            temp_path = Variable(uuid.uuid4().hex, DataType.INT)
             self.current_scope.add_command(
-                Execute.execute()
-                .store_result_storage(
-                    self.var_objective,
+                BasicCommands.Copy.copy(
                     temp_path,
-                    "int",
-                    1.0
-                )
-                .run(
-                    ScoreboardBuilder.get_score(
-                        self.current_scope.get_symbol_path(
-                            value.get_name()
-                        ),
-                        self.var_objective
-                    )
+                    self.current_scope,
+                    self.var_objective,
+                    value.value,
+                    self.current_scope,
+                    self.var_objective,
                 )
             )
             self.current_scope.add_command(
@@ -696,14 +689,14 @@ class CodeGenerator(CodeGeneratorSpec):
                             self.var_objective,
                             None
                         ),
-                        "target_path": (
+                        "target": (
                             False,
                             self.current_scope.get_symbol_path(result.get_name()),
                             None
                         ),
                         "value": (
                             True,
-                            temp_path,
+                            temp_path.get_name(),
                             self.var_objective
                         )
                     }

@@ -12,7 +12,7 @@ from ...core.enums.types import DataType, ValueType
 builtin_func = {
     "builtins/exec": "$$(command)",
     "builtins/strcat": "$data modify storage $(target) $(target_path) set value '$(dest)$(src)'",
-    "builtins/str2int": "$scoreboard players set $(target) $(objective) $(value)'",
+    "builtins/str2int": "$scoreboard players set $(target) $(objective) $(value)",
     "builtins/oop/get_property_score": "$execute store result score $(target) $(objective) run data get storage $(source) object.$(id).$(property) 1",
     "builtins/oop/get_property_storage": "$data modify storage $(target) $(target_path) set from storage $(source) object.$(id).$(property)",
     "builtins/oop/set_property_storage": "$data modify storage $(target) object.$(id).$(property) set from storage $(source) $(source_path)",
