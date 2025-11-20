@@ -86,7 +86,7 @@ class Compiler:
                 print(f"IR优化用时：{time.time() - ir_optimize_start_time}")
                 if self.config.output_temp_file:
                     with open(target_dir_path / f"{self.config.namespace}{CACHE_FILE_PREFIX}", "wb") as f:
-                        f.write(IRSymbolSerializer.dump(ir_builder, f"dovetail-{repr(self.config.minecraft_version)}"))
+                        f.write(IRSymbolSerializer.dump(ir_builder))
 
                 if self.config.debug:
                     print("最终ir")

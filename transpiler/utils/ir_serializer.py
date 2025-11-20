@@ -13,7 +13,7 @@ version = "1.0.1"
 
 
 class IRSymbolSerializer:
-    serializer = BinarySerializer(0.37, obf_key=0x12)
+    serializer = BinarySerializer()
 
     def __init__(self, builder: IRBuilder):
         self.builder = builder
@@ -122,15 +122,15 @@ class IRSymbolSerializer:
             {
                 "opcode": instr.opcode.value,
                 "operands": [id(op) for op in instr.operands],
-                # "flags": instr.flags,(不记录flags，因为没有意义)
+                # 不记录flags，因为没有意义
             } for instr in self.builder.get_instructions()
         ]
         return result
 
     @staticmethod
-    def dump(builder: IRBuilder, password=None) -> bytes:
-        return IRSymbolSerializer.serializer.freeze(IRSymbolSerializer(builder).serialize(), password)
+    def dump(builder: IRBuilder) -> bytes:
+        return IRSymbolSerializer.serializer.freeze(IRSymbolSerializer(builder).serialize())
 
     @staticmethod
-    def load(data: bytes, password=None) -> dict:
-        return IRSymbolSerializer.serializer.thaw(data, password)
+    def load(data: bytes) -> dict:
+        return IRSymbolSerializer.serializer.thaw(data)

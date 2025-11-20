@@ -8,18 +8,17 @@ import zlib
 
 class BinarySerializer:
     """
-    嵌套字典安全序列化工具
+    嵌套字典序列化工具
     支持字典、列表、元组、字符串、整数、浮点数、布尔值、None、字节串
     """
 
     MAGIC_HEADER = 0x0F5E2F3D
-    VERSION = 5  # 新版本支持加密
+    VERSION = 5
     MAX_PADDING = 256
 
-    def __init__(self, padding_factor=0.3, enable_compression=True, obf_key=0x42):
+    def __init__(self, padding_factor=0.3, enable_compression=True):
         self.padding_factor = max(0.0, min(1.0, padding_factor))
         self.enable_compression = enable_compression
-        self.obf_key = obf_key
 
     def _encode_key(self, key):
         """编码键为二进制格式"""
@@ -92,7 +91,7 @@ class BinarySerializer:
             key = binary_data[index:index + key_len]
             index += key_len
             return key, index
-        elif tag == 0xBF:  # 元组键（新增！）
+        elif tag == 0xBF:  # 元组键
             length = struct.unpack('>I', binary_data[index:index + 4])[0]
             index += 4
             tuple_items = []
@@ -117,7 +116,7 @@ class BinarySerializer:
             return result
 
         elif isinstance(obj, (list, tuple)):
-            tag = 0xDB if isinstance(obj, list) else 0xBF  # 元组用BF标记
+            tag = 0xDB if isinstance(obj, list) else 0xBF
             result = struct.pack('>BI', tag, len(obj))
             for item in obj:
                 result += self._struct_encode(item)
@@ -160,7 +159,7 @@ class BinarySerializer:
             tag = binary_data[index]
             index += 1
 
-            if tag == 0xDD:  # 字典（支持多类型键）
+            if tag == 0xDD:  # 字典
                 length = struct.unpack('>I', binary_data[index:index + 4])[0]
                 index += 4
                 result = {}
@@ -226,163 +225,78 @@ class BinarySerializer:
         result = decode_next()
         return result
 
-    def _derive_key_from_password(self, password: str, salt: bytes) -> bytes:
-        """从密码派生密钥（简单实现）"""
-        # 简单的密钥派生（实际应用中应该使用PBKDF2）
-        key_material = hashlib.sha256(password.encode() + salt).digest()
-        return key_material
-
-    def _simple_encrypt(self, data: bytes, key: bytes) -> bytes:
-        """简单的流加密"""
-        result = bytearray()
-        key_len = len(key)
-        for i, byte in enumerate(data):
-            # 使用密钥的循环异或
-            encrypted_byte = byte ^ key[i % key_len] ^ (i & 0xFF)
-            result.append(encrypted_byte)
-        return bytes(result)
-
-    def _simple_decrypt(self, data: bytes, key: bytes) -> bytes:
-        """简单的流解密"""
-        return self._simple_encrypt(data, key)  # 对称加密
-
-    def freeze(self, data, password=None):
+    def freeze(self, data):
         """
         将嵌套字典冻结为防篡改二进制（可选压缩和加密）
         """
-        # 1. 基础序列化
+        # 基础序列化
         payload = self._struct_encode(data)
 
-        # 2. 可选加密
-        is_encrypted = 0
-        if password:
-            salt = os.urandom(16)  # 生成随机盐值
-            derived_key = self._derive_key_from_password(password, salt)
-            payload = self._simple_encrypt(payload, derived_key)
-            is_encrypted = 1
-        else:
-            salt = b''
-
-        # 3. 可选压缩
+        # 压缩
         is_compressed = 0
-        if self.enable_compression and not password:  # 加密数据通常不压缩
+        if self.enable_compression:
             payload = gzip.compress(payload, compresslevel=6)
             is_compressed = 1
 
-        # 4. 简单XOR混淆（单层）
-        payload_obfuscated = bytes(byte ^ self.obf_key for byte in payload)
+        # 添加校验信息
+        crc = zlib.crc32(payload) & 0xFFFF
 
-        # 5. 添加校验信息
-        crc = zlib.crc32(payload_obfuscated) & 0xFFFF
-
-        # 6. 构建头部
+        # 构建头部
         header = struct.pack('>I', self.MAGIC_HEADER)  # 4字节魔数
-        header += struct.pack('>B', self.VERSION)  # 版本
+        header += struct.pack('>I', self.VERSION)  # 4字节版本
         header += struct.pack('>B', is_compressed)  # 1字节压缩标志
-        header += struct.pack('>B', is_encrypted)  # 1字节加密标志
         header += struct.pack('>H', crc)  # 2字节CRC
 
-        # 7. 添加随机填充和盐值
-        padding_size = int(self.MAX_PADDING * self.padding_factor)
-        padding = os.urandom(padding_size) if padding_size > 0 else b''
+        # 组合完整结构
+        return header + payload
 
-        # 8. 组合完整结构
-        return header + salt + padding + payload_obfuscated
-
-    def thaw(self, binary_data, password=None):
+    def thaw(self, binary_data):
         """
         从二进制数据恢复原始字典
         """
         # 最小长度检查
-        min_length = 12
+        min_length = 11
         if len(binary_data) < min_length:
             raise ValueError("无效数据: 长度不足")
 
-        # 1. 解析头部
+        # 解析头部
         magic = struct.unpack('>I', binary_data[0:4])[0]  # 4字节魔数
-        version = struct.unpack('>B', binary_data[4:5])[0]  # 1字节版本
-        is_compressed = struct.unpack('>B', binary_data[5:6])[0]  # 1字节压缩标志
-        is_encrypted = struct.unpack('>B', binary_data[6:7])[0]  # 1字节加密标志
-        crc = struct.unpack('>H', binary_data[7:9])[0]  # 2字节CRC
-        payload_start = 9
+        version = struct.unpack('>I', binary_data[4:8])[0]  # 1字节版本
+        is_compressed = struct.unpack('>B', binary_data[8:9])[0]  # 1字节压缩标志
+        crc = struct.unpack('>H', binary_data[9:11])[0]  # 2字节CRC
+        payload_start = 11
 
-        # 2. 版本验证
+        # 魔数验证
         if magic != self.MAGIC_HEADER:
             raise ValueError(f"魔数不匹配: 期望0x{self.MAGIC_HEADER:08X}, 实际0x{magic:08X}")
 
-        # 3. 读取盐值（如果加密）
-        salt = b''
-        salt_size = 16 if is_encrypted else 0
-        if is_encrypted:
-            salt = binary_data[payload_start:payload_start + salt_size]
-            payload_start += salt_size
+        # 搜索有效数据
+        payload_data = binary_data[payload_start:]
 
-        # 4. 智能搜索有效数据
-        payload_data = None
-        for i in range(payload_start, min(len(binary_data), payload_start + self.MAX_PADDING)):
-            try:
-                test_payload_obfuscated = binary_data[i:]
+        # 验证CRC
+        crc_calc = zlib.crc32(payload_data) & 0xFFFF
+        if crc_calc != crc:
+            raise ValueError(f"校验失败: crc效验失败")
 
-                # 反向混淆
-                test_payload = bytes(byte ^ self.obf_key for byte in test_payload_obfuscated)
-
-                # 验证CRC
-                crc_calc = zlib.crc32(test_payload_obfuscated) & 0xFFFF
-                if crc_calc == crc:
-                    payload_data = test_payload
-                    break
-            except:
-                continue
-
-        if payload_data is None:
-            raise ValueError(f"数据被篡改! 校验失败: 存储值0x{crc:04X}, 未找到匹配数据")
-
-        # 5. 可选解密
-        if is_encrypted:
-            if not password:
-                raise ValueError("数据已加密，需要提供密码")
-            derived_key = self._derive_key_from_password(password, salt)
-            payload_data = self._simple_decrypt(payload_data, derived_key)
-        elif password:
-            raise ValueError("数据未加密，无需提供密码")
-
-        # 6. 可选解压缩
+        # 解压缩
         if is_compressed:
             payload_data = gzip.decompress(payload_data)
 
-        # 7. 解码数据结构
+        # 解码数据结构
         return self._struct_decode(payload_data)
 
-    def freeze_to_file(self, data, file_path, password=None):
+    def freeze_to_file(self, data, file_path):
         """序列化并保存到文件"""
         with open(file_path, 'wb') as f:
-            f.write(self.freeze(data, password))
+            f.write(self.freeze(data))
 
-    def thaw_from_file(self, file_path, password=None):
+    def thaw_from_file(self, file_path):
         """从文件恢复数据"""
         with open(file_path, 'rb') as f:
-            return self.thaw(f.read(), password)
-
-    @classmethod
-    def brute_force_key_for_v4(cls, binary_data):
-        """暴力破解 obf_key"""
-        _serializer = cls()
-
-        for key in range(256):
-            try:
-                _serializer.obf_key = key
-                result = _serializer.thaw(binary_data)
-                # 如果能成功解码且通过CRC校验，很可能就是正确密钥
-                print(f"可能的obf_key密钥: {key} (0x{key:02X})")
-                return key, result
-            except:
-                continue
-
-        return None, None
+            return self.thaw(f.read())
 
 
-# ===== 测试代码 =====
-if __name__ == "__main__":
+def main():
     # 测试各种类型键的字典
     print("===== 多类型键测试 =====")
 
@@ -436,21 +350,9 @@ if __name__ == "__main__":
     except ValueError as e:
         print(f"✅ 篡改成功拦截: {e}")
 
-    # 不加密测试
-    binary1 = serializer.freeze(test1)
-    restored1 = serializer.thaw(binary1)
-    print(f"不加密测试: {test1 == restored1}")
-
-    # 加密测试
-    binary_encrypted = serializer.freeze(test1, password="password")
-    restored_encrypted = serializer.thaw(binary_encrypted, password="password")
-    print(f"加密测试: {test1 == restored_encrypted}")
-
-    # 密码错误测试
-    try:
-        serializer.thaw(binary_encrypted, password="wrongpassword")
-        print("❌ 密码错误未检测到!")
-    except ValueError as e:
-        print(f"✅ 密码错误拦截: {e}")
-
     print("\n✅ 所有测试完成!")
+
+
+# ===== 测试代码 =====
+if __name__ == "__main__":
+    main()
