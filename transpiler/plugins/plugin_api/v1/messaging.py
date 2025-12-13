@@ -2,8 +2,8 @@
 """插件间通信"""
 from typing import Any
 
-from .plugin import Plugin
-from .plugin_manager import get_plugin
+from transpiler.plugins.plugin_api.v1.plugin import Plugin
+from transpiler.plugins.plugin_api.v1.plugin_manager import get_plugin
 
 
 def send_message(sender: str | Plugin, target: str | Plugin, message: Any) -> bool:

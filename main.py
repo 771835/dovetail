@@ -9,7 +9,7 @@ from pathlib import Path
 import fastjsonschema
 from antlr4 import FileStream, CommonTokenStream
 
-from transpiler.core import registry
+from transpiler.core.backend import BackendFactory
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR
 from transpiler.core.enums.minecraft import MinecraftVersion
@@ -27,7 +27,7 @@ from transpiler.utils.naming import NameNormalizer
 
 class Compiler:
     """
-    分析并编译mcdl代码
+    编译mcdl代码
     """
 
     def __init__(self, config: CompileConfig):
@@ -92,25 +92,9 @@ class Compiler:
                     print("最终ir")
                     self._print_ir_builder(ir_builder)
                 if not self.config.no_generate_commands:
-                    # 输出到target目录
-                    if self.config.backend_name:
-                        current_backend = registry.backends.get(self.config.backend_name, None)
-                        if current_backend is None:
-                            print(f"找不到名为{self.config.backend_name}的后端")
-                            return -1
-                    else:
-                        for name, backend in registry.backends.items():
-                            if backend.is_support(self.config):
-                                print(f"自动选择{name}后端")
-                                current_backend = backend
-                                break
-                        else:
-                            print(f"找不到可用后端")
-                            return -1
-
-                    code_generator_start_time = time.time()
-                    current_backend(ir_builder, target_dir_path, self.config).generate()
-                    print(f"最终代码生成与写入总用时：{time.time() - code_generator_start_time}")
+                    backend_start_time = time.time()
+                    BackendFactory.auto_select(ir_builder, target_dir_path, self.config).generate()
+                    print(f"最终代码生成与写入总用时：{time.time() - backend_start_time}")
             except CompilationError as e:
                 time.sleep(0.1)  # 保证前面的输出完成
                 if generator:
@@ -173,8 +157,8 @@ def main():
     args_parser.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本',
                              default="1.20.4")
     args_parser.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
-    args_parser.add_argument('--lib-path', '-L', metavar='path', type=str, help='强制指定标准库路径')
-    args_parser.add_argument('--backend-name', '-B', metavar='name', type=str, help='强制指定后端名称', default="")
+    args_parser.add_argument('--lib-path', '-l', metavar='path', type=str, help='强制指定标准库路径')
+    args_parser.add_argument('--backend', '-b', metavar='name', type=str, help='强制指定后端名称', default="")
     args_parser.add_argument('--namespace', '-n', metavar='namespace', type=str, help='输出数据包命名空间')
     args_parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')
     args_parser.add_argument('--no-generate-commands', action='store_true', help='不生成指令')
@@ -185,15 +169,10 @@ def main():
     args_parser.add_argument('--enable-experimental', action='store_true', help='启用扩展模式(测试性功能)')
     args_parser.add_argument('--disable-names-normalizer', action='store_true', help='禁用命名规范化')
     args_parser.add_argument('--debug', action='store_true', help='启用调试模式')
-    args_parser.add_argument('--easter-egg', action='store_true',
-                             help='奇奇怪怪的修改(警告:这将会严重破坏编译器的功能)')
 
     parsed_args = args_parser.parse_args()
     source_path = Path(parsed_args.input)
     target_path = Path(parsed_args.output or "target")
-    if parsed_args.easter_egg:
-        import transpiler.easter_egg
-        transpiler.easter_egg.main()
     NameNormalizer.enable = not parsed_args.disable_names_normalizer
     compiler = Compiler(
         CompileConfig(
@@ -202,7 +181,7 @@ def main():
             parsed_args.namespace or "namespace",
             OptimizationLevel(parsed_args.O),
             MinecraftVersion.from_str(parsed_args.minecraft_version),
-            parsed_args.backend_name,
+            parsed_args.backend,
             parsed_args.debug,
             parsed_args.no_generate_commands,
             parsed_args.output_temp_file,

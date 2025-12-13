@@ -5,7 +5,7 @@ import traceback
 from pathlib import Path
 
 from transpiler.core.config import PLUGIN_METADATA_VALIDATOR
-from transpiler.plugins.plugin_api_v1.plugin import Plugin
+from transpiler.plugins.plugin_api.v1.plugin import Plugin
 
 __all__ = [
     "plugin_loader",

@@ -50,5 +50,5 @@ class Plugin(ABC):
 
     def send_message(self, target: str | Plugin, message: Any) -> Any:
         """发送消息给其他插件"""
-        from .messaging import send_message
+        from transpiler.plugins.plugin_api.v1.messaging import send_message
         send_message(self, target, message)

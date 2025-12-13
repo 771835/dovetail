@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 from transpiler.core.compile_config import CompileConfig
+from transpiler.core.instructions import IROpCode
 from transpiler.core.ir_builder import IRBuilder
 
 __all__ = [

@@ -1,8 +1,8 @@
 # coding=utf-8
 from pathlib import Path
 
-from transpiler.plugins.plugin_api_v1 import plugin_manager
-from transpiler.plugins.plugin_api_v1.plugin import Plugin
+from transpiler.plugins.plugin_api.v1 import plugin_manager
+from transpiler.plugins.plugin_api.v1.plugin import Plugin
 
 
 class LoaderPlugin(Plugin):

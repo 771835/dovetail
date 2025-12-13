@@ -10,7 +10,7 @@ def get_loader_instance():
     返回加载器实例
     """
     # 延迟导入防止循环依赖
-    from ..plugin_loader.loader import plugin_loader
+    from transpiler.plugins.plugin_loader.loader import plugin_loader
     return plugin_loader
 
 
@@ -40,8 +40,3 @@ def get_plugin_config(plugin_name: str) -> dict:
     pass
 
 
-def get_api_version() -> tuple[int, int, int]:
-    """
-    获取api版本号
-    """
-    return 1, 0, 1
