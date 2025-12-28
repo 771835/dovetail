@@ -4,7 +4,9 @@
 """
 from pathlib import Path
 from typing import Optional
+
 from attrs import define, field
+
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.enums import StructureType
 
@@ -37,7 +39,7 @@ class Scope:
             current = current.parent
 
         parts.reverse()
-        return Path("functions") / Path(*parts).with_suffix('.mcfunction')
+        return Path("function") / Path(*parts).with_suffix('.mcfunction')
 
 
 @define

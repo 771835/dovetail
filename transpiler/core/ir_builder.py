@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import SupportsIndex
 
-from transpiler.core.instructions import IRInstruction
+from transpiler.core.instructions import IRInstruction, IROpCode
 
 
 class IRBuilder:
@@ -25,6 +25,16 @@ class IRBuilder:
     def __reversed__(self):
         """返回可反转迭代器"""
         return IRBuilderReversibleIterator(self._instructions)
+
+    def print(self):
+        """格式化打印"""
+        depth = 0
+        for i in self:
+            if i.opcode == IROpCode.SCOPE_END:
+                depth -= 1
+            print(depth * "    " + repr(i))
+            if i.opcode == IROpCode.SCOPE_BEGIN:
+                depth += 1
 
 
 class IRBuilderIterator:

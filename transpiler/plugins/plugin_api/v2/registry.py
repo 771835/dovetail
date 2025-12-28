@@ -1,6 +1,5 @@
 # coding=utf-8
-from transpiler.core.backend import Backend, BackendFactory
+from transpiler.core.backend import BackendFactory
 
 
-def registry_backend(backend: type[Backend]):
-    BackendFactory.register(backend)
+registry_backend = BackendFactory.register

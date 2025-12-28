@@ -3,6 +3,7 @@
 指令处理器基类和注册系统
 """
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Dict, Type, TYPE_CHECKING
 
@@ -106,12 +107,12 @@ class ProcessorRegistry:
         self._processors.clear()
 
 
-def ir_processor(target: type[Backend], opcode: IROpCode):
+def ir_processor(target: type[Backend] | ProcessorRegistry, opcode: IROpCode):
     """
     装饰器：自动注册处理器到指定后端
 
-    用法:
-        @ir_processor(IROpCode.ASSIGN)
+    Examples:
+        @ir_processor(Backend,IROpCode.ASSIGN)
         class AssignProcessor(IRProcessor):
             def process(self, instruction, context):
                 pass
@@ -119,7 +120,10 @@ def ir_processor(target: type[Backend], opcode: IROpCode):
 
     def decorator(cls: type[IRProcessor]):
         cls.opcode = opcode
-        target.processor_registry.register_class(cls)
+        if isinstance(target, ProcessorRegistry):
+            target.register_class(cls)
+        else:
+            target.processor_registry.register_class(cls)
         return cls
 
     return decorator

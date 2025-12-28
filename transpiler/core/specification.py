@@ -1,11 +1,10 @@
 # coding=utf-8
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from typing_extensions import deprecated
+
 from transpiler.core.compile_config import CompileConfig
-from transpiler.core.instructions import IROpCode
 from transpiler.core.ir_builder import IRBuilder
 
 __all__ = [
@@ -41,6 +40,9 @@ class IROptimizationPass(ABC):
         pass
 
 
+
+
+@deprecated("请用 transpiler.core.backend.base.Backend 代替")
 class CodeGeneratorSpec(ABC):
     """代码生成部分接口"""
 

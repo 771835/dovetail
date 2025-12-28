@@ -46,13 +46,15 @@
 ## FAQ
 
 Q: Why is recursion not supported?  
-A: Recursion requires maintaining stack frames at runtime, which is complex and cumbersome to implement in Minecraft. Therefore, you should rewrite recursion into iterative implementations.  
+A: Recursion requires maintaining stack frames at runtime, which is complex and cumbersome to implement in Minecraft.
+Therefore, you should rewrite recursion into iterative implementations.  
 Q: Many techniques can solve recursion, such as CPS + TRO + closures. Why not use them?  
 A: Due to technical limitations and the author's limited bandwidth.  
 Q: Why does the compiler report unknown errors and provide stack traces? How to resolve this?  
 A: You can open an issue on GitHub to report this problem.  
 Q: My code has no errors, but the generated commands do not execute correctly.  
-A: First try using the `-O0` parameter. If the generated commands execute correctly, please prefix the issue title with `IR optimization error`. Otherwise, prefix it with `Unknown error`.  
+A: First try using the `-O0` parameter. If the generated commands execute correctly, please prefix the issue title with
+`IR optimization error`. Otherwise, prefix it with `Unknown error`.  
 Q: The generated commands stop executing halfway.  
 A: Try using the gamerule command to appropriately increase the `maxCommandChainLength` value.  
 Q: What should I do if no available backend is found?  
@@ -64,11 +66,13 @@ This project is licensed under Apache 2.0.
 
 This means you **may** freely use it for personal or commercial purposes without direct permission from me.
 
-At the same time, if you use this work unmodified in your project/product and derive commercial value from it, I would greatly appreciate your acknowledgment through the following:
+At the same time, if you use this work unmodified in your project/product and derive commercial value from it, I would
+greatly appreciate your acknowledgment through the following:
 
 - **Attribute the source**: Mention this project in your product documentation or about page.
 - **Share improvements**: Contribute improvements you make based on this project back to the community.
-- **Contribute**: Welcome code submissions, bug reports, documentation improvements, or suggestions to help make the project better.
+- **Contribute**: Welcome code submissions, bug reports, documentation improvements, or suggestions to help make the
+  project better.
 
 Thank you for your support!
 
@@ -85,4 +89,5 @@ Thank you for your support!
 ### Inspiration/Credits
 
 - Expert [zmr-233](https://github.com/zmr-233/) proposed the idea of using CPS transformation to solve recursion.
-- The project [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) for exploring a different technical approach to stack handling.
+- The project [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) for exploring a different technical approach
+  to stack handling.

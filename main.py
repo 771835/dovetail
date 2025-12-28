@@ -1,8 +1,8 @@
 # coding=utf-8
+"""主程序"""
 import argparse
 import json
 import sys
-import time
 from contextlib import chdir
 from pathlib import Path
 
@@ -15,12 +15,12 @@ from transpiler.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR
 from transpiler.core.enums.minecraft import MinecraftVersion
 from transpiler.core.enums.optimization import OptimizationLevel
 from transpiler.core.errors import CompilationError
-from transpiler.core.instructions import IRScopeEnd, IRScopeBegin
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.ir_generator import IRGenerator
 from transpiler.core.optimize.optimizer import Optimizer
 from transpiler.core.parser import transpilerLexer, transpilerParser
 from transpiler.plugins.plugin_loader.loader import plugin_loader
+from transpiler.utils.annotations import timed
 from transpiler.utils.ir_serializer import IRSymbolSerializer
 from transpiler.utils.naming import NameNormalizer
 
@@ -28,6 +28,7 @@ from transpiler.utils.naming import NameNormalizer
 class Compiler:
     """
     编译mcdl代码
+
     """
 
     def __init__(self, config: CompileConfig):
@@ -37,7 +38,7 @@ class Compiler:
         """
         编译文件并生成数据包
         """
-        self._load_plugin("plugin_loader")
+        plugin_loader.load_plugin("plugin_loader")
         if self.config.source_path.exists():
             if self.config.source_path.is_file():
                 return self._compile_file(self.config.source_path, self.config.target_path)
@@ -45,9 +46,6 @@ class Compiler:
                 return self._compile_directory(self.config.source_path, self.config.target_path)
         else:
             raise FileNotFoundError(f"{self.config.source_path} does not exist")
-
-    def _load_plugin(self, plugin_name: str):
-        plugin_loader.load_plugin(plugin_name)
 
     def _compile_directory(self, source_path: Path, target_path: Path):
         pack_config_path = source_path / "pack.config"
@@ -70,33 +68,30 @@ class Compiler:
 
     def _compile_file(self, source_path: Path, target_dir_path: Path, working_directory: Path | None = None):
         working_directory = working_directory or source_path.parent
+
         if not source_path.exists():
             print(f"Error: The path '{source_path}' is not valid.")
             return -1
+
         tree = self._parser_file(source_path)
+        if not tree:
+            return -1
+
         generator: IRGenerator = IRGenerator(self.config)
+
         with chdir(working_directory):
             try:
-                ir_build_start_time = time.time()
-                generator.visit(tree)
-                print(f"IR生成用时：{time.time() - ir_build_start_time}")
-                ir_builder = generator.get_ir()
-                ir_optimize_start_time = time.time()
-                ir_builder = Optimizer(ir_builder, self.config).optimize()
-                print(f"IR优化用时：{time.time() - ir_optimize_start_time}")
+                ir_builder = self._build_and_optimize_ir(generator, tree)
+
                 if self.config.output_temp_file:
-                    with open(target_dir_path / f"{self.config.namespace}{CACHE_FILE_PREFIX}", "wb") as f:
-                        f.write(IRSymbolSerializer.dump(ir_builder))
+                    self._write_temp_file(ir_builder, target_dir_path)
 
                 if self.config.debug:
-                    print("最终ir")
-                    self._print_ir_builder(ir_builder)
+                    ir_builder.print()
+
                 if not self.config.no_generate_commands:
-                    backend_start_time = time.time()
-                    BackendFactory.auto_select(ir_builder, target_dir_path, self.config).generate()
-                    print(f"最终代码生成与写入总用时：{time.time() - backend_start_time}")
+                    self._generate_backend_code(ir_builder, target_dir_path)
             except CompilationError as e:
-                time.sleep(0.1)  # 保证前面的输出完成
                 if generator:
                     print("作用域结构:")
                     self._print_scope_tree(generator.scope_stack[0])
@@ -105,22 +100,9 @@ class Compiler:
                     # 重新抛出异常显示错误详情
                     raise
                 return -1
-            except Exception:
-                time.sleep(0.1)
-                print("意外的错误，以下为详细堆栈信息")
-                time.sleep(0.1)
+            except Exception as e:
                 # 重新抛出异常显示错误详情
-                raise
-
-    @staticmethod
-    def _print_ir_builder(ir_builder: IRBuilder):
-        depth = 0
-        for i in ir_builder:
-            if isinstance(i, IRScopeEnd):
-                depth -= 1
-            print(depth * "    " + repr(i))
-            if isinstance(i, IRScopeBegin):
-                depth += 1
+                raise CompilationError("意外的错误") from e
 
     @staticmethod
     def _parser_file(file_path: Path) -> transpilerParser.transpilerParser.ProgramContext | None:
@@ -133,6 +115,23 @@ class Compiler:
             return parser.program()
         else:
             return None
+
+    @timed("IR生成与优化用时{:.3f}s")
+    def _build_and_optimize_ir(self, generator: IRGenerator, tree) -> IRBuilder:
+        generator.visit(tree)
+        ir_builder = generator.get_ir()
+        ir_builder = Optimizer(ir_builder, self.config).optimize()
+
+        return ir_builder
+    @timed("写入临时文件用时{:.3f}s")
+    def _write_temp_file(self, ir_builder: IRBuilder, target_dir_path: Path):
+        temp_file = target_dir_path / f"{self.config.namespace}{CACHE_FILE_PREFIX}"
+        with open(temp_file, "wb") as f:
+            f.write(IRSymbolSerializer.dump(ir_builder))
+
+    @timed("最终代码生成与写入用时{:.3f}s")
+    def _generate_backend_code(self, ir_builder: IRBuilder, target_dir_path: Path):
+        BackendFactory.auto_select(ir_builder, target_dir_path, self.config).generate()
 
     @staticmethod
     def _print_scope_tree(node, prefix="", is_tail=True):
@@ -155,7 +154,7 @@ def main():
     args_parser = argparse.ArgumentParser(description="dovetail")
     args_parser.add_argument('input', type=str, help='输入文件路径')
     args_parser.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本',
-                             default="1.20.4")
+                             default="1.21.4")
     args_parser.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
     args_parser.add_argument('--lib-path', '-l', metavar='path', type=str, help='强制指定标准库路径')
     args_parser.add_argument('--backend', '-b', metavar='name', type=str, help='强制指定后端名称', default="")
@@ -180,7 +179,7 @@ def main():
             target_path,
             parsed_args.namespace or "namespace",
             OptimizationLevel(parsed_args.O),
-            MinecraftVersion.from_str(parsed_args.minecraft_version),
+            MinecraftVersion.instance(parsed_args.minecraft_version),
             parsed_args.backend,
             parsed_args.debug,
             parsed_args.no_generate_commands,

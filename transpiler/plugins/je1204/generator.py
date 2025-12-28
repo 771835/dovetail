@@ -15,7 +15,6 @@ from transpiler.core.symbols import *
 from .builtins import builtin_func, BuiltinFuncMapping
 from .code_generator_scope import CodeGeneratorScope
 from .command_builder import *
-from ...core.enums.minecraft import MinecraftEdition, MinecraftVersion
 from ...core.enums.operations import UnaryOps, BinaryOps, CompareOps
 from ...core.enums.types import FunctionType, DataType, StructureType
 
@@ -80,7 +79,7 @@ class CodeGenerator(CodeGeneratorSpec):
     @staticmethod
     def is_support(config: CompileConfig) -> bool:
         version = config.minecraft_version
-        if version != MinecraftVersion(1, 20, 4, MinecraftEdition.JAVA_EDITION):
+        if version.display_version != "1.20.4" or version.is_bedrock_edition():
             return False
         if config.enable_recursion or config.enable_experimental:
             return False

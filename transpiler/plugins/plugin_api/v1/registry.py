@@ -1,10 +1,11 @@
 # coding=utf-8
+
 from transpiler.core import registry
 from transpiler.core.enums.optimization import OptimizationLevel
 
 from transpiler.core.lib.library import Library
 from transpiler.core.lib.library_mapping import LibraryMapping
-from transpiler.core.specification import IROptimizationPass, CodeGeneratorSpec
+from transpiler.core.specification import IROptimizationPass
 
 
 def registry_optimization_pass(optimization_pass: type[IROptimizationPass], level: OptimizationLevel):
@@ -18,5 +19,4 @@ def registry_library(library_name, library: type[Library]):
     LibraryMapping.registry(library_name, library)
 
 
-def registry_backend(backend: type[CodeGeneratorSpec]):
-    registry.backends[backend.get_name()] = backend
+registry_backend = lambda backend: print("The function 'registry_backend' is deprecated.")

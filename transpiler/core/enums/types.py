@@ -5,6 +5,7 @@
 此模块包含构成类型系统骨干的所有类型相关枚举，
 包括数据类型、结构类型、值类别和类相关类型等。
 """
+from __future__ import annotations
 from transpiler.utils.safe_enum import SafeEnum
 
 
@@ -39,9 +40,14 @@ class DataTypeBase:
         获取类型名称
         """
 
-    def is_subclass_of(self, other) -> bool:
+    def is_subclass_of(self, other: DataTypeBase) -> bool:
         """
         自身是否是other的子类
+        Args:
+            other: 其他类型
+
+        Returns:
+            是否是other的子类
         """
         return self is other
 

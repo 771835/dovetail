@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from transpiler.plugins.plugin_api.v1 import plugin_manager
-from transpiler.plugins.plugin_api.v1.plugin import Plugin
+from transpiler.plugins.plugin_api.plugin import Plugin
 
 
 class LoaderPlugin(Plugin):
@@ -11,6 +11,8 @@ class LoaderPlugin(Plugin):
 
     def load(self):
         loader_instance = plugin_manager.get_loader_instance()
+        # 首先尝试加载 plugin_api
+        plugin_manager.load_plugin("plugin_api")
         for plugins_dir in loader_instance.plugins_paths:
             plugins_path = Path(plugins_dir)
             if plugins_path.exists() and plugins_path.is_dir():

@@ -5,6 +5,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict
+
 from transpiler.core.backend.context import GenerationContext, Scope
 
 
@@ -60,7 +61,7 @@ class FunctionWriter(OutputWriter):
         if not self.builtin_functions:
             return
 
-        builtin_dir = context.target / context.namespace / "data" / "functions" / "__builtin__"
+        builtin_dir: Path = context.target / context.namespace / "data" / "functions" / "__builtin__"
         builtin_dir.mkdir(parents=True, exist_ok=True)
 
         for func_name, func_content in self.builtin_functions.items():

@@ -1,7 +1,7 @@
 # coding=utf-8
 from functools import lru_cache
 
-from .plugin import Plugin
+from transpiler.plugins.plugin_api.plugin import Plugin
 
 
 @lru_cache(maxsize=None)
@@ -38,5 +38,3 @@ def load_plugin(plugin_name: str) -> bool:
 def get_plugin_config(plugin_name: str) -> dict:
     """获取插件配置"""
     pass
-
-

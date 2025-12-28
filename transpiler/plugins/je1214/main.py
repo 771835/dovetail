@@ -1,4 +1,5 @@
-from transpiler.plugins.je1214.backend.backend import JE1214Backend
+# coding=utf-8
+from transpiler.plugins.je1214.backend.core import JE1214Backend
 from transpiler.plugins.plugin_api import Plugin
 from transpiler.plugins.plugin_api.v2.registry import registry_backend
 

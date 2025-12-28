@@ -1,7 +1,5 @@
 # coding=utf-8
 import gzip
-import hashlib
-import os
 import struct
 import zlib
 

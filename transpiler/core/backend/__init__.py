@@ -5,12 +5,12 @@
 
 from .base import Backend
 from .context import GenerationContext, Scope
-from .processor import IRProcessor, ProcessorRegistry, ir_processor
+from .factory import BackendFactory, BackendNotFoundError
 from .output import (
     OutputWriter, OutputManager,
     CommandWriter, FunctionWriter, MetadataWriter, TagWriter
 )
-from .factory import BackendFactory, BackendNotFoundError
+from .processor import IRProcessor, ProcessorRegistry, ir_processor
 
 __all__ = [
     # 基类

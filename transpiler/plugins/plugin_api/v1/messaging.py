@@ -2,7 +2,7 @@
 """插件间通信"""
 from typing import Any
 
-from transpiler.plugins.plugin_api.v1.plugin import Plugin
+from transpiler.plugins.plugin_api.plugin import Plugin
 from transpiler.plugins.plugin_api.v1.plugin_manager import get_plugin
 
 
