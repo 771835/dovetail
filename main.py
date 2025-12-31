@@ -123,6 +123,7 @@ class Compiler:
         ir_builder = Optimizer(ir_builder, self.config).optimize()
 
         return ir_builder
+
     @timed("写入临时文件用时{:.3f}s")
     def _write_temp_file(self, ir_builder: IRBuilder, target_dir_path: Path):
         temp_file = target_dir_path / f"{self.config.namespace}{CACHE_FILE_PREFIX}"

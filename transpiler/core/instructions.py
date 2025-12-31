@@ -1,4 +1,6 @@
 # coding=utf-8
+from abc import ABC
+from typing import TypeVar, Any
 
 from transpiler.core.enums.operations import UnaryOps, BinaryOps, CompareOps
 from transpiler.core.enums.types import DataType, StructureType
@@ -9,6 +11,7 @@ from transpiler.utils.safe_enum import SafeEnum
 __all__ = [
     'IROpCode',
     'IRInstruction',
+    'IRInstructionType',
     'IRJump',
     'IRCondJump',
     'IRFunction',
@@ -30,6 +33,8 @@ __all__ = [
     'IRSetProperty',
     'IRCallMethod'
 ]
+
+IRInstructionType = TypeVar('IRInstructionType', bound="IRInstruction")
 
 
 class IROpCode(SafeEnum):
@@ -77,7 +82,7 @@ class IROpCode(SafeEnum):
         return hash(self.value)
 
 
-class IRInstruction:
+class IRInstruction(ABC):
     """
     中间表示指令基类
 
@@ -93,7 +98,7 @@ class IRInstruction:
     def __init__(
             self,
             opcode: IROpCode,
-            operands: list[Reference | str | Symbol | SafeEnum],
+            operands: list[Reference | str | Symbol | SafeEnum | Any],
             line: int = -1,
             column: int = -1,
             filename: str | None = None,

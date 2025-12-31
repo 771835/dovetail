@@ -4,12 +4,12 @@ Annotations - Python 注解工具库
 提供类似 Java 注解的功能，用于代码标记、验证和元数据处理
 """
 
-import warnings
 import inspect
 import time
+import warnings
 from functools import wraps
 from typing import (
-    Any, Callable, TypeVar, Union, Optional, Type, cast,
+    Any, Callable, TypeVar, Union, Type, cast,
     get_type_hints, get_origin, get_args
 )
 
@@ -82,7 +82,6 @@ def timed(message: str = "用时{:.3f}s"):
     return decorator
 
 
-
 # ==================== 验证相关注解 ====================
 
 def validate_args(validate_return: bool = False):
@@ -148,8 +147,6 @@ def not_null(func: F) -> F:
         return result
 
     return cast(F, wrapper)
-
-
 
 
 # ==================== 安全相关注解 ====================

@@ -6,6 +6,7 @@
 包括数据类型、结构类型、值类别和类相关类型等。
 """
 from __future__ import annotations
+
 from transpiler.utils.safe_enum import SafeEnum
 
 

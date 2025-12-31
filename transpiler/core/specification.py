@@ -40,8 +40,6 @@ class IROptimizationPass(ABC):
         pass
 
 
-
-
 @deprecated("请用 transpiler.core.backend.base.Backend 代替")
 class CodeGeneratorSpec(ABC):
     """代码生成部分接口"""
