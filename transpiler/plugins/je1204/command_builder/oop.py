@@ -6,7 +6,7 @@ from transpiler.core.enums.types import DataType, ValueType
 from transpiler.core.symbols import Variable, Constant, Reference, Literal
 from . import BasicCommands
 from ..code_generator_scope import CodeGeneratorScope
-from ..escape_processor import auto_escape
+from transpiler.utils.escape_processor import auto_escape
 
 
 class OOP:

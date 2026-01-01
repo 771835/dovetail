@@ -13,6 +13,15 @@ version = "1.0.1"
 
 
 class IRSymbolSerializer:
+    """序列化 IRBuilder 中的符号信息。
+
+    将 IR（中间表示）中的所有符号及其结构关系打包成字典，并最终序列化为字节流，
+    便于持久化存储。
+
+    Attributes:
+        builder (IRBuilder): 要被序列化的 IRBuilder 对象。
+        symbol_id_map (dict): 存储已分配ID的符号到其对应对象的映射。
+    """
     serializer = BinarySerializer()
 
     def __init__(self, builder: IRBuilder):
@@ -63,7 +72,15 @@ class IRSymbolSerializer:
 
         return metadata
 
-    def _add_symbol_id_map(self, symbol: Symbol | Enum | list | dict | bool | set | DataTypeBase):
+    def _add_symbol_id_map(self, symbol):
+        """递归地将符号加入全局 ID 映射表中。
+
+        若当前符号为容器类型（如list、dict），将遍历其子元素也将其载入映射表。
+        这是为后续序列化的符号ID索引做准备。
+
+        Args:
+            symbol (Symbol | Enum | list | dict | bool | set | DataTypeBase): 当前处理的符号
+        """
         # 将自身加入映射表
         if id(symbol) not in self.symbol_id_map:
             self.symbol_id_map[id(symbol)] = symbol
@@ -100,7 +117,14 @@ class IRSymbolSerializer:
                 self._add_symbol_id_map(value)
 
     def serialize(self) -> dict:
-        """序列化整个IRBuilder"""
+        """将整个 IRBuilder 序列化为一个可嵌套的字典格式。
+
+        包含元数据、符号信息、以及指令列表。优先扫描所有涉及的符号并建立映射表，
+        然后对每条指令提取 byte 表示及依赖符号ID。
+
+        Returns:
+            dict: 包含 version、time、instructions 等字段的完整描述符。
+        """
         result = {}
 
         # 预扫描所有符号
@@ -122,7 +146,6 @@ class IRSymbolSerializer:
             {
                 "opcode": instr.opcode.value,
                 "operands": [id(op) for op in instr.operands],
-                # 不记录flags，因为没有意义
             } for instr in self.builder.get_instructions()
         ]
         return result
