@@ -1,25 +1,53 @@
 # coding=utf-8
+"""
+二进制序列化工具
+
+提供将Python复杂数据结构（字典、列表、元组等）序列化为二进制格式的功能，
+支持数据压缩、完整性校验和防篡改检测。
+"""
+
 import gzip
 import struct
 import zlib
+from typing import Any
 
 
 class BinarySerializer:
     """
     嵌套字典序列化工具
     支持字典、列表、元组、字符串、整数、浮点数、布尔值、None、字节串
+
+    Attributes:
+        padding_factor (float): 填充因子，用于控制序列化时的填充比例 (0.0-1.0)
+        enable_compression (bool): 是否启用数据压缩
+        MAGIC_HEADER (int): 魔数头部标识
+        VERSION (int): 协议版本号
+        MAX_PADDING (int): 最大填充字节数
     """
 
     MAGIC_HEADER = 0x0F5E2F3D
     VERSION = 5
     MAX_PADDING = 256
 
-    def __init__(self, padding_factor=0.3, enable_compression=True):
+    def __init__(self, padding_factor: float = 0.3, enable_compression: bool = True):
+        """初始化 BinarySerializer 实例
+
+        Args:
+            padding_factor (float): 填充因子，控制序列化时的填充比例，范围0.0-1.0
+            enable_compression (bool): 是否启用数据压缩功能
+        """
         self.padding_factor = max(0.0, min(1.0, padding_factor))
         self.enable_compression = enable_compression
 
-    def _encode_key(self, key):
-        """编码键为二进制格式"""
+    def _encode_key(self, key: Any) -> bytes:
+        """编码键为二进制格式
+
+        Args:
+            key (Any): 需要编码的键，支持字符串、布尔值、整数、浮点数、None、字节串、元组等类型
+
+        Returns:
+            bytes: 编码后的二进制数据
+        """
         if isinstance(key, str):
             key_bytes = key.encode()
             return struct.pack('>BH', 0xDA, len(key_bytes)) + key_bytes
@@ -47,8 +75,19 @@ class BinarySerializer:
             key_bytes = key_str.encode()
             return struct.pack('>BH', 0xDA, len(key_bytes)) + key_bytes
 
-    def _decode_key(self, binary_data, index):
-        """从二进制数据解码键"""
+    def _decode_key(self, binary_data: bytes, index: int) -> tuple[Any, int]:
+        """从二进制数据解码键
+
+        Args:
+            binary_data (bytes): 包含键数据的二进制流
+            index (int): 当前解析位置的索引
+
+        Returns:
+            tuple[Any, int]: 解码后的键值和下一个解析位置的索引
+
+        Raises:
+            ValueError: 当遇到未知的键类型标记时抛出异常
+        """
         tag = binary_data[index]
         index += 1
 
@@ -100,8 +139,18 @@ class BinarySerializer:
         else:
             raise ValueError(f"未知键类型标记: 0x{tag:02X}")
 
-    def _struct_encode(self, obj):
-        """核心递归编码函数"""
+    def _struct_encode(self, obj: Any) -> bytes:
+        """核心递归编码函数
+
+        Args:
+            obj (Any): 需要编码的Python对象
+
+        Returns:
+            bytes: 编码后的二进制数据
+
+        Raises:
+            TypeError: 当遇到不支持的数据类型时抛出异常
+        """
         if isinstance(obj, dict):
             # 保持原始键类型，不强制转换
             result = struct.pack('>BI', 0xDD, len(obj))
@@ -145,11 +194,23 @@ class BinarySerializer:
         else:
             raise TypeError(f"不支持的类型: {type(obj)} ({obj})")
 
-    def _struct_decode(self, binary_data):
-        """核心递归解码函数"""
+    def _struct_decode(self, binary_data: bytes) -> Any:
+        """核心递归解码函数
+
+        Args:
+            binary_data (bytes): 需要解码的二进制数据
+
+        Returns:
+            Any: 解码后的Python对象
+        """
         index = 0
 
-        def decode_next():
+        def decode_next() -> Any:
+            """内部递归解码函数
+
+            Returns:
+                Any: 解码后的Python对象
+            """
             nonlocal index
             if index >= len(binary_data):
                 raise ValueError("数据意外结束")
@@ -223,9 +284,14 @@ class BinarySerializer:
         result = decode_next()
         return result
 
-    def freeze(self, data):
-        """
-        将嵌套字典冻结为防篡改二进制（可选压缩和加密）
+    def freeze(self, data: Any) -> bytes:
+        """将嵌套字典冻结为防篡改二进制（可选压缩和加密）
+
+        Args:
+            data (Any): 需要序列化的Python对象
+
+        Returns:
+            bytes: 序列化后的二进制数据
         """
         # 基础序列化
         payload = self._struct_encode(data)
@@ -248,9 +314,17 @@ class BinarySerializer:
         # 组合完整结构
         return header + payload
 
-    def thaw(self, binary_data):
-        """
-        从二进制数据恢复原始字典
+    def thaw(self, binary_data: bytes) -> Any:
+        """从二进制数据恢复原始字典
+
+        Args:
+            binary_data (bytes): 需要反序列化的二进制数据
+
+        Returns:
+            Any: 反序列化后的Python对象
+
+        Raises:
+            ValueError: 当数据格式不正确或校验失败时抛出异常
         """
         # 最小长度检查
         min_length = 11
@@ -283,18 +357,34 @@ class BinarySerializer:
         # 解码数据结构
         return self._struct_decode(payload_data)
 
-    def freeze_to_file(self, data, file_path):
-        """序列化并保存到文件"""
+    def freeze_to_file(self, data: Any, file_path: str):
+        """序列化并保存到文件
+
+        Args:
+            data (Any): 需要序列化的Python对象
+            file_path (str): 保存文件的路径
+        """
         with open(file_path, 'wb') as f:
             f.write(self.freeze(data))
 
-    def thaw_from_file(self, file_path):
-        """从文件恢复数据"""
+    def thaw_from_file(self, file_path: str) -> Any:
+        """从文件恢复数据
+
+        Args:
+            file_path (str): 要读取的文件路径
+
+        Returns:
+            Any: 从文件中恢复的Python对象
+        """
         with open(file_path, 'rb') as f:
             return self.thaw(f.read())
 
 
 def main():
+    """测试BinarySerializer的各种功能
+
+    包括多类型键测试、复杂嵌套测试和篡改检测测试
+    """
     # 测试各种类型键的字典
     print("===== 多类型键测试 =====")
 

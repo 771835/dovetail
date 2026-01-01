@@ -18,10 +18,25 @@ T = TypeVar('T')
 F = TypeVar('F', bound=Callable[..., Any])
 
 
-def experimental(reason: str = ""):
-    """标记实验性功能"""
+def experimental(reason: str = "") -> Callable[[Any], Any]:
+    """标记实验性功能
+
+    Args:
+        reason (str): 标记为实验性功能的原因说明
+
+    Returns:
+        Callable[[Any], Any]: 装饰器函数
+    """
 
     def decorator(obj: Any) -> Any:
+        """实验性功能装饰器
+
+        Args:
+            obj (Any): 被装饰的类或函数
+
+        Returns:
+            Any: 装饰后的类或函数
+        """
         message = f"{obj.__name__} is experimental"
         if reason: message += f": {reason}"
 
@@ -34,8 +49,26 @@ def experimental(reason: str = ""):
 
 
 def _create_experimental_class(cls: Type[T], message: str) -> Type[T]:
+    """创建实验性类
+
+    Args:
+        cls (Type[T]): 原始类
+        message (str): 警告消息
+
+    Returns:
+        Type[T]: 带有警告功能的实验性类
+    """
+
     class ExperimentalClass(cls):
+        """实验性类包装器"""
+
         def __init__(self, *args, **kwargs):
+            """初始化实验性类实例
+
+            Args:
+                *args: 位置参数
+                **kwargs: 关键字参数
+            """
             warnings.warn(message, UserWarning, stacklevel=2)
             super().__init__(*args, **kwargs)
 
@@ -44,8 +77,27 @@ def _create_experimental_class(cls: Type[T], message: str) -> Type[T]:
 
 
 def _create_experimental_function(func: F, message: str) -> F:
+    """创建实验性函数
+
+    Args:
+        func (F): 原始函数
+        message (str): 警告消息
+
+    Returns:
+        F: 带有警告功能的实验性函数
+    """
+
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> Any:
+        """实验性函数包装器
+
+        Args:
+            *args: 位置参数
+            **kwargs: 关键字参数
+
+        Returns:
+            Any: 函数执行结果
+        """
         warnings.warn(message, UserWarning, stacklevel=2)
         return func(*args, **kwargs)
 
@@ -54,12 +106,14 @@ def _create_experimental_function(func: F, message: str) -> F:
 
 # ==================== 性能相关注解 ====================
 
-def timed(message: str = "用时{:.3f}s"):
-    """
-    测量函数执行时间
+def timed(message: str = "用时{:.3f}s") -> Callable[[F], F]:
+    """测量函数执行时间
 
     Args:
-        message: 时间输出格式，默认"用时{:.3f}s"
+        message (str): 时间输出格式，默认"用时{:.3f}s"
+
+    Returns:
+        Callable[[F], F]: 装饰器函数
 
     Example:
         >>> @timed("执行耗时: {:.3f} 秒")
@@ -68,8 +122,26 @@ def timed(message: str = "用时{:.3f}s"):
     """
 
     def decorator(func: F) -> F:
+        """计时装饰器
+
+        Args:
+            func (F): 被装饰的函数
+
+        Returns:
+            F: 装饰后的函数
+        """
+
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> Any:
+            """计时包装器
+
+            Args:
+                *args: 位置参数
+                **kwargs: 关键字参数
+
+            Returns:
+                Any: 函数执行结果
+            """
             start_time = time.perf_counter()
             result = func(*args, **kwargs)
             end_time = time.perf_counter()
@@ -84,12 +156,40 @@ def timed(message: str = "用时{:.3f}s"):
 
 # ==================== 验证相关注解 ====================
 
-def validate_args(validate_return: bool = False):
-    """参数验证装饰器"""
+def validate_args(validate_return: bool = False) -> Callable[[F], F]:
+    """参数验证装饰器
+
+    Args:
+        validate_return (bool): 是否验证返回值类型，默认False
+
+    Returns:
+        Callable[[F], F]: 装饰器函数
+    """
 
     def decorator(func: F) -> F:
+        """参数验证装饰器
+
+        Args:
+            func (F): 被装饰的函数
+
+        Returns:
+            F: 装饰后的函数
+        """
+
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> Any:
+            """参数验证包装器
+
+            Args:
+                *args: 位置参数
+                **kwargs: 关键字参数
+
+            Returns:
+                Any: 函数执行结果
+
+            Raises:
+                TypeError: 当参数类型不匹配时抛出异常
+            """
             # 获取类型提示
             type_hints = get_type_hints(func)
             sig = inspect.signature(func)
@@ -120,7 +220,15 @@ def validate_args(validate_return: bool = False):
 
 
 def _check_type(value: Any, expected_type: Any) -> bool:
-    """检查类型匹配"""
+    """检查类型匹配
+
+    Args:
+        value (Any): 待检查的值
+        expected_type (Any): 期望的类型
+
+    Returns:
+        bool: 类型是否匹配
+    """
     origin = get_origin(expected_type)
     args = get_args(expected_type)
 
@@ -137,10 +245,32 @@ def _check_type(value: Any, expected_type: Any) -> bool:
 
 
 def not_null(func: F) -> F:
-    """确保返回值不为None"""
+    """确保返回值不为None
+
+    Args:
+        func (F): 被装饰的函数
+
+    Returns:
+        F: 装饰后的函数
+
+    Raises:
+        ValueError: 当函数返回None时抛出异常
+    """
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> Any:
+        """非空检查包装器
+
+        Args:
+            *args: 位置参数
+            **kwargs: 关键字参数
+
+        Returns:
+            Any: 函数执行结果
+
+        Raises:
+            ValueError: 当函数返回None时抛出异常
+        """
         result = func(*args, **kwargs)
         if result is None:
             raise ValueError(f"{func.__name__} returned None, which is not allowed")
@@ -151,13 +281,44 @@ def not_null(func: F) -> F:
 
 # ==================== 安全相关注解 ====================
 
-def rate_limited(requests_per_minute: int = 60):
-    """速率限制装饰器"""
+def rate_limited(requests_per_minute: int = 60) -> Callable[[F], F]:
+    """速率限制装饰器
+
+    Args:
+        requests_per_minute (int): 每分钟允许的请求数，默认60
+
+    Returns:
+        Callable[[F], F]: 装饰器函数
+    """
     request_times: list[float] = []
 
     def decorator(func: F) -> F:
+        """速率限制装饰器
+
+        Args:
+            func (F): 被装饰的函数
+
+        Returns:
+            F: 装饰后的函数
+
+        Raises:
+            RuntimeError: 当超过速率限制时抛出异常
+        """
+
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> Any:
+            """速率限制包装器
+
+            Args:
+                *args: 位置参数
+                **kwargs: 关键字参数
+
+            Returns:
+                Any: 函数执行结果
+
+            Raises:
+                RuntimeError: 当超过速率限制时抛出异常
+            """
             current_time = time.time()
 
             # 清理过期的请求记录

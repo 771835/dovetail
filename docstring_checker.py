@@ -5,11 +5,18 @@
 
 import ast
 import os
+import re
+from traceback import print_tb
 from typing import List, Dict
 from dataclasses import dataclass
 from enum import Enum
 import tokenize
-from io import BytesIO
+from io import BytesIO, TextIOWrapper
+import sys
+
+sys.stdout = TextIOWrapper(sys.stdout.buffer, encoding='utf-16')
+# 正则表达式匹配：name (type): description
+name_type_desc_pattern = re.compile(r"^(?P<name>[\w.]+)\s*\(\s*(?P<type>[\w\s\[\],.*'\"]+)*\)\s*:(?P<description>.+)$")
 
 # 颜色支持 - 使用 colorama 实现跨平台颜色输出
 try:
@@ -204,38 +211,76 @@ class DocstringParser:
         return attributes
 
     @staticmethod
-    def parse_params_section(content: List[str]) -> Dict[str, Dict[str, str]]:
-        """解析参数部分"""
+    def validate_and_parse_name_type_desc_section(content: List[str]) -> tuple[Dict[str, Dict[str, str]], List[str]]:
+        """解析参数部分，严格要求 'name (type): description' 格式
+
+        返回:
+            tuple: (解析出的参数字典, 解析失败的行列表)
+        """
         params = {}
+        invalid_lines = []
 
-        for line in content:
-            if ':' in line and not line.startswith(':'):
-                parts = line.split(':', 1)
-                if len(parts) == 2:
-                    param_name_and_type = parts[0].strip()
-                    description = parts[1].strip()
+        for i, line in enumerate(content, 1):
+            line = line.strip()
+            # 跳过空行
+            if not line:
+                continue
+            m = re.fullmatch(name_type_desc_pattern, line)
+            if m is None:
+                invalid_lines.append((i, "格式不正确，应为 'name (type): description'"))
+                continue
 
-                    # 解析 name (type)
-                    if '(' in param_name_and_type and ')' in param_name_and_type:
-                        name_end = param_name_and_type.find('(')
-                        param_name = param_name_and_type[:name_end].strip()
-                        type_start = name_end + 1
-                        type_end = param_name_and_type.find(')', type_start)
-                        param_type = param_name_and_type[type_start:type_end].strip()
+            params[m.group('name')] = {
+                'type': m.group('type') if m.group('type') else 'Any',
+                'description': m.group('description')
+            }
+        return params, invalid_lines
 
-                        params[param_name] = {
-                            'type': param_type,
-                            'description': description
-                        }
-                    else:
-                        # 没有类型信息
-                        param_name = param_name_and_type.strip()
-                        params[param_name] = {
-                            'type': 'Any',
-                            'description': description
-                        }
+    @staticmethod
+    def parse_returns_section(content: List[str]) -> tuple[str, str, List[str], List[str]]:
+        """
+        解析 Returns section 内容。
 
-        return params
+        Returns:
+            tuple: (overview_description, type_description, complex_descriptions, format_errors)
+                - overview_description (str): 首行的总览描述。
+                - type_description (str): 首行冒号前的类型描述（如果有）。
+                - complex_descriptions (List[str]): 后续缩进行的详细描述（用于复杂返回值）。
+                - format_errors (List[str]): 格式错误信息列表。
+        """
+        overview_description = ""
+        type_description = ""
+        complex_descriptions = []
+        format_errors = []
+
+        if not content:
+            return overview_description, type_description, complex_descriptions, format_errors
+
+        # 处理第一行：总览描述和类型
+        first_line = content[0].strip()
+        if ':' in first_line:
+            # 尝试解析 'type: description' 格式
+            type_part, desc_part = first_line.split(':', 1)
+            type_description = type_part.strip()
+            overview_description = desc_part.lstrip()  # 只去掉左边空格
+
+            if not type_description:
+                format_errors.append("Returns section 第1行: 缺少返回值类型描述")
+            elif not overview_description:
+                format_errors.append("Returns section 第1行: 缺少返回值描述")
+        elif first_line:
+            # 如果没有冒号，整个第一行作为描述
+            overview_description = first_line
+        else:
+            format_errors.append("Returns section 第1行: 内容为空")
+
+        # 处理后续行：通常是缩进的复杂描述
+        if len(content) > 1:
+            detailed_lines = content[1:]
+            stripped_detailed = [line.strip() for line in detailed_lines if line.strip()]
+            if not stripped_detailed:
+                format_errors.append("Returns section: 存在后续行但内容为空")
+        return overview_description, type_description, complex_descriptions, format_errors
 
 
 class NamingConventionChecker:
@@ -244,7 +289,7 @@ class NamingConventionChecker:
     # 命名规范规则
     NAMING_RULES = {
         'class': {
-            'pattern': r'^[A-Z][a-zA-Z0-9]*$',
+            'pattern': r'^_*[A-Z][a-zA-Z0-9]*$',
             'description': '大驼峰命名法',
             'color': Fore.CYAN
         },
@@ -273,7 +318,8 @@ class NamingConventionChecker:
     @classmethod
     def check_naming(cls, name: str, node_type: str) -> bool:
         """检查命名是否符合规范"""
-        import re
+        if name.endswith("Type"):
+            return True  # 对于TypeVar直接通过
         if node_type in cls.NAMING_RULES:
             pattern = cls.NAMING_RULES[node_type]['pattern']
             return bool(re.match(pattern, name))
@@ -333,6 +379,7 @@ class CodeAnalyzer:
                 type=ViolationType.MISSING_DOCSTRING,
                 message=f"文件读取错误: {str(e)}"
             ))
+            print_tb(e.__traceback__)
 
         return self.violations
 
@@ -392,22 +439,66 @@ class CodeVisitor(ast.NodeVisitor):
             var_name = node.targets[0].id
             line_no = node.lineno
             # 检查是否为常量（全大写）
-            if var_name.isupper() and '_' in var_name:
+            if var_name.isupper():
                 self._check_naming(var_name, 'constant', line_no)
             else:
                 self._check_naming(var_name, 'variable', line_no)
         self.generic_visit(node)
 
     def _check_function_length(self, node):
-        """检查函数长度"""
-        if not self.lines:
+        """检查函数长度 - 排除文档字符串、注释和空行"""
+        if not self.lines or not hasattr(node, 'lineno') or not hasattr(node, 'end_lineno'):
             return
-
+        start_line = node.lineno
+        end_line = node.end_lineno
         try:
-            # 获取函数的起始和结束行号
-            start_line = node.lineno
-            end_line = getattr(node, 'end_lineno', start_line)
 
+            # 获取函数体的所有行
+            function_lines = self.lines[start_line - 1:end_line]
+
+            # 移除文档字符串行
+            docstring = ast.get_docstring(node)
+            if docstring:
+                docstring_lines = docstring.split('\n')
+                # 计算文档字符串在函数中占用的行数
+                doc_start_line = start_line + 1  # 文档字符串通常在函数定义后的第一行
+                doc_end_line = doc_start_line + len(docstring_lines) - 1
+
+                # 从函数行中移除文档字符串行
+                actual_function_lines = []
+                for i, line in enumerate(function_lines):
+                    line_number = start_line + i
+                    # 跳过文档字符串行
+                    if not (doc_start_line <= line_number <= doc_end_line):
+                        actual_function_lines.append(line)
+                function_lines = actual_function_lines
+
+            # 计算实际代码行数（排除注释和空行）
+            code_lines = 0
+            for line in function_lines:
+                stripped_line = line.strip()
+                # 跳过空行
+                if not stripped_line:
+                    continue
+                # 跳过注释行
+                if stripped_line.startswith('#'):
+                    continue
+                # 跳过只有三引号的行（文档字符串边界）
+                if stripped_line in ['"""', "'''"]:
+                    continue
+                code_lines += 1
+
+            if code_lines > self.MAX_FUNCTION_LINES:
+                self.violations.append(Violation(
+                    file_path=self.file_path,
+                    line_number=start_line,
+                    type=ViolationType.LONG_FUNCTION,
+                    message=f"函数长度超过{self.MAX_FUNCTION_LINES}行限制（实际代码行数: {code_lines}）",
+                    node_name=node.name
+                ))
+
+        except Exception:
+            # 如果计算失败，使用原始方法回退
             if end_line - start_line + 1 > self.MAX_FUNCTION_LINES:
                 self.violations.append(Violation(
                     file_path=self.file_path,
@@ -416,8 +507,6 @@ class CodeVisitor(ast.NodeVisitor):
                     message=f"函数长度超过{self.MAX_FUNCTION_LINES}行限制",
                     node_name=node.name
                 ))
-        except Exception:
-            pass
 
     def _check_module_docstring(self, node):
         """检查模块文档字符串"""
@@ -488,15 +577,52 @@ class CodeVisitor(ast.NodeVisitor):
         sections = self.docstring_parser.parse_sections(docstring)
 
         # 检查是否有Attributes部分
-        if 'Attributes' not in sections and 'attributes' not in [k.lower() for k in sections.keys()]:
-            # 可以更智能地检查类中是否有实例变量
-            pass
-
-        # 检查Attributes格式
+        has_attributes_section = False
+        attributes_content = []
         for section_name, content in sections.items():
             if section_name.lower() == 'attributes':
-                # 这里可以进行更详细的格式检查
-                pass
+                has_attributes_section = True
+                attributes_content = content
+                break
+
+        # 如果类中有实例变量但没有Attributes文档
+        if not has_attributes_section and self._class_has_instance_variables(node):
+            self.violations.append(Violation(
+                file_path=self.file_path,
+                line_number=node.lineno,
+                type=ViolationType.MISSING_ATTRIBUTES,
+                message="类有实例变量但缺少Attributes文档",
+                node_name=node_name
+            ))
+
+        # 检查Attributes格式
+        if has_attributes_section:
+            _, invalid_lines = self.docstring_parser.validate_and_parse_name_type_desc_section(attributes_content)
+            for relative_line_no, issue_msg in invalid_lines:
+                estimated_line = node.lineno + len(docstring.split('\n')) + 1 + relative_line_no
+                self.violations.append(Violation(
+                    file_path=self.file_path,
+                    line_number=estimated_line,
+                    type=ViolationType.INVALID_ATTRIBUTE_FORMAT,  # 此处类型可以保留
+                    message=f"Attributes section, 第{relative_line_no}行: {issue_msg}",
+                    node_name=node_name
+                ))
+
+    def _class_has_instance_variables(self, node) -> bool:
+        """检查类中是否有实例变量"""
+        for stmt in ast.walk(node):
+            # 检查 self.xxx = ... 的赋值语句
+            if isinstance(stmt, ast.Assign):
+                for target in stmt.targets:
+                    if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name):
+                        if target.value.id == 'self':
+                            return True
+            # 检查 self.xxx: type = ... 的注解赋值
+            elif isinstance(stmt, ast.AnnAssign):
+                if isinstance(stmt.target, ast.Attribute) and isinstance(stmt.target.value, ast.Name):
+                    if stmt.target.value.id == 'self':
+                        return True
+        return False
 
     def _check_function_docstring(self, node):
         """检查函数文档字符串"""
@@ -524,8 +650,40 @@ class CodeVisitor(ast.NodeVisitor):
         # 检查返回值文档
         self._check_function_returns(node, sections, node.lineno, node_name)
 
+        # 检查文档字符串格式
+        self._check_docstring_format(docstring, node.lineno, node_name, sections)
+
+    def _check_docstring_format(self, docstring: str, line_number: int, node_name: str, sections: Dict[str, List[str]]):
+        """检查文档字符串格式"""
+        lines = docstring.split('\n')
+
+        # 检查是否以空白行结尾
+        if lines and lines[-1].strip() == '':
+            # 这是正常的，不需要报告
+            pass
+
+        # 检查各个section的格式
+        for section_name, content in sections.items():
+            if section_name.lower() in ['args', 'parameters'] and not content:
+                self.violations.append(Violation(
+                    file_path=self.file_path,
+                    line_number=line_number,
+                    type=ViolationType.INVALID_PARAM_FORMAT,
+                    message=f"{section_name}部分为空",
+                    node_name=node_name
+                ))
+            elif section_name.lower() in ['returns', 'return'] and not content:
+                self.violations.append(Violation(
+                    file_path=self.file_path,
+                    line_number=line_number,
+                    type=ViolationType.INVALID_RETURN_FORMAT,
+                    message=f"{section_name}部分为空",
+                    node_name=node_name
+                ))
+
     def _check_function_params(self, node, sections: Dict[str, List[str]], line_number: int, node_name: str):
-        """检查函数参数文档"""
+        """检查函数参数文档，强制使用严格格式"""
+        from traceback import print_exc
         # 获取函数参数（排除self和cls）
         func_args = []
         for arg in node.args.args:
@@ -538,23 +696,54 @@ class CodeVisitor(ast.NodeVisitor):
         # 查找参数文档部分
         param_sections = ['Args', 'Parameters', 'args', 'parameters']
         param_content = []
+        section_found_name = None
         for section_name, content in sections.items():
             if section_name in param_sections:
                 param_content = content
+                section_found_name = section_name
                 break
 
-        # 解析参数文档
         documented_params = set()
+
         if param_content:
-            params_dict = self.docstring_parser.parse_params_section(param_content)
-            documented_params = set(params_dict.keys())
+            try:
+                # 无效行的信息
+                params_dict, invalid_lines = self.docstring_parser.validate_and_parse_name_type_desc_section(
+                    param_content)
+                documented_params = set(params_dict.keys())
+
+                # 报告解析失败的行
+                for relative_line_no, issue_msg in invalid_lines:
+                    # 估算绝对行号：函数定义行 + docstring行数 + section标题行(1) + relative_line_no
+                    # 这是一个估算，可能不完全精确，但能提供有用的位置信息
+                    estimated_line = line_number + len(ast.get_docstring(node).split('\n')) + 1 + relative_line_no
+                    self.violations.append(Violation(
+                        file_path=self.file_path,
+                        line_number=estimated_line,  # 位置估算
+                        type=ViolationType.INVALID_PARAM_FORMAT,
+                        message=f"参数文档 '{section_found_name}', 第{relative_line_no}行: {issue_msg}",
+                        node_name=node_name
+                    ))
+            except Exception as e:
+                # 防止解析过程中的意外错误导致整个程序崩溃
+                print(f"Error parsing params for {node_name} in {self.file_path}: {e}")
+                print_exc()
+        elif section_found_name:
+            # 有参数section标题但内容为空
+            self.violations.append(Violation(
+                file_path=self.file_path,
+                line_number=line_number,
+                type=ViolationType.INVALID_PARAM_FORMAT,
+                message=f"{section_found_name}部分为空",
+                node_name=node_name
+            ))
 
         # 检查是否所有参数都有文档
         undocumented = set(func_args) - documented_params
         for param in undocumented:
             self.violations.append(Violation(
                 file_path=self.file_path,
-                line_number=line_number,
+                line_number=line_number,  # 或许可以更精确地定位到docstring
                 type=ViolationType.MISSING_PARAM,
                 message=f"参数 '{param}' 缺少文档",
                 node_name=node_name
@@ -568,6 +757,11 @@ class CodeVisitor(ast.NodeVisitor):
         # 检查是否有返回值文档
         return_sections = ['Returns', 'Return', 'returns', 'return']
         has_return_doc = any(section in sections for section in return_sections)
+        return_content = []
+        for section_name, content in sections.items():
+            if section_name in return_sections:
+                return_content = content
+                break
 
         # 检查函数体内是否有return语句
         has_return_stmt = self._function_has_return(node)
@@ -581,6 +775,25 @@ class CodeVisitor(ast.NodeVisitor):
                 message="函数有返回值但缺少Returns文档",
                 node_name=node_name
             ))
+        elif has_return_doc and not return_content:
+            self.violations.append(Violation(
+                file_path=self.file_path,
+                line_number=line_number,
+                type=ViolationType.INVALID_RETURN_FORMAT,
+                message="Returns部分为空",
+                node_name=node_name
+            ))
+        elif has_return_doc and return_content:
+            # 检查返回值文档格式
+            _, _, _, format_errors = self.docstring_parser.parse_returns_section(return_content)
+            for issue in format_errors:
+                self.violations.append(Violation(
+                    file_path=self.file_path,
+                    line_number=line_number,
+                    type=ViolationType.INVALID_RETURN_FORMAT,
+                    message=issue,
+                    node_name=node_name
+                ))
 
     def _check_type_hints(self, node):
         """检查类型提示"""
@@ -623,7 +836,7 @@ class ProjectScanner:
     def __init__(self, no_color: bool = False):
         self.analyzer = CodeAnalyzer()
         self.all_violations: List[Violation] = []
-        self.ignored_dirs = {'.git', '__pycache__', '.pytest_cache', '.vscode', '.idea'}
+        self.ignored_dirs = {'.git', '__pycache__', '.pytest_cache', '.vscode', '.idea', '.venv', '.env'}
         self.ignored_files = {'__init__.py'}
         self.no_color = no_color
         self.printer = ColoredPrinter()
@@ -713,6 +926,7 @@ def main():
     # 尝试导入 colorama
     global HAS_COLORAMA
     try:
+
         import colorama
         colorama.init(autoreset=True)
         HAS_COLORAMA = True

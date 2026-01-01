@@ -1,8 +1,15 @@
 # coding=utf-8
+"""
+插件加载器核心实现
+
+负责插件的实际加载、执行环境构建和生命周期管理。
+"""
+
 import json
 import os
 import traceback
 from pathlib import Path
+from typing import Dict
 
 from transpiler.core.config import PLUGIN_METADATA_VALIDATOR
 from transpiler.plugins.plugin_api.plugin import Plugin
@@ -15,6 +22,11 @@ __all__ = [
 class PluginLoader:
     """
     插件加载器
+
+    Attributes:
+        plugins_paths (List[str]): 插件搜索路径列表
+        plugins_locals (Dict[str, Dict]): 插件的本地变量作用域映射
+        plugins_instance (Dict[str, Plugin]): 已加载插件实例映射
     """
 
     # 插件搜索路径
@@ -24,11 +36,22 @@ class PluginLoader:
     ]
 
     def __init__(self):
+        """初始化 PluginLoader 实例"""
         self.plugins_locals: dict[str, dict] = {}
         self.plugins_instance: dict[str, Plugin] = {}
 
-    def load_plugin(self, plugin_name):
+    def load_plugin(self, plugin_name: str) -> None:
+        """加载指定名称的插件
+
+        Args:
+            plugin_name (str): 要加载的插件名称
+
+        该方法会搜索插件路径，读取插件元数据和主文件，创建执行环境并实例化插件。
+        """
         # 根据插件目录名获取插件入口代码
+        metadata = None
+        code = None
+
         for plugins_path in PluginLoader.plugins_paths:
             plugin_path = Path(plugins_path) / plugin_name
             if plugin_path.exists() and plugin_path.is_dir():
@@ -36,7 +59,7 @@ class PluginLoader:
                 if metadata_path.exists() and metadata_path.is_file():
                     try:
                         with open(metadata_path) as metadata_file:
-                            metadata: dict = json.load(metadata_file)
+                            metadata = json.load(metadata_file)
                     except json.decoder.JSONDecodeError as e:
                         print(f"Error: The file 'plugin.metadata' has an invalid format.")
                         if os.environ.get("PLUGIN_DEBUG", None):
@@ -49,20 +72,28 @@ class PluginLoader:
                         print(f"Error: The file 'plugin.metadata' has an invalid format.")
                         if os.environ.get("PLUGIN_DEBUG", None):
                             traceback.print_tb(e.__traceback__)
+                        continue
                     # 读取入口文件
                     plugin_main = Path(plugin_path) / metadata.get("plugin_main")
                     if plugin_main.exists() and plugin_main.is_file():
                         with open(plugin_main, encoding="utf-8") as plugin_main_file:
                             code = plugin_main_file.read()
+                        break
                     else:
                         print(f"Plugin '{plugin_path}' is invalid")
                         continue
-
-                    print(f"Loading plugin '{plugin_name}' from '{plugin_path}'")
-                    break
+                else:
+                    continue
         else:
             print(f"No plugin '{plugin_name}' found")
             return
+
+        if not plugin_path or not metadata or not plugin_main or code is None:
+            print(f"Plugin '{plugin_name}' is invalid")
+            return
+
+        print(f"Loading plugin '{plugin_name}' from '{plugin_path}'")
+
         # 获得插件的作用域
         plugin_locals = self.plugins_locals.get(plugin_name, {})
         try:

@@ -1,13 +1,23 @@
 # coding=utf-8
 """
 处理转义字符
+
+提供字符串转义和反转义功能，支持多种格式（JSON、Python、HTML等）和批量处理。
 """
+
+from typing import List, Dict, Any
 
 
 class EscapeProcessor:
-    """自动处理转义字符的工具类"""
+    """自动处理转义字符的工具类
+
+    Attributes:
+        escape_map (Dict[str, str]): 转义字符映射表，键为原字符，值为转义后的字符串
+        unescape_map (Dict[str, str]): 反向转义映射表，键为转义字符串，值为原字符
+    """
 
     def __init__(self):
+        """初始化 EscapeProcessor 实例"""
         # 定义常见的转义字符映射
         self.escape_map = {
             '\\': '\\\\',  # 反斜杠
@@ -25,9 +35,14 @@ class EscapeProcessor:
         # 反向映射（用于解码）
         self.unescape_map = {v: k for k, v in self.escape_map.items()}
 
-    def escape(self, text: str):
-        """
-        对字符串进行转义处理
+    def escape(self, text: str) -> str:
+        """对字符串进行转义处理
+
+        Args:
+            text (str): 需要转义的原始字符串
+
+        Returns:
+            str: 转义后的字符串
         """
         text = str(text)
 
@@ -38,9 +53,14 @@ class EscapeProcessor:
 
         return result
 
-    def unescape(self, text: str):
-        """
-        对已转义的字符串进行解码
+    def unescape(self, text: str) -> str:
+        """对已转义的字符串进行解码
+
+        Args:
+            text (str): 需要解码的转义字符串
+
+        Returns:
+            str: 解码后的原始字符串
         """
         text = str(text)
 
@@ -54,20 +74,29 @@ class EscapeProcessor:
 
         return result
 
-    def escape_for_json(self, text: str):
-        """
-        为JSON格式转义字符串
-        """
+    def escape_for_json(self, text: str) -> str:
+        """为JSON格式转义字符串
 
+        Args:
+            text (str): 需要转义的原始字符串
+
+        Returns:
+            str: 适用于JSON的转义字符串
+        """
         text = str(text)
 
         # 使用json模块处理
         import json
         return json.dumps(text)[1:-1]  # 去掉首尾的双引号
 
-    def escape_for_python_string(self, text: str):
-        """
-        为Python字符串字面量转义
+    def escape_for_python_string(self, text: str) -> str:
+        """为Python字符串字面量转义
+
+        Args:
+            text (str): 需要转义的原始字符串
+
+        Returns:
+            str: 适用于Python字符串字面量的转义字符串
         """
         text = str(text)
 
@@ -80,9 +109,18 @@ class EscapeProcessor:
             return result[1:-1]
         return result
 
-    def batch_escape(self, texts: list[str], method='escape'):
-        """
-        批量处理多个字符串
+    def batch_escape(self, texts: List[str], method: str = 'escape') -> List[str]:
+        """批量处理多个字符串
+
+        Args:
+            texts (List[str]): 需要处理的字符串列表
+            method (str): 处理方法，可选值: 'escape', 'unescape', 'json', 'python'
+
+        Returns:
+            List[str]: 处理后的字符串列表
+
+        Raises:
+            ValueError: 当指定的方法不支持时抛出异常
         """
         methods = {
             'escape': self.escape,
@@ -97,9 +135,15 @@ class EscapeProcessor:
         processor = methods[method]
         return [processor(text) for text in texts]  # NOQA
 
-    def smart_escape(self, text, context='general'):
-        """
-        智能转义 - 根据上下文选择合适的转义方式
+    def smart_escape(self, text: str, context: str = 'general') -> str:
+        """智能转义 - 根据上下文选择合适的转义方式
+
+        Args:
+            text (str): 需要转义的原始字符串
+            context (str): 上下文类型，可选值: 'json', 'python', 'html', 'general'
+
+        Returns:
+            str: 根据上下文转义后的字符串
         """
         if context == 'json':
             return self.escape_for_json(text)
@@ -110,9 +154,14 @@ class EscapeProcessor:
         else:
             return self.escape(text)
 
-    def escape_html(self, text):
-        """
-        HTML实体转义
+    def escape_html(self, text: str) -> str:
+        """HTML实体转义
+
+        Args:
+            text (str): 需要进行HTML转义的字符串
+
+        Returns:
+            str: HTML转义后的字符串
         """
         html_escape_map = {
             '&': '&amp;',
@@ -129,16 +178,18 @@ class EscapeProcessor:
 
 
 # 便捷函数
-def auto_escape(text: str, method='escape'):
-    """
-    便捷的转义函数
+def auto_escape(text: str, method: str = 'escape') -> str:
+    """便捷的转义函数
 
     Args:
-        text: 要转义的文本
-        method: 转义方法 ('escape', 'unescape', 'json', 'python')
+        text (str): 要转义的文本
+        method (str): 转义方法 ('escape', 'unescape', 'json', 'python')
 
     Returns:
-        转义后的字符串
+        str: 转义后的字符串
+
+    Raises:
+        ValueError: 当指定的方法不支持时抛出异常
     """
     processor = EscapeProcessor()
     methods = {
@@ -154,6 +205,10 @@ def auto_escape(text: str, method='escape'):
 
 
 def main():
+    """测试 EscapeProcessor 的各种功能
+
+    包括基本转义、不同格式转义、批量处理和便捷函数使用等示例
+    """
     # 创建处理器实例
     processor = EscapeProcessor()
 

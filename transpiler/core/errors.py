@@ -314,7 +314,7 @@ class SymbolCategoryError(SymbolResolutionError):
         self.actual_category = actual
         self.symbol_name = symbol_name
         msg = f"符号 '{symbol_name}' 类别不匹配：期望 {expected}，实际为 {actual}"
-        super().__init__(symbol_name, "fuck", msg, line, column, filename)
+        super().__init__(symbol_name, "", msg, line, column, filename)
 
 
 class ControlFlowError(ASTSemanticError):

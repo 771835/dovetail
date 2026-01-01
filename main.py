@@ -19,6 +19,7 @@ from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.ir_generator import IRGenerator
 from transpiler.core.optimize.optimizer import Optimizer
 from transpiler.core.parser import transpilerLexer, transpilerParser
+from transpiler.core.scope import Scope
 from transpiler.plugins.plugin_loader.loader import plugin_loader
 from transpiler.utils.annotations import timed
 from transpiler.utils.ir_serializer import IRSymbolSerializer
@@ -29,14 +30,25 @@ class Compiler:
     """
     编译mcdl代码
 
+    Attributes:
+        config (CompileConfig): 编译器配置对象
     """
 
     def __init__(self, config: CompileConfig):
+        """
+        初始化编译器
+
+        Args:
+            config (CompileConfig): 编译器配置对象
+        """
         self.config = config
 
-    def compile(self):
+    def compile(self) -> int:
         """
         编译文件并生成数据包
+
+        Returns:
+            int: 编译结果状态码，0表示成功，非0表示失败
         """
         plugin_loader.load_plugin("plugin_loader")
         if self.config.source_path.exists():
@@ -47,7 +59,17 @@ class Compiler:
         else:
             raise FileNotFoundError(f"{self.config.source_path} does not exist")
 
-    def _compile_directory(self, source_path: Path, target_path: Path):
+    def _compile_directory(self, source_path: Path, target_path: Path) -> int:
+        """
+        编译目录中的所有文件
+
+        Args:
+            source_path (Path): 源目录路径
+            target_path (Path): 目标目录路径
+
+        Returns:
+            int: 编译结果状态码，0表示成功，非0表示失败
+        """
         pack_config_path = source_path / "pack.config"
         if not pack_config_path.exists() or not pack_config_path.is_file():
             print(f"Error: The path '{pack_config_path}' is not a file.")
@@ -66,7 +88,23 @@ class Compiler:
             return -1
         return self._compile_file(Path(source_path / pack_config_data["main"]).resolve(), target_path, source_path)
 
-    def _compile_file(self, source_path: Path, target_dir_path: Path, working_directory: Path | None = None):
+    def _compile_file(
+            self,
+            source_path: Path,
+            target_dir_path: Path,
+            working_directory: Path | None = None
+    ) -> int | None:
+        """
+        编译单个文件
+
+        Args:
+            source_path (Path): 源文件路径
+            target_dir_path (Path): 目标目录路径
+            working_directory (Optional[Path]): 工作目录路径，默认为源文件所在目录
+
+        Returns:
+            int: 编译结果状态码，0表示成功，非0表示失败
+        """
         working_directory = working_directory or source_path.parent
 
         if not source_path.exists():
@@ -86,9 +124,6 @@ class Compiler:
                 if self.config.output_temp_file:
                     self._write_temp_file(ir_builder, target_dir_path)
 
-                if self.config.debug:
-                    ir_builder.print()
-
                 if not self.config.no_generate_commands:
                     self._generate_backend_code(ir_builder, target_dir_path)
             except CompilationError as e:
@@ -106,6 +141,15 @@ class Compiler:
 
     @staticmethod
     def _parser_file(file_path: Path) -> transpilerParser.transpilerParser.ProgramContext | None:
+        """
+        解析文件并返回语法树
+
+        Args:
+            file_path (Path): 文件路径
+
+        Returns:
+            Optional[ProgramContext]: 解析后的语法树，如果解析失败返回None
+        """
         if file_path.exists() and file_path.is_file():
             input_stream = FileStream(str(file_path.resolve()), "utf-8")
             lexer = transpilerLexer.transpilerLexer(input_stream)
@@ -117,7 +161,21 @@ class Compiler:
             return None
 
     @timed("IR生成与优化用时{:.3f}s")
-    def _build_and_optimize_ir(self, generator: IRGenerator, tree) -> IRBuilder:
+    def _build_and_optimize_ir(
+            self, generator: IRGenerator,
+            tree: transpilerParser.transpilerParser.ProgramContext
+    ) -> IRBuilder:
+        """
+        构建和优化中间表示(IR)
+
+        Args:
+            generator (IRGenerator): IR生成器
+            tree (transpilerParser.transpilerParser.ProgramContext): 语法树
+
+        Returns:
+            IRBuilder: 优化后的IR构建器
+        """
+        print(type(tree))
         generator.visit(tree)
         ir_builder = generator.get_ir()
         ir_builder = Optimizer(ir_builder, self.config).optimize()
@@ -126,17 +184,38 @@ class Compiler:
 
     @timed("写入临时文件用时{:.3f}s")
     def _write_temp_file(self, ir_builder: IRBuilder, target_dir_path: Path):
+        """
+        写入临时文件
+
+        Args:
+            ir_builder (IRBuilder): IR构建器
+            target_dir_path (Path): 目标目录路径
+        """
         temp_file = target_dir_path / f"{self.config.namespace}{CACHE_FILE_PREFIX}"
         with open(temp_file, "wb") as f:
             f.write(IRSymbolSerializer.dump(ir_builder))
 
     @timed("最终代码生成与写入用时{:.3f}s")
     def _generate_backend_code(self, ir_builder: IRBuilder, target_dir_path: Path):
+        """
+        生成后端代码
+
+        Args:
+            ir_builder (IRBuilder): IR构建器
+            target_dir_path (Path): 目标目录路径
+        """
         BackendFactory.auto_select(ir_builder, target_dir_path, self.config).generate()
 
     @staticmethod
-    def _print_scope_tree(node, prefix="", is_tail=True):
-        """递归打印作用域树结构"""
+    def _print_scope_tree(node: Scope, prefix: str = "", is_tail: bool = True):
+        """
+        递归打印作用域树结构
+
+        Args:
+            node (Scope): 要打印的节点
+            prefix (str): 前缀字符串，用于缩进显示
+            is_tail (bool): 是否为最后一个子节点
+        """
         # 更明确的变量名
         scope_type_display = f" ({node.stype.value})" if node.stype else ""
         tree_line = f"{prefix}{'└── ' if is_tail else '├── '}{node.name}{scope_type_display}"

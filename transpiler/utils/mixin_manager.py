@@ -1,15 +1,37 @@
 # coding=utf-8
+"""
+一个用于Python的Mixin系统，允许在运行时注入代码和扩展类。
+此模块提供了装饰器和实用程序，用于将代码注入方法、访问私有字段以及重定向方法调用。
+"""
+
 import inspect
 import uuid
 from functools import wraps
 from threading import RLock
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar, Union
+
+# ==== 类型别名 ====
+T = TypeVar('T')
+TargetClassType = Union[type, object]
 
 
-# ==== 公用函数定义 ====
-def _set_attr(target_cls, name, value, force=False):
+# ==== 工具函数 ====
+
+def _set_attr(target_cls: TargetClassType, name: str, value: Any, force: bool = False) -> None:
+    """
+    在目标类或实例上设置一个属性。
+
+    Args:
+        target_cls (TargetClassType): 目标类或实例。
+        name (str): 要设置的属性名。
+        value (Any): 属性值。
+        force (bool): 若为 True，使用 `type.__setattr__` 强制设置。
+
+    Returns:
+        None
+    """
     if force:
         if isinstance(target_cls, type):
-            # 使用 type 原生方法绕过元类限制
             type.__setattr__(target_cls, name, value)
         else:
             object.__setattr__(target_cls, name, value)
@@ -17,9 +39,20 @@ def _set_attr(target_cls, name, value, force=False):
         setattr(target_cls, name, value)
 
 
-def _get_attr(target_cls, name, default=None, force=False):
+def _get_attr(target_cls: TargetClassType, name: str, default: Optional[Any] = None, force: bool = False) -> Any:
+    """
+    从目标类或实例获取一个属性。
+
+    Args:
+        target_cls (TargetClassType): 要获取属性的类或实例。
+        name (str): 属性的名称。
+        default (Optional[Any]): 如果未找到属性，则返回的默认值。
+        force (bool): 如果为True，则使用 `type.__getattribute__` 绕过元类限制。
+
+    Returns:
+        Any: 属性值或默认值。
+    """
     if force:
-        # 使用 type 原生方法绕过元类限制
         try:
             if isinstance(target_cls, type):
                 return type.__getattribute__(target_cls, name)
@@ -31,232 +64,384 @@ def _get_attr(target_cls, name, default=None, force=False):
         return getattr(target_cls, name, default)
 
 
-# ==== 核心注解定义 ====
+# ==== 核心注解 ====
+
 class At:
-    """定义代码注入点"""
-    __slots__ = ('location', 'target')
+    """
+    定义 Mixin 回调的注入点。
 
-    HEAD = "HEAD"
-    TAIL = "TAIL"
-    RETURN = "RETURN"
-    CALL_SITE = "CALL_SITE"  # 保留字段但暂不实现
+    Attributes:
+        location (str): 注入点的位置 ('HEAD', 'TAIL', 'RETURN')。
+        target (Optional[str]): 保留字段，供将来使用。
+    """
 
-    def __init__(self, location, target=None):
-        self.location = location  # 'HEAD', 'TAIL', 'RETURN'
-        self.target = target  # 保留字段
+    HEAD: str = "HEAD"
+    TAIL: str = "TAIL"
+    RETURN: str = "RETURN"
+    CALL_SITE: str = "CALL_SITE"  # 保留供将来使用
+
+    def __init__(self, location: str, target: Optional[str] = None) -> None:
+        """
+        初始化一个注入点。
+
+        Args:
+            location (str): 注入的位置 ('HEAD', 'TAIL', 'RETURN')。
+            target (Optional[str]): 保留的目标。
+
+        Returns:
+            None
+        """
+        self.location = location
+        self.target = target
 
 
 class MixinMeta(type):
-    """Mixin元类，自动处理注入逻辑"""
+    """
+    Mixin 类的元类。在创建 Mixin 类时自动应用 Mixins。"""
 
-    def __init__(cls, name, bases, attrs):
+    def __init__(cls, name: str, bases: Tuple[type, ...], attrs: Dict[str, Any]):
+        """
+        初始化 Mixin 类并应用它。
+
+        Args:
+            name (str): Mixin 类的名称。
+            bases (Tuple[type, ...]): Mixin 的基类。
+            attrs (Dict[str, Any]): Mixin 类的属性。
+
+        """
         super().__init__(name, bases, attrs)
         MixinManager.apply_mixin(cls)
 
 
 class CallbackInfo:
-    """回调基本信息"""
-    __slots__ = ('cancelled', 'return_value')
+    """
+    回调信息的基类。
 
-    def __init__(self, initial_value=None):
+    Attributes:
+        cancelled (bool): 如果为True，则表示操作被取消。
+        return_value (Any): 取消时要使用的返回值。
+    """
+
+    def __init__(self, initial_value: Optional[Any] = None) -> None:
+        """
+        初始化回调信息。
+
+        Args:
+            initial_value (Optional[Any]): 初始返回值。
+
+        Returns:
+            None
+        """
         self.return_value = initial_value
         self.cancelled = False
 
-    def cancel(self):
-        """取消操作"""
+    def cancel(self) -> None:
+        """
+        取消操作。
+
+        Returns:
+            None
+        """
         self.cancelled = True
 
 
 class CallbackInfoReturnable(CallbackInfo):
-    """支持返回值操作的回调类"""
-    __slots__ = ('return_set',)
+    """
+    支持设置返回值的回调信息。
 
-    def __init__(self, initial_value=None):
+    Attributes:
+        return_set (bool): 指示是否已设置返回值。
+    """
+
+    def __init__(self, initial_value: Optional[Any] = None) -> None:
+        """
+        初始化可返回的回调信息。
+
+        Args:
+            initial_value (Any): 初始返回值。
+
+        Returns:
+            None
+        """
         super().__init__(initial_value)
         self.return_set = False
 
-    def set_return_value(self, value):
-        """设置返回值并取消原操作"""
+    def set_return_value(self, value: Any) -> None:
+        """
+        设置返回值并取消原始操作。
+
+        Args:
+            value (Any): 要返回的值。
+
+        Returns:
+            None
+        """
         self.return_value = value
         self.return_set = True
         self.cancel()
 
 
 class _Accessor:
-    """访问器描述符，用于访问私有字段"""
-    __slots__ = ('field_name',)
+    """
+    用于访问私有字段的内部类。
 
-    METADATA_ATTRS = {
+    Attributes:
+        _field_name (str): 要访问的私有字段的名称。
+    """
+    __slots__ = ('_field_name',)
+
+    METADATA_ATTRS: set = {
         '__mixin_target__',
         '__mixin_force__',
         '__class__',
         '__dict__'
     }
 
-    def __init__(self, field_name):
-        self.field_name = field_name
+    def __init__(self, field_name: str) -> None:
+        """
+        初始化字段的访问器。
 
-    def __get__(self, instance, owner):
+        Args:
+            field_name (str): 要访问的私有字段的名称。
+
+        Returns:
+            None
+        """
+        self._field_name = field_name
+
+    def __get__(self, instance: Optional[Any], owner: Optional[Type] = None) -> Any:
+        """
+        获取私有字段的值。
+
+        Args:
+            instance (Optional[Any]): 要获取字段的实例。
+            owner (Optional[Type]): 所有者类。
+
+        Returns:
+            Any: 字段的值。
+        """
         if instance is None:
-            return self  # 访问类属性时返回描述符自己
+            return self
+        return object.__getattribute__(instance, self._field_name)
 
-            # 关键突破点：元数据直接裸奔访问！
-        return object.__getattribute__(instance, self.field_name)
+    def __set__(self, instance: Any, value: Any) -> None:
+        """
+        设置私有字段的值。
 
-    def __set__(self, instance, value):
-        # 元数据特殊处理
-        object.__setattr__(instance, self.field_name, value)
+        Args:
+            instance (Any): 要设置字段的实例。
+            value (Any): 要设置的值。
+
+        Returns:
+            None
+        """
+        object.__setattr__(instance, self._field_name, value)
 
 
 class MixinManager:
-    """Mixin注册管理器"""
+    """管理 Mixins 的注册和应用。"""
     _lock = RLock()
 
     @classmethod
-    def register_mixin(cls, mixin_cls):
-        """注册Mixin类"""
+    def register_mixin(cls, mixin_cls: type) -> None:
+        """
+        注册一个 Mixin 并将其应用于目标类。
+
+        Args:
+            mixin_cls (type): 要注册的 Mixin 类。
+
+        Returns:
+            None
+        """
         with cls._lock:
             cls.apply_mixin(mixin_cls)
 
     @classmethod
-    def apply_mixin(cls, mixin_cls):
-        """将单个Mixin应用到目标类"""
+    def apply_mixin(cls, mixin_cls: type) -> None:
+        """
+        将单个 Mixin 应用于其目标类。
 
-        target_class = object.__getattribute__(mixin_cls, '__mixin_target__')
-        force_mixin = object.__getattribute__(mixin_cls, '__mixin_force__')
+        Args:
+            mixin_cls (type): 要应用的 Mixin 类。
+
+        Returns:
+            None
+        """
+        try:
+            target_class: Optional[type] = object.__getattribute__(mixin_cls, '__mixin_target__')
+            force_mixin: bool = object.__getattribute__(mixin_cls, '__mixin_force__')
+        except AttributeError:
+            return
+
         if not target_class:
             return
 
-        # 处理字段访问器
-        accessors = {}
-        for attr_name, attr_value in vars(mixin_cls).items():
-            if isinstance(attr_value, _Accessor):
-                accessors[attr_name] = attr_value
-
-        # 添加访问器到目标类
+        # 应用访问器
+        accessors: Dict[str, _Accessor] = {
+            attr_name: attr_value
+            for attr_name, attr_value in vars(mixin_cls).items()
+            if isinstance(attr_value, _Accessor)
+        }
         for attr_name, accessor in accessors.items():
-            _set_attr(target_class, attr_name, accessor, True)
+            _set_attr(target_class, attr_name, accessor, force=True)
 
-        # 收集注入方法
-        callbacks = []
-        # 收集Invokers
-        invokers = {}
-        normal_methods = []
+        # 收集回调、调用器和普通方法
+        callbacks: List[Dict[str, Any]] = []
+        invokers: Dict[str, Callable] = {}
+        normal_methods: List[Tuple[str, Callable]] = []
 
         for attr_name in dir(mixin_cls):
-            # 跳过特殊方法和保留属性
             if attr_name.startswith("__") and attr_name.endswith("__"):
                 continue
 
             attr = _get_attr(mixin_cls, attr_name, force=force_mixin)
 
-            # 1. 收集Inject方法
             if hasattr(attr, '__mixin_inject__'):
                 callbacks.append(attr.__mixin_inject__)
-
-            # 2. 收集Invoker方法
             elif hasattr(attr, '__mixin_invoker__'):
                 invokers[attr_name] = attr
-
-            # 3. 收集普通方法
             elif inspect.isfunction(attr):
                 normal_methods.append((attr_name, attr))
 
-        # 将普通方法添加到目标类（检测名称冲突）
+        # 应用普通方法
         for method_name, method in normal_methods:
-            # 跳过已存在的引用
-            if hasattr(target_class, method_name):
-                continue
+            if not hasattr(target_class, method_name):
+                _set_attr(target_class, method_name, method, force_mixin)
 
-            # 绑定方法到目标类
-            _set_attr(target_class, method_name, method, force_mixin)
-
-        # 按目标方法分组
-        method_map = {}
+        # 按方法名分组回调
+        method_map: Dict[str, List[Dict[str, Any]]] = {}
         for cb in callbacks:
             method_name = cb['target_method_name']
             if method_name not in method_map:
                 method_map[method_name] = []
             method_map[method_name].append(cb)
 
-        # 应用方法注入
-        for method_name, callbacks in method_map.items():
+        # 注入回调到目标方法
+        for method_name, callbacks_group in method_map.items():
             orig_method = _get_attr(target_class, method_name, force=force_mixin)
             if not orig_method:
                 continue
 
-            cancellable = any(cb['cancellable'] for cb in callbacks)
+            cancellable = any(cb['cancellable'] for cb in callbacks_group)
 
-            # 创建注入包装函数
-            def create_injected_method(callbacks_group, cancel_flag, orig_method_raw):
-                local_callbacks = callbacks_group
+            def make_injected_method(
+                    callback_group: List[Dict[str, Any]],
+                    is_cancellable: bool,
+                    original_method: Callable
+            ) -> Callable:
+                """
+                工厂函数，用于创建带注入的闭包方法。
 
-                @wraps(orig_method_raw)
-                def injected_method(*args, **kwargs):
-                    ci = CallbackInfoReturnable() if cancel_flag else CallbackInfo()
-                    # 处理HEAD注入
-                    for cb in local_callbacks:
+                Args:
+                    callback_group (List[Dict[str, Any]]): 回调函数列表。
+                    is_cancellable (bool): 是否支持取消。
+                    original_method (Callable): 原始方法。
 
+                Returns:
+                    Callable: 注入后的方法。
+                """
+
+                @wraps(original_method)
+                def injected_method(*args, **kwargs) -> Any:
+                    """
+                    注入后的实际方法。
+
+                    Returns:
+                        Any: 方法执行结果。
+                    """
+                    ci = CallbackInfoReturnable() if is_cancellable else CallbackInfo()
+
+                    # HEAD阶段
+                    for cb in callback_group:
                         if cb['at'].location == At.HEAD:
                             cb['handler'](ci, *args, **kwargs)
-
-                            if ci.cancelled and cancel_flag:
+                            if ci.cancelled and is_cancellable:
                                 return ci.return_value
 
-                    # 执行原始方法
-                    result = orig_method_raw(*args, **kwargs) if not ci.cancelled else ci.return_value
-
-                    # 设置返回值
-                    if cancel_flag and not ci.cancelled:
-                        ci.return_value = result
-
-                    # 处理TAIL注入
+                    # 执行原始方法（如果未被取消）
                     if not ci.cancelled:
-                        for cb in local_callbacks:
+                        result = original_method(*args, **kwargs)
+                        if is_cancellable:
+                            ci.return_value = result
+                    else:
+                        result = ci.return_value
+
+                    # TAIL阶段
+                    if not ci.cancelled:
+                        for cb in callback_group:
                             if cb['at'].location == At.TAIL:
                                 cb['handler'](ci, *args, **kwargs)
-                                if ci.cancelled and cancel_flag:
+                                if ci.cancelled and is_cancellable:
                                     return ci.return_value
 
-                    # 处理RETURN注入
+                    # RETURN阶段
                     if not ci.cancelled:
-                        return_callbacks = [cb for cb in local_callbacks
-                                            if cb['at'].location == At.RETURN]
-
-                        if return_callbacks:
-                            for cb in return_callbacks:
-                                cb['handler'](ci, *args, **kwargs)
+                        return_callbacks = [cb for cb in callback_group if cb['at'].location == At.RETURN]
+                        for cb in return_callbacks:
+                            cb['handler'](ci, *args, **kwargs)
 
                     return result
 
                 return injected_method
 
-            # 设置新的注入方法
-            injected_wrapper = create_injected_method(callbacks, cancellable, orig_method)
+            injected_wrapper = make_injected_method(callbacks_group, cancellable, orig_method)
             _set_attr(target_class, method_name, injected_wrapper, force_mixin)
 
-        # 添加Invoker到目标类
+        # 应用调用器
         for method_name, handler in invokers.items():
-            # 添加前缀避免命名冲突
             handler_name = f"_mixin_invoker_{method_name}_{uuid.uuid4().hex[:8]}"
-            if hasattr(target_class, handler_name):
-                continue
+            if not hasattr(target_class, handler_name):
+                def make_invoker(handler_func: Callable) -> Callable:
+                    """
+                    创建调用器函数。
 
-            def make_invoker(handler_func):
-                def invoker(self, *args, **kwargs):
-                    return handler_func(self, *args, **kwargs)
+                    Args:
+                        handler_func (Callable): 处理函数。
 
-                return invoker
+                    Returns:
+                        Callable: 调用器函数。
+                    """
 
-            invoker_func = make_invoker(handler)
-            _set_attr(target_class, handler_name, invoker_func, force_mixin)
+                    @wraps(handler_func)
+                    def invoker(self, *args, **kwargs) -> Any:
+                        """
+                        调用器实际函数。
+
+                        Returns:
+                            Any: 函数执行结果。
+                        """
+                        return handler_func(self, *args, **kwargs)
+
+                    return invoker
+
+                invoker_func = make_invoker(handler)
+                _set_attr(target_class, handler_name, invoker_func, force_mixin)
 
 
-# ==== 用户可用的公共API ====
-def Mixin(target_class, force=False):
-    """类装饰器，声明Mixin目标类"""
+# ==== 用户公共 API ====
 
-    def apply_mixin(cls):
+def Mixin(target_class: type, force: bool = False) -> Callable[[type], type]:
+    """
+    类装饰器，用于声明一个 Mixin 及其目标类。
+
+    Args:
+        target_class (type): 要注入 Mixin 的类。
+        force (force): 如果为True，则使用 `type.__setattr__` 绕过元类限制。
+
+    Returns:
+        Callable[[type], type]: 一个注册 Mixin 的装饰器函数。
+    """
+
+    def apply_mixin(cls: type) -> type:
+        """
+        将 Mixin 应用于目标类。
+
+        Args:
+            cls (type): 要应用的 Mixin 类。
+
+        Returns:
+            type: Mixin 类本身。
+        """
         if force:
             type.__setattr__(cls, "__mixin_target__", target_class)
             type.__setattr__(cls, "__mixin_force__", force)
@@ -269,12 +454,31 @@ def Mixin(target_class, force=False):
     return apply_mixin
 
 
-def Inject(method_name: str, at: At, cancellable=False):
-    """方法装饰器，声明注入点"""
+def Inject(method_name: str, at: At, cancellable: bool = False) -> Callable[[Callable], Callable]:
+    """
+    方法装饰器，用于声明一个方法的注入点。
 
-    def decorator(func):
+    Args:
+        method_name (str): 目标类中要注入的方法名。
+        at (At): 一个 `At` 实例，指定注入位置 (HEAD, TAIL, RETURN)。
+        cancellable (bool): 如果为True，注入的方法可以取消原始操作。
+
+    Returns:
+        Callable[[Callable], Callable]: 标记方法为注入回调的装饰器函数。
+    """
+
+    def decorator(func: Callable) -> Callable:
+        """
+        装饰器函数。
+
+        Args:
+            func (Callable): 被装饰的函数。
+
+        Returns:
+            Callable: 装饰后的函数。
+        """
         func.__mixin_inject__ = {
-            'target_method_name': method_name,  # 明确使用目标方法名
+            'target_method_name': method_name,
             'at': at,
             'cancellable': cancellable,
             'handler': func
@@ -284,29 +488,60 @@ def Inject(method_name: str, at: At, cancellable=False):
     return decorator
 
 
-def Accessor(field_name):
-    """字段访问器装饰器"""
+def Accessor(field_name: str) -> _Accessor:
+    """
+    创建一个用于访问私有字段的描述符。
+
+    Args:
+        field_name (str): 要访问的字段名 (例如, '_private_field')。
+
+    Returns:
+        _Accessor: 一个 `_Accessor` 实例。
+    """
     return _Accessor(field_name)
 
 
-def Invoker():
-    """调用器装饰器，用于动态调用私有方法"""
+def Invoker() -> Callable[[Callable], Callable]:
+    """
+    方法装饰器，用于将一个方法作为公共方法添加到目标类。
 
-    def decorator(func):
+    Returns:
+        Callable[[Callable], Callable]: 一个装饰器函数。
+    """
+
+    def decorator(func: Callable) -> Callable:
+        """
+        装饰器函数。
+
+        Args:
+            func (Callable): 被装饰的函数。
+
+        Returns:
+            Callable: 装饰后的函数。
+        """
         func.__mixin_invoker__ = True
         return func
 
     return decorator
 
 
-def MethodRedirect(old_class: type, old_method: str, new_class: type, new_method: str, force: bool = False):
+def MethodRedirect(
+        old_class: type,
+        old_method: str,
+        new_class: type,
+        new_method: str,
+        force: bool = False
+):
     """
-    方法重定向器
-    :param old_class: 原始方法所在类
-    :param old_method: 原始方法名
-    :param new_class: 新方法所在类
-    :param new_method: 新方法名
-    :param force: 是否强制修改
+    将旧类上的方法调用重定向到新类上的方法。
+
+    Args:
+        old_class (type): 包含原始方法的类。
+        old_method (str): 要替换的原始方法的名称。
+        new_class (type): 包含新方法的类。
+        new_method (str): 要调用的新方法的名称。
+        force (bool): 如果为True，则使用 `type.__setattr__` 绕过元类限制。
+
     """
     new_func = _get_attr(new_class, new_method, force=force)
     if new_func:
@@ -315,128 +550,275 @@ def MethodRedirect(old_class: type, old_method: str, new_class: type, new_method
 
 # ====== 测试代码 ======
 if __name__ == "__main__":
-    # ====== Player类定义 ======
+    # ====== Player 类定义 (使用冻结元类) ======
     class FreezeClassMeta(type):
-        """元类：冻结类定义，禁止动态添加/修改类属性和方法"""
+        """元类，在类创建后阻止修改其结构。"""
 
-        def __init__(cls, name, bases, attrs):
+        def __init__(cls, name: str, bases: Tuple[type, ...], attrs: Dict[str, Any]):
+            """
+            初始化元类。
+
+            Args:
+                name (str): 类名。
+                bases (Tuple[type, ...]): 基类元组。
+                attrs (Dict[str, Any]): 类属性字典。
+
+            """
             super().__init__(name, bases, attrs)
-            cls._frozen = True  # 标记类已冻结
+            cls._frozen = True
 
-        def __setattr__(cls, name, value):
+        def __setattr__(cls, name: str, value: Any):
+            """
+            设置类属性。
+
+            Args:
+                name (str): 属性名。
+                value (Any): 属性值。
+
+            Raises:
+                AttributeError: 如果类已被冻结。
+            """
             if getattr(cls, '_frozen', False):
-                raise AttributeError(f"Cannot modify frozen class '{cls.__name__}'")
+                raise AttributeError(f"无法修改已冻结的类 '{cls.__name__}'")
             super().__setattr__(name, value)
 
 
     class Player(metaclass=FreezeClassMeta):
-        def __init__(self, name):
+        """
+        演示用的简单玩家类。
+
+        Attributes:
+            name (str): 玩家名称。
+            _health (int): 玩家生命值。
+            _position (Tuple[int, int, int]): 玩家位置。
+            _inventory (List[str]): 玩家库存。
+            _is_admin (bool): 管理员状态。
+        """
+
+        def __init__(self, name: str):
+            """
+            初始化一个具有名称的玩家。
+
+            Args:
+                name (str): 玩家名称。
+
+            """
             self.name = name
             self._health = 100
             self._position = (0, 0, 0)
             self._inventory = []
             self._is_admin = False
 
-        def take_damage(self, amount):
+        def take_damage(self, amount: int) -> int:
+            """
+            受到伤害并减少生命值。
+
+            Args:
+                amount (int): 伤害量。
+
+            Returns:
+                int: 剩余生命值。
+            """
             self._health -= amount
-            print(f"{self.name} took {amount} damage! Health: {self._health}")
+            print(f"{self.name} 受到 {amount} 点伤害! 生命值: {self._health}")
             return self._health
 
-        def move(self, x, y, z):
+        def move(self, x: int, y: int, z: int):
+            """
+            将玩家移动到新位置。
+
+            Args:
+                x (int): X坐标。
+                y (int): Y坐标。
+                z (int): Z坐标。
+
+            """
             self._position = (x, y, z)
-            print(f"{self.name} moved to {self._position}")
+            print(f"{self.name} 移动到了 {self._position}")
 
-        def add_item(self, item):
+        def add_item(self, item: str) -> bool:
+            """
+            将物品添加到玩家的库存中。
+
+            Args:
+                item (str): 物品名称。
+
+            Returns:
+                bool: 添加成功返回True。
+            """
             self._inventory.append(item)
-            print(f"Added {item} to inventory. Total: {len(self._inventory)}")
+            print(f"将 {item} 添加到库存。总计: {len(self._inventory)}")
             return True
 
-        def give_item(self, item):
-            print(f"{self.name} gave {item} to someone")
+        def give_item(self, item: str) -> bool:
+            """
+            将物品给予他人。
+
+            Args:
+                item (str): 物品名称。
+
+            Returns:
+                bool: 给予成功返回True。
+            """
+            print(f"{self.name} 给予了别人 {item}")
             return True
 
-        def show_inventory(self):
-            print("=== Inventory ===")
+        def show_inventory(self) -> List[str]:
+            """
+            显示玩家当前的库存。
+
+            Returns:
+                List[str]: 玩家库存列表。
+            """
+            print("=== 库存 ===")
             return self._inventory
 
 
-    # ====== Mixin扩展 ======
+    # ====== Mixin 扩展 ======
     @Mixin(Player, force=True)
     class PlayerExtensions:
+        """
+        玩家类的扩展。
 
-        # 访问器
+        Attributes:
+            health (_Accessor): 生命值访问器。
+            position (_Accessor): 位置访问器。
+            admin_status (_Accessor): 管理员状态访问器。
+        """
+
         health = Accessor('_health')
         position = Accessor('_position')
         admin_status = Accessor('_is_admin')
 
-        # 注入点
         @staticmethod
         @Inject("take_damage", At(At.HEAD), cancellable=True)
-        def damage_injection(ci, self, amount):
+        def damage_injection(ci: CallbackInfoReturnable, self: 'Player', amount: int):
+            """
+            如果玩家是管理员，则防止受到伤害。
+
+            Args:
+                ci (CallbackInfoReturnable): 回调信息。
+                self (Player): 玩家实例。
+                amount (int): 伤害量。
+
+            """
             if self.admin_status:
                 ci.cancel()
-                print(f"⚡ {self.name} is immune to damage!")
+                print(f"⚡ {self.name} 对伤害免疫！")
 
-        def add_items(self, items):
-            """批量添加物品"""
-            print(f"Adding {len(items)} items...")
+        def add_items(self, items: List[str]) -> List[bool]:
+            """
+            将多个物品添加到库存中。
+
+            Args:
+                items (List[str]): 物品列表。
+
+            Returns:
+                List[bool]: 添加结果列表。
+            """
+            print(f"正在添加 {len(items)} 个物品...")
             return [self.add_item(item) for item in items]
 
-        # 新增方法
+        def heal(self, amount: int):
+            """
+            治疗玩家。
 
-        def heal(self, amount):
-            """治疗玩家"""
+            Args:
+                amount (int): 治疗量。
+
+            """
             self.health += amount
-            print(f"✨ {self.name} healed by {amount}. Health: {self.health}")
+            print(f"✨ {self.name} 受到了 {amount} 点治疗。生命值: {self.health}")
 
-        def teleport(self, x, y, z):
-            """瞬移到指定位置"""
-            print(f"🔥 {self.name} teleported to ({x}, {y}, {z})")
+        def teleport(self, x: int, y: int, z: int):
+            """
+            将玩家传送到新位置。
+
+            Args:
+                x (int): X坐标。
+                y (int): Y坐标。
+                z (int): Z坐标。
+
+            """
+            print(f"🔥 {self.name} 传送到了 ({x}, {y}, {z})")
             self.position = (x, y, z)
 
 
     @Mixin(Player, force=True)
     class PlayerExtensions2:
+        """
+        玩家类的另一组扩展。
+
+        Attributes:
+            admin_status (_Accessor): 管理员状态访问器。
+        """
         admin_status = Accessor('_is_admin')
 
         @staticmethod
         @Inject("__init__", At(At.HEAD))
-        def post_init(ci, self, name):
+        def post_init(ci: CallbackInfo, self: 'Player', name: str):
+            """
+            为所有新的 Player 实例添加一个私有的 '_is_ban' 字段。
+
+            Args:
+                ci (CallbackInfo): 回调信息。
+                self (Player): 玩家实例。
+                name (str): 玩家名称。
+            """
             self._is_ban = False
 
-        # 注入点
         @staticmethod
         @Inject("take_damage", At(At.HEAD), cancellable=True)
-        def damage_injection(ci, self, amount):
-            if self.is_ban():
+        def damage_injection(ci: CallbackInfoReturnable, self: 'Player', amount: int):
+            """
+            如果玩家被封禁，则防止受到伤害。
+
+            Args:
+                ci (CallbackInfoReturnable): 回调信息。
+                self (Player): 玩家实例。
+                amount (int): 伤害量。
+            """
+            if getattr(self, '_is_ban', False):
                 ci.cancel()
                 print(f"⚡ {self.name} 已经被ban了，你无法对其造成伤害!")
 
         @staticmethod
-        def is_ban(player):
-            return player._is_ban
+        def ban(player: 'Player'):
+            """
+            封禁一个玩家，防止他们受到伤害。
 
-        @staticmethod
-        def ban(player):
+            Args:
+                player (Player): 玩家实例。
+            """
             if not player.admin_status:
                 player._is_ban = True
+                print(f"🚫 {player.name} 已被封禁!")
             else:
                 print("你不能ban一个管理员")
 
 
     # ====== 方法重定向 ======
     class CustomInventorySystem:
+        """用于显示玩家库存的新系统。"""
+
         @staticmethod
-        def formatted_inventory(player):
-            """格式化的库存显示方法"""
-            print(f"======= {player.name}'s Inventory =======")
-            print(f"Items({len(player._inventory)}):")
+        def formatted_inventory(player: 'Player') -> List[str]:
+            """
+            显示玩家库存的格式化版本。
+
+            Args:
+                player (Player): 玩家实例。
+
+            Returns:
+                List[str]: 玩家库存列表。
+            """
+            print(f"======= {player.name} 的库存 =======")
+            print(f"物品数量({len(player._inventory)}):")
             for i, item in enumerate(player._inventory, 1):
                 print(f"  {i}. {item}")
             return player._inventory
 
 
-    # 重定向原始库存显示方法
     MethodRedirect(
         old_class=Player,
         old_method="show_inventory",
@@ -445,38 +827,27 @@ if __name__ == "__main__":
         force=True
     )
 
-    print("===== Player Mixin Demo =====")
+    print("===== Player Mixin 演示 =====")
 
-    # 创建普通玩家
-    player = Player("Steve")
-
-    # 创建管理员玩家
-    admin_player = Player("Admin")
+    player = Player("爱丽丝")
+    admin_player = Player("管理员")
     admin_player.admin_status = True
     admin_player.position = (114, 514, 1919)
-    # 测试功能
-    print("\n--- Testing Normal Player ---")
+
+    print("\n--- 测试普通玩家 (爱丽丝) ---")
     player.take_damage(10)
     player.heal(5)
     player.teleport(100, 64, 200)
-
-    print("\n--- Adding Items ---")
-    player.add_items(["Sword", "Shield", "Apple"])
-
-    print("\n--- Show Inventory ---")
+    player.add_items(["剑", "盾牌", "苹果"])
     player.show_inventory()
-
-    print("\n--- Give Item ---")
-    player.give_item("Sword")
-
-    print("\n--- Testing Admin Player ---")
-    admin_player.take_damage(50)  # 应该免疫伤害
-    admin_player.add_items(["Diamond Sword", "Golden Apple"])
-
-    print("\n--- Testing Ban Player ---")
+    player.give_item("剑")
     player.ban()
     player.take_damage(1)
-    admin_player.ban()
-    player.take_damage(1)
     player.take_damage(114)
-    print("\n===== Demo Completed =====")
+
+    print("\n--- 测试管理员玩家 ---")
+    admin_player.take_damage(50)
+    admin_player.add_items(["钻石剑", "金苹果"])
+    admin_player.ban()
+
+    print("\n===== 演示完成 =====")
