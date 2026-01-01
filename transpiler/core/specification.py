@@ -8,25 +8,12 @@ from transpiler.core.compile_config import CompileConfig
 from transpiler.core.ir_builder import IRBuilder
 
 __all__ = [
-    'IROptimizerSpec',
     'IROptimizationPass',
     'CodeGeneratorSpec'
 ]
 
 
-class IROptimizerSpec(ABC):
-    """IR优化器"""
-
-    @abstractmethod
-    def __init__(self, builder: IRBuilder,
-                 config: CompileConfig):
-        """初始化"""
-
-    @abstractmethod
-    def optimize(self) -> IRBuilder:
-        """对原始IR优化"""
-
-
+@deprecated("请用 transpiler.core.optimize.base.IROptimizationPass 代替")
 class IROptimizationPass(ABC):
     """IR 优化管道"""
 

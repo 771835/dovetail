@@ -115,7 +115,7 @@ def ir_processor(target: type[Backend] | ProcessorRegistry, opcode: IROpCode):
         @ir_processor(Backend,IROpCode.ASSIGN)
         class AssignProcessor(IRProcessor):
             def process(self, instruction, context):
-                pass
+                passes
     """
 
     def decorator(cls: type[IRProcessor]):

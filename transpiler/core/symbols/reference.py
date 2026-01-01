@@ -69,3 +69,6 @@ class Reference(Symbol, Generic[T]):
     @classmethod
     def variable(cls, var_name, dtype: DataType, var_type: VariableType = VariableType.COMMON) -> Reference:
         return cls(ValueType.VARIABLE, Variable(var_name, dtype, var_type))
+
+    def is_literal(self) -> bool:
+        return self.value_type == ValueType.LITERAL

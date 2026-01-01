@@ -29,6 +29,21 @@ class Scope:
         """是否有命令"""
         return len(self.commands) > 0
 
+    def get_absolute_path(self) -> str:
+        """获取完整作用域路径"""
+        if self.parent is None:
+            return "global"
+        count = 0
+        for child in self.parent.children:
+            if child.name == self.name:
+                count += 1
+                if child is self:
+                    break
+        if count == 0:
+            return f"{self.parent.get_absolute_path()}.{self.name}"
+        else:
+            return f"{self.parent.get_absolute_path()}.{self.name}${count}"
+
     def get_file_path(self) -> Path:
         """获取文件路径"""
         # 构建相对路径

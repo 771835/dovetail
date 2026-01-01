@@ -112,7 +112,7 @@ class IRInstruction(ABC):
         self.flags: dict[str, int] = flags or {}
 
     def __repr__(self):
-        return f"{self.opcode}(operands={self.operands}, line={self.line}, column={self.column})"
+        return f"{self.opcode.name}(operands={self.operands})"
 
     def __hash__(self):
         # 处理操作数的哈希值计算
@@ -190,8 +190,8 @@ class IRCondJump(IRInstruction):
     def __init__(
             self,
             condition: Variable | Literal,
-            true_scope: str,
-            false_scope: str = None,
+            true_scope: str | None,
+            false_scope: str | None = None,
             line: int = -1,
             column: int = -1,
             filename: str = None
