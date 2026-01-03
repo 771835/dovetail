@@ -7,10 +7,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
+from transpiler.core.specification import CodeGeneratorSpec
+
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.instructions import IROpCode, IRInstruction
 from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator, IRBuilderReversibleIterator
-from transpiler.core.specification import CodeGeneratorSpec
 from transpiler.core.symbols import *
 from .builtins import builtin_func, BuiltinFuncMapping
 from .code_generator_scope import CodeGeneratorScope

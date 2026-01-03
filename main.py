@@ -175,7 +175,6 @@ class Compiler:
         Returns:
             IRBuilder: 优化后的IR构建器
         """
-        print(type(tree))
         generator.visit(tree)
         ir_builder = generator.get_ir()
         ir_builder = Optimizer(ir_builder, self.config).optimize()

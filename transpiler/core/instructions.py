@@ -1,5 +1,5 @@
 # coding=utf-8
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import TypeVar, Any
 
 from transpiler.core.enums.operations import UnaryOps, BinaryOps, CompareOps
@@ -111,6 +111,7 @@ class IRInstruction(ABC):
         self.line = line
         self.flags: dict[str, int] = flags or {}
 
+    @abstractmethod
     def __repr__(self):
         return f"{self.opcode.name}(operands={self.operands})"
 
@@ -185,6 +186,9 @@ class IRJump(IRInstruction):
         ]
         super().__init__(IROpCode.JUMP, operands, line, column, filename)
 
+    def __repr__(self):
+        return f"jump {self.operands[0]}"
+
 
 class IRCondJump(IRInstruction):
     def __init__(
@@ -205,6 +209,10 @@ class IRCondJump(IRInstruction):
         ]
         super().__init__(IROpCode.COND_JUMP, operands, line, column, filename)
 
+    def __repr__(self):
+        cond = self.operands[0].value if isinstance(self.operands[0], Literal) else self.operands[0].get_name()
+        return f"if {cond} jump {self.operands[1]} else jump {self.operands[2]}"
+
 
 class IRFunction(IRInstruction):
     def __init__(
@@ -219,6 +227,16 @@ class IRFunction(IRInstruction):
         ]
         super().__init__(IROpCode.FUNCTION, operands, line, column, filename)
 
+    def __repr__(self):
+        return 'function ' \
+            + self.operands[0].get_name() \
+            + '(' \
+            + ','.join(
+                f"{param.get_data_type().get_name()} {param.get_name()}"
+                for param in self.operands[0].params
+            ) \
+            + ')'
+
 
 class IRReturn(IRInstruction):
     def __init__(
@@ -232,6 +250,9 @@ class IRReturn(IRInstruction):
             value,
         ]
         super().__init__(IROpCode.RETURN, operands, line, column, filename)
+
+    def __repr__(self):
+        return f"return {self.operands[0].get_display_value()}"
 
 
 class IRCall(IRInstruction):
@@ -252,6 +273,11 @@ class IRCall(IRInstruction):
         ]
         super().__init__(IROpCode.CALL, operands, line, column, filename)
 
+    def __repr__(self):
+        ops = self.operands
+        args = (f"{name}={value.get_display_value()}" for name, value in ops[2].items())
+        return f"{ops[0].get_name() if ops[0] else 'null'}={ops[1].get_name()}({','.join(args)})"
+
 
 class IRScopeBegin(IRInstruction):
     def __init__(
@@ -267,6 +293,9 @@ class IRScopeBegin(IRInstruction):
             stype
         ]
         super().__init__(IROpCode.SCOPE_BEGIN, operands, line, column, filename)
+
+    def __repr__(self):
+        return '{'
 
 
 class IRScopeEnd(IRInstruction):
@@ -284,6 +313,9 @@ class IRScopeEnd(IRInstruction):
         ]
         super().__init__(IROpCode.SCOPE_END, operands, line, column, filename)
 
+    def __repr__(self):
+        return '}'
+
 
 class IRBreak(IRInstruction):
     def __init__(self, scope_name: str, line: int = -1, column: int = -1, filename: str = None):
@@ -292,6 +324,9 @@ class IRBreak(IRInstruction):
         ]
         super().__init__(IROpCode.BREAK, operands, line, column, filename)
 
+    def __repr__(self):
+        return f'break {self.operands[0]}'
+
 
 class IRContinue(IRInstruction):
     def __init__(self, scope_name: str, line: int = -1, column: int = -1, filename: str = None):
@@ -299,6 +334,9 @@ class IRContinue(IRInstruction):
             scope_name
         ]
         super().__init__(IROpCode.CONTINUE, operands, line, column, filename)
+
+    def __repr__(self):
+        return f'continue {self.operands[0]}'
 
 
 class IRDeclare(IRInstruction):
@@ -309,6 +347,10 @@ class IRDeclare(IRInstruction):
         ]
         super().__init__(IROpCode.DECLARE, operands, line, column, filename)
 
+    def __repr__(self):
+        var = self.operands[0]
+        return f'{var.dtype.value if isinstance(var.dtype, DataType) else var.dtype.get_name()} {var.get_name()}'
+
 
 class IRAssign(IRInstruction):
     def __init__(self, target: Variable | Constant, source: Reference[Variable | Constant | Literal], line: int = -1,
@@ -318,6 +360,9 @@ class IRAssign(IRInstruction):
             source
         ]
         super().__init__(IROpCode.ASSIGN, operands, line, column, filename)
+
+    def __repr__(self):
+        return f'{self.operands[0].get_name()}={self.operands[1].get_display_value()}'
 
 
 class IRUnaryOp(IRInstruction):
@@ -332,6 +377,9 @@ class IRUnaryOp(IRInstruction):
         ]
         super().__init__(IROpCode.UNARY_OP, operands, line, column, filename)
 
+    def __repr__(self):
+        return f'{self.operands[0].get_name()}={self.operands[1].value}{self.operands[2].get_display_value()}'
+
 
 class IROp(IRInstruction):
     def __init__(self, result: Variable | Constant, op: BinaryOps, left: Reference[Variable | Constant | Literal],
@@ -344,6 +392,10 @@ class IROp(IRInstruction):
             right
         ]
         super().__init__(IROpCode.OP, operands, line, column, filename)
+
+    def __repr__(self):
+        ops = self.operands
+        return f'{ops[0].get_name()}={ops[2].get_display_value()}{ops[1].value}{ops[2].get_display_value()}'
 
 
 class IRCompare(IRInstruction):
@@ -358,6 +410,10 @@ class IRCompare(IRInstruction):
         ]
         super().__init__(IROpCode.COMPARE, operands, line, column, filename)
 
+    def __repr__(self):
+        ops = self.operands
+        return f'{ops[0].get_name()}={ops[2].get_display_value()}{ops[1].value}{ops[2].get_display_value()}'
+
 
 class IRCast(IRInstruction):
     def __init__(self, result: Variable | Constant, dtype: DataType | Class,
@@ -370,6 +426,10 @@ class IRCast(IRInstruction):
         ]
         super().__init__(IROpCode.CAST, operands, line, column, filename)
 
+    def __repr__(self):
+        ops = self.operands
+        return f'{ops[0].get_name()}=({ops[1].get_name()}){ops[2].get_display_value()}'
+
 
 class IRClass(IRInstruction):
     def __init__(self, class_: Class, line: int = -1,
@@ -378,6 +438,10 @@ class IRClass(IRInstruction):
             class_
         ]
         super().__init__(IROpCode.CLASS, operands, line, column, filename)
+
+    def __repr__(self):
+        class_ = self.operands[0]
+        return f'class {class_.get_name()}'
 
 
 class IRNewObj(IRInstruction):
@@ -390,6 +454,9 @@ class IRNewObj(IRInstruction):
         ]
         super().__init__(IROpCode.NEW_OBJ, operands, line, column, filename)
 
+    def __repr__(self):
+        return f'{self.operands[0].get_name()}=new {self.operands[1].get_name()}()'
+
 
 class IRGetProperty(IRInstruction):
     def __init__(self, result: Variable, obj: Variable | Constant, property_name: str, line: int = -1,
@@ -401,6 +468,9 @@ class IRGetProperty(IRInstruction):
             property_name
         ]
         super().__init__(IROpCode.GET_FIELD, operands, line, column, filename)
+
+    def __repr__(self):
+        return f'{self.operands[0].get_name()}={self.operands[1].get_name()}.{self.operands[2]}'
 
 
 class IRSetProperty(IRInstruction):
@@ -419,6 +489,9 @@ class IRSetProperty(IRInstruction):
             value
         ]
         super().__init__(IROpCode.SET_FIELD, operands, line, column, filename)
+
+    def __repr__(self):
+        return f'{self.operands[0].get_name()}.{self.operands[1]}={self.operands[2].get_display_value()}'
 
 
 class IRCallMethod(IRInstruction):
@@ -439,3 +512,8 @@ class IRCallMethod(IRInstruction):
             args
         ]
         super().__init__(IROpCode.CALL_METHOD, operands, line, column, filename)
+
+    def __repr__(self):
+        ops = self.operands
+        args = (f"{name}={value.get_display_value()}" for name, value in ops[3].items())
+        return f'{ops[0].get_name() if ops[0] else "null"}={ops[1].get_name()}.{ops[2].get_name()}({",".join(args)})'

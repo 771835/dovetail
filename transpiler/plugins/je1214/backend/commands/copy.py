@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 from transpiler.core.symbols import Variable
-from ._scoreboard import ScoreboardBuilder
-from ._data import DataBuilder
 from transpiler.utils.escape_processor import auto_escape
+from ._data import DataBuilder
+from ._scoreboard import ScoreboardBuilder
 
 
 class MCCopy:

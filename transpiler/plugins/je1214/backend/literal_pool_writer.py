@@ -9,7 +9,7 @@ import uuid
 from transpiler.core.backend import OutputWriter, GenerationContext
 from transpiler.core.enums import ValueType
 from transpiler.core.symbols import Reference, Literal
-from .commands import ReturnBuilder, Execute, ScoreboardBuilder, DataBuilder
+from .commands import ReturnBuilder, Execute, ScoreboardBuilder
 from .commands.copy import MCCopy
 
 
@@ -63,7 +63,6 @@ class LiteralPoolWriter(OutputWriter):
             return f"literal_pool.int.{'n' if literal < 0 else ''}{abs(literal)}"
         else:
             raise TypeError(f"literal type {type(literal)} is not supported")
-
 
     def get_name(self) -> str:
         return "LiteralPoolWriter"

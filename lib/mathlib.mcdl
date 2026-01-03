@@ -1,5 +1,6 @@
 // mathlib.mcdl - 简单的数学工具库
 include "math"
+include "random"
 /**
  * 计算并返回第 n 项斐波那契数（非递归方式）
  */
@@ -233,4 +234,54 @@ func permutation(n: int, k: int) -> int {
     }
 
     return result;
+}
+
+/**
+ * 生成指定范围内的随机质数
+ */
+func random_prime(min_val: int, max_val: int) -> int {
+    let attempts = 0;
+    let max_attempts = 100; // 避免无限循环
+
+    while (attempts < max_attempts) {
+        let candidate = randint(min_val, max_val);
+        if (is_prime(candidate)) {
+            return candidate;
+        }
+        attempts = attempts + 1;
+    }
+
+    // 如果找不到，返回范围内的第一个质数
+    for (i: int = min_val; i <= max_val; i = i + 1) {
+        if (is_prime(i)) {
+            return i;
+        }
+    }
+
+    return min_val; // 兜底返回
+}
+
+/**
+ * 计算两点之间的曼哈顿距离
+ */
+func manhattan_distance(x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> int {
+    return abs(x2 - x1) + abs(y2 - y1) + abs(z2 - z1);
+}
+
+/**
+ * 计算两点之间的欧几里得距离的平方（避免浮点运算）
+ */
+func distance_squared(x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> int {
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    let dz = z2 - z1;
+    return dx * dx + dy * dy + dz * dz;
+}
+
+/**
+ * 随机生成斐波那契数列的某一项
+ */
+func random_fibonacci(max_n: int) -> int {
+    let n = randint(0, max_n);
+    return fibonacci(n);
 }

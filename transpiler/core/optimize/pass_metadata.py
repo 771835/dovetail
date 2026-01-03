@@ -51,7 +51,7 @@ class PassMetadata:
     name: str
     display_name: str
     description: str = ""
-    level: OptimizationLevel= OptimizationLevel.O0
+    level: OptimizationLevel = OptimizationLevel.O0
     phase: PassPhase = PassPhase.TRANSFORM
     depends_on: tuple[str, ...] = field(factory=tuple)
     incompatible_with: tuple[str, ...] = field(factory=tuple)

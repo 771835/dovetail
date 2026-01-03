@@ -94,11 +94,11 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
             if in_function:
                 if isinstance(instr, IRScopeBegin):
                     level += 1
-                elif isinstance(instr, IRScopeEnd):
+
+                iterator.remove_current()
+                self._changed = True
+                if isinstance(instr, IRScopeEnd):
                     level -= 1
                     if level == 0:
                         in_function = False
                         continue
-
-                iterator.remove_current()
-                self._changed = True

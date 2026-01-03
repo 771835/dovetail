@@ -72,3 +72,9 @@ class Reference(Symbol, Generic[T]):
 
     def is_literal(self) -> bool:
         return self.value_type == ValueType.LITERAL
+
+    def get_display_value(self) -> str | None:
+        if self.is_literal():
+            return self.value.value
+        else:
+            return self.get_name()
