@@ -11,9 +11,9 @@ import copy
 
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.ir_builder import IRBuilder
-from transpiler.core.optimize.pipeline import OptimizationPipeline
 from transpiler.core.optimize.base import IROptimizer
 from transpiler.core.optimize.passes import *  # NOQA
+from transpiler.core.optimize.pipeline import OptimizationPipeline
 
 
 class Optimizer(IROptimizer):

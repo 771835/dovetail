@@ -2,7 +2,6 @@
 """
 后端生成处理器
 """
-from .ir_class import IRClassProcessor
 from .ir_scope_begin import IRScopeBeginProcessor
 from .ir_scope_end import IRScopeEndProcessor
 

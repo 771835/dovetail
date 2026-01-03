@@ -6,13 +6,13 @@
 import ast
 import os
 import re
-from traceback import print_tb
-from typing import List, Dict
+import sys
+import tokenize
 from dataclasses import dataclass
 from enum import Enum
-import tokenize
 from io import BytesIO, TextIOWrapper
-import sys
+from traceback import print_tb
+from typing import List, Dict
 
 sys.stdout = TextIOWrapper(sys.stdout.buffer, encoding='utf-16')
 # 正则表达式匹配：name (type): description

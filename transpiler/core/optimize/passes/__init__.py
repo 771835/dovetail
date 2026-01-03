@@ -7,10 +7,11 @@
 from .constant_folding import ConstantFoldingPass
 from .dead_code_elimination import DeadCodeEliminationPass
 from .declare_cleanup import DeclareCleanupPass
+from .empty_scope import EmptyScopeRemovalPass
 from .unreachable_code import UnreachableCodeRemovalPass
 from .unused_function import UnusedFunctionEliminationPass
 from .useless_scope import UselessScopeRemovalPass
-from .empty_scope import EmptyScopeRemovalPass
+
 __all__ = [
     'ConstantFoldingPass',
     'DeadCodeEliminationPass',

@@ -76,7 +76,7 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 ## 提交与维护流程
 
 1. **提案发起**
-    - 在 [GitHub 仓库](https://github.com/your-repo) 创建 `DFP-{编号}.md` 文件
+    - 在 [GitHub 仓库](https://github.com/771835/dovetail) 创建 `DFP-{编号}.md` 文件
     - 使用 DFP 模板
 
 2. **社区讨论**

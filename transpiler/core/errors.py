@@ -428,7 +428,7 @@ class UnexpectedError(ASTInternalError):
             f"{base}\n\n"
             "  1.确保使用使用最新版本\n"
             "  2.确定mc版本支持\n"
-            "若以上皆无误请提交问题报告于github issues\n"
+            "若以上皆无误请提交问题报告于github的issues\n"
             "请附上：\n"
             "  1. 最小化复现代码\n"
             "  2. 完整错误日志"

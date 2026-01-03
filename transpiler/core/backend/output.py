@@ -3,10 +3,12 @@
 输出管理系统
 """
 from abc import ABC, abstractmethod
+from datetime import datetime
 from pathlib import Path
 from typing import Dict
 
 from transpiler.core.backend.context import GenerationContext, Scope
+from transpiler.core.config import PROJECT_NAME, PROJECT_WEBSITE
 
 
 class OutputWriter(ABC):
@@ -22,6 +24,16 @@ class OutputWriter(ABC):
         """
         raise NotImplementedError()
 
+    @abstractmethod
+    def get_name(self) -> str:
+        """
+        返回写入器名称
+
+        Returns:
+            str: 写入器名称
+        """
+        raise NotImplementedError()
+
 
 class CommandWriter(OutputWriter):
     """命令文件写入器"""
@@ -34,16 +46,21 @@ class CommandWriter(OutputWriter):
 
     def _write_scope(self, scope: Scope, context: GenerationContext):
         """写入单个作用域的命令文件"""
-        file_path = context.target / context.namespace / "data" / scope.get_file_path()
+        file_path = context.target / context.namespace / "data" / context.namespace / "function" / scope.get_file_path()
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(file_path, 'w', encoding='utf-8') as f:
             if context.config.debug:
                 f.write(f"# Scope: {scope.name} ({scope.scope_type.value})\n")
-                f.write(f"# Commands: {len(scope.commands)}\n\n")
+                f.write(f"# Commands: {len(scope.commands)}\n")
+                f.write(f"# Time: {datetime.now()}\n")
+                f.write(f"# Maker: {PROJECT_NAME}({PROJECT_WEBSITE})\n\n")
 
             for command in scope.commands:
                 f.write(command + '\n')
+
+    def get_name(self) -> str:
+        return "command_writer"
 
 
 class FunctionWriter(OutputWriter):
@@ -69,6 +86,9 @@ class FunctionWriter(OutputWriter):
             with open(func_path, 'w', encoding='utf-8') as f:
                 f.write(func_content)
 
+    def get_name(self) -> str:
+        return "function_writer"
+
 
 class MetadataWriter(OutputWriter):
     """元数据写入器"""
@@ -84,6 +104,9 @@ class MetadataWriter(OutputWriter):
 
         with open(meta_path, 'w', encoding='utf-8') as f:
             f.write(f'{{"pack": {{"pack_format": {self.pack_format},"description": "{description}"}}}}')
+
+    def get_name(self) -> str:
+        return "metadata_writer"
 
 
 class TagWriter(OutputWriter):
@@ -125,6 +148,9 @@ class TagWriter(OutputWriter):
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(tag_content, f, indent=2)
 
+    def get_name(self) -> str:
+        return "tag_writer"
+
 
 class OutputManager:
     """输出管理器，协调所有写入器"""
@@ -132,9 +158,9 @@ class OutputManager:
     def __init__(self):
         self.writers: Dict[str, OutputWriter] = {}
 
-    def register_writer(self, name: str, writer: OutputWriter):
+    def register_writer(self, writer: OutputWriter):
         """注册写入器"""
-        self.writers[name] = writer
+        self.writers[writer.get_name()] = writer
 
     def unregister_writer(self, name: str):
         """移除写入器"""

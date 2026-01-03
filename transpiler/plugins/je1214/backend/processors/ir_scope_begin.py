@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-IR指令ScopeBegin处理器
+IRScopeBegin 指令处理器
 """
 from transpiler.core.backend import ir_processor, IRProcessor, GenerationContext
 from transpiler.core.instructions import IROpCode, IRScopeBegin

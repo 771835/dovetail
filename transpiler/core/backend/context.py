@@ -9,6 +9,7 @@ from attrs import define, field
 
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.enums import StructureType
+from transpiler.core.ir_builder import IRBuilder
 
 
 @define
@@ -19,7 +20,6 @@ class Scope:
     parent: Optional['Scope'] = field(default=None)
     children: list['Scope'] = field(factory=list)
     commands: list[str] = field(factory=list)
-    metadata: dict = field(factory=dict)
 
     def add_command(self, command: str):
         """添加命令"""
@@ -45,16 +45,16 @@ class Scope:
             return f"{self.parent.get_absolute_path()}.{self.name}${count}"
 
     def get_file_path(self) -> Path:
-        """获取文件路径"""
+        """获取文件相对路径"""
         # 构建相对路径
         parts = []
         current = self
-        while current and current.parent:
+        while current:
             parts.append(current.name)
             current = current.parent
 
         parts.reverse()
-        return Path("function") / Path(*parts).with_suffix('.mcfunction')
+        return Path(*parts).with_suffix('.mcfunction')
 
 
 @define
@@ -62,6 +62,7 @@ class GenerationContext:
     """后端生成上下文"""
     config: CompileConfig
     target: Path
+    ir_builder: IRBuilder
 
     # 作用域管理
     root_scope: Optional[Scope] = field(default=None)

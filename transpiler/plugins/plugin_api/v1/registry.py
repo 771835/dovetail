@@ -1,15 +1,8 @@
 # coding=utf-8
 
+from transpiler.plugins.plugin_api.v2.registry import registry_library as registry_library_v2
 
-from transpiler.core.lib.library import Library
-from transpiler.core.lib.library_mapping import LibraryMapping
-
-
-
-
-def registry_library(library_name, library: type[Library]):
-    LibraryMapping.registry(library_name, library)
-
+registry_library = registry_library_v2
 
 registry_backend = lambda backend: print("The function 'registry_backend' is deprecated.")
 registry_optimization_pass = lambda optimization_pass, level: print(

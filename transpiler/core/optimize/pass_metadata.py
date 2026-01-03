@@ -7,8 +7,7 @@
 """
 from __future__ import annotations
 
-
-from attrs import define,field
+from attrs import define, field
 
 from transpiler.core.enums.optimization import OptimizationLevel
 from transpiler.utils.safe_enum import SafeEnum

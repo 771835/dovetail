@@ -2,7 +2,7 @@
 """
 后端基类
 """
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, ABCMeta
 from pathlib import Path
 
 from transpiler.core.backend.context import GenerationContext
@@ -12,12 +12,27 @@ from transpiler.core.compile_config import CompileConfig
 from transpiler.core.ir_builder import IRBuilder
 
 
-class Backend(ABC):
+class BackendMeta(ABCMeta):
+    """元类，确保每个子类有独立的类属性"""
+
+    def __new__(cls, name, bases, attrs):
+        # 创建新类
+        new_class = super().__new__(cls, name, bases, attrs)
+
+        # 为每个子类创建独立的实例
+        if name != 'Backend':  # 避免为基类创建
+            new_class.processor_registry = ProcessorRegistry()
+            new_class.output_manager = OutputManager()
+
+        return new_class
+
+
+class Backend(ABC, metaclass=BackendMeta):
     """后端基类"""
 
     # 核心组件
-    processor_registry = ProcessorRegistry()
-    output_manager = OutputManager()
+    processor_registry: ProcessorRegistry = None
+    output_manager: OutputManager = None
 
     def __init__(self, ir_builder: IRBuilder, target: Path, config: CompileConfig):
         self.ir_builder = ir_builder
@@ -39,7 +54,7 @@ class Backend(ABC):
     def generate(self):
         """生成代码（主流程）"""
         # 创建生成上下文
-        context = GenerationContext(config=self.config, target=self.target)
+        context = GenerationContext(self.config, self.target, self.ir_builder)
 
         # 处理IR指令
         self._process_instructions(context)

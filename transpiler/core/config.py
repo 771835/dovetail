@@ -5,6 +5,7 @@
 import fastjsonschema
 
 PROJECT_NAME = "Dovetail"
+PROJECT_WEBSITE = "https://github.com/771835/dovetail"
 CACHE_FILE_PREFIX = ".mcdc"
 PACK_CONFIG_VALIDATOR = fastjsonschema.compile({
     "type": "object",
