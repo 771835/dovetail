@@ -8,14 +8,14 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Any
+from typing import Any, Callable
 
 from attrs import define, field
 
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.enums import OptimizationLevel
 from transpiler.core.enums.operations import BinaryOps, CompareOps, UnaryOps
-from transpiler.core.enums.types import DataType, DataTypeBase, StructureType, ValueType
+from transpiler.core.enums.types import DataType, StructureType, ValueType
 from transpiler.core.instructions import *
 from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator
 from transpiler.core.optimize.base import IROptimizationPass
@@ -42,138 +42,35 @@ class ConstantFoldingPass(IROptimizationPass):
     3. 在条件分支内使用临时符号表
     4. 遇到 COND_JUMP 时，合并所有分支的状态
     """
-
-    BINARY_OP_HANDLERS: dict[BinaryOps, dict[tuple[DataTypeBase, DataTypeBase], Any]] = {
-        BinaryOps.ADD: {
-            (DataType.INT, DataType.INT): lambda a, b: a + b,
-            (DataType.STRING, DataType.STRING): lambda a, b: a + b,
-            (DataType.STRING, DataType.INT): lambda a, b: a + str(b),
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) + b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a + int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) + int(b)
-        },
-        BinaryOps.SUB: {
-            (DataType.INT, DataType.INT): lambda a, b: a - b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) - b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a - int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) - int(b)
-        },
-        BinaryOps.MUL: {
-            (DataType.INT, DataType.INT): lambda a, b: a * b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) * b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a * int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) * int(b)
-        },
-        BinaryOps.DIV: {
-            (DataType.INT, DataType.INT): lambda a, b: a / b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) / b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a / int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) / int(b)
-        },
-        BinaryOps.MOD: {
-            (DataType.INT, DataType.INT): lambda a, b: a % b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) % b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a % int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) % int(b)
-        },
-        BinaryOps.MIN: {
-            (DataType.INT, DataType.INT): lambda a, b: min(a, b),
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: min(int(a), b),
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: min(a, int(b)),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: min(int(a), int(b))
-        },
-        BinaryOps.MAX: {
-            (DataType.INT, DataType.INT): lambda a, b: max(a, b),
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: max(int(a), b),
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: max(a, int(b)),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: max(int(a), int(b))
-        },
-        BinaryOps.BIT_AND: {
-            (DataType.INT, DataType.INT): lambda a, b: a & b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) & b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a & int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) & int(b)
-        },
-        BinaryOps.BIT_OR: {
-            (DataType.INT, DataType.INT): lambda a, b: a | b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) | b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a | int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) | int(b)
-        },
-        BinaryOps.BIT_XOR: {
-            (DataType.INT, DataType.INT): lambda a, b: a ^ b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) ^ b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a ^ int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) ^ int(b)
-        },
-        BinaryOps.SHL: {
-            (DataType.INT, DataType.INT): lambda a, b: a << b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) << b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a << int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) << int(b)
-        },
-        BinaryOps.SHR: {
-            (DataType.INT, DataType.INT): lambda a, b: a >> b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) >> b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a >> int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) >> int(b)
-        }
+    _BINARY_OP_HANDLERS: dict[BinaryOps, Callable[[int | bool, int | bool], int | bool]] = {
+        BinaryOps.ADD: lambda a, b: a + b,
+        BinaryOps.SUB: lambda a, b: a - b,
+        BinaryOps.MUL: lambda a, b: a * b,
+        BinaryOps.DIV: lambda a, b: a / b,
+        BinaryOps.MOD: lambda a, b: a % b,
+        BinaryOps.MIN: lambda a, b: min(a, b),
+        BinaryOps.MAX: lambda a, b: max(a, b),
+        BinaryOps.BIT_AND: lambda a, b: a & b,
+        BinaryOps.BIT_OR: lambda a, b: a | b,
+        BinaryOps.BIT_XOR: lambda a, b: a ^ b,
+        BinaryOps.SHL: lambda a, b: a << b,
+        BinaryOps.SHR: lambda a, b: a >> b,
     }
 
-    COMPARE_OP_HANDLERS: dict[CompareOps, dict[tuple[DataTypeBase, DataTypeBase], Any]] = {
-        CompareOps.EQ: {
-            (DataType.INT, DataType.INT): lambda a, b: a == b,
-            (DataType.STRING, DataType.STRING): lambda a, b: a == b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) == b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a == int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: a == b
-        },
-        CompareOps.NE: {
-            (DataType.INT, DataType.INT): lambda a, b: a != b,
-            (DataType.STRING, DataType.STRING): lambda a, b: a != b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) != b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a != int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: a != b
-        },
-        CompareOps.LT: {
-            (DataType.INT, DataType.INT): lambda a, b: a < b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) < b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a < int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) < int(b)
-        },
-        CompareOps.LE: {
-            (DataType.INT, DataType.INT): lambda a, b: a <= b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) <= b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a <= int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) <= int(b)
-        },
-        CompareOps.GT: {
-            (DataType.INT, DataType.INT): lambda a, b: a > b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) > b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a > int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) > int(b)
-        },
-        CompareOps.GE: {
-            (DataType.INT, DataType.INT): lambda a, b: a >= b,
-            (DataType.BOOLEAN, DataType.INT): lambda a, b: int(a) >= b,
-            (DataType.INT, DataType.BOOLEAN): lambda a, b: a >= int(b),
-            (DataType.BOOLEAN, DataType.BOOLEAN): lambda a, b: int(a) >= int(b)
-        },
+    _COMPARE_OP_HANDLERS: dict[CompareOps, Callable[[int | bool, int | bool], bool]] = {
+        CompareOps.EQ: lambda a, b: a == b,
+        CompareOps.NE: lambda a, b: a != b,
+        CompareOps.GE: lambda a, b: a >= b,
+        CompareOps.GT: lambda a, b: a > b,
+        CompareOps.LE: lambda a, b: a <= b,
+        CompareOps.LT: lambda a, b: a < b,
+
     }
 
-    UNARY_OP_HANDLERS: dict[UnaryOps, dict[DataTypeBase, Any]] = {
-        UnaryOps.NEG: {
-            DataType.INT: lambda a: -a,
-            DataType.BOOLEAN: lambda a: -int(a),
-        },
-        UnaryOps.NOT: {
-            DataType.INT: lambda a: not a,
-            DataType.BOOLEAN: lambda a: not a,
-        },
-        UnaryOps.BIT_NOT: {
-            DataType.INT: lambda a: ~a,
-            DataType.BOOLEAN: lambda a: ~int(a),
-        },
+    _UNARY_OP_HANDLERS: dict[UnaryOps, Callable[[int | bool], int]] = {
+        UnaryOps.NEG: lambda a: -a,
+        UnaryOps.NOT: lambda a: not a,
+        UnaryOps.BIT_NOT: lambda a: ~a,
     }
 
     class FoldingFlags(Enum):
@@ -444,24 +341,25 @@ class ConstantFoldingPass(IROptimizationPass):
         left = self._resolve_ref(left_ref)
         right = self._resolve_ref(right_ref)
 
+        # 两边任意一方非常量跳过
         if not self._is_literal(left) or not self._is_literal(right):
             return False
 
         left_dtype = left.get_data_type()
         right_dtype = right.get_data_type()
 
-        handlers = self.BINARY_OP_HANDLERS.get(op)
-        if not handlers:
+        # 两边有任意一方非基本类型跳过
+        if not isinstance(left_dtype, DataType) or not isinstance(right_dtype, DataType):
             return False
 
-        handler = handlers.get((left_dtype, right_dtype))
-        if not handler:
-            return False
+        if op == BinaryOps.ADD and (left_dtype == DataType.STRING or right_dtype == DataType.STRING):
+            new_value = str(left.value.value) + str(right.value.value)
+        else:
+            new_value = int(self._BINARY_OP_HANDLERS[op](left.value.value, right.value.value))
 
         try:
-            folded_value = handler(left.value.value, right.value.value)
-            folded_literal_ref = Reference.literal(folded_value)
-            new_instr = IRAssign(result, folded_literal_ref)
+            # 用新指令替换原始指令
+            new_instr = IRAssign(result, Reference.literal(new_value))
             iterator.set_current(new_instr)
             self._assign(iterator, new_instr)
             return True
@@ -480,23 +378,25 @@ class ConstantFoldingPass(IROptimizationPass):
         left = self._resolve_ref(left_ref)
         right = self._resolve_ref(right_ref)
 
+        # 两边任意一方非常量跳过
         if not self._is_literal(left) or not self._is_literal(right):
             return False
 
-        handlers = self.COMPARE_OP_HANDLERS.get(op, {})
-        handler = handlers.get((left.get_data_type(), right.get_data_type()))
+        left_dtype = left.get_data_type()
+        right_dtype = right.get_data_type()
 
-        if handler:
-            try:
-                folded_value = handler(left.value.value, right.value.value)
-                new_instr = IRAssign(result, Reference.literal(folded_value))
-                iterator.set_current(new_instr)
-                self._assign(iterator, new_instr)
-                return True
-            except (TypeError, ValueError):
-                return False
+        # 两边有任意一方非基本类型跳过
+        if not isinstance(left_dtype, DataType) or not isinstance(right_dtype, DataType):
+            return False
 
-        return False
+        new_value = self._COMPARE_OP_HANDLERS[op](left.value.value, right.value.value)
+        try:
+            new_instr = IRAssign(result, Reference.literal(new_value))
+            iterator.set_current(new_instr)
+            self._assign(iterator, new_instr)
+            return True
+        except (TypeError, ValueError):
+            return False
 
     def _unary_op(self, iterator: IRBuilderIterator, instr: IRUnaryOp) -> bool:
         """处理一元运算"""
@@ -507,23 +407,17 @@ class ConstantFoldingPass(IROptimizationPass):
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
         operand = self._resolve_ref(operand_ref)
-        if not self._is_literal(operand):
+        if not self._is_literal(operand) or not isinstance(operand.get_data_type(), DataType):
             return False
 
-        handlers = self.UNARY_OP_HANDLERS.get(op, {})
-        handler = handlers.get(operand.get_data_type())
-
-        if handler:
-            try:
-                folded_value = handler(operand.value.value)
-                new_instr = IRAssign(result, Reference.literal(folded_value))
-                iterator.set_current(new_instr)
-                self._assign(iterator, new_instr)
-                return True
-            except (TypeError, ValueError):
-                return False
-
-        return False
+        try:
+            folded_value = self._UNARY_OP_HANDLERS[op](operand.value.value)
+            new_instr = IRAssign(result, Reference.literal(folded_value))
+            iterator.set_current(new_instr)
+            self._assign(iterator, new_instr)
+            return True
+        except (TypeError, ValueError):
+            return False
 
     def _cond_jump(self, iterator: IRBuilderIterator, instr: IRCondJump) -> bool:
         """
