@@ -8,7 +8,7 @@
 from pathlib import Path
 
 from transpiler.plugins.plugin_api.plugin import Plugin
-from transpiler.plugins.plugin_api.v1 import plugin_manager
+from transpiler.plugins.plugin_api.v2 import plugin_manager
 
 
 class LoaderPlugin(Plugin):

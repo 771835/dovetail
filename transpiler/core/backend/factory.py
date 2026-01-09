@@ -42,7 +42,7 @@ class BackendFactory:
             后端实例
 
         Raises:
-            BackendNotFoundError: 后端未找到
+            BackendNotFoundError: 未找到后端时
         """
         backend_class = cls._backends.get(name)
 

@@ -1,8 +1,9 @@
 # coding=utf-8
 import os
 
-from transpiler.plugins.plugin_api import Plugin
 from transpiler.plugins.plugin_api.v1.registry import registry_backend
+
+from transpiler.plugins.plugin_api import Plugin
 
 
 class Decompiler(Plugin):

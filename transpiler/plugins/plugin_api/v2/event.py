@@ -16,7 +16,7 @@ class Event(ABC):
         if hasattr(cls, "__HANDLERS__"):
             cls.__HANDLERS__.append(handler)
         else:
-            cls.__HANDLERS__ = []
+            cls.__HANDLERS__ = [handler]
 
     @classmethod
     def unregister_handler(cls, handler: Callable[[T], None]):

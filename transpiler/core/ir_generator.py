@@ -1431,25 +1431,21 @@ class IRGenerator(transpilerVisitor):
             )
         return Result(None)
 
-    def visitIncludeStmt(self, ctx: transpilerParser.IncludeStmtContext):
-        original_include_path: str = str(self.visit(ctx.literal()).value.value.value)
+    def _get_include_path(self, path: str) -> Path | None | Library:
         search_path: list[Path] = [self.config.lib_path, Path.cwd()]
-        include_path: Path = Path(original_include_path)
-
+        include_path: Path = Path(path)
         # 检查是否已经导入过
         if self.include_manager.has_path(include_path):
-            return Result(None)
+            return None
 
         # 判断是否为内置库
-        if library := LibraryMapping.get(original_include_path, self.ir_builder):
-            self._load_library(library)
-            self.include_manager.add_include_path(include_path)
-            return Result(None)
+        if library := LibraryMapping.get(path, self.ir_builder):
+            return library
 
         include_path = next(
-            (d / original_include_path for d in search_path if (Path(d) / original_include_path).exists()), None)
+            (d / path for d in search_path if (Path(d) / path).exists()), None)
         if include_path:
-            self.include_manager.add_include_path(include_path)
+            return include_path
         else:
             raise CompilerIncludeError(
                 include_path.resolve(),
@@ -1459,10 +1455,23 @@ class IRGenerator(transpilerVisitor):
                 filename=self.filename
             )
 
+    def visitIncludeStmt(self, ctx: transpilerParser.IncludeStmtContext):
+        original_path: str = str(self.visit(ctx.literal()).value.value.value)
+
+        new_path = self._get_include_path(original_path)
+
+        if new_path is None:
+            return Result(None)
+        elif isinstance(new_path, Library):
+            self._load_library(new_path)
+            return Result(None)
+
+        self.include_manager.add_include_path(new_path)
+
         # 处理导入的文件
         try:
             old_filename = self.filename
-            self.filename = os.path.relpath(include_path, Path.cwd())
+            self.filename = os.path.relpath(new_path, Path.cwd())
             input_stream = FileStream(self.filename, encoding='utf-8')
             lexer = transpilerLexer(input_stream)
             stream = CommonTokenStream(lexer)
@@ -1475,7 +1484,7 @@ class IRGenerator(transpilerVisitor):
             self.filename = old_filename
         except Exception as e:
             raise CompilerIncludeError(
-                os.path.relpath(include_path, Path.cwd()),
+                os.path.relpath(new_path, Path.cwd()),
                 e.__repr__(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),

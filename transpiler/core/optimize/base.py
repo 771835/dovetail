@@ -14,8 +14,7 @@ class IROptimizer(ABC):
     """IR优化器接口"""
 
     @abstractmethod
-    def __init__(self, builder: IRBuilder,
-                 config: CompileConfig):
+    def __init__(self, builder: IRBuilder, config: CompileConfig):
         """初始化"""
 
     @abstractmethod

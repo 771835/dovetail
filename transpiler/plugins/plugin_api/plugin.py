@@ -48,7 +48,10 @@ class Plugin(ABC):
         """处理来自其他插件的消息"""
         pass
 
-    def send_message(self, target: str | Plugin, message: Any) -> Any:
-        """发送消息给其他插件"""
-        from transpiler.plugins.plugin_api.v1.messaging import send_message
-        send_message(self, target, message)
+    def send_message(self, target: str | Plugin, message: Any) -> bool:
+        """发送消息给指定插件"""
+        from transpiler.plugins.plugin_api.v2.plugin_manager import get_plugin
+        if plugin := get_plugin(target):
+            plugin.handle_message(self, message)
+            return True
+        return False
