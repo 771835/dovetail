@@ -1723,7 +1723,7 @@ class DataBuilder:
     @staticmethod
     def modify_storage_set_value(target: str, target_path: str, value: str):
         """Sets a specific NBT value to a target storage."""
-        source_part = f"value \"{value}\""
+        source_part = f"value {value}"
         return DataBuilder._build_modify_command(
             "storage", target, target_path, "set", source_part)
 

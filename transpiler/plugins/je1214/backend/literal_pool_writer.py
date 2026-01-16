@@ -10,10 +10,13 @@ from transpiler.core.backend import OutputWriter, GenerationContext
 from transpiler.core.enums import ValueType
 from transpiler.core.symbols import Reference, Literal
 from .commands import ReturnBuilder, Execute, ScoreboardBuilder
-from .commands.copy import MCCopy
+from .commands.copy import Copy
+from .commands.tools import LiteralPoolTools
 
 
 class LiteralPoolWriter(OutputWriter):
+    builtin_literals = {1, -1}
+
     def write(self, context: GenerationContext):
         function_dir_path = context.target / context.namespace / "data" / context.namespace / "function"
         literal_pool_path = function_dir_path / "literal_pool_init.mcfunction"
@@ -33,11 +36,8 @@ class LiteralPoolWriter(OutputWriter):
 
         for literal in self._collect_literals(context):
             commands.append(
-                MCCopy.copy_literal_base_type(
-                    self.get_literal_path(
-                        literal
-                    ),
-                    context.objective,
+                Copy.copy_literals(
+                    LiteralPoolTools.get_literal_path(literal, context.objective),
                     literal
                 )
             )
@@ -53,16 +53,11 @@ class LiteralPoolWriter(OutputWriter):
                     literals.add(operand.value.value)
                 if isinstance(operand, Literal):
                     literals.add(operand.value)
-        return literals
 
-    @staticmethod
-    def get_literal_path(literal):
-        if isinstance(literal, str):
-            return f"literal_pool.str.{hash(literal)}"
-        elif isinstance(literal, int):
-            return f"literal_pool.int.{'n' if literal < 0 else ''}{abs(literal)}"
-        else:
-            raise TypeError(f"literal type {type(literal)} is not supported")
+        # 收集特殊常量以支持编译器的功能
+        literals.update(LiteralPoolWriter.builtin_literals)
+
+        return literals
 
     def get_name(self) -> str:
         return "LiteralPoolWriter"

@@ -10,6 +10,7 @@ from attrs import define, field
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.enums import StructureType
 from transpiler.core.ir_builder import IRBuilder
+from transpiler.core.symbols import Symbol
 
 
 @define
@@ -20,6 +21,7 @@ class Scope:
     parent: Optional['Scope'] = field(default=None)
     children: list['Scope'] = field(factory=list)
     commands: list[str] = field(factory=list)
+    symbols: dict[str, Symbol] = field(factory=dict)
 
     def add_command(self, command: str):
         """添加命令"""
@@ -33,13 +35,14 @@ class Scope:
         """获取完整作用域路径"""
         if self.parent is None:
             return "global"
+
         count = 0
         for child in self.parent.children:
             if child.name == self.name:
                 count += 1
                 if child is self:
                     break
-        if count == 0:
+        if count == 1:
             return f"{self.parent.get_absolute_path()}.{self.name}"
         else:
             return f"{self.parent.get_absolute_path()}.{self.name}${count}"
@@ -55,6 +58,20 @@ class Scope:
 
         parts.reverse()
         return Path(*parts).with_suffix('.mcfunction')
+
+    def add_symbol(self, symbol: Symbol):
+        self.symbols[symbol.get_name()] = symbol
+
+    def get_symbol_path(self, symbol_name: str) -> str:
+        current = self
+        while current:
+            if symbol_name in current.symbols:
+                break
+            current = current.parent
+        if current:
+            return f"{current.get_absolute_path()}.{symbol_name}"
+        else:
+            return symbol_name
 
 
 @define
@@ -136,4 +153,10 @@ class GenerationContext:
 
     def add_command(self, command: str):
         """在当前作用域添加命令"""
+        assert isinstance(command, str)
         self.current_scope.add_command(command)
+
+    def add_commands(self, commands: list[str]):
+        """在当前作用域添加多条命令"""
+        for command in commands:
+            self.add_command(command)

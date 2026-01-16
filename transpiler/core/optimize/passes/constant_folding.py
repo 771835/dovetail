@@ -42,7 +42,7 @@ class ConstantFoldingPass(IROptimizationPass):
     3. 在条件分支内使用临时符号表
     4. 遇到 COND_JUMP 时，合并所有分支的状态
     """
-    _BINARY_OP_HANDLERS: dict[BinaryOps, Callable[[int | bool, int | bool], int | bool]] = {
+    BINARY_OP_HANDLERS: dict[BinaryOps, Callable[[int | bool, int | bool], int | bool]] = {
         BinaryOps.ADD: lambda a, b: a + b,
         BinaryOps.SUB: lambda a, b: a - b,
         BinaryOps.MUL: lambda a, b: a * b,
@@ -57,7 +57,7 @@ class ConstantFoldingPass(IROptimizationPass):
         BinaryOps.SHR: lambda a, b: a >> b,
     }
 
-    _COMPARE_OP_HANDLERS: dict[CompareOps, Callable[[int | bool, int | bool], bool]] = {
+    COMPARE_OP_HANDLERS: dict[CompareOps, Callable[[int | bool, int | bool], bool]] = {
         CompareOps.EQ: lambda a, b: a == b,
         CompareOps.NE: lambda a, b: a != b,
         CompareOps.GE: lambda a, b: a >= b,
@@ -67,7 +67,7 @@ class ConstantFoldingPass(IROptimizationPass):
 
     }
 
-    _UNARY_OP_HANDLERS: dict[UnaryOps, Callable[[int | bool], int]] = {
+    UNARY_OP_HANDLERS: dict[UnaryOps, Callable[[int | bool], int]] = {
         UnaryOps.NEG: lambda a: -a,
         UnaryOps.NOT: lambda a: not a,
         UnaryOps.BIT_NOT: lambda a: ~a,
@@ -355,7 +355,7 @@ class ConstantFoldingPass(IROptimizationPass):
         if op == BinaryOps.ADD and (left_dtype == DataType.STRING or right_dtype == DataType.STRING):
             new_value = str(left.value.value) + str(right.value.value)
         else:
-            new_value = int(self._BINARY_OP_HANDLERS[op](left.value.value, right.value.value))
+            new_value = int(self.BINARY_OP_HANDLERS[op](left.value.value, right.value.value))
 
         try:
             # 用新指令替换原始指令
@@ -389,7 +389,7 @@ class ConstantFoldingPass(IROptimizationPass):
         if not isinstance(left_dtype, DataType) or not isinstance(right_dtype, DataType):
             return False
 
-        new_value = self._COMPARE_OP_HANDLERS[op](left.value.value, right.value.value)
+        new_value = self.COMPARE_OP_HANDLERS[op](left.value.value, right.value.value)
         try:
             new_instr = IRAssign(result, Reference.literal(new_value))
             iterator.set_current(new_instr)
@@ -411,7 +411,7 @@ class ConstantFoldingPass(IROptimizationPass):
             return False
 
         try:
-            folded_value = self._UNARY_OP_HANDLERS[op](operand.value.value)
+            folded_value = self.UNARY_OP_HANDLERS[op](operand.value.value)
             new_instr = IRAssign(result, Reference.literal(folded_value))
             iterator.set_current(new_instr)
             self._assign(iterator, new_instr)

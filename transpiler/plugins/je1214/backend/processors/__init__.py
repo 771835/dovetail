@@ -4,11 +4,17 @@
 """
 from .ir_class import IRClassProcessor
 from .ir_function import IRFunctionProcessor
-from .ir_op import IROPProcessor
+from .ir_op import IROpProcessor
 from .ir_scope_begin import IRScopeBeginProcessor
 from .ir_scope_end import IRScopeEndProcessor
-
-
-def processors_loader():
-    """占位符"""
-    pass
+from .ir_compare import IRCompareProcessor
+from .ir_declare import IRDeclareProcessor
+__all__ = [
+    'IROpProcessor',
+    'IRClassProcessor',
+    'IRFunctionProcessor',
+    'IRScopeBeginProcessor',
+    'IRScopeEndProcessor',
+    'IRCompareProcessor',
+    'IRDeclareProcessor',
+]
