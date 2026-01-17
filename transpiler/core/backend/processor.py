@@ -41,8 +41,9 @@ class DefaultProcessor(IRProcessor):
 
     def process(self, instruction: IRInstructionType, context: GenerationContext):
         opcode_name = instruction.opcode.name
-        context.add_command(f"# WARNING: No processor for {opcode_name}")
-        print(f"[WARNING] No processor registered for opcode: {opcode_name}")
+        opcode_display_name = instruction.opcode.value[1]
+        context.add_command(f"# WARNING: No processor for {opcode_name}({opcode_display_name})")
+        print(f"[WARNING] No processor registered for opcode: {opcode_name}({opcode_display_name})")
 
 
 class ProcessorRegistry:

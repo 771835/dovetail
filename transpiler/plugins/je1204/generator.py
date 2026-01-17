@@ -199,15 +199,15 @@ class CodeGenerator(CodeGeneratorSpec):
             IROpCode.DECLARE: self._declare,
             IROpCode.ASSIGN: self._assign,
             IROpCode.UNARY_OP: self._unary_op,
-            IROpCode.OP: self._op,
+            IROpCode.BINARY_OP: self._op,
             IROpCode.COMPARE: self._compare,
             IROpCode.CAST: self._cast,
 
             # ===== 面向对象指令 (0x40-0x5F) =====
             IROpCode.CLASS: self._class,
             IROpCode.NEW_OBJ: self._new_object,
-            IROpCode.GET_FIELD: self._get_property,
-            IROpCode.SET_FIELD: self._set_property,
+            IROpCode.GET_PROPERTY: self._get_property,
+            IROpCode.SET_PROPERTY: self._set_property,
             IROpCode.CALL_METHOD: self._method_call,
 
             # ===== 命令生成指令 (0x60-0x7F) =====

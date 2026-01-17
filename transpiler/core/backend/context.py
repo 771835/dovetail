@@ -134,6 +134,17 @@ class GenerationContext:
         """通过名称获取作用域（使用缓存）"""
         return self.scope_cache.get(name)
 
+    def get_scope_no_cache(self, name: str, start_scope=None) -> Optional[Scope]:
+        """通过名称获取作用域"""
+        if start_scope is None:
+            start_scope = self.current_scope
+
+        while self.current_scope:
+            if name in (child.name for child in start_scope.children):
+                return next(child for child in start_scope.children if child.name == name)
+            start_scope = start_scope.parent
+        return None
+
     def get_all_scopes(self) -> list[Scope]:
         """获取所有作用域（广度优先）"""
         result = []

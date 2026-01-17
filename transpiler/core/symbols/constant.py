@@ -1,7 +1,7 @@
 # coding=utf-8
 from __future__ import annotations
 
-from attrs import define, field, validators
+from attrs import define
 
 from .base import Symbol
 from ..enums.types import DataTypeBase, VariableType
@@ -9,9 +9,9 @@ from ..enums.types import DataTypeBase, VariableType
 
 @define(slots=True)
 class Constant(Symbol):
-    name: str = field(validator=validators.instance_of(str))
-    dtype: DataTypeBase = field(validator=validators.instance_of(DataTypeBase))
-    var_type: VariableType = field(validator=validators.instance_of(VariableType), default=VariableType.COMMON)
+    name: str
+    dtype: DataTypeBase
+    var_type: VariableType = VariableType.COMMON
 
     def get_name(self) -> str:
         """

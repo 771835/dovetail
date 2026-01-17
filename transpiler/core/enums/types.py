@@ -80,7 +80,7 @@ class DataType(DataTypeBase, SafeEnum):
 
     def get_name(self) -> str:
         """获取类型的显示名称"""
-        return self.name
+        return self.value
 
     def is_subclass_of(self, other):
         """检查当前类型是否为另一类型的子类型"""

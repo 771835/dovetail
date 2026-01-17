@@ -111,7 +111,7 @@ class CodeGenerator(CodeGeneratorSpec):
             IROpCode.SCOPE_END: self._handle_scope_end,
             IROpCode.DECLARE: self._handle_declare,
             IROpCode.ASSIGN: self._handle_assign,
-            IROpCode.OP: self._handle_op,
+            IROpCode.BINARY_OP: self._handle_op,
             IROpCode.COMPARE: self._handle_compare,
             IROpCode.CALL: self._handle_call,
             IROpCode.RETURN: self._handle_return,
@@ -120,11 +120,10 @@ class CodeGenerator(CodeGeneratorSpec):
             IROpCode.BREAK: self._handle_break,
             IROpCode.CONTINUE: self._handle_continue,
             IROpCode.CAST: self._handle_cast,
-
             IROpCode.CLASS: self._handle_class,
             IROpCode.NEW_OBJ: self._handle_new_obj,
-            IROpCode.GET_FIELD: self._handle_get_property,
-            IROpCode.SET_FIELD: self._handle_set_property,
+            IROpCode.GET_PROPERTY: self._handle_get_property,
+            IROpCode.SET_PROPERTY: self._handle_set_property,
             IROpCode.CALL_METHOD: self._handle_call_method,
         }
 

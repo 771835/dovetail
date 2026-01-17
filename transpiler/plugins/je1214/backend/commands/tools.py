@@ -20,7 +20,7 @@ class StorageLocation(SafeEnum):
             return StorageLocation.STORAGE
 
 
-@define
+@define(slots=True,frozen=True)
 class DataPath:
     """
     数据路径

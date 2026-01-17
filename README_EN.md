@@ -2,77 +2,93 @@
 
 [English Version](README_EN.md) | [中文版本](README.md)
 
-> _**Translated by AI, please check for accuracy**_
+> Minecraft Datapack Compilation Language  
+> This project is not mature enough for production use. Please consider other more established projects if needed.
 
-> Minecraft Datapack Compilation Language | Object-Oriented Minecraft DSL  
-> The implementation of this project is not yet mature. For production use, please consider other more mature projects.
+Dovetail is a language with object-oriented features that compiles to Minecraft datapacks. It aims to transform the procedural paradigm of traditional commands into a goal-oriented approach.
 
 ## Goals
 
-- [ ] Write once, compile everywhere
-- [ ] Basic object-oriented support
-- [ ] Comprehensive library support, no need to write commands manually
-- [ ] Lower learning curve
+- [ ] Write once, compile ~~crash~~ everywhere
+- [ ] Basic object-oriented programming support
+- [ ] Comprehensive dependency libraries to shield developers from direct command exposure
+- [ ] Reduced datapack overhead
 
-## Long-term Plans (To Be Completed)
+## Long-term Roadmap
 
-- Optimize error display
-- Standardize debug information output
-- Improve plugin API
-- Keep up with Mojang version updates through iterative releases
-- Enhance optimization effectiveness
-- Find stack implementation methods that minimize performance overhead
-- Support internationalization in the transpiler
-- Optimize the transpiler for multithreading
-- Streamline compilation for large projects
-- Enable simple syntax for declaring and invoking other datapacks
-- Support for predicates, custom data, and other features
-- First-class function support
-- Automated build script support
+- [ ] Enhanced error display
+- [ ] Unified debug output
+- [ ] Improved plugin API
+- [ ] Version updates aligned with Minecraft releases
+- [ ] Better optimization effectiveness
+- [ ] Performance-efficient stack implementation methods
+- [ ] Transpiler internationalization support
+- [ ] Multi-threaded transpiler optimization
+- [ ] Simple syntax for declaring and calling other datapacks
+- [ ] Predicates, custom data, and other features
+- [ ] First-class function support
+- [ ] Simple event system and annotation features
+- [ ] Enhanced built-in libraries
 
 ## Deployment
 
-### Environment Requirements
+### Requirements
 
 - Python 3.10+
 
 ### Quick Start
 
-    git clone https://github.com/771835/dovetail.git
-    cd dovetail
-    pip install -r requirements.txt
-    python main.py -O2 xxx.mcdl
+```bash
+git clone https://github.com/771835/dovetail.git
+cd dovetail
+pip install -r requirements.txt
+python main.py -O2 xxx.mcdl
+```
+
+## Example
+ 
+```mcdl
+func greet(name: string) {
+    print(f"Hello, {name}");
+}
+@init
+func main() {
+    greet("World")
+    greet("Bob")
+}
+```
 
 ## FAQ
 
-Q: Why is recursion not supported?  
-A: Recursion requires maintaining stack frames at runtime, which is complex and cumbersome to implement in Minecraft.
-Therefore, you should rewrite recursion into iterative implementations.  
-Q: Many techniques can solve recursion, such as CPS + TRO + closures. Why not use them?  
-A: Due to technical limitations and the author's limited bandwidth.  
-Q: Why does the compiler report unknown errors and provide stack traces? How to resolve this?  
-A: You can open an issue on GitHub to report this problem.  
-Q: My code has no errors, but the generated commands do not execute correctly.  
-A: First try using the `-O0` parameter. If the generated commands execute correctly, please prefix the issue title with
-`IR optimization error`. Otherwise, prefix it with `Unknown error`.  
-Q: The generated commands stop executing halfway.  
-A: Try using the gamerule command to appropriately increase the `maxCommandChainLength` value.  
-Q: What should I do if no available backend is found?  
+**Q: Why doesn't it support recursion?**  
+A: Recursion requires maintaining stack frames at runtime, which is extremely cumbersome and complex to implement in Minecraft. You should rewrite recursive algorithms as iterative ones.
+
+**Q: There are many techniques to solve recursion, such as CPS+TRO+closures. Why not use them?**  
+A: Due to technical limitations and the author's limited time and energy.
+
+**Q: The compiler reports an unknown error with stack trace information. How to fix it?**  
+A: You can open an issue on GitHub to report this problem.
+
+**Q: My code has no errors, but the generated commands don't execute correctly.**  
+A: First try using the `-O0` parameter to disable code optimization. If the regenerated commands execute correctly, prefix your issue title with "Code Optimization Error"; otherwise, use "Unknown Error" as the prefix.
+
+**Q: The generated commands stop executing halfway.**  
+A: Try using the gamerule command to appropriately increase the maxCommandChainLength value.
+
+**Q: What if no available backend is found?**  
 A: Install the corresponding backend plugin.
 
 ## License
 
 This project is licensed under Apache 2.0.
 
-This means you **may** freely use it for personal or commercial purposes without direct permission from me.
+This means you **can** freely use it for personal or commercial purposes without my direct permission.
 
-At the same time, if you use this work unmodified in your project/product and derive commercial value from it, I would
-greatly appreciate your acknowledgment through the following:
+At the same time, if you use this work in your project/product and derive commercial value from it, I warmly welcome you to acknowledge it in the following ways:
 
-- **Attribute the source**: Mention this project in your product documentation or about page.
-- **Share improvements**: Contribute improvements you make based on this project back to the community.
-- **Contribute**: Welcome code submissions, bug reports, documentation improvements, or suggestions to help make the
-  project better.
+- **Credit the source**: Mention this project in your product documentation or about page.
+- **Share improvements**: Contribute your improvements back to the community.
+- **Make contributions**: Feel free to submit code, report issues, improve documentation, or provide suggestions to make the project better together.
 
 Thank you for your support!
 
@@ -80,14 +96,13 @@ Thank you for your support!
 
 ### Testing Contributors
 
-- 4424 discovered many bugs in the early stages of the project and provided numerous constructive suggestions.
+- 4424 discovered numerous bugs in the early stages and provided many constructive suggestions.
 
 ### Code Usage
 
-- The project [fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) for fast integer square root.
+- Project [fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) for fast integer square root
 
-### Inspiration/Credits
+### Inspiration Sources / Special Thanks
 
-- Expert [zmr-233](https://github.com/zmr-233/) proposed the idea of using CPS transformation to solve recursion.
-- The project [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) for exploring a different technical approach
-  to stack handling.
+- [zmr-233](https://github.com/zmr-233/) proposed the CPS transformation approach for solving recursion (though I haven't read the books they recommended)
+- Project [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) for an alternative approach to stack handling

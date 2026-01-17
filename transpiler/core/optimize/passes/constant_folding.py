@@ -166,7 +166,7 @@ class ConstantFoldingPass(IROptimizationPass):
             IROpCode.SCOPE_END: self._handle_scope_end,
             IROpCode.ASSIGN: self._assign,
             IROpCode.DECLARE: self._declare,
-            IROpCode.OP: self._op,
+            IROpCode.BINARY_OP: self._op,
             IROpCode.COMPARE: self._compare,
             IROpCode.UNARY_OP: self._unary_op,
             IROpCode.COND_JUMP: self._cond_jump,
@@ -329,7 +329,7 @@ class ConstantFoldingPass(IROptimizationPass):
         self.current_table.set(target.get_name(), resolved_source)
         return changed
 
-    def _op(self, iterator: IRBuilderIterator, instr: IROp) -> bool:
+    def _op(self, iterator: IRBuilderIterator, instr: IRBinaryOp) -> bool:
         """处理二元运算"""
         result: Variable = instr.get_operands()[0]
         op: BinaryOps = instr.get_operands()[1]

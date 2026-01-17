@@ -6,15 +6,13 @@
 import ast
 import os
 import re
-import sys
 import tokenize
 from dataclasses import dataclass
 from enum import Enum
-from io import BytesIO, TextIOWrapper
+from io import BytesIO
 from traceback import print_tb
 from typing import List, Dict
 
-sys.stdout = TextIOWrapper(sys.stdout.buffer, encoding='utf-16')
 # 正则表达式匹配：name (type): description
 name_type_desc_pattern = re.compile(r"^(?P<name>[\w.]+)\s*\(\s*(?P<type>[\w\s\[\],.*'\"]+)*\)\s*:(?P<description>.+)$")
 

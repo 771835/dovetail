@@ -160,7 +160,7 @@ class DeclareCleanupPass(IROptimizationPass):
                     self.var_references[source.get_name()] = self.var_references.get(source.get_name(), 0) + 1
                 self.var_references[target.name] = self.var_references.get(target.name, 0)
 
-            elif isinstance(instr, (IROp, IRCompare, IRUnaryOp)):
+            elif isinstance(instr, (IRBinaryOp, IRCompare, IRUnaryOp)):
                 operands = instr.get_operands()
                 result = operands[0]
                 self.var_references[result.name] = self.var_references.get(result.name, 0)

@@ -5,7 +5,7 @@ from typing import Callable
 from transpiler.core.enums.operations import BinaryOps
 from transpiler.core.enums.types import FunctionType, DataType, ValueType
 from transpiler.core.errors import ASTSyntaxError, InvalidControlFlowError
-from transpiler.core.instructions import IRInstruction, IRCast, IRDeclare, IROp, IRScopeBegin, \
+from transpiler.core.instructions import IRInstruction, IRCast, IRDeclare, IRBinaryOp, IRScopeBegin, \
     IRJump, IRCall
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.lib.library import Library
@@ -302,7 +302,7 @@ class Builtins(Library):
                 src: Reference[Variable | Constant | Literal]) -> Variable:
         var = Variable(uuid.uuid4().hex, DataType.STRING)
         self.builder.insert(IRDeclare(var))
-        self.builder.insert(IROp(var, BinaryOps.ADD, dest, src))
+        self.builder.insert(IRBinaryOp(var, BinaryOps.ADD, dest, src))
         return var
 
     def _call(self, scope: Reference[Literal]):

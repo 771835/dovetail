@@ -426,9 +426,9 @@ class IRGenerator(transpilerVisitor):
         """将文本内容追加到结果字符串"""
         new_var = self._create_temp_var(DataType.STRING, "fstring")
         self._add_ir_instruction(IRDeclare(new_var))
-        self._add_ir_instruction(IROp(new_var, BinaryOps.ADD,
-                                      Reference(ValueType.VARIABLE, current_var),
-                                      Reference.literal(text)))
+        self._add_ir_instruction(IRBinaryOp(new_var, BinaryOps.ADD,
+                                            Reference(ValueType.VARIABLE, current_var),
+                                            Reference.literal(text)))
         return new_var
 
     def _append_variable_to_result(self, current_var: Variable, var_name: str) -> Variable:
@@ -461,9 +461,9 @@ class IRGenerator(transpilerVisitor):
         # 拼接字符串
         new_var = self._create_temp_var(DataType.STRING, "fstring")
         self._add_ir_instruction(IRDeclare(new_var))
-        self._add_ir_instruction(IROp(new_var, BinaryOps.ADD,
-                                      Reference(ValueType.VARIABLE, current_var),
-                                      Reference(ValueType.VARIABLE, cast_var)))
+        self._add_ir_instruction(IRBinaryOp(new_var, BinaryOps.ADD,
+                                            Reference(ValueType.VARIABLE, current_var),
+                                            Reference(ValueType.VARIABLE, cast_var)))
         return new_var
 
     def _resolve_type_symbol(self, type_name: str) -> Class | None:
@@ -892,7 +892,7 @@ class IRGenerator(transpilerVisitor):
         temp_var = self._create_temp_var(DataType.INT, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
-        self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left_operand, right_operand))
+        self._add_ir_instruction(IRBinaryOp(temp_var, BinaryOps.ADD, left_operand, right_operand))
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(
             IRCompare(
@@ -921,7 +921,7 @@ class IRGenerator(transpilerVisitor):
         temp_var = self._create_temp_var(DataType.INT, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
-        self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left, right))
+        self._add_ir_instruction(IRBinaryOp(temp_var, BinaryOps.ADD, left, right))
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(
             IRCompare(
@@ -1076,7 +1076,7 @@ class IRGenerator(transpilerVisitor):
         result_var = self._create_temp_var(left.value.get_data_type(), "calc")
 
         self._add_ir_instruction(IRDeclare(result_var))
-        self._add_ir_instruction(IROp(result_var, BinaryOps(op), left.value, right.value))
+        self._add_ir_instruction(IRBinaryOp(result_var, BinaryOps(op), left.value, right.value))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitTermExpr(self, ctx: transpilerParser.TermExprContext):
@@ -1112,7 +1112,7 @@ class IRGenerator(transpilerVisitor):
         result_var = self._create_temp_var(result_type, "calc")
 
         self._add_ir_instruction(IRDeclare(result_var))
-        self._add_ir_instruction(IROp(result_var, op, left.value, right.value))
+        self._add_ir_instruction(IRBinaryOp(result_var, op, left.value, right.value))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitNegExpr(self, ctx: transpilerParser.NegExprContext):
@@ -1127,7 +1127,7 @@ class IRGenerator(transpilerVisitor):
             )
         if expr_result.value_type != ValueType.LITERAL:
             self._add_ir_instruction(
-                IROp(
+                IRBinaryOp(
                     expr_result.value,
                     BinaryOps.MUL,
                     expr_result,

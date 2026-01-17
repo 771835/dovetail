@@ -144,7 +144,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
                             var = Variable(var_name, DataType.INT)  # 类型不重要，后续会被覆盖
                             alias_maps[current_scope][var_name] = Reference(ValueType.VARIABLE, var)
 
-            elif isinstance(instr, (IROp, IRCompare, IRUnaryOp, IRCall)):
+            elif isinstance(instr, (IRBinaryOp, IRCompare, IRUnaryOp, IRCall)):
                 # 这些指令产生新值，结果变量不是别名
                 result = instr.get_operands()[0]
                 if isinstance(result, Variable):
@@ -241,7 +241,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
                     if self._replace_assign(iterator, instr, aliases):
                         self._changed = True
 
-                elif isinstance(instr, IROp):
+                elif isinstance(instr, IRBinaryOp):
                     if self._replace_binary_op(iterator, instr, aliases):
                         self._changed = True
 
@@ -276,7 +276,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
 
         return False
 
-    def _replace_binary_op(self, iterator, instr: IROp, aliases: dict) -> bool:
+    def _replace_binary_op(self, iterator, instr: IRBinaryOp, aliases: dict) -> bool:
         """替换二元运算中的别名"""
         result, op, left, right = instr.get_operands()
         changed = False
@@ -300,7 +300,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
                     changed = True
 
         if changed:
-            iterator.set_current(IROp(result, op, new_left, new_right))
+            iterator.set_current(IRBinaryOp(result, op, new_left, new_right))
 
         return changed
 

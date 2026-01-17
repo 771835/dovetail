@@ -7,76 +7,47 @@ from transpiler.core.enums.types import DataType, StructureType
 from transpiler.core.symbols import Literal, Class, Constant, Function, Reference, Variable, Symbol
 from transpiler.utils.safe_enum import SafeEnum
 
-# 明确指定要导出的公共类和枚举
-__all__ = [
-    'IROpCode',
-    'IRInstruction',
-    'IRInstructionType',
-    'IRJump',
-    'IRCondJump',
-    'IRFunction',
-    'IRReturn',
-    'IRCall',
-    'IRScopeBegin',
-    'IRScopeEnd',
-    'IRBreak',
-    'IRContinue',
-    'IRDeclare',
-    'IRAssign',
-    'IRUnaryOp',
-    'IROp',
-    'IRCompare',
-    'IRCast',
-    'IRClass',
-    'IRNewObj',
-    'IRGetProperty',
-    'IRSetProperty',
-    'IRCallMethod'
-]
-
 IRInstructionType = TypeVar('IRInstructionType', bound="IRInstruction")
 
 
+class InstCategory(SafeEnum):
+    CONTROL_FLOW = "控制流"
+    DATA_OP = "数据运算"
+    OOP = "面向对象"
+    SPECIAL = "特殊"
+
+
 class IROpCode(SafeEnum):
-    # ===== 控制流指令 (0x00-0x1F) =====
-    JUMP = 0x00  # 无条件跳转
-    COND_JUMP = 0x01  # 条件跳转
-    FUNCTION = 0x02  # 函数定义
-    CALL = 0x03  # 函数调用
-    RETURN = 0x04  # 函数返回
-    SCOPE_BEGIN = 0x05  # 作用域开始
-    SCOPE_END = 0x06  # 作用域结束
-    BREAK = 0x07  # 跳出循环
-    CONTINUE = 0x08  # 继续循环
-    # 预留 0x09-0x1F 用于控制流扩展
+    # CONTROL_FLOW (0x00-0x1F)
+    JUMP = (0x00, "跳转", InstCategory.CONTROL_FLOW)
+    COND_JUMP = (0x01, "条件跳转", InstCategory.CONTROL_FLOW)
+    FUNCTION = (0x02, "函数定义", InstCategory.CONTROL_FLOW)
+    CALL = (0x03, "函数调用", InstCategory.CONTROL_FLOW)
+    RETURN = (0x04, "返回", InstCategory.CONTROL_FLOW)
+    SCOPE_BEGIN = (0x05, "作用域开始", InstCategory.CONTROL_FLOW)
+    SCOPE_END = (0x06, "作用域结束", InstCategory.CONTROL_FLOW)
+    BREAK = (0x07, "中断", InstCategory.CONTROL_FLOW)
+    CONTINUE = (0x08, "继续", InstCategory.CONTROL_FLOW)
 
-    # ===== 变量操作指令 (0x20-0x3F) =====
-    DECLARE = 0x20  # 变量声明
-    ASSIGN = 0x21  # 赋值操作
-    UNARY_OP = 0x22  # 一元运算
-    OP = 0x23  # 二元运算
-    COMPARE = 0x24  # 比较运算
-    CAST = 0x25  # 显式类型转换
-    # 预留 0x26-0x3F 用于变量操作扩展
+    # DATA_OP (0x40-0x5F)
+    DECLARE = (0x20, "变量声明", InstCategory.DATA_OP)
+    ASSIGN = (0x21, "赋值", InstCategory.DATA_OP)
+    UNARY_OP = (0x22, "一元运算", InstCategory.DATA_OP)
+    BINARY_OP = (0x23, "二元运算", InstCategory.DATA_OP)
+    COMPARE = (0x24, "比较", InstCategory.DATA_OP)
+    CAST = (0x25, "类型转换", InstCategory.DATA_OP)
 
-    # ===== 面向对象指令 (0x40-0x5F) =====
-    CLASS = 0x40  # 类定义
-    NEW_OBJ = 0x41  # 对象实例化
-    GET_FIELD = 0x42  # 获取字段
-    SET_FIELD = 0x43  # 设置字段
-    CALL_METHOD = 0x44  # 方法调用
+    # OOP (0x40-0x5F)
+    CLASS = (0x40, "类定义", InstCategory.OOP)
+    NEW_OBJ = (0x41, "新建对象", InstCategory.OOP)
+    GET_PROPERTY = (0x42, "获取属性", InstCategory.OOP)
+    SET_PROPERTY = (0x43, "设置属性", InstCategory.OOP)
+    CALL_METHOD = (0x44, "调用方法", InstCategory.OOP)
 
-    # 预留 0x45-0x5F 用于OOP扩展
-
-    # ===== 特殊指令 (0x60-0x7F) =====
-
-    # 预留 0x60-0x7F 用于命令扩展
-
-    # ==== 扩展指令集 (0x80-0xFF) ====
-    # 预留 0x80-0xFF 用于未来补充
-
-    # ==== 其他指令集 (0x100+) ====
-    # 预留 0x100+ 用于插件自行使用
+    def __init__(self, code: int, desc: str, category: InstCategory):
+        self.code = code
+        self.desc = desc
+        self.category = category
 
     def __hash__(self):
         return hash(self.value)
@@ -187,7 +158,7 @@ class IRJump(IRInstruction):
         super().__init__(IROpCode.JUMP, operands, line, column, filename)
 
     def __repr__(self):
-        return f"jump {self.operands[0]}"
+        return f"goto {self.operands[0]}"
 
 
 class IRCondJump(IRInstruction):
@@ -211,7 +182,9 @@ class IRCondJump(IRInstruction):
 
     def __repr__(self):
         cond = self.operands[0].value if isinstance(self.operands[0], Literal) else self.operands[0].get_name()
-        return f"if {cond} jump {self.operands[1]} else jump {self.operands[2]}"
+        true_label = self.operands[1]
+        false_label = self.operands[2]
+        return f"if {cond} goto {true_label} else goto {false_label}"
 
 
 class IRFunction(IRInstruction):
@@ -275,8 +248,10 @@ class IRCall(IRInstruction):
 
     def __repr__(self):
         ops = self.operands
-        args = (f"{name}={value.get_display_value()}" for name, value in ops[2].items())
-        return f"{ops[0].get_name() if ops[0] else 'null'}={ops[1].get_name()}({','.join(args)})"
+        args = (f"{name}={repr(value)}" for name, value in ops[2].items())
+        if ops[0]:
+            return f"{ops[0].get_name()} = {ops[1].get_name()}({','.join(args)})"
+        return f"{ops[1].get_name()}({','.join(args)})"
 
 
 class IRScopeBegin(IRInstruction):
@@ -295,7 +270,7 @@ class IRScopeBegin(IRInstruction):
         super().__init__(IROpCode.SCOPE_BEGIN, operands, line, column, filename)
 
     def __repr__(self):
-        return '{'
+        return f'{self.operands[0]}:{self.operands[1].value}{{'
 
 
 class IRScopeEnd(IRInstruction):
@@ -362,7 +337,7 @@ class IRAssign(IRInstruction):
         super().__init__(IROpCode.ASSIGN, operands, line, column, filename)
 
     def __repr__(self):
-        return f'{self.operands[0].get_name()}={self.operands[1].get_display_value()}'
+        return f'{self.operands[0].get_name()} = {self.operands[1]}'
 
 
 class IRUnaryOp(IRInstruction):
@@ -378,10 +353,10 @@ class IRUnaryOp(IRInstruction):
         super().__init__(IROpCode.UNARY_OP, operands, line, column, filename)
 
     def __repr__(self):
-        return f'{self.operands[0].get_name()}={self.operands[1].value}{self.operands[2].get_display_value()}'
+        return f'{self.operands[0].get_name()}={self.operands[1].value}{self.operands[2]}'
 
 
-class IROp(IRInstruction):
+class IRBinaryOp(IRInstruction):
     def __init__(self, result: Variable | Constant, op: BinaryOps, left: Reference[Variable | Constant | Literal],
                  right: Reference[Variable | Constant | Literal], line: int = -1, column: int = -1,
                  filename: str = None):
@@ -391,11 +366,11 @@ class IROp(IRInstruction):
             left,
             right
         ]
-        super().__init__(IROpCode.OP, operands, line, column, filename)
+        super().__init__(IROpCode.BINARY_OP, operands, line, column, filename)
 
     def __repr__(self):
         ops = self.operands
-        return f'{ops[0].get_name()}={ops[2].get_display_value()}{ops[1].value}{ops[2].get_display_value()}'
+        return f'{ops[0].get_name()} = {ops[2]} {ops[1].value} {ops[2]}'
 
 
 class IRCompare(IRInstruction):
@@ -412,7 +387,7 @@ class IRCompare(IRInstruction):
 
     def __repr__(self):
         ops = self.operands
-        return f'{ops[0].get_name()}={ops[2].get_display_value()}{ops[1].value}{ops[2].get_display_value()}'
+        return f'{ops[0].get_name()} = {ops[2]} {ops[1].value} {ops[3]}'
 
 
 class IRCast(IRInstruction):
@@ -428,7 +403,7 @@ class IRCast(IRInstruction):
 
     def __repr__(self):
         ops = self.operands
-        return f'{ops[0].get_name()}=({ops[1].get_name()}){ops[2].get_display_value()}'
+        return f'{ops[0].get_name()} = ({ops[1].get_name()}) {ops[2]}'
 
 
 class IRClass(IRInstruction):
@@ -467,7 +442,7 @@ class IRGetProperty(IRInstruction):
             obj,
             property_name
         ]
-        super().__init__(IROpCode.GET_FIELD, operands, line, column, filename)
+        super().__init__(IROpCode.GET_PROPERTY, operands, line, column, filename)
 
     def __repr__(self):
         return f'{self.operands[0].get_name()}={self.operands[1].get_name()}.{self.operands[2]}'
@@ -488,10 +463,10 @@ class IRSetProperty(IRInstruction):
             property_name,
             value
         ]
-        super().__init__(IROpCode.SET_FIELD, operands, line, column, filename)
+        super().__init__(IROpCode.SET_PROPERTY, operands, line, column, filename)
 
     def __repr__(self):
-        return f'{self.operands[0].get_name()}.{self.operands[1]}={self.operands[2].get_display_value()}'
+        return f'{self.operands[0]}.{self.operands[1]} = {self.operands[2]}'
 
 
 class IRCallMethod(IRInstruction):
@@ -515,5 +490,7 @@ class IRCallMethod(IRInstruction):
 
     def __repr__(self):
         ops = self.operands
-        args = (f"{name}={value.get_display_value()}" for name, value in ops[3].items())
-        return f'{ops[0].get_name() if ops[0] else "null"}={ops[1].get_name()}.{ops[2].get_name()}({",".join(args)})'
+        args = (f"{name}={repr(value)}" for name, value in ops[3].items())
+        if ops[0]:
+            return f"{ops[0].get_name()} = {ops[1].get_name()}.{ops[2].get_name()}({','.join(args)})"
+        return f"{ops[1].get_name()}.{ops[2].get_name()}({','.join(args)})"

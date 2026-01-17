@@ -59,7 +59,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
                     self.use_def_graph[source.get_name()].append(target.get_name())
                     self.def_use_graph[target.get_name()].append(source.get_name())
 
-            elif isinstance(instr, (IROp, IRCompare, IRUnaryOp)):
+            elif isinstance(instr, (IRBinaryOp, IRCompare, IRUnaryOp)):
                 operands = instr.get_operands()
                 result = operands[0]
                 self.def_use_graph[result.name] = []
@@ -150,7 +150,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
                     iterator.remove_current()
                     self._changed = True
 
-            elif isinstance(instr, (IROp, IRCompare, IRUnaryOp, IRCast)):
+            elif isinstance(instr, (IRBinaryOp, IRCompare, IRUnaryOp, IRCast)):
                 result = instr.get_operands()[0]
                 if result.name not in self.live_vars:
                     iterator.remove_current()
@@ -160,7 +160,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
         """判断指令是否有副作用"""
         return isinstance(instr, (
             IRAssign, IRCast, IRReturn, IRCall, IRCallMethod, IRNewObj,
-            IRGetProperty, IRSetProperty, IROp, IRCompare, IRUnaryOp
+            IRGetProperty, IRSetProperty, IRBinaryOp, IRCompare, IRUnaryOp
         ))
 
     def _is_declaration_exists(self, var_name):

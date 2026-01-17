@@ -9,12 +9,5 @@ from .ir_scope_begin import IRScopeBeginProcessor
 from .ir_scope_end import IRScopeEndProcessor
 from .ir_compare import IRCompareProcessor
 from .ir_declare import IRDeclareProcessor
-__all__ = [
-    'IROpProcessor',
-    'IRClassProcessor',
-    'IRFunctionProcessor',
-    'IRScopeBeginProcessor',
-    'IRScopeEndProcessor',
-    'IRCompareProcessor',
-    'IRDeclareProcessor',
-]
+from .ir_assign import IRAssignProcessor
+__all__ = []
