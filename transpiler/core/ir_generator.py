@@ -50,7 +50,7 @@ class IRGenerator(transpilerVisitor):
 
         #  加载内置库
         self._load_library(LibraryMapping.get("builtins", self.ir_builder))
-        if self.config.enable_experimental:
+        if self.config.experimental:
             self._load_library(LibraryMapping.get("experimental", self.ir_builder))
 
     @lru_cache(maxsize=None)
@@ -226,7 +226,7 @@ class IRGenerator(transpilerVisitor):
             )
 
         # 检查函数名冲突
-        if check_name_conflict and not self.config.enable_same_name_function_nesting:
+        if check_name_conflict and not self.config.same_name_function_nesting:
             current = self.current_scope
             while current:
                 if current.get_name() == function_name:
@@ -345,7 +345,7 @@ class IRGenerator(transpilerVisitor):
         return resolved_symbol
 
     def _check_recursion(self, func_name: str, func_symbol: Function):
-        if not self.config.enable_recursion:  # 未启用递归
+        if not self.config.recursion:  # 未启用递归
             current = self.current_scope
             while current:
                 if (current.get_name() == func_name

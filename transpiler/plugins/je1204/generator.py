@@ -79,10 +79,10 @@ class CodeGenerator(CodeGeneratorSpec):
 
     @staticmethod
     def is_support(config: CompileConfig) -> bool:
-        version = config.minecraft_version
+        version = config.version
         if version.display_version != "1.20.4" or version.is_bedrock_edition():
             return False
-        if config.enable_recursion or config.enable_experimental:
+        if config.recursion or config.experimental:
             return False
         return True
 
@@ -150,7 +150,7 @@ class CodeGenerator(CodeGeneratorSpec):
                     if self.config.debug:
                         # 写入文件位置及信息
                         f.write(
-                            f"# {current.get_file_path()} time:{datetime.now()} version:{self.config.minecraft_version}\n")
+                            f"# {current.get_file_path()} time:{datetime.now()} version:{self.config.version}\n")
                     # 写入实际指令
                     f.write('\n'.join(current.get_commands()))
             stack.extend(reversed(current.children))

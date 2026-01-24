@@ -11,7 +11,7 @@ import traceback
 from pathlib import Path
 from typing import Dict
 
-from transpiler.core.config import PLUGIN_METADATA_VALIDATOR
+from transpiler.core.config import PLUGIN_METADATA_VALIDATOR, get_project_logger
 from transpiler.plugins.plugin_api.plugin import Plugin
 
 __all__ = [
@@ -61,7 +61,7 @@ class PluginLoader:
                         with open(metadata_path) as metadata_file:
                             metadata = json.load(metadata_file)
                     except json.decoder.JSONDecodeError as e:
-                        print(f"Error: The file 'plugin.metadata' has an invalid format.")
+                        get_project_logger().error(f"Failed to load plugin metadata file '{plugin_path}': {e}")
                         if os.environ.get("PLUGIN_DEBUG", None):
                             traceback.print_tb(e.__traceback__)
                         continue
@@ -69,7 +69,7 @@ class PluginLoader:
                         # 效验插件配置文件是否正确
                         PLUGIN_METADATA_VALIDATOR(metadata)
                     except Exception as e:
-                        print(f"Error: The file 'plugin.metadata' has an invalid format.")
+                        get_project_logger().error(f"Failed to load plugin metadata file '{plugin_path}': {e}")
                         if os.environ.get("PLUGIN_DEBUG", None):
                             traceback.print_tb(e.__traceback__)
                         continue
@@ -80,19 +80,18 @@ class PluginLoader:
                             code = plugin_main_file.read()
                         break
                     else:
-                        print(f"Plugin '{plugin_path}' is invalid")
+                        get_project_logger().error(f"Plugin '{plugin_path}' is invalid")
                         continue
                 else:
                     continue
         else:
-            print(f"No plugin '{plugin_name}' found")
+            get_project_logger().error(f"No plugin '{plugin_name}' found")
             return
 
         if not plugin_path or not metadata or not plugin_main or code is None:
-            print(f"Plugin '{plugin_name}' is invalid")
+            get_project_logger().error(f"Plugin '{plugin_path}' is invalid")
             return
-
-        print(f"Loading plugin '{plugin_name}' from '{plugin_path}'")
+        get_project_logger().info(f"Loading plugin '{plugin_name}' from '{plugin_path}'")
 
         # 获得插件的作用域
         plugin_locals = self.plugins_locals.get(plugin_name, {})
@@ -122,7 +121,7 @@ class PluginLoader:
             else:
                 raise ModuleNotFoundError(f"Plugin '{plugin_name}' is invalid")
         except Exception as e:
-            print(f"加载插件{plugin_name}失败，原因：{e.__str__()}")
+            get_project_logger().error(f"加载插件{plugin_name}失败，原因：{e.__str__()}")
             if self.plugins_locals.get(plugin_name, None):
                 del self.plugins_locals[plugin_name]
             if self.plugins_instance.get(plugin_name, None):

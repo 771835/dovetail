@@ -13,6 +13,8 @@ from typing import (
     get_type_hints, get_origin, get_args
 )
 
+from transpiler.core.config import get_project_logger
+
 # 类型变量
 T = TypeVar('T')
 F = TypeVar('F', bound=Callable[..., Any])
@@ -146,7 +148,7 @@ def timed(message: str = "用时{:.3f}s") -> Callable[[F], F]:
             result = func(*args, **kwargs)
             end_time = time.perf_counter()
             elapsed = end_time - start_time
-            print(message.format(elapsed))
+            get_project_logger().info(message.format(elapsed))
             return result
 
         return cast(F, wrapper)

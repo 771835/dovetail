@@ -18,10 +18,10 @@ class JE1214Backend(Backend):
 
     @staticmethod
     def is_support(config: CompileConfig) -> bool:
-        version = config.minecraft_version
+        version = config.version
         if version.display_version != "1.21.4" or version.is_bedrock_edition():
             return False
-        if config.enable_recursion or config.enable_experimental:
+        if config.recursion or config.experimental:
             return False
         return True
 

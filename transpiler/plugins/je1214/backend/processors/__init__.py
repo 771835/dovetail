@@ -10,4 +10,8 @@ from .ir_scope_end import IRScopeEndProcessor
 from .ir_compare import IRCompareProcessor
 from .ir_declare import IRDeclareProcessor
 from .ir_assign import IRAssignProcessor
+from .ir_return import IRReturnProcessor
+from .ir_break import IRBreakProcessor
+from .ir_continue import IRContinueProcessor
+from .ir_call import IRCallProcessor
 __all__ = []

@@ -277,11 +277,3 @@ func distance_squared(x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> i
     let dz = z2 - z1;
     return dx * dx + dy * dy + dz * dz;
 }
-
-/**
- * 随机生成斐波那契数列的某一项
- */
-func random_fibonacci(max_n: int) -> int {
-    let n = randint(0, max_n);
-    return fibonacci(n);
-}

@@ -7,6 +7,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Dict, Type, TYPE_CHECKING
 
+from transpiler.core.config import get_project_logger
+
 if TYPE_CHECKING:
     from transpiler.core.backend import Backend
 from transpiler.core.instructions import IROpCode, IRInstructionType
@@ -43,7 +45,7 @@ class DefaultProcessor(IRProcessor):
         opcode_name = instruction.opcode.name
         opcode_display_name = instruction.opcode.value[1]
         context.add_command(f"# WARNING: No processor for {opcode_name}({opcode_display_name})")
-        print(f"[WARNING] No processor registered for opcode: {opcode_name}({opcode_display_name})")
+        get_project_logger().warning(f"No processor registered for opcode: {opcode_name}({opcode_display_name})")
 
 
 class ProcessorRegistry:

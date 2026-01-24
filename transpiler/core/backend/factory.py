@@ -7,6 +7,7 @@ from typing import Dict, Type
 
 from transpiler.core.backend.base import Backend
 from transpiler.core.compile_config import CompileConfig
+from transpiler.core.config import get_project_logger
 from transpiler.core.ir_builder import IRBuilder
 
 
@@ -25,7 +26,7 @@ class BackendFactory:
         """注册后端"""
         name = backend_class.get_name()
         cls._backends[name] = backend_class
-        print(f"[INFO] Registered backend: {name}")
+        get_project_logger().info(f"Registered backend: {name}")
 
     @classmethod
     def create(cls, name: str, ir_builder: IRBuilder, target: Path, config: CompileConfig) -> Backend:
@@ -52,28 +53,27 @@ class BackendFactory:
         return backend_class(ir_builder, target, config)
 
     @classmethod
-    def auto_select(cls, ir_builder: IRBuilder, target: Path, config: CompileConfig) -> Backend:
+    def auto_select(cls, config: CompileConfig, backend_name: str = None) -> Type[Backend]:
         """
         自动选择合适的后端
 
         Args:
-            ir_builder: IR构建器
-            target: 输出目标路径
             config: 编译配置
+            backend_name: 后端名(不填时自动选择)
 
         Returns:
-            后端实例
+            后端类
 
         Raises:
             BackendNotFoundError: 没有合适的后端
         """
-        if config.backend_name:
-            return cls._backends.get(config.backend_name, None)(ir_builder, target, config)
+        if backend_name:
+            return cls._backends.get(backend_name, None)
         else:
-            for name, backend_class in cls._backends.items():
-                if backend_class.is_support(config):
-                    print(f"[INFO] Auto-selected backend: {name}")
-                    return backend_class(ir_builder, target, config)
+            for name, backend in cls._backends.items():
+                if backend.is_support(config):
+                    get_project_logger().info(f"Selected backend '{name}' ({id(backend)}).")
+                    return backend
 
         raise BackendNotFoundError("No suitable backend found for the given configuration")
 

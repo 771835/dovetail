@@ -57,16 +57,18 @@ class Copy:
             target: DataPath,
             source: int | str | bool | None
     ):
+        assert isinstance(source, int | str | bool | None), f"Invalid literal type: {type(source)}"
         if isinstance(source, int):
             return ScoreboardBuilder.set_score(*target, int(source))
         elif isinstance(source, str):
             return DataBuilder.modify_storage_set_value(*reversed(target), f"\"{auto_escape(source)}\"")
-        return None
+        elif source is None:
+            return ScoreboardBuilder.set_score(*target, 0)
 
     @staticmethod
     def copy(
             target: DataPath,
-            source: DataPath,
+            source: DataPath
     ):
         if target.location == source.location:
             if target.location == StorageLocation.SCORE:
@@ -76,3 +78,13 @@ class Copy:
             if target.location == StorageLocation.SCORE:
                 return Copy.copy_score_to_storage(target, source)
             return Copy.copy_storage_to_score(target, source)
+
+    @staticmethod
+    def copy_all(
+            target: DataPath,
+            source: DataPath | int | str | bool | None
+    ):
+        if isinstance(source, DataPath):
+            return Copy.copy(target, source)
+        else:
+            return Copy.copy_literals(target, source)

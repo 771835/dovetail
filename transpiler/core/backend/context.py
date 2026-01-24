@@ -22,6 +22,7 @@ class Scope:
     children: list['Scope'] = field(factory=list)
     commands: list[str] = field(factory=list)
     symbols: dict[str, Symbol] = field(factory=dict)
+    flags: dict[str, ...] = field(factory=dict)
 
     def add_command(self, command: str):
         """添加命令"""
@@ -72,6 +73,15 @@ class Scope:
             return f"{current.get_absolute_path()}.{symbol_name}"
         else:
             return symbol_name
+
+    def resolve_scope(self, name: str) -> 'Scope':
+        """逐级向上查找该作用域可访问到的作用域"""
+        current = self
+        while current:
+            if name in [i.name for i in current.children]:
+                return [i for i in current.children if i.name == name][0]
+            current = current.parent
+        raise ValueError(f"Undefined scope: {name}")
 
 
 @define
