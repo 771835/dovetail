@@ -229,6 +229,7 @@ class CodeGenerator(CodeGeneratorSpec):
 
     def _handle_jump_flags(self, scope_name: str, jump_instr: IRInstruction):
         # FIXME:这函数执行一次要30ms+纯纯性能刺客，我当时写下这函数是人我吃
+        # FIXME:我当时果然不是人，写得出这玩意，鬼知道他是怎么运行的，又是怎么在大型编译中拖20s+的
         # 反向搜索
         iterator = self.iterator.__reversed__()
         # 向前搜索到需要跳转到的作用域的头部

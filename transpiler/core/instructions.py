@@ -63,7 +63,6 @@ class IRInstruction(ABC):
         line: 源代码行号
         column: 源代码列号
         filename: 源文件名
-        flags: 指令标志位
     """
 
     def __init__(
@@ -73,14 +72,12 @@ class IRInstruction(ABC):
             line: int = -1,
             column: int = -1,
             filename: str | None = None,
-            flags: dict[str, int] = None
     ):
         self.opcode = opcode
         self.operands = operands
         self.filename = filename
         self.column = column
         self.line = line
-        self.flags: dict[str, int] = flags or {}
 
     @abstractmethod
     def __repr__(self):
@@ -121,9 +118,6 @@ class IRInstruction(ABC):
             return obj.unique_id()
         return id(obj)
 
-    def add_flag(self, flag: str, value: int):
-        self.flags[flag] = value
-
     def get_operands(self):
         return self.operands
 
@@ -138,9 +132,6 @@ class IRInstruction(ABC):
 
     def get_opcode(self):
         return self.opcode
-
-    def get_flags(self):
-        return self.flags
 
 
 # 具体指令实现
