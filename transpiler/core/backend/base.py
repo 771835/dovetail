@@ -9,6 +9,7 @@ from transpiler.core.backend.context import GenerationContext
 from transpiler.core.backend.output import OutputManager
 from transpiler.core.backend.processor import ProcessorRegistry
 from transpiler.core.compile_config import CompileConfig
+from transpiler.core.config import get_project_logger
 from transpiler.core.ir_builder import IRBuilder
 
 
@@ -70,7 +71,7 @@ class Backend(ABC, metaclass=BackendMeta):
             try:
                 processor.process(instruction, context)
             except Exception as e:
-                print(f"[ERROR] Failed to process {instruction.opcode.name}: {e}")
+                get_project_logger().error(f"Failed to process {instruction.opcode.name}: {e.__repr__()}")
                 if self.config.debug:
                     raise
 

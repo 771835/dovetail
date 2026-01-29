@@ -9,6 +9,7 @@ from pathlib import Path
 
 import fastjsonschema
 from antlr4 import FileStream, CommonTokenStream
+
 from transpiler.core.backend import BackendFactory
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, set_project_logger, PROJECT_NAME, \
@@ -163,6 +164,7 @@ class Compiler:
                 raise CompilationError("意外的错误") from e
 
     @staticmethod
+    @timed("入口文件AST解析用时{:.3f}s")
     def _parser_file(file_path: Path) -> transpilerParser.transpilerParser.ProgramContext | None:
         """
         解析文件并返回语法树

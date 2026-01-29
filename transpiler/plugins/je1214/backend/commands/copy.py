@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from transpiler.utils.escape_processor import auto_escape
-from ._execute import Execute
 from ._data import DataBuilder
+from ._execute import Execute
 from ._scoreboard import ScoreboardBuilder
 from .tools import DataPath, StorageLocation
 

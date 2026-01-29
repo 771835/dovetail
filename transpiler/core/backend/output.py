@@ -2,13 +2,18 @@
 """
 输出管理系统
 """
+import os
+import shutil
+import tempfile
+import zipfile
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
 
 from transpiler.core.backend.context import GenerationContext, Scope
-from transpiler.core.config import PROJECT_NAME, PROJECT_WEBSITE
+from transpiler.core.config import PROJECT_NAME, PROJECT_WEBSITE, get_project_logger
+from transpiler.utils.download_tool import download_dependencies
 
 
 class OutputWriter(ABC):
@@ -93,20 +98,79 @@ class FunctionWriter(OutputWriter):
 class MetadataWriter(OutputWriter):
     """元数据写入器"""
 
-    def __init__(self, pack_format: int = 26, description: str = None):
+    def __init__(self, pack_format: int = 61, description: str = None):
         self.pack_format = pack_format
         self.description = description
 
     def write(self, context: GenerationContext):
-        """写入pack.mcmeta"""
-        description = self.description or context.namespace
-        meta_path = context.target / context.namespace / "pack.mcmeta"
-
-        with open(meta_path, 'w', encoding='utf-8') as f:
-            f.write(f'{{"pack": {{"pack_format": {self.pack_format},"description": "{description}"}}}}')
+        """写入 pack.mcmeta 基本结构"""
+        context.pack_meta.description = self.description or context.namespace
+        context.pack_meta.min_format = self.pack_format
+        context.pack_meta.max_format = self.pack_format
+        # 写入文件
+        context.pack_meta.save_file(context.config.version)
 
     def get_name(self) -> str:
         return "metadata_writer"
+
+
+class DependentDatapackWriter(OutputWriter):
+    """依赖数据包写入器"""
+
+    def __init__(self, urls: dict[str, tuple[str | None, int]] = None):
+        """
+        Args:
+            urls: 依赖数据包的下载地址及哈希值与依赖版本号
+        """
+        self.urls = urls or {}
+
+    def write(self, context: GenerationContext):
+        """下载和写入依赖文件"""
+        for url, (sha256, version) in self.urls.items():
+            dependence = download_dependencies(url, sha256)
+            name = sha256[:12] if sha256 else str(hash(url))
+            dst = context.target / context.namespace / name
+
+            if dependence is None:
+                get_project_logger().error(f"Download dependence failed for {url}")
+                continue
+
+            context.pack_meta.add_overlay(name, (version, version))
+
+            if dependence.is_file():
+                if zipfile.is_zipfile(dependence):
+                    self._extract_zipfile(dependence, dst)
+                else:
+                    get_project_logger().warning(f"Unknown dependency file: {dependence}")
+            elif dependence.is_dir():
+                shutil.copy(dependence, dst)
+
+        context.pack_meta.save_file(context.config.version)
+
+    @staticmethod
+    def _extract_zipfile(zip_path, extract_to) -> bool:
+        with zipfile.ZipFile(zip_path) as zip_ref:
+            # 创建临时目录
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # 先解压到临时目录
+                zip_ref.extractall(temp_dir)
+                # 检查是否需要子目录提取
+                if os.path.exists(os.path.join(temp_dir, 'pack.mcmeta')):
+                    # 直接移动所有文件
+                    shutil.copytree(temp_dir, extract_to, dirs_exist_ok=True)
+                else:
+                    # 查找包含pack.mcmeta的子目录
+                    for item in os.listdir(temp_dir):
+                        item_path = os.path.join(temp_dir, item)
+                        if os.path.isdir(item_path) and os.path.exists(os.path.join(item_path, 'pack.mcmeta')):
+                            shutil.copytree(item_path, extract_to, dirs_exist_ok=True)
+                            break
+                    else:
+                        return False
+        return True
+
+    def get_name(self) -> str:
+        return "dependent_datapack_writer"
 
 
 class TagWriter(OutputWriter):
@@ -173,7 +237,7 @@ class OutputManager:
             try:
                 writer.write(context)
             except Exception as e:
-                print(f"[ERROR] Writer '{name}' failed: {e}")
+                get_project_logger().error(f"Writer {name}: {e}")
                 if context.config.debug:
                     raise
 

@@ -1,7 +1,6 @@
 # coding=utf-8
-from transpiler.plugins.plugin_api.v1.registry import registry_backend
-
 from transpiler.plugins.plugin_api import Plugin
+from transpiler.plugins.plugin_api.v2.registry import registry_backend
 from .generator import CodeGenerator
 
 

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.enums import OptimizationLevel
-from transpiler.core.enums.types import StructureType
 from transpiler.core.instructions import *
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.optimize.base import IROptimizationPass

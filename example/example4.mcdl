@@ -1,16 +1,10 @@
-func boolean fn() {
+func boolean fn(int x) {
     return false;
 }
 
 @init
 func main() : int{
     int a = 1;
-    int b = 2;
-    if (fn()) {
-        a = 2
-    }else {
-        b = 12
-    }
-    print(f"{b}")
+    fn(a);
 
 }

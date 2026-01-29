@@ -12,7 +12,6 @@ from typing import Callable
 from antlr4 import FileStream, CommonTokenStream
 
 from transpiler.core.compile_config import CompileConfig
-from transpiler.core.enums.operations import UnaryOps, BinaryOps, CompareOps
 from transpiler.core.enums.types import *
 from transpiler.core.errors import *
 from transpiler.core.include_manager import IncludeManager

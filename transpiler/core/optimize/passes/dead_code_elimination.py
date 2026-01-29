@@ -19,6 +19,8 @@ from transpiler.core.optimize.pass_registry import register_pass
 from transpiler.core.symbols import Reference
 
 
+# FIXME:不同作用域下定义的同名变量都会被标记为活跃
+
 @register_pass(PassMetadata(
     name="dead_code_elimination",
     display_name="死代码消除",

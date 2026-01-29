@@ -8,14 +8,13 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Any, Callable
+from typing import Callable
 
 from attrs import define, field
 
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.enums import OptimizationLevel
-from transpiler.core.enums.operations import BinaryOps, CompareOps, UnaryOps
-from transpiler.core.enums.types import DataType, StructureType, ValueType
+from transpiler.core.enums.types import ValueType
 from transpiler.core.instructions import *
 from transpiler.core.ir_builder import IRBuilder, IRBuilderIterator
 from transpiler.core.optimize.base import IROptimizationPass

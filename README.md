@@ -22,7 +22,7 @@ Dovetail 是一种具有面向对象特征的语言，可以编译成 Minecraft 
 
 ## 中长期计划
 
-- [ ] 通过使用前置数据包以提高性能
+- [ ] 通过使用前置数据包以提高安全性及性能
 - [ ] 优化错误显示
 - [ ] 统一调试信息输出
 - [ ] 完善插件api
@@ -106,9 +106,12 @@ A: 安装对应后端插件
 ### 代码使用
 
 - 项目[fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) 快速整数开方
+- 项目[DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) 安全字符串拼接，NBT转JSON等SNBT与字符串操作
+- 项目[StringLib](https://github.com/CMDred/StringLib) 提供了大量不安全但快速的字符串操作手段
 
 ### 思路来源/大佬鸣谢
 
 - 大佬[zmr-233](https://github.com/zmr-233/) 提出了解决递归问题的思路(虽然ta推荐的书我都没看)
-- 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 处理堆栈一条不同技术路线
+- 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 处理堆栈一条不同技术路线(很优秀的一个项目)
+- 项目[clang-mc](https://github.com/xia-mc/clang-mc) 十分创新的想法，实现汇编的在mc中的部分支持
 

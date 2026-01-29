@@ -1,10 +1,10 @@
-import logging
-import threading
-import sys
 import json
+import logging
 import os
-from typing import Optional, Union
+import sys
+import threading
 from logging.handlers import RotatingFileHandler
+from typing import Optional, Union
 
 
 class MessageTranslator:
@@ -116,6 +116,9 @@ class ThreadSafeLogger:
         # 避免重复添加处理器
         if not self.logger.handlers:
             self._setup_handlers()
+
+    def setLevel(self, level) -> None:
+        self.logger.setLevel(level)
 
     def _setup_handlers(self):
         """设置日志处理器"""
@@ -314,7 +317,6 @@ def load_translations(json_file: str):
 
 # 使用示例和测试代码
 if __name__ == "__main__":
-
     # 创建日志记录器
     logger = get_logger('test_app', logging.DEBUG)
 

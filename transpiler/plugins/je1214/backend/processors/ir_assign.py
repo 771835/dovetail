@@ -13,18 +13,29 @@ from ..commands.tools import DataPath, StorageLocation
 class IRAssignProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         target, source = instruction.operands
-        context.add_command(
-            Copy.copy(
-                DataPath(
-                    context.current_scope.get_symbol_path(target.get_name()),
-                    context.objective,
-                    StorageLocation.get_storage(target.dtype)
-                ),
-                DataPath(
-                    context.current_scope.get_symbol_path(source.get_name()),
-                    context.objective,
-                    StorageLocation.get_storage(source.get_data_type())
-                ),
-
+        if source.is_literal():
+            context.add_command(
+                Copy.copy_literals(
+                    DataPath(
+                        context.current_scope.get_symbol_path(target.get_name()),
+                        context.objective,
+                        StorageLocation.get_storage(target.dtype)
+                    ),
+                    source.value.value
+                )
             )
-        )
+        else:
+            context.add_command(
+                Copy.copy(
+                    DataPath(
+                        context.current_scope.get_symbol_path(target.get_name()),
+                        context.objective,
+                        StorageLocation.get_storage(target.dtype)
+                    ),
+                    DataPath(
+                        context.current_scope.get_symbol_path(source.get_name()),
+                        context.objective,
+                        StorageLocation.get_storage(source.get_data_type())
+                    )
+                )
+            )

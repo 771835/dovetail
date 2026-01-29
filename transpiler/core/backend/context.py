@@ -2,15 +2,143 @@
 """
 生成上下文，存储后端生成过程中的所有状态
 """
+import json
+import shutil
 from pathlib import Path
 from typing import Optional
 
 from attrs import define, field
 
 from transpiler.core.compile_config import CompileConfig
-from transpiler.core.enums import StructureType
+from transpiler.core.enums import StructureType, MinecraftVersion
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.symbols import Symbol
+
+
+class PackMcmeta:
+    def __init__(
+            self,
+            path: Path,
+            data: dict[str, dict[str, str | int | list[dict[str, str | int | dict] | int]]] = None
+    ):
+        data = data or {}
+        self._path = path
+        self._description: str | dict = data.get("pack", {}).get("description", "")
+        self._format: tuple[int, int] = self._parser_format(data.get("pack", {}))
+        self._overlays: list[tuple[str, tuple[int, int]]] = self._parser_overlays(data.get("overlays", []))
+
+    @staticmethod
+    def _parser_format(pack: dict[str, int | list[int]]) -> tuple[int, int]:
+        if pack.get("min_format") and pack.get("max_format"):
+            return pack["min_format"], pack["max_format"]
+        elif formats := pack.get("supported_formats") or pack.get("formats"):
+            if isinstance(formats, list):
+                if len(formats) == 1:
+                    return formats[0], 127
+                elif len(formats) == 2:
+                    return formats[0], formats[1]
+            elif isinstance(formats, dict):
+                if formats.get("min_inclusive") and formats.get("max_inclusive"):
+                    return formats["min_inclusive"], formats["max_inclusive"]
+        else:
+            if pack.get("pack_format"):
+                return pack["pack_format"], pack["pack_format"]
+        return 0, 127  # 无结果默认返回(0, 127)
+
+    @staticmethod
+    def _parser_overlay(entry: dict[str, str | int | list | dict]) -> tuple[str, tuple[int, int]]:
+        return entry.get("directory") or '', PackMcmeta._parser_format(entry)
+
+    @staticmethod
+    def _parser_overlays(entries: list[dict[str, str | int | list | dict]]) -> list[tuple[str, tuple[int, int]]]:
+        return [PackMcmeta._parser_overlay(entry) for entry in entries]
+
+    @property
+    def path(self):
+        return self._path
+
+    @path.setter
+    def path(self, path: Path):
+        if self._path is not None and self._path.is_file():
+            if path.exists():
+                raise FileExistsError
+            shutil.move(self._path, path)
+        self._path = path
+
+    @property
+    def description(self):
+        return self._description
+
+    @description.setter
+    def description(self, description: str | list | dict):
+        self._description = description
+
+    @property
+    def min_format(self):
+        return self._format[0]
+
+    @min_format.setter
+    def min_format(self, min_format: int):
+        self._format = (min_format, self._format[1])
+
+    @property
+    def max_format(self):
+        return self._format[1]
+
+    @max_format.setter
+    def max_format(self, max_format: int):
+        self._format = (self._format[0], max_format)
+
+    def add_overlay(self, directory: str, formats: dict | tuple[int, int]) -> None:
+        if isinstance(formats, dict):
+            formats = self._parser_format(formats)
+        self._overlays.append((directory, formats))
+
+    def _pickle(self, version: MinecraftVersion):
+        if version >= MinecraftVersion.instance("1.21.9"):
+            return {
+                'pack': {
+                    'description': self.description,
+                    'min_format': self.min_format,
+                    'max_format': self.max_format
+                },
+                'overlays': {
+                    'entries': [
+                        {
+                            'directory': overlay[0],
+                            'min_format': overlay[1][0],
+                            'max_format': overlay[1][1]
+                        } for overlay in self._overlays
+                    ]
+                }
+            }
+        elif version >= MinecraftVersion.instance("1.20.2"):
+            return {
+                'pack': {
+                    'description': self.description,
+                    'pack_format': self._format[0],
+                    'supported_formats': self._format
+                },
+                'overlays': {
+                    'entries': [
+                        {
+                            'directory': overlay[0],
+                            'formats': overlay[1]
+                        } for overlay in self._overlays
+                    ]
+                }
+            }
+        else:
+            return {
+                'pack': {
+                    'description': self.description,
+                    'pack_format': self._format[0]
+                }
+            }
+
+    def save_file(self, version: MinecraftVersion):
+        with open(self.path, "wt") as f:
+            json.dump(self._pickle(version), f)
 
 
 @define
@@ -104,6 +232,9 @@ class GenerationContext:
     # 缓存和优化
     scope_cache: dict[str, Scope] = field(factory=dict)
 
+    # 其他文件
+    pack_meta: PackMcmeta = None
+
     def __attrs_post_init__(self):
         """初始化根作用域"""
         self.namespace = self.config.namespace
@@ -114,6 +245,7 @@ class GenerationContext:
         self.current_scope = self.root_scope
         self.scope_stack = [self.root_scope]
         self.scope_cache[self.namespace] = self.root_scope
+        self.pack_meta = PackMcmeta(self.target / self.namespace / 'pack.mcmeta')
 
     def create_scope(self, name: str, scope_type: StructureType) -> Scope:
         """创建新作用域"""
