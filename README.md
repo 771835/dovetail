@@ -97,6 +97,7 @@ A: 安装对应后端插件
 
 感谢您的支持！
 <!-- 社区在哪？鬼知道 -->
+
 ## 鸣谢
 
 ### 参与测试
@@ -108,6 +109,10 @@ A: 安装对应后端插件
 - 项目[fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) 快速整数开方
 - 项目[DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) 安全字符串拼接，NBT转JSON等SNBT与字符串操作
 - 项目[StringLib](https://github.com/CMDred/StringLib) 提供了大量不安全但快速的字符串操作手段
+
+### 数据使用
+
+- [wiki数据包版本](https://zh.minecraft.wiki/w/Template:Data_pack_format) 动态更新`Minecraft`与`数据包版本`之间的对应关系
 
 ### 思路来源/大佬鸣谢
 
