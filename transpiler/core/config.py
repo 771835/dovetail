@@ -4,10 +4,11 @@
 """
 import fastjsonschema
 
-from transpiler.utils.logger import ThreadSafeLogger
+from transpiler.utils.logging_plus import ThreadSafeLogger
 
 PROJECT_NAME = "Dovetail"
 PROJECT_WEBSITE = "https://github.com/771835/dovetail"
+FILE_PREFIX = ".mcdl"
 CACHE_FILE_PREFIX = ".mcdc"
 PACK_CONFIG_VALIDATOR = fastjsonschema.compile({
     "type": "object",

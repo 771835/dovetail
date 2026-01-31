@@ -7,7 +7,7 @@ from typing import Optional, Callable
 import requests
 from requests.exceptions import RequestException, Timeout, HTTPError, ConnectionError
 
-from transpiler.utils.logger import get_logger
+from transpiler.utils.logging_plus import get_logger
 
 # 设置日志
 logger = get_logger(__name__)

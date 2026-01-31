@@ -13,6 +13,7 @@ from typing import Dict
 
 from transpiler.core.backend.context import GenerationContext, Scope
 from transpiler.core.config import PROJECT_NAME, PROJECT_WEBSITE, get_project_logger
+from transpiler.utils.datapack_format import get_datapack_format
 from transpiler.utils.download_tool import download_dependencies
 
 
@@ -98,15 +99,15 @@ class FunctionWriter(OutputWriter):
 class MetadataWriter(OutputWriter):
     """元数据写入器"""
 
-    def __init__(self, pack_format: int = 61, description: str = None):
-        self.pack_format = pack_format
+    def __init__(self, description: str = None):
         self.description = description
 
     def write(self, context: GenerationContext):
         """写入 pack.mcmeta 基本结构"""
+        pack_format = get_datapack_format(context.config.version)
         context.pack_meta.description = self.description or context.namespace
-        context.pack_meta.min_format = self.pack_format
-        context.pack_meta.max_format = self.pack_format
+        context.pack_meta.min_format = pack_format
+        context.pack_meta.max_format = pack_format
         # 写入文件
         context.pack_meta.save_file(context.config.version)
 
@@ -117,10 +118,10 @@ class MetadataWriter(OutputWriter):
 class DependentDatapackWriter(OutputWriter):
     """依赖数据包写入器"""
 
-    def __init__(self, urls: dict[str, tuple[str | None, int]] = None):
+    def __init__(self, urls: dict[str, tuple[str | None, str | None]] = None):
         """
         Args:
-            urls: 依赖数据包的下载地址及哈希值与依赖版本号
+            urls: 依赖数据包的下载地址及哈希值与依赖版本
         """
         self.urls = urls or {}
 
@@ -134,8 +135,12 @@ class DependentDatapackWriter(OutputWriter):
             if dependence is None:
                 get_project_logger().error(f"Download dependence failed for {url}")
                 continue
-
-            context.pack_meta.add_overlay(name, (version, version))
+            if isinstance(version, str):
+                version_id = get_datapack_format(version)
+                context.pack_meta.add_overlay(name, (version_id, version_id))
+            else:
+                version_id = get_datapack_format(context.config.version)
+                context.pack_meta.add_overlay(name, (version_id, version_id))
 
             if dependence.is_file():
                 if zipfile.is_zipfile(dependence):

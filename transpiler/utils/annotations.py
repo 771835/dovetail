@@ -14,6 +14,7 @@ from typing import (
 )
 
 from transpiler.core.config import get_project_logger
+from transpiler.utils.logging_plus import get_logger
 
 # 类型变量
 T = TypeVar('T')
@@ -148,7 +149,10 @@ def timed(message: str = "用时{:.3f}s") -> Callable[[F], F]:
             result = func(*args, **kwargs)
             end_time = time.perf_counter()
             elapsed = end_time - start_time
-            get_project_logger().info(message.format(elapsed))
+            if logger := get_project_logger():
+                logger.info(message.format(elapsed))
+            else:
+                get_logger("time").info(message.format(elapsed))
             return result
 
         return cast(F, wrapper)

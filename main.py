@@ -25,7 +25,7 @@ from transpiler.core.scope import Scope
 from transpiler.plugins.plugin_loader.loader import plugin_loader
 from transpiler.utils.annotations import timed
 from transpiler.utils.ir_serializer import IRSymbolSerializer
-from transpiler.utils.logger import get_logger
+from transpiler.utils.logging_plus import get_logger
 from transpiler.utils.naming import NameNormalizer
 
 

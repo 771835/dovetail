@@ -8,13 +8,13 @@ from transpiler.core.compile_config import CompileConfig
 from transpiler.core.ir_builder import IRBuilder
 from .literal_pool_writer import LiteralPoolWriter
 
-
+PACK_FORMAT_1214 = 61
 class JE1214Backend(Backend):
     def __init__(self, ir_builder: IRBuilder, target: Path, config: CompileConfig):
         super().__init__(ir_builder, target, config)
         self.output_manager.register_writer(TagWriter())
         self.output_manager.register_writer(CommandWriter())
-        self.output_manager.register_writer(MetadataWriter())
+        self.output_manager.register_writer(MetadataWriter("A datapack of Minecraft 1.21.4"))
         self.output_manager.register_writer(FunctionWriter())
         self.output_manager.register_writer(LiteralPoolWriter())
         self.output_manager.register_writer(DependentDatapackWriter(self.get_dependencies()))
@@ -39,11 +39,11 @@ class JE1214Backend(Backend):
             "https://codeload.github.com/Dahesor/DNT-Dahesor-NBT-Transformer/zip/refs/heads/main":
                 (
                     "6872f86b49fd28dfdbb231b8108b2eca2620c6dfb418f1142557e25de2fabb67",
-                    61
+                    PACK_FORMAT_1214
                 ),
             "https://cdn.modrinth.com/data/h94rwz9p/versions/vb7U4ITG/StringLib%20v0.1.0%20%281.21%29.zip":
                 (
                     "9604b264fda4de2107fea5b02cdc52de88527ee9ba65717a674506894ba5933b",
-                    61
-                ),
+                    PACK_FORMAT_1214
+                )
         }
