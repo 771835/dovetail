@@ -9,9 +9,9 @@ import zipfile
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Callable, Optional
 
-from transpiler.core.backend.context import GenerationContext, Scope
+from transpiler.core.backend.context import GenerationContext, Scope, DependencyFile
 from transpiler.core.config import PROJECT_NAME, PROJECT_WEBSITE, get_project_logger
 from transpiler.utils.datapack_format import get_datapack_format
 from transpiler.utils.download_tool import download_dependencies
@@ -72,23 +72,30 @@ class CommandWriter(OutputWriter):
 class FunctionWriter(OutputWriter):
     """内置函数写入器"""
 
-    def __init__(self, builtin_functions: Dict[str, str] = None):
+    def __init__(
+            self,
+            builtin_functions: dict[str, str] = None,
+            callback: Optional[Callable[[], dict[str, str]]] = None
+    ):
         """
         Args:
-            builtin_functions: 内置函数映射 {函数名: 函数内容}
+            builtin_functions: 内置函数映射 {函数路径: 函数内容}
+            callback: 回调函数，返回内置函数映射表，当 builtin_functions 存在时更新 builtin_functions
         """
         self.builtin_functions = builtin_functions or {}
+        self.callback = callback
 
     def write(self, context: GenerationContext):
         """写入内置函数"""
-        if not self.builtin_functions:
-            return
+        if self.callback and callable(self.callback):
+            self.builtin_functions.update(self.callback())
 
-        builtin_dir: Path = context.target / context.namespace / "data" / "functions" / "__builtin__"
-        builtin_dir.mkdir(parents=True, exist_ok=True)
+        function_dir: Path = context.target / context.namespace / "data" / context.namespace / "function"
+        function_dir.mkdir(parents=True, exist_ok=True)
 
         for func_name, func_content in self.builtin_functions.items():
-            func_path = builtin_dir / f"{func_name}.mcfunction"
+            func_path = function_dir / f"{func_name}.mcfunction"
+            func_path.parent.mkdir(parents=True, exist_ok=True)
             with open(func_path, 'w', encoding='utf-8') as f:
                 f.write(func_content)
 
@@ -118,37 +125,46 @@ class MetadataWriter(OutputWriter):
 class DependentDatapackWriter(OutputWriter):
     """依赖数据包写入器"""
 
-    def __init__(self, urls: dict[str, tuple[str | None, str | None]] = None):
+    def __init__(self, dependency_files: list[DependencyFile] = None):
         """
         Args:
-            urls: 依赖数据包的下载地址及哈希值与依赖版本
+            dependency_files: 依赖数据包
         """
-        self.urls = urls or {}
+        self.dependency_files: list[DependencyFile] = dependency_files or []
 
     def write(self, context: GenerationContext):
         """下载和写入依赖文件"""
-        for url, (sha256, version) in self.urls.items():
-            dependence = download_dependencies(url, sha256)
+        for dependency_file in self.dependency_files:
+            url = dependency_file.url
+            sha256 = dependency_file.sha256
+
+            pack_path = download_dependencies(url, sha256)
             name = sha256[:12] if sha256 else str(hash(url))
             dst = context.target / context.namespace / name
 
-            if dependence is None:
+            if pack_path is None:
                 get_project_logger().error(f"Download dependence failed for {url}")
                 continue
-            if isinstance(version, str):
-                version_id = get_datapack_format(version)
-                context.pack_meta.add_overlay(name, (version_id, version_id))
-            else:
-                version_id = get_datapack_format(context.config.version)
-                context.pack_meta.add_overlay(name, (version_id, version_id))
 
-            if dependence.is_file():
-                if zipfile.is_zipfile(dependence):
-                    self._extract_zipfile(dependence, dst)
+            context.pack_meta.add_overlay(
+                name,
+                (
+                    dependency_file.min_version,
+                    dependency_file.max_version
+                )
+            )
+
+            if pack_path.is_file():
+                if zipfile.is_zipfile(pack_path):
+                    self._extract_zipfile(pack_path, dst)
                 else:
-                    get_project_logger().warning(f"Unknown dependency file: {dependence}")
-            elif dependence.is_dir():
-                shutil.copy(dependence, dst)
+                    get_project_logger().warning(f"Unknown dependency file: {pack_path}")
+            elif pack_path.is_dir():
+                shutil.copy(pack_path, dst)
+
+            # 执行 hook 事务
+            if dependency_file.hook and callable(dependency_file.hook):
+                dependency_file.hook(dst, context.config.version)
 
         context.pack_meta.save_file(context.config.version)
 

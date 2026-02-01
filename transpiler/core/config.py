@@ -8,6 +8,7 @@ from transpiler.utils.logging_plus import ThreadSafeLogger
 
 PROJECT_NAME = "Dovetail"
 PROJECT_WEBSITE = "https://github.com/771835/dovetail"
+PROJECT_VERSION = "1.0.1"
 FILE_PREFIX = ".mcdl"
 CACHE_FILE_PREFIX = ".mcdc"
 PACK_CONFIG_VALIDATOR = fastjsonschema.compile({

@@ -5,7 +5,7 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Callable
 
 from attrs import define, field
 
@@ -13,6 +13,15 @@ from transpiler.core.compile_config import CompileConfig
 from transpiler.core.enums import StructureType, MinecraftVersion
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.symbols import Symbol
+
+
+@define(slots=True)
+class DependencyFile:
+    url: str
+    sha256: str = None
+    min_version: int = 0
+    max_version: int = 127
+    hook: Callable[[Path, MinecraftVersion], None] = None  # 在下载完成后执行，对下载的包进行一定修改以适应版本
 
 
 class PackMcmeta:
@@ -160,11 +169,10 @@ class Scope:
         """是否有命令"""
         return len(self.commands) > 0
 
-    def get_absolute_path(self) -> str:
+    def get_absolute_path(self, separator='.') -> str:
         """获取完整作用域路径"""
         if self.parent is None:
-            return "global"
-
+            return self.name
         count = 0
         for child in self.parent.children:
             if child.name == self.name:
@@ -172,9 +180,9 @@ class Scope:
                 if child is self:
                     break
         if count == 1:
-            return f"{self.parent.get_absolute_path()}.{self.name}"
+            return f"{self.parent.get_absolute_path()}{separator}{self.name}"
         else:
-            return f"{self.parent.get_absolute_path()}.{self.name}${count}"
+            return f"{self.parent.get_absolute_path()}{separator}{self.name}-{count}"
 
     def get_file_path(self) -> Path:
         """获取文件相对路径"""
@@ -191,7 +199,10 @@ class Scope:
     def add_symbol(self, symbol: Symbol):
         self.symbols[symbol.get_name()] = symbol
 
-    def get_symbol_path(self, symbol_name: str) -> str:
+    def get_symbol_path(self, symbol_name: str | Symbol) -> str:
+        # 自动获取符号名称
+        if hasattr(symbol_name, "get_name") and callable(symbol_name.get_name):
+            symbol_name = symbol_name.get_name()
         current = self
         while current:
             if symbol_name in current.symbols:

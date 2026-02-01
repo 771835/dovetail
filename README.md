@@ -10,7 +10,7 @@
 > - **生产环境建议:** 如果您需要用于生产环境，请考虑使用 [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)
     或其他更成熟的项目。
 
-Dovetail 是一种具有面向对象特征的语言，可以编译成 Minecraft 数据包。它旨在将传统命令的过程导向改变为目标导向。
+Dovetail 是一种具有面向对象特征的语言，可以编译成`Minecraft 数据包`(以下简称`数据包`)。它旨在将传统命令的过程导向改变为目标导向。
 
 ## 目标
 
@@ -24,7 +24,7 @@ Dovetail 是一种具有面向对象特征的语言，可以编译成 Minecraft 
 
 - [ ] 通过使用前置数据包以提高安全性及性能
 - [ ] 优化错误显示
-- [ ] 统一调试信息输出
+- [x] 统一调试信息输出
 - [ ] 完善插件api
 - [ ] 提高优化效果
 - [ ] 寻找尽量节省性能的堆栈实现方法
@@ -72,13 +72,13 @@ func main() {
 
 Q: 为什么不支持递归?  
 A: 递归需要运行时维护栈帧，在Minecraft中实现性能消耗较大。建议将递归算法改写成迭代实现。  
-Q: 有很多技术可以解决递归，但是项目选择忽视?  
+Q: 有技术可以解决递归，但是项目选择忽视?  
 A: 因为技术所限，以及作者本身精力有限  
 Q: 编译器为什么提示未知的错误并给出了堆栈信息?如何解决?  
 A: 你可以在github上开启一个issue提交这个问题  
 Q: 明明我的代码没有错误，生成出的数据包却无法正确执行  
 A: 请尝试禁用代码优化，若生成的数据包正确执行，请以`代码优化错误`为issue标题前缀,否则以`未知错误`作为标题前缀      
-Q: 生成出来的数据包执行到一半就中止?  
+Q: 为什么生成的数据包在执行时中止?  
 A: 请尝试使用gamerule指令适当提高maxCommandChainLength规则的数量    
 Q: 找不到可用后端怎么办?  
 A: 安装对应后端插件
@@ -106,8 +106,11 @@ A: 安装对应后端插件
 
 ### 代码使用
 
+> 由于 `Minecraft` 版本的原因，实际使用时可能会对以下项目进行一定的必要修改。如果您希望您的项目不被使用或修改，请随时联系本项目作者讨论移除事宜。
+
 - 项目[fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) 快速整数开方
-- 项目[DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) 安全字符串拼接，NBT转JSON等SNBT与字符串操作
+<!--- 项目[DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) 安全字符串拼接，NBT转JSON等SNBT与字符串操作-->
+<!-- 由于dnt不支持1.21.4故不展示 -->
 - 项目[StringLib](https://github.com/CMDred/StringLib) 提供了大量不安全但快速的字符串操作手段
 
 ### 数据使用

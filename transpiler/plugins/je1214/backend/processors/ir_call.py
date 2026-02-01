@@ -8,6 +8,7 @@ from transpiler.core.instructions import IRInstruction, IROpCode
 from transpiler.core.symbols import Variable, Constant, Function, Literal, Reference
 from ..backend import JE1214Backend
 from ..commands import FunctionBuilder
+from ..commands.builtins import CommandRegistry
 from ..commands.copy import Copy
 from ..commands.tools import DataPath, StorageLocation
 
@@ -19,6 +20,7 @@ class IRCallProcessor(IRProcessor):
         func: Function = instruction.get_operands()[1]
         args: dict[str, Reference[Variable | Constant | Literal]] = instruction.get_operands()[2]
         if func.function_type == FunctionType.BUILTIN:
+            CommandRegistry.get(func.name).handle(result, context, args)
             # TODO 内置函数支持
             # BuiltinFuncMapping.get(func.get_name())(result, self, args)
             return
@@ -52,7 +54,7 @@ class IRCallProcessor(IRProcessor):
                 )
         context.current_scope.add_command(
             FunctionBuilder.run(
-                f"{context.objective}:{jump_scope.get_file_path().with_suffix('')}"
+                f"{context.namespace}:{jump_scope.get_absolute_path('/')}"
             )
         )
         if func.return_type != DataType.NULL and result is not None:

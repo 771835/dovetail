@@ -84,16 +84,16 @@ def get_datapack_format(
     last: float | int | None = None
     for minecraft_version in reversed(used_map.keys()):
         v = MinecraftVersion.instance(minecraft_version)
-        if version < v:
+        if version > v:
             break
         last = used_map[minecraft_version]
-    # 当找到合适的数据包编号且不为最后一个时
-    if last is not None:
+    # 当找到合适的数据包编号时
+    if last:
         return last
+
+    if ref_map is None:
+        # 爬取wiki获得新对应表
+        new_map = _get_wiki_new_map()
+        return get_datapack_format(version, new_map)
     else:
-        if ref_map is None:
-            # 爬取wiki获得新对应表
-            new_map = _get_wiki_new_map()
-            return get_datapack_format(version, new_map)
-        else:
-            return next(reversed(ref_map.values()))
+        return next(reversed(ref_map.values()))

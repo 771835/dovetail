@@ -4,8 +4,9 @@ from __future__ import annotations
 from typing import Optional
 from typing import TYPE_CHECKING
 
-from attrs import define
+from attrs import define, field
 
+from .annotation import Annotation
 from .base import Symbol
 from ..enums.types import DataTypeBase, ClassType
 
@@ -21,6 +22,7 @@ class Class(Symbol, DataTypeBase):
     parent: Optional[Class]
     properties: set[Variable]
     type: ClassType = ClassType.CLASS
+    annotations: list[Annotation] = field(factory=list)
 
     def get_name(self) -> str:
         return self.name

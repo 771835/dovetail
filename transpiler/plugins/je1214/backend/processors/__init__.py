@@ -14,5 +14,6 @@ from .ir_op import IROpProcessor
 from .ir_return import IRReturnProcessor
 from .ir_scope_begin import IRScopeBeginProcessor
 from .ir_scope_end import IRScopeEndProcessor
+from .ir_cast import IRCastProcessor
 
 __all__ = []

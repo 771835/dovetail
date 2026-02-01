@@ -76,8 +76,8 @@ class Copy:
             return Copy.copy_storage_to_storage(target, source)
         else:
             if target.location == StorageLocation.SCORE:
-                return Copy.copy_score_to_storage(target, source)
-            return Copy.copy_storage_to_score(target, source)
+                return Copy.copy_storage_to_score(target, source)
+            return Copy.copy_score_to_storage(target, source)
 
     @staticmethod
     def copy_all(

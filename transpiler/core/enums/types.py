@@ -175,3 +175,28 @@ class ClassType(SafeEnum):
     """
     CLASS = "class"
     INTERFACE = "interface"
+
+
+class AnnotationCategory(SafeEnum):
+    """
+    注解系统声明类型
+
+    用于区分注解类型并根据注解类型在不同时机处理
+
+    Attributes:
+        LIFECYCLE: 控制函数执行时机，如@init, @tick
+        VISIBILITY: 控制可见性和优化，如@export, @internal, @public
+        OPTIMIZATION: 控制优化行为，如@noinline
+        CONDITIONAL: 条件编译，如@noinline
+        METADATA: 元数据注解，不影响编译逻辑，如@doc, @author, @since, @deprecated
+    """
+    # 核心语义注解 - 影响代码生成和执行
+    LIFECYCLE = "lifecycle"  # @init, @tick - 控制函数执行时机
+    VISIBILITY = "visibility"  # @export, @internal, @public - 控制可见性和优化
+    OPTIMIZATION = "optimization"  # @noinline - 控制优化行为
+
+    # 条件编译注解 - 在AST阶段处理
+    CONDITIONAL = "conditional"  # @target, @version - 条件编译
+
+    # 元数据注解 - 不影响编译逻辑
+    METADATA = "metadata"  # @doc, @author, @since, @deprecated

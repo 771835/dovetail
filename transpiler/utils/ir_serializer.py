@@ -5,12 +5,11 @@ import uuid
 from enum import Enum
 from typing import Any, Dict, Union
 
+from transpiler.core.config import PROJECT_VERSION
 from transpiler.core.enums.types import DataTypeBase, DataType
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.symbols import Symbol, Variable, Constant, Literal, Parameter, Reference, Class, Function
 from transpiler.utils.binary_serializer import BinarySerializer
-
-version = "1.0.1"
 
 
 class IRSymbolSerializer:
@@ -147,9 +146,8 @@ class IRSymbolSerializer:
                 self._add_symbol_id_map(op)
 
         result['metadata'] = {
-            'version': version,
+            'version': PROJECT_VERSION,
             'time': time.time_ns(),
-            'minecraft_version': '2.0',
             'uuid': uuid.uuid4().hex,
         }
         result['symbol'] = {
@@ -158,7 +156,7 @@ class IRSymbolSerializer:
         }
         result['instructions'] = [
             {
-                "opcode": instr.opcode.value,
+                "opcode": instr.opcode.value[0],
                 "operands": [id(op) for op in instr.operands],
             } for instr in self.builder.get_instructions()
         ]
