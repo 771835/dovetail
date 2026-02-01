@@ -182,7 +182,7 @@ class OptimizationPipeline:
 
         # 初始化上下文
         context = OptimizationContext(
-            max_iterations=1 if self.config.optimization_level < OptimizationLevel.O3 else 10,
+            max_iterations=5 if self.config.optimization_level < OptimizationLevel.O3 else 15,
             debug=self.config.debug
         )
 

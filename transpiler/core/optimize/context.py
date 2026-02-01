@@ -5,7 +5,6 @@
 定义优化过程中的上下文对象，用于在 Pass 之间
 共享状态和信息。
 """
-from __future__ import annotations
 
 from typing import Any
 

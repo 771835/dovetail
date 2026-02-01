@@ -201,9 +201,9 @@ class Compiler:
             IRBuilder: 优化后的IR构建器
         """
         generator.visit(tree)
-        ir_builder = generator.get_ir()
-        ir_builder = Optimizer(ir_builder, self.config).optimize()
-
+        get_project_logger().info("IR生成完成")
+        ir_builder = Optimizer(generator.get_ir(), self.config).optimize()
+        get_project_logger().info("IR优化完成")
         return ir_builder
 
     @timed("写入临时文件用时{:.3f}s")

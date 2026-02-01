@@ -6,8 +6,6 @@
 """
 from __future__ import annotations
 
-import copy
-
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.optimize.base import IROptimizer
@@ -32,8 +30,7 @@ class Optimizer(IROptimizer):
             config: 编译配置
         """
         self.config = config
-        self.initial_builder = builder
-        self.builder = copy.deepcopy(builder)
+        self.builder = builder
         self.pipeline = OptimizationPipeline(config)
 
     def optimize(self) -> IRBuilder:
