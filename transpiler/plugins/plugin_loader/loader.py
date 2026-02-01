@@ -100,7 +100,7 @@ class PluginLoader:
             global_env.update(
                 {
                     "__path__": str(plugin_path.resolve()),
-                    "__package__": str(plugin_path.resolve().relative_to(Path.cwd())).replace("\\", "."),
+                    "__package__": str(plugin_path.resolve().relative_to(Path.cwd())).replace(os.sep, "."),
                     "__name__": plugin_name,
                     "__file__": str(plugin_main.resolve()),
                     "__plugin_name__": metadata.get("display_name")
@@ -115,12 +115,13 @@ class PluginLoader:
                 self.plugins_instance[plugin_name] = plugin_main_class()
                 is_validate, reason = self.plugins_instance[plugin_name].validate()
                 if not is_validate:
-                    raise Warning(reason)
+                    get_project_logger().warning(f"Plugin '{plugin_name}' is invalid, reason: {reason}")
                 self.plugins_instance[plugin_name].initialize()
                 self.plugins_instance[plugin_name].load()
             else:
                 raise ModuleNotFoundError(f"Plugin '{plugin_name}' is invalid")
         except Exception as e:
+
             get_project_logger().error(f"加载插件{plugin_name}失败，原因：{e.__str__()}")
             if self.plugins_locals.get(plugin_name, None):
                 del self.plugins_locals[plugin_name]
