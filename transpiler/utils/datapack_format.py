@@ -6,8 +6,6 @@ import re
 from functools import lru_cache
 from typing import Optional
 
-import requests
-
 from transpiler.core.enums import MinecraftVersion
 
 DEFAULT_MINECRAFT_VERSION_TO_DATAPACK_FORMAT_MAP = {
@@ -39,6 +37,7 @@ wiki_row_pattern = re.compile(r'<tr[^>]*?>\s*<td>([\d.]+)</td>\s*<td>.*?>([\d.]+
 
 @lru_cache(maxsize=None)
 def _get_wiki_new_map() -> dict[str, int | float]:
+    import requests
     try:
         response = requests.get(
             "https://zh.minecraft.wiki/w/Template:Data_pack_format",

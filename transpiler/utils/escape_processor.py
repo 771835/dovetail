@@ -5,15 +5,13 @@
 提供字符串转义和反转义功能，支持多种格式（JSON、Python、HTML等）和批量处理。
 """
 
-from typing import List, Dict
-
 
 class EscapeProcessor:
     """自动处理转义字符的工具类
 
     Attributes:
-        escape_map (Dict[str, str]): 转义字符映射表，键为原字符，值为转义后的字符串
-        unescape_map (Dict[str, str]): 反向转义映射表，键为转义字符串，值为原字符
+        escape_map (dict): 转义字符映射表，键为原字符，值为转义后的字符串
+        unescape_map (dict): 反向转义映射表，键为转义字符串，值为原字符
     """
 
     def __init__(self):
@@ -109,15 +107,15 @@ class EscapeProcessor:
             return result[1:-1]
         return result
 
-    def batch_escape(self, texts: List[str], method: str = 'escape') -> List[str]:
+    def batch_escape(self, texts: list[str], method: str = 'escape') -> list[str]:
         """批量处理多个字符串
 
         Args:
-            texts (List[str]): 需要处理的字符串列表
+            texts (list[str]): 需要处理的字符串列表
             method (str): 处理方法，可选值: 'escape', 'unescape', 'json', 'python'
 
         Returns:
-            List[str]: 处理后的字符串列表
+            list[str]: 处理后的字符串列表
 
         Raises:
             ValueError: 当指定的方法不支持时抛出异常

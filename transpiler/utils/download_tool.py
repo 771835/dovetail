@@ -4,9 +4,6 @@ import time
 from pathlib import Path
 from typing import Optional, Callable
 
-import requests
-from requests.exceptions import RequestException, Timeout, HTTPError, ConnectionError
-
 from transpiler.utils.logging_plus import get_logger
 
 # 设置日志
@@ -49,6 +46,8 @@ def download_file(
         ValueError: 当文件哈希验证失败时
         RequestException: 当所有重试都失败时
     """
+    import requests
+    from requests.exceptions import RequestException, Timeout, HTTPError, ConnectionError
     # 确保目录存在
     filepath.parent.mkdir(parents=True, exist_ok=True)
 

@@ -9,7 +9,7 @@ import time
 import warnings
 from functools import wraps
 from typing import (
-    Any, Callable, TypeVar, Union, Type, cast,
+    Any, Callable, TypeVar, Union, cast,
     get_type_hints, get_origin, get_args
 )
 
@@ -51,15 +51,15 @@ def experimental(reason: str = "") -> Callable[[Any], Any]:
     return decorator
 
 
-def _create_experimental_class(cls: Type[T], message: str) -> Type[T]:
+def _create_experimental_class(cls: type[T], message: str) -> type[T]:
     """创建实验性类
 
     Args:
-        cls (Type[T]): 原始类
+        cls (type[T]): 原始类
         message (str): 警告消息
 
     Returns:
-        Type[T]: 带有警告功能的实验性类
+        type[T]: 带有警告功能的实验性类
     """
 
     class ExperimentalClass(cls):

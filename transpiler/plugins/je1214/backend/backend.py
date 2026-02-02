@@ -52,8 +52,8 @@ class JE1214Backend(Backend):
             DependencyFile(
                 "https://cdn.modrinth.com/data/h94rwz9p/versions/vb7U4ITG/StringLib%20v0.1.0%20%281.21%29.zip",
                 "9604b264fda4de2107fea5b02cdc52de88527ee9ba65717a674506894ba5933b",
-                get_datapack_format('1.21.4'),
-                get_datapack_format('1.21.11'),
+                61,
+                94.1,
             ),
 
         ]
