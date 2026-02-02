@@ -41,7 +41,7 @@ class IROpProcessor(IRProcessor): # 仅应支持基本类型运算
             StorageLocation.get_storage(right_dtype)
         ) if not isinstance(right, Literal) else right.value
 
-        if left_dtype == DataType.INT == right_dtype:
+        if left_dtype.is_subclass_of(DataType.INT) and right_dtype.is_subclass_of(DataType.INT):
             context.add_commands(
                 BinaryOp.op_all(
                     result_path,

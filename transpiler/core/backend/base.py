@@ -66,6 +66,8 @@ class Backend(ABC, metaclass=BackendMeta):
     def _process_instructions(self, context: GenerationContext):
         """处理所有IR指令"""
         for instruction in self.ir_builder:
+            if context.config.debug and instruction.opcode:
+                context.add_command(f"# {instruction.opcode.value[1]}:{repr(instruction)}")
             processor = self.processor_registry.get_processor(instruction.opcode)
 
             try:

@@ -3,6 +3,7 @@
 IRReturn 指令处理器
 """
 from transpiler.core.backend import ir_processor, IRProcessor, GenerationContext
+from transpiler.core.config import get_project_logger
 from transpiler.core.enums import StructureType
 from transpiler.core.instructions import IRInstruction, IROpCode
 from transpiler.core.symbols import Variable, Constant, Literal
@@ -18,13 +19,13 @@ class IRReturnProcessor(IRProcessor):
         return_value: Variable | Constant | Literal = instruction.get_operands()[0].value
         # 查找需要退出的函数作用域
         for scope in reversed(context.scope_stack):
-            if scope.scope_type == StructureType.FUNCTION:
+            if scope.name == StructureType.FUNCTION:
                 function_scope = scope
                 current_path = context.current_scope.get_absolute_path()
                 func_path = function_scope.get_absolute_path()
                 break
         else:
-            print("[Error] No function scope found")
+            get_project_logger().error("No function scope found")
             context.add_command("# No function scope found")
             return
         if return_value:  # 如果存在返回值
@@ -53,7 +54,7 @@ class IRReturnProcessor(IRProcessor):
                 )
 
         # 标记函数已返回
-        function_scope.flags[f"return:{func_path}"] = current_path.count(".") - func_path.count(".")
+        context.current_scope.flags[f"return:{func_path}"] = current_path.count(".") - func_path.count(".")
 
         context.current_scope.add_command(
             ScoreboardBuilder.set_score(

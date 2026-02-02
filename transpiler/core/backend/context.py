@@ -180,9 +180,9 @@ class Scope:
                 if child is self:
                     break
         if count == 1:
-            return f"{self.parent.get_absolute_path()}{separator}{self.name}"
+            return f"{self.parent.get_absolute_path(separator)}{separator}{self.name}"
         else:
-            return f"{self.parent.get_absolute_path()}{separator}{self.name}-{count}"
+            return f"{self.parent.get_absolute_path(separator)}{separator}{self.name}-{count}"
 
     def get_file_path(self) -> Path:
         """获取文件相对路径"""

@@ -15,5 +15,6 @@ from .ir_return import IRReturnProcessor
 from .ir_scope_begin import IRScopeBeginProcessor
 from .ir_scope_end import IRScopeEndProcessor
 from .ir_cast import IRCastProcessor
-
+from .ir_jump import IRJumpProcessor
+from .ir_cond_jump import IRCondJumpProcessor
 __all__ = []
