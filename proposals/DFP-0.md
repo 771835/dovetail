@@ -26,18 +26,22 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 
 ## 提案状态总览
 
-| 编号        | 标题                | 状态        | 分类       | 备注 |
-|-----------|-------------------|-----------|----------|----|
-| DFP 0     | McFuncDSL 提案索引与流程 | Active    | 元提案      | -  |
-| DFP 1     | 基础语法规范            | Draft     | 核心语言     | -  |
-| DFP 2     | IR 设计与规范          | Active    | 核心语言     | -  |
-| DFP 5     | 数组支持              | Deferred  | 核心语言     | -  |
-| DFP 6     | 内置注解规范            | Proposed  | 核心语言     |    |
-| DFP 300   | 内置函数              | Active    | 标准库      | -  |
-| DFP 301   | 后端指令生成内置函数表       | Active    | 内置模块     | -  |
-| DFP 600   | 语言服务器协议           | Deferred  | 工具链      | -  |
-| DFP 901   | 发行版管理规则           | Active    | 编译器      |    |
-| DFP 10000 | 指令生成规范            | Abandoned | 已过时-核心语言 | -  |
+| 编号      | 标题                | 状态          | 分类   | 备注          |
+|---------|-------------------|-------------|------|-------------|
+| DFP 0   | McFuncDSL 提案索引与流程 | Active      | 元提案  | -           |
+| DFP 1   | 基础语法规范            | Draft       | 核心语言 | -           |
+| DFP 2   | IR 设计与规范          | Active      | 核心语言 | -           |
+| DFP 5   | 数组支持              | Deferred    | 核心语言 | 未编写         |
+| DFP 6   | 内置注解规范            | Proposed    | 核心语言 | -           |
+| DFP 7   | 错误恢复机制	           | Draft       | 核心语言 | -           |
+| DFP 8   | 命名归一化策略           | Draft       | 核心语言 | -           |
+| DFP 300 | 内置函数              | Active      | 标准库  | -           |
+| DFP 301 | 后端指令生成函数表         | Active      | 内置模块 | -           |
+| DFP 600 | 语言服务器协议           | Deferred    | 工具链  | 未编写         |
+| DFP 601 | 日志输出规范            | Implemented | 编译器  | 计划补充国际化相关内容 |
+| DFP 602 | 插件系统规范            | Draft       | 	工具链 | -           |
+| DFP 603 | 编译缓存与增量编译         | Draft       | 编译器  | -           |
+| DFP 901 | 发行版管理规则           | Active      | 发行版  | -           |
 
 ---
 
@@ -97,22 +101,12 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 ```markdown
 # DFP X: 提案标题
 
-## 状态
-
-- [ ] Draft
-- [ ] Proposed
-- [ ] Accepted
-- [ ] Rejected
-- [ ] Deferred
-- [ ] Implemented (版本: )
-- [ ] Active
-- [ ] Abandoned (版本: )
-
 ## 提案信息
 
 **作者**: 姓名 <邮箱>  
+**状态**: XXXXXX  
 **创建日期**: YYYY-MM-DD  
-**最新更新**: YYYY-MM-DD  
+**最新更新**: YYYY-MM-DD
 
 ## 摘要/设计目标
 
@@ -142,7 +136,7 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 
 ## 附录
 
-(额外补充信息，过长应另存为DFP-XXX-X文档)
+(额外补充信息，较长的内容应另存为DFP-XXX-X文档)
 ```
 
 ---
