@@ -4,7 +4,7 @@
 """
 import fastjsonschema
 
-from transpiler.utils.logging_plus import ThreadSafeLogger
+from transpiler.utils.logger import ThreadSafeLogger
 
 PROJECT_NAME = "Dovetail"
 PROJECT_WEBSITE = "https://github.com/771835/dovetail"

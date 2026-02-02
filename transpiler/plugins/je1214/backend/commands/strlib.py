@@ -1,6 +1,7 @@
 # coding=utf-8
 from transpiler.core.config import get_project_logger
-from . import DataBuilder, FunctionBuilder
+from ._data import DataBuilder
+from ._function import FunctionBuilder
 from .copy import Copy
 from .tools import DataPath, StorageLocation, LiteralPoolTools
 

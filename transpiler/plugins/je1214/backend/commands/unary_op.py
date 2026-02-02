@@ -1,6 +1,6 @@
 # coding=utf-8
-from transpiler.plugins.je1214.backend.commands import ScoreboardBuilder
-from transpiler.plugins.je1214.backend.commands.tools import DataPath, LiteralPoolTools
+from ._scoreboard import ScoreboardBuilder
+from .tools import DataPath, LiteralPoolTools
 
 
 class UnaryOp:

@@ -7,7 +7,6 @@ from transpiler.core.backend.context import DependencyFile
 from transpiler.core.backend.output import DependentDatapackWriter
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.ir_builder import IRBuilder
-from transpiler.utils.datapack_format import get_datapack_format
 from .commands.builtins import TemplateRegistry
 from .initializer_function_writer import InitializerFunctionWriter
 from .literal_pool_writer import LiteralPoolWriter

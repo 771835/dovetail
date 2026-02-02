@@ -1,7 +1,7 @@
-from .. import TemplateRegistry
+from ..template import TemplateRegistry
 from ..base import CommandRegistry, CommandHandler
 from ..template import TemplateEngine, ParameterBuilder, TemplateParameter, CommandTemplate
-from ... import LiteralPoolTools
+from ...tools import LiteralPoolTools
 
 
 @CommandRegistry.register('tellraw_text')

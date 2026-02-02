@@ -9,8 +9,7 @@
 - 输出项目启动信息(可选)
 """
 from transpiler.core.backend import OutputWriter, GenerationContext
-from transpiler.plugins.je1204.command_builder import FunctionBuilder, DataBuilder
-from transpiler.plugins.je1214.backend.commands import ScoreboardBuilder
+from .commands import FunctionBuilder, DataBuilder, ScoreboardBuilder
 
 
 class InitializerFunctionWriter(OutputWriter):
@@ -21,7 +20,7 @@ class InitializerFunctionWriter(OutputWriter):
         with open(initializer_path, "w") as f:
             f.write(ScoreboardBuilder.add_objective(context.objective, "dummy", "Main objective") + "\n")
             f.write(FunctionBuilder.run(f"{context.namespace}:literal_pool_init") + "\n")
-            f.write(DataBuilder.modify_storage_set_value("stringlib:input","concat","['','']"))
+            f.write(DataBuilder.modify_storage_set_value("stringlib:input", "concat", "['','']"))
             if context.config.debug:
                 f.write(f"say Datapack '{context.config.namespace}' is initialized\n")
 

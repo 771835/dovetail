@@ -3,10 +3,11 @@ import uuid
 
 from transpiler.core.enums import CompareOps
 from transpiler.core.optimize.passes import ConstantFoldingPass
-from transpiler.plugins.je1214.backend.commands import Execute, ScoreboardBuilder
-from transpiler.plugins.je1214.backend.commands.copy import Copy
-from transpiler.plugins.je1214.backend.commands.tools import DataPath, StorageLocation, LiteralPoolTools
-from transpiler.plugins.je1214.backend.commands.unary_op import UnaryOp
+from ._execute import Execute
+from ._scoreboard import ScoreboardBuilder
+from .copy import Copy
+from .tools import DataPath, StorageLocation, LiteralPoolTools
+from .unary_op import UnaryOp
 
 
 class Compare:

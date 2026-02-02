@@ -24,30 +24,11 @@ class MessageTranslator:
         if hasattr(self, '_initialized'):
             return
         self._initialized = True
-        self._load_default_translations()
-
-    def _load_default_translations(self):
-        """加载默认翻译"""
-        self._translations = {
-            "exception_occurred": "异常为{}",
-            "error_occurred": "发生错误: {}",
-            "warning_occurred": "警告: {}",
-            "info_message": "信息: {}",
-            "debug_message": "调试信息: {}",
-            "critical_error": "严重错误: {}",
-            "function_start": "函数 {} 开始执行",
-            "function_end": "函数 {} 执行完成",
-            "data_processed": "处理数据: {}",
-            "file_created": "文件已创建: {}",
-            "file_deleted": "文件已删除: {}",
-            "connection_established": "连接已建立: {}",
-            "connection_failed": "连接失败: {}",
-        }
 
     def load_translations_from_json(self, json_file: str):
         """从JSON文件加载翻译"""
         try:
-            with open(json_file, 'r', encoding='utf-8') as f:
+            with open(json_file, encoding='utf-8') as f:
                 translations = json.load(f)
                 with self._lock:
                     self._translations.update(translations)

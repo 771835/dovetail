@@ -1,7 +1,8 @@
 # coding=utf-8
-from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional
+
+from attrs import define
 
 from transpiler.core.backend import Scope
 from transpiler.core.symbols import Reference
@@ -14,7 +15,7 @@ class ParamBindingType(Enum):
     REFERENCE = "reference"  # 存储引用
 
 
-@dataclass
+@define(slots=True, frozen=True)
 class TemplateParameter:
     """命令参数"""
     name: str

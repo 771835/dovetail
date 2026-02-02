@@ -14,7 +14,7 @@ from typing import (
 )
 
 from transpiler.core.config import get_project_logger
-from transpiler.utils.logging_plus import get_logger
+from transpiler.utils.logger import get_logger
 
 # 类型变量
 T = TypeVar('T')

@@ -7,7 +7,6 @@
 import uuid
 
 from transpiler.core.backend import OutputWriter, GenerationContext
-from transpiler.core.config import get_project_logger
 from transpiler.core.enums import ValueType
 from transpiler.core.symbols import Reference, Literal
 from .commands import ReturnBuilder, Execute, ScoreboardBuilder

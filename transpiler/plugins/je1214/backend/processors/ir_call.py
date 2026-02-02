@@ -7,10 +7,8 @@ from transpiler.core.enums import FunctionType, DataType
 from transpiler.core.instructions import IRInstruction, IROpCode
 from transpiler.core.symbols import Variable, Constant, Function, Literal, Reference
 from ..backend import JE1214Backend
-from ..commands import FunctionBuilder
+from ..commands import FunctionBuilder, Copy, DataPath, StorageLocation
 from ..commands.builtins import CommandRegistry
-from ..commands.copy import Copy
-from ..commands.tools import DataPath, StorageLocation
 
 
 @ir_processor(JE1214Backend, IROpCode.CALL)

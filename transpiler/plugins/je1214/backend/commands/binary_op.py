@@ -1,9 +1,9 @@
 # coding=utf-8
 from transpiler.core.enums import BinaryOps
 from transpiler.core.optimize.passes import ConstantFoldingPass
-from transpiler.plugins.je1214.backend.commands import ScoreboardBuilder
-from transpiler.plugins.je1214.backend.commands.copy import Copy
-from transpiler.plugins.je1214.backend.commands.tools import DataPath, LiteralPoolTools
+from ._scoreboard import ScoreboardBuilder
+from .copy import Copy
+from .tools import DataPath, LiteralPoolTools
 
 
 class BinaryOp:
