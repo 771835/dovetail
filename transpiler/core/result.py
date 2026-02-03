@@ -20,6 +20,4 @@ class Result:
     @classmethod
     def from_literal(cls, value: Any, dtype: DataType):
         """创建字面量结果"""
-        return cls(
-            value=Reference(ValueType.LITERAL, Literal(dtype, value))
-        )
+        return cls(Reference(ValueType.LITERAL, Literal(dtype, value)))

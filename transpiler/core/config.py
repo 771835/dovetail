@@ -4,7 +4,12 @@
 """
 import fastjsonschema
 
+from transpiler.utils.logger import ThreadSafeLogger
+
 PROJECT_NAME = "Dovetail"
+PROJECT_WEBSITE = "https://github.com/771835/dovetail"
+PROJECT_VERSION = "1.0.1"
+FILE_PREFIX = ".mcdl"
 CACHE_FILE_PREFIX = ".mcdc"
 PACK_CONFIG_VALIDATOR = fastjsonschema.compile({
     "type": "object",
@@ -52,3 +57,13 @@ PLUGIN_METADATA_VALIDATOR = fastjsonschema.compile({
     ],
     "additionalProperties": False  # 不允许额外属性
 })
+logger: ThreadSafeLogger | None = None
+
+
+def set_project_logger(new_logger: ThreadSafeLogger):
+    global logger
+    logger = new_logger
+
+
+def get_project_logger():
+    return logger

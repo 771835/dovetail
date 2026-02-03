@@ -4,7 +4,7 @@ from __future__ import annotations
 import warnings
 from typing import TYPE_CHECKING, TypeVar, Generic
 
-from attrs import define, field, validators
+from attrs import define
 
 from .base import Symbol
 from .literal import Literal
@@ -19,10 +19,10 @@ T = TypeVar(
 )
 
 
-@define(slots=True, hash=True)
+@define(slots=True, hash=True, repr=False)
 class Reference(Symbol, Generic[T]):
-    value_type: ValueType = field(validator=validators.instance_of(ValueType))
-    value: T = field(validator=validators.instance_of(Symbol))
+    value_type: ValueType
+    value: T
 
     def __attrs_post_init__(self):
         if isinstance(self.value, Reference):
@@ -69,3 +69,15 @@ class Reference(Symbol, Generic[T]):
     @classmethod
     def variable(cls, var_name, dtype: DataType, var_type: VariableType = VariableType.COMMON) -> Reference:
         return cls(ValueType.VARIABLE, Variable(var_name, dtype, var_type))
+
+    def is_literal(self) -> bool:
+        return self.value_type == ValueType.LITERAL
+
+    def get_display_value(self) -> str | None:
+        if self.is_literal():
+            return repr(self.value.value)
+        else:
+            return self.get_name()
+
+    def __repr__(self):
+        return self.get_display_value()

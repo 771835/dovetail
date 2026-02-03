@@ -3,28 +3,50 @@
 import time
 import uuid
 from enum import Enum
+from typing import Any, Dict, Union
 
+from transpiler.core.config import PROJECT_VERSION
 from transpiler.core.enums.types import DataTypeBase, DataType
 from transpiler.core.ir_builder import IRBuilder
 from transpiler.core.symbols import Symbol, Variable, Constant, Literal, Parameter, Reference, Class, Function
 from transpiler.utils.binary_serializer import BinarySerializer
 
-version = "1.0.1"
-
 
 class IRSymbolSerializer:
+    """序列化 IRBuilder 中的符号信息。
+
+    将 IR（中间表示）中的所有符号及其结构关系打包成字典，并最终序列化为字节流，
+    便于持久化存储。
+
+    Attributes:
+        builder (IRBuilder): 要被序列化的 IRBuilder 对象。
+        symbol_id_map (dict): 存储已分配ID的符号到其对应对象的映射。
+    """
     serializer = BinarySerializer()
 
     def __init__(self, builder: IRBuilder):
+        """初始化 IRSymbolSerializer 实例。
+
+        Args:
+            builder (IRBuilder): 要被序列化的 IRBuilder 实例。
+        """
         self.builder = builder
-        self.symbol_id_map: dict[int, Symbol | str | int | Enum] = {}
+        self.symbol_id_map: Dict[int, Union[Symbol, str, int, Enum]] = {}
 
     @staticmethod
-    def _extract_metadata(symbol: Symbol | DataType | list):
-        """生成符号的序列化数据"""
+    def _extract_metadata(symbol: Symbol | DataType | list | int | float | bool | str | Enum | dict | tuple | set) -> \
+            dict[str, Any] | None:
+        """生成符号的序列化数据。
+
+        Args:
+            symbol (Any): 待提取元数据的符号对象。
+
+        Returns:
+            dict[str, Any] | None: 包含符号类型、名称和值等信息的元数据字典。
+        """
         if symbol is None:
             return None
-        metadata: dict[str, str | None | bool | list | dict | int] = {
+        metadata: Dict[str, ...] = {
             'symbol_type': type(symbol).__name__,
             'symbol_name': symbol.get_name() if isinstance(symbol, Symbol) else None,
         }
@@ -63,7 +85,15 @@ class IRSymbolSerializer:
 
         return metadata
 
-    def _add_symbol_id_map(self, symbol: Symbol | Enum | list | dict | bool | set | DataTypeBase):
+    def _add_symbol_id_map(self, symbol: Symbol | Enum | list | dict | bool | set | DataTypeBase | tuple):
+        """递归地将符号加入全局 ID 映射表中。
+
+        若当前符号为容器类型（如list、dict），将遍历其子元素也将其载入映射表。
+        这是为后续序列化的符号ID索引做准备。
+
+        Args:
+            symbol (Any): 当前处理的符号对象。
+        """
         # 将自身加入映射表
         if id(symbol) not in self.symbol_id_map:
             self.symbol_id_map[id(symbol)] = symbol
@@ -100,7 +130,14 @@ class IRSymbolSerializer:
                 self._add_symbol_id_map(value)
 
     def serialize(self) -> dict:
-        """序列化整个IRBuilder"""
+        """将整个 IRBuilder 序列化为一个可嵌套的字典格式。
+
+        包含元数据、符号信息、以及指令列表。优先扫描所有涉及的符号并建立映射表，
+        然后对每条指令提取 byte 表示及依赖符号ID。
+
+        Returns:
+            dict: 包含 version、time、instructions 等字段的完整描述符。
+        """
         result = {}
 
         # 预扫描所有符号
@@ -109,9 +146,8 @@ class IRSymbolSerializer:
                 self._add_symbol_id_map(op)
 
         result['metadata'] = {
-            'version': version,
+            'version': PROJECT_VERSION,
             'time': time.time_ns(),
-            'minecraft_version': '2.0',
             'uuid': uuid.uuid4().hex,
         }
         result['symbol'] = {
@@ -120,17 +156,32 @@ class IRSymbolSerializer:
         }
         result['instructions'] = [
             {
-                "opcode": instr.opcode.value,
+                "opcode": instr.opcode.value[0],
                 "operands": [id(op) for op in instr.operands],
-                # 不记录flags，因为没有意义
             } for instr in self.builder.get_instructions()
         ]
         return result
 
     @staticmethod
     def dump(builder: IRBuilder) -> bytes:
+        """将 IRBuilder 序列化并冻结为字节数据。
+
+        Args:
+            builder (IRBuilder): 要序列化的 IRBuilder 实例。
+
+        Returns:
+            bytes: 序列化后的字节数据。
+        """
         return IRSymbolSerializer.serializer.freeze(IRSymbolSerializer(builder).serialize())
 
     @staticmethod
     def load(data: bytes) -> dict:
+        """将字节数据解冻为可读的数据结构。
+
+        Args:
+            data (bytes): 需要解析的字节数据。
+
+        Returns:
+            dict: 解析后的字典数据。
+        """
         return IRSymbolSerializer.serializer.thaw(data)

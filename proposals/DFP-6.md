@@ -1,19 +1,9 @@
 # DFP 6: 内置注解规范
 
-## 状态
-
-- [ ] Draft
-- [x] Proposed
-- [ ] Accepted
-- [ ] Rejected
-- [ ] Deferred
-- [ ] Implemented (版本: )
-- [ ] Active
-- [ ] Abandoned (版本: )
-
 ## 提案信息
 
 **作者**: 771835 <2790834181@qq.com>  
+**状态**: Proposed  
 **创建日期**: 2025-11-15  
 **最新更新**: 2025-12-28
 

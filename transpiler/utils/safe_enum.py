@@ -27,11 +27,27 @@ class SafeEnum(Enum):
     """
 
     def __eq__(self, other: Any) -> bool:
-        """重载等于运算符，添加类型安全检查"""
+        """
+        重载等于运算符，添加类型安全检查
+
+        Args:
+            other (Any): 要比较的对象
+
+        Returns:
+            bool: 比较结果
+        """
         return self._type_checked_compare(other, super().__eq__)
 
     def __ne__(self, other: Any) -> bool:
-        """重载不等于运算符，添加类型安全检查"""
+        """
+        重载不等于运算符，添加类型安全检查
+
+        Args:
+            other (Any): 要比较的对象
+
+        Returns:
+            bool: 比较结果
+        """
         return self._type_checked_compare(other, super().__ne__)
 
     def _type_checked_compare(self, other: Any,
@@ -40,18 +56,26 @@ class SafeEnum(Enum):
         执行类型检查并调用比较函数
 
         Args:
-            other: 比较对象
-            compare_func: 原始比较函数
+            other (Any): 比较对象
+            compare_func (Callable): 原始比较函数
 
-        Return:
-            比较结果布尔值
+        Returns:
+            bool: 比较结果布尔值
         """
         if isinstance(other, Enum) and not self._is_same_enum_type(other):
             self._handle_type_mismatch(other)
         return compare_func(other)
 
     def _is_same_enum_type(self, other: Enum) -> bool:
-        """检查是否为相同枚举类型或继承的类型"""
+        """
+        检查是否为相同枚举类型或继承的类型
+
+        Args:
+            other (Enum): 要比较的枚举对象
+
+        Returns:
+            bool: 如果是相同类型返回True，否则返回False
+        """
         return (
             isinstance(other, self.__class__)
         )
@@ -59,6 +83,12 @@ class SafeEnum(Enum):
     def _handle_type_mismatch(self, other: Enum) -> None:
         """
         处理类型不匹配情况
+
+        Args:
+            other (Enum): 类型不匹配的枚举对象
+
+        Returns:
+            None: 无返回值
         """
         err_msg = (
             f"Enum type mismatch: Comparing {self.__class__.__name__} "
@@ -71,10 +101,10 @@ class SafeEnum(Enum):
         """
         检查值是否存在于当前枚举中
 
-        参数:
-            value: 要检查的值
+        Args:
+            value (Any): 要检查的值
 
-        返回:
+        Returns:
             bool: 值是否有效
         """
         if isinstance(value, str):
@@ -83,7 +113,12 @@ class SafeEnum(Enum):
 
     @classmethod
     def values(cls) -> tuple:
-        """获取枚举所有值的元组"""
+        """
+        获取枚举所有值的元组
+
+        Returns:
+            tuple: 包含所有枚举值的元组
+        """
         return tuple(member.value for member in cls)
 
     @classmethod
@@ -91,13 +126,13 @@ class SafeEnum(Enum):
         """
         通过值获取枚举成员
 
-        参数:
-            value: 枚举值
+        Args:
+            value (Any): 枚举值
 
-        返回:
-            Enum: 对应的枚举成员
+        Returns:
+            SafeEnum: 对应的枚举成员
 
-        异常:
+        Raises:
             ValueError: 值不存在时抛出
         """
         if isinstance(value, str):
@@ -108,8 +143,19 @@ class SafeEnum(Enum):
 
     @classmethod
     def names(cls) -> tuple:
-        """获取枚举所有名称的元组"""
+        """
+        获取枚举所有名称的元组
+
+        Returns:
+            tuple: 包含所有枚举名称的元组
+        """
         return tuple(member.name for member in cls)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
+        """
+        返回枚举成员的哈希值
+
+        Returns:
+            int: 基于枚举值的哈希值
+        """
         return hash(self.value)

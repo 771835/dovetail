@@ -4,17 +4,15 @@ func t() -> boolean {
 func f() -> boolean {
     return false;
 }
-func a() -> string {
-    print("a")
-    return "fuck you"
-}
-func b() -> string {
-    print("b")
-    return "hello"
-}
 
-
-
+@init
 func main() {
-    print(a() if f() else b())
+    for (int i=0;i<10;i=i+1) {
+        # 循环体
+        if (i==2) {
+            break
+        }
+        print("f")
+    }
+
 }

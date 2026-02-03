@@ -12,9 +12,7 @@ from typing import Callable
 from antlr4 import FileStream, CommonTokenStream
 
 from transpiler.core.compile_config import CompileConfig
-from transpiler.core.enums.operations import UnaryOps, BinaryOps, CompareOps
-from transpiler.core.enums.types import FunctionType, DataTypeBase, DataType, StructureType, ValueType, VariableType, \
-    ClassType
+from transpiler.core.enums.types import *
 from transpiler.core.errors import *
 from transpiler.core.include_manager import IncludeManager
 from transpiler.core.instructions import *
@@ -51,7 +49,7 @@ class IRGenerator(transpilerVisitor):
 
         #  加载内置库
         self._load_library(LibraryMapping.get("builtins", self.ir_builder))
-        if self.config.enable_experimental:
+        if self.config.experimental:
             self._load_library(LibraryMapping.get("experimental", self.ir_builder))
 
     @lru_cache(maxsize=None)
@@ -227,7 +225,7 @@ class IRGenerator(transpilerVisitor):
             )
 
         # 检查函数名冲突
-        if check_name_conflict and not self.config.enable_same_name_function_nesting:
+        if check_name_conflict and not self.config.same_name_function_nesting:
             current = self.current_scope
             while current:
                 if current.get_name() == function_name:
@@ -346,7 +344,7 @@ class IRGenerator(transpilerVisitor):
         return resolved_symbol
 
     def _check_recursion(self, func_name: str, func_symbol: Function):
-        if not self.config.enable_recursion:  # 未启用递归
+        if not self.config.recursion:  # 未启用递归
             current = self.current_scope
             while current:
                 if (current.get_name() == func_name
@@ -427,9 +425,9 @@ class IRGenerator(transpilerVisitor):
         """将文本内容追加到结果字符串"""
         new_var = self._create_temp_var(DataType.STRING, "fstring")
         self._add_ir_instruction(IRDeclare(new_var))
-        self._add_ir_instruction(IROp(new_var, BinaryOps.ADD,
-                                      Reference(ValueType.VARIABLE, current_var),
-                                      Reference.literal(text)))
+        self._add_ir_instruction(IRBinaryOp(new_var, BinaryOps.ADD,
+                                            Reference(ValueType.VARIABLE, current_var),
+                                            Reference.literal(text)))
         return new_var
 
     def _append_variable_to_result(self, current_var: Variable, var_name: str) -> Variable:
@@ -462,9 +460,9 @@ class IRGenerator(transpilerVisitor):
         # 拼接字符串
         new_var = self._create_temp_var(DataType.STRING, "fstring")
         self._add_ir_instruction(IRDeclare(new_var))
-        self._add_ir_instruction(IROp(new_var, BinaryOps.ADD,
-                                      Reference(ValueType.VARIABLE, current_var),
-                                      Reference(ValueType.VARIABLE, cast_var)))
+        self._add_ir_instruction(IRBinaryOp(new_var, BinaryOps.ADD,
+                                            Reference(ValueType.VARIABLE, current_var),
+                                            Reference(ValueType.VARIABLE, cast_var)))
         return new_var
 
     def _resolve_type_symbol(self, type_name: str) -> Class | None:
@@ -893,7 +891,7 @@ class IRGenerator(transpilerVisitor):
         temp_var = self._create_temp_var(DataType.INT, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
-        self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left_operand, right_operand))
+        self._add_ir_instruction(IRBinaryOp(temp_var, BinaryOps.ADD, left_operand, right_operand))
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(
             IRCompare(
@@ -922,7 +920,7 @@ class IRGenerator(transpilerVisitor):
         temp_var = self._create_temp_var(DataType.INT, "calc")
 
         self._add_ir_instruction(IRDeclare(temp_var))
-        self._add_ir_instruction(IROp(temp_var, BinaryOps.ADD, left, right))
+        self._add_ir_instruction(IRBinaryOp(temp_var, BinaryOps.ADD, left, right))
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(
             IRCompare(
@@ -1077,7 +1075,7 @@ class IRGenerator(transpilerVisitor):
         result_var = self._create_temp_var(left.value.get_data_type(), "calc")
 
         self._add_ir_instruction(IRDeclare(result_var))
-        self._add_ir_instruction(IROp(result_var, BinaryOps(op), left.value, right.value))
+        self._add_ir_instruction(IRBinaryOp(result_var, BinaryOps(op), left.value, right.value))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitTermExpr(self, ctx: transpilerParser.TermExprContext):
@@ -1113,7 +1111,7 @@ class IRGenerator(transpilerVisitor):
         result_var = self._create_temp_var(result_type, "calc")
 
         self._add_ir_instruction(IRDeclare(result_var))
-        self._add_ir_instruction(IROp(result_var, op, left.value, right.value))
+        self._add_ir_instruction(IRBinaryOp(result_var, op, left.value, right.value))
         return Result(Reference(ValueType.VARIABLE, result_var))
 
     def visitNegExpr(self, ctx: transpilerParser.NegExprContext):
@@ -1128,7 +1126,7 @@ class IRGenerator(transpilerVisitor):
             )
         if expr_result.value_type != ValueType.LITERAL:
             self._add_ir_instruction(
-                IROp(
+                IRBinaryOp(
                     expr_result.value,
                     BinaryOps.MUL,
                     expr_result,
@@ -1432,25 +1430,21 @@ class IRGenerator(transpilerVisitor):
             )
         return Result(None)
 
-    def visitIncludeStmt(self, ctx: transpilerParser.IncludeStmtContext):
-        original_include_path: str = str(self.visit(ctx.literal()).value.value.value)
+    def _get_include_path(self, path: str) -> Path | None | Library:
         search_path: list[Path] = [self.config.lib_path, Path.cwd()]
-        include_path: Path = Path(original_include_path)
-
+        include_path: Path = Path(path)
         # 检查是否已经导入过
         if self.include_manager.has_path(include_path):
-            return Result(None)
+            return None
 
         # 判断是否为内置库
-        if library := LibraryMapping.get(original_include_path, self.ir_builder):
-            self._load_library(library)
-            self.include_manager.add_include_path(include_path)
-            return Result(None)
+        if library := LibraryMapping.get(path, self.ir_builder):
+            return library
 
         include_path = next(
-            (d / original_include_path for d in search_path if (Path(d) / original_include_path).exists()), None)
+            (d / path for d in search_path if (Path(d) / path).exists()), None)
         if include_path:
-            self.include_manager.add_include_path(include_path)
+            return include_path
         else:
             raise CompilerIncludeError(
                 include_path.resolve(),
@@ -1460,10 +1454,23 @@ class IRGenerator(transpilerVisitor):
                 filename=self.filename
             )
 
+    def visitIncludeStmt(self, ctx: transpilerParser.IncludeStmtContext):
+        original_path: str = str(self.visit(ctx.literal()).value.value.value)
+
+        new_path = self._get_include_path(original_path)
+
+        if new_path is None:
+            return Result(None)
+        elif isinstance(new_path, Library):
+            self._load_library(new_path)
+            return Result(None)
+
+        self.include_manager.add_include_path(new_path)
+
         # 处理导入的文件
         try:
             old_filename = self.filename
-            self.filename = os.path.relpath(include_path, Path.cwd())
+            self.filename = os.path.relpath(new_path, Path.cwd())
             input_stream = FileStream(self.filename, encoding='utf-8')
             lexer = transpilerLexer(input_stream)
             stream = CommonTokenStream(lexer)
@@ -1476,7 +1483,7 @@ class IRGenerator(transpilerVisitor):
             self.filename = old_filename
         except Exception as e:
             raise CompilerIncludeError(
-                os.path.relpath(include_path, Path.cwd()),
+                os.path.relpath(new_path, Path.cwd()),
                 e.__repr__(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),

@@ -1,23 +1,11 @@
 # DFP 2: IR 设计与规范
 
-> 原DFP3(现[DFP10000](DFP-10000.md))附录一
-
-## 状态
-
-- [ ] Draft
-- [ ] Proposed
-- [ ] Accepted
-- [ ] Rejected
-- [ ] Deferred
-- [ ] Implemented (版本: )
-- [x] Active
-- [ ] Abandoned (版本: )
-
 ## 提案信息
 
 **作者**: 771835 <2790834181@qq.com>  
+**状态**: Active  
 **创建日期**: 2025-11-09  
-**最新更新**: 2025-12-28
+**最新更新**: 2026-01-18
 
 ## 设计目标
 
@@ -47,24 +35,24 @@
 
 #### 变量操作
 
-| 指令       | 参数                   | 备注                    |
-|----------|----------------------|-----------------------|
-| DECLARE  | variable             | 声明变量                  |
-| ASSIGN   | target source        | 赋值操作                  |
-| UNARY_OP | result op operand    | 一元运算（如 `-a`, `!b`）    |
-| OP       | result op left right | 二元运算（如 `a+b`, `c*d`）  |
-| COMPARE  | result op left right | 比较运算（如 `a>b`, `c==d`） |
-| CAST     | result type value    | 显式类型转换                |
+| 指令        | 参数                   | 备注                    |
+|-----------|----------------------|-----------------------|
+| DECLARE   | variable             | 声明变量                  |
+| ASSIGN    | target source        | 赋值操作                  |
+| UNARY_OP  | result op operand    | 一元运算（如 `-a`, `!b`）    |
+| BINARY_OP | result op left right | 二元运算（如 `a+b`, `c*d`）  |
+| COMPARE   | result op left right | 比较运算（如 `a>b`, `c==d`） |
+| CAST      | result type value    | 显式类型转换                |
 
 #### 面向对象指令
 
-| 指令          | 参数                          | 备注      |
-|-------------|-----------------------------|---------|
-| CLASS       | class                       | 声明类结构   |
-| NEW_OBJ     | result class [args...]      | 创建对象实例  |
-| GET_FIELD   | result obj property         | 获取对象属性值 |
-| SET_FIELD   | obj property value          | 设置对象属性值 |
-| CALL_METHOD | result obj method [args...] | 调用对象方法  |
+| 指令           | 参数                          | 备注      |
+|--------------|-----------------------------|---------|
+| CLASS        | class                       | 声明类结构   |
+| NEW_OBJ      | result class [args...]      | 创建对象实例  |
+| GET_PROPERTY | result obj property         | 获取对象属性值 |
+| SET_PROPERTY | obj property value          | 设置对象属性值 |
+| CALL_METHOD  | result obj method [args...] | 调用对象方法  |
 
 ### 关键实现细节
 
@@ -76,6 +64,8 @@
 
 #### 2. 控制流实现
 
+- `JUMP`和`COND_JUMP`指令不等同于类似其他语言的跳转，而是跳转完成后**返回原先位置继续执行**
+
 ##### if-else 示例
 
 ```dovetail
@@ -86,13 +76,14 @@ if (cond_var) {
 }
 # 转换成ir:
 
-IROpCode.SCOPE_BEGIN(operands=['if_0', <StructureType.CONDITIONAL: 'conditional'>], line=-1, column=-1)
+if_1:conditional{
     # if块代码
-IROpCode.SCOPE_END(operands=['if_0', <StructureType.CONDITIONAL: 'conditional'>], line=-1, column=-1)
-IROpCode.SCOPE_BEGIN(operands=['else_0', <StructureType.CONDITIONAL: 'conditional'>], line=-1, column=-1)
+}
+else_1:conditional{
     # else块代码
-IROpCode.SCOPE_END(operands=['else_0', <StructureType.CONDITIONAL: 'conditional'>], line=-1, column=-1)
-IROpCode.COND_JUMP(operands=[Variable(name='cond__var', dtype=BOOLEAN, var_type=<VariableType.COMMON: 'common'>), 'if_0', 'else_0'], line=-1, column=-1)
+}
+if cond__var goto if_1 else goto else_1
+
 ```
 
 ##### 传统for循环示例
@@ -102,23 +93,21 @@ for (int i=0;i<3;i=i+1) {
     # 循环体
 }
 # 转换成ir:
-# int i=0
-IROpCode.DECLARE(operands=[Variable(name='i', dtype=INT, var_type=<VariableType.COMMON: 'common'>)], line=-1, column=-1)
-IROpCode.ASSIGN(operands=[Variable(name='i', dtype=INT, var_type=<VariableType.COMMON: 'common'>), Reference(value_type=<ValueType.LITERAL: 'literal'>, value=Literal(dtype=INT, value=0))], line=-1, column=-1)
-IROpCode.SCOPE_BEGIN(operands=['for_0_check', <StructureType.LOOP_CHECK: 'loop_check'>], line=-1, column=-1)
-    IROpCode.SCOPE_BEGIN(operands=['for_0_body', <StructureType.LOOP_BODY: 'loop_body'>], line=-1, column=-1)
-        # i=i+1
-        IROpCode.DECLARE(operands=[Variable(name='calc_1', dtype=INT, var_type=<VariableType.COMMON: 'common'>)], line=-1, column=-1)
-        IROpCode.OP(operands=[Variable(name='calc_1', dtype=INT, var_type=<VariableType.COMMON: 'common'>), <BinaryOps.ADD: '+'>, Reference(value_type=<ValueType.VARIABLE: 'variable'>, value=Variable(name='i', dtype=INT, var_type=<VariableType.COMMON: 'common'>)), Reference(value_type=<ValueType.LITERAL: 'literal'>, value=Literal(dtype=INT, value=1))], line=-1, column=-1)
-        IROpCode.ASSIGN(operands=[Variable(name='i', dtype=INT, var_type=<VariableType.COMMON: 'common'>), Reference(value_type=<ValueType.VARIABLE: 'variable'>, value=Variable(name='calc_1', dtype=INT, var_type=<VariableType.COMMON: 'common'>))], line=-1, column=-1)
-    IROpCode.SCOPE_END(operands=['for_0_body', <StructureType.LOOP_BODY: 'loop_body'>], line=-1, column=-1)
-    # i<3
-    IROpCode.DECLARE(operands=[Variable(name='result_variable_2', dtype=BOOLEAN, var_type=<VariableType.COMMON: 'common'>)], line=-1, column=-1)
-    IROpCode.COMPARE(operands=[Variable(name='result_variable_2', dtype=BOOLEAN, var_type=<VariableType.COMMON: 'common'>), <CompareOps.LT: '<'>, Reference(value_type=<ValueType.VARIABLE: 'variable'>, value=Variable(name='i', dtype=INT, var_type=<VariableType.COMMON: 'common'>)), Reference(value_type=<ValueType.LITERAL: 'literal'>, value=Literal(dtype=INT, value=3))], line=-1, column=-1)
-    IROpCode.COND_JUMP(operands=[Variable(name='result_variable_2', dtype=BOOLEAN, var_type=<VariableType.COMMON: 'common'>), 'for_0_body', None], line=-1, column=-1)
-    IROpCode.COND_JUMP(operands=[Variable(name='result_variable_2', dtype=BOOLEAN, var_type=<VariableType.COMMON: 'common'>), 'for_0_check', None], line=-1, column=-1)
-IROpCode.SCOPE_END(operands=['for_0_check', <StructureType.LOOP_CHECK: 'loop_check'>], line=-1, column=-1)
-IROpCode.JUMP(operands=['for_0_check'], line=-1, column=-1)
+int i
+i = 0
+for_0_check:loop_check{
+    for_0_body:loop_body{
+        # 循环体
+        int calc_1
+        calc_1 = i + i
+        i = calc_1
+    }
+    boolean result_variable_2
+    result_variable_2 = i < 3
+    if result_variable_2 goto for_0_body else goto None
+    if result_variable_2 goto for_0_check else goto None
+}
+goto for_0_check
 ```
 
 ## 兼容性影响
@@ -131,6 +120,7 @@ IROpCode.JUMP(operands=['for_0_check'], line=-1, column=-1)
 
 - 2025-11-09 独立为一篇单独的提案
 - 2025-12-28 修改了项目信息以适应最新格式
+- 2026-01-18 更新了ir示例，根据新的代码实现修改了文档
 
 ## 附录
 
@@ -158,7 +148,9 @@ class Class(Symbol, DataTypeBase):
 
     def get_name(self) -> str: ...
 
-    def is_subclass_of(self, other) -> bool: ...
+    def is_subclass_of(self, other: DataTypeBase) -> bool: ...
+
+
 ```
 
 #### 常量定义 (Constant)
@@ -194,7 +186,7 @@ class Function(Symbol):
     params: list[Parameter]  # 参数列表
     return_type: DataTypeBase  # 返回类型
     function_type: FunctionType = FunctionType.FUNCTION  # 函数类型
-    annotations: list[str] = []
+    annotations: list[str] = None
 
     def get_name(self) -> str: ...
 ```
@@ -236,11 +228,16 @@ class Reference(Symbol, Generic[T]):
 
     def get_data_type(self) -> DataTypeBase: ...
 
+    def is_literal(self) -> bool: ...
+
+    def get_display_value(self) -> str | None: ...
+
     @classmethod
     def literal(cls, value): ...
 
     @classmethod
     def variable(cls, var_name, dtype: DataType, var_type: VariableType = VariableType.COMMON) -> Reference: ...
+
 ```
 
 #### 枚举类型说明

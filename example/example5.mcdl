@@ -1,4 +1,5 @@
-/* 这样的写法能达到比for loop更快的效率 */
+/* 这样的写法能达到比for loop更高的效率 */
+@init
 func int main() {
     exec("say 123");
     _call("main");// 正常情况请勿使用

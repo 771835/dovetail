@@ -5,6 +5,8 @@
 此模块包含构成类型系统骨干的所有类型相关枚举，
 包括数据类型、结构类型、值类别和类相关类型等。
 """
+from __future__ import annotations
+
 from transpiler.utils.safe_enum import SafeEnum
 
 
@@ -39,9 +41,14 @@ class DataTypeBase:
         获取类型名称
         """
 
-    def is_subclass_of(self, other) -> bool:
+    def is_subclass_of(self, other: DataTypeBase) -> bool:
         """
         自身是否是other的子类
+        Args:
+            other: 其他类型
+
+        Returns:
+            是否是other的子类
         """
         return self is other
 
@@ -73,7 +80,7 @@ class DataType(DataTypeBase, SafeEnum):
 
     def get_name(self) -> str:
         """获取类型的显示名称"""
-        return self.name
+        return self.value
 
     def is_subclass_of(self, other):
         """检查当前类型是否为另一类型的子类型"""
@@ -168,3 +175,28 @@ class ClassType(SafeEnum):
     """
     CLASS = "class"
     INTERFACE = "interface"
+
+
+class AnnotationCategory(SafeEnum):
+    """
+    注解系统声明类型
+
+    用于区分注解类型并根据注解类型在不同时机处理
+
+    Attributes:
+        LIFECYCLE: 控制函数执行时机，如@init, @tick
+        VISIBILITY: 控制可见性和优化，如@export, @internal, @public
+        OPTIMIZATION: 控制优化行为，如@noinline
+        CONDITIONAL: 条件编译，如@noinline
+        METADATA: 元数据注解，不影响编译逻辑，如@doc, @author, @since, @deprecated
+    """
+    # 核心语义注解 - 影响代码生成和执行
+    LIFECYCLE = "lifecycle"  # @init, @tick - 控制函数执行时机
+    VISIBILITY = "visibility"  # @export, @internal, @public - 控制可见性和优化
+    OPTIMIZATION = "optimization"  # @noinline - 控制优化行为
+
+    # 条件编译注解 - 在AST阶段处理
+    CONDITIONAL = "conditional"  # @target, @version - 条件编译
+
+    # 元数据注解 - 不影响编译逻辑
+    METADATA = "metadata"  # @doc, @author, @since, @deprecated

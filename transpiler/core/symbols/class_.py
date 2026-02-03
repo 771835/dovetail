@@ -4,8 +4,9 @@ from __future__ import annotations
 from typing import Optional
 from typing import TYPE_CHECKING
 
-from attrs import define, field, validators
+from attrs import define, field
 
+from .annotation import Annotation
 from .base import Symbol
 from ..enums.types import DataTypeBase, ClassType
 
@@ -15,17 +16,18 @@ if TYPE_CHECKING:
 
 @define(slots=True)
 class Class(Symbol, DataTypeBase):
-    name: str = field(validator=validators.instance_of(str))
-    methods: set[Function] = field(validator=validators.instance_of(set))
-    interface: Optional[Class] = field(validator=validators.instance_of(Optional[DataTypeBase]))
-    parent: Optional[Class] = field(validator=validators.instance_of(Optional[DataTypeBase]))
-    properties: set[Variable] = field(validator=validators.instance_of(set))
-    type: ClassType = field(default=ClassType.CLASS, validator=validators.instance_of(ClassType))
+    name: str
+    methods: set[Function]
+    interface: Optional[Class]
+    parent: Optional[Class]
+    properties: set[Variable]
+    type: ClassType = ClassType.CLASS
+    annotations: list[Annotation] = field(factory=list)
 
     def get_name(self) -> str:
         return self.name
 
-    def is_subclass_of(self, other) -> bool:
+    def is_subclass_of(self, other: DataTypeBase) -> bool:
         if self is other:
             return True
         current_class = self.parent

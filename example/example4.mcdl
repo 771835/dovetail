@@ -1,19 +1,10 @@
-include "random"
-include "mathlib.mcdl"
+func boolean fn(int x) {
+    return false;
+}
+
 @init
-func main() fuck int{
+func main() : int{
+    int a = 1;
+    fn(a);
 
-    for (int i =0;i<=300;i=i+1) {
-        let f = abs(fibonacci(i))
-        exec(f"say {f}")
-    }
-
-    /*
-
-    func int a(){
-        exec("say 1")
-        _call("a")
-    }
-    a()
-*/
 }

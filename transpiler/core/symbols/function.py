@@ -1,8 +1,8 @@
 # coding=utf-8
-from __future__ import annotations
 
-from attrs import define, field, validators
+from attrs import define, field
 
+from .annotation import Annotation
 from .base import Symbol
 from .parameter import Parameter
 from ..enums.types import FunctionType, DataTypeBase
@@ -10,17 +10,18 @@ from ..enums.types import FunctionType, DataTypeBase
 
 @define(slots=True)
 class Function(Symbol):
-    name: str = field(validator=validators.instance_of(str))
-    params: list[Parameter] = field(validator=validators.instance_of(list))
-    return_type: DataTypeBase = field(validator=validators.instance_of(DataTypeBase))
-    function_type: FunctionType = field(validator=validators.instance_of(FunctionType), default=FunctionType.FUNCTION)
-    annotations: list[str] = field(validator=validators.instance_of(list), default=[])
+    name: str
+    params: list[Parameter]
+    return_type: DataTypeBase
+    function_type: FunctionType = FunctionType.FUNCTION
+    annotations: list[Annotation] = field(factory=list)
 
     def get_name(self) -> str:
         """
         获得函数名称
 
-        :return: 函数的名称
+        Returns:
+            (str): 函数的名称
         """
         return self.name
 

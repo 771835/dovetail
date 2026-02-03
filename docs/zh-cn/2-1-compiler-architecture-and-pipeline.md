@@ -40,5 +40,5 @@ Dovetail 编译器采用多阶段编译架构，确保代码的正确性和性�
 
 ### 4. 后端
 
-继承于类 `CodeGeneratorSpec`
+继承于类 `Backend`
 通过插件扩展，将`IR`生成为最终数据包
