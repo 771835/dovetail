@@ -3,6 +3,7 @@ from abc import abstractmethod
 from typing import Protocol
 
 from transpiler.core.backend import GenerationContext
+from transpiler.core.config import get_project_logger
 from transpiler.core.symbols import Variable, Constant, Reference
 from .template.parameter import ParameterBuilder
 from .template.template import TemplateRegistry
@@ -45,6 +46,8 @@ class TemplateCommandHandler(CommandHandler):
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:
+        # 执行预处理程序
+        self._pre_process(result,context,args)
 
         # 获取模板
         template = TemplateRegistry.get(self.template_name)
@@ -62,6 +65,35 @@ class TemplateCommandHandler(CommandHandler):
         # 添加到作用域
         for cmd in commands:
             context.current_scope.add_command(cmd)
+
+        # 执行清理程序
+        self._post_process(result, context, args)
+
+    def _pre_process(
+            self,
+            result: Variable | Constant | None,
+            context: GenerationContext,
+            args: dict[str, Reference]
+    ) -> None:
+        """处理模板前执行的处理程序"""
+        pass
+
+    def _post_process(
+            self,
+            result: Variable | Constant | None,
+            context: GenerationContext,
+            args: dict[str, Reference]
+    ) -> None:
+        """处理模板后执行的处理程序"""
+        pass
+
+class DefaultCommandHandler(CommandHandler):
+    def __init__(self, name: str):
+        self.name = name
+
+    def handle(self, result, context, args):
+        get_project_logger().error(f"Cannot find function '{self.name}'")
+        context.current_scope.add_command(f"# Cannot find function '{self.name}'")
 
 
 class CommandRegistry:
@@ -104,7 +136,10 @@ class CommandRegistry:
     @classmethod
     def get(cls, name: str) -> CommandHandler:
         """根据名称获得对应命令处理器"""
-        return cls._handlers.get(name)
+        command_handler = cls._handlers.get(name)
+        if command_handler is None:
+            return DefaultCommandHandler(name)
+        return command_handler
 
     @classmethod
     def all(cls) -> dict[str, CommandHandler]:

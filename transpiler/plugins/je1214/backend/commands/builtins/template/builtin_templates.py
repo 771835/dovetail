@@ -100,25 +100,16 @@ def register_builtin_templates():
 
         # ============ Random 系列 ============
         CommandTemplate(
-            name="random_score",
-            template="execute store result score $(target) $(objective) run random value $(min)..$(max)",
-            function_path="builtins/random/random_value_score",
-            param_names=["target", "objective", "min", "max"],
-            description="生成随机数到记分板",
-            tags=["random", "scoreboard"],
+            name="randint",
+            template="execute store result score output_randint $(objective) run random value $(min)..$(max)",
+            function_path="builtins/random/randint",
+            param_names=["objective", "min", "max"],
+            description="生成随机数到指定位置",
+            tags=["random", "math"],
             validator=lambda p: (
                 int(p['min']) <= int(p['max']),
                 "min must be less than or equal to max"
             )
-        ),
-
-        CommandTemplate(
-            name="random_storage",
-            template="execute store result storage $(target) $(target_path) int 1.0 run random value $(min)..$(max)",
-            function_path="builtins/random/random_value_storage",
-            param_names=["target", "target_path", "min", "max"],
-            description="生成随机数到存储",
-            tags=["random", "storage"]
         ),
 
         # ============ Setblock 系列 ============

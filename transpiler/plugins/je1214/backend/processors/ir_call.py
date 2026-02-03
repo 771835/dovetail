@@ -18,17 +18,19 @@ class IRCallProcessor(IRProcessor):
         func: Function = instruction.get_operands()[1]
         args: dict[str, Reference[Variable | Constant | Literal]] = instruction.get_operands()[2]
         if func.function_type == FunctionType.BUILTIN:
+            # 搜索内置函数
             CommandRegistry.get(func.name).handle(result, context, args)
-            # TODO 内置函数支持
-            # BuiltinFuncMapping.get(func.get_name())(result, self, args)
             return
-        jump_scope = context.current_scope.resolve_scope(func.name)
+
+        # 查找将要调用的函数的作用域
+        call_scope = context.current_scope.resolve_scope(func.name)
+        # 填充参数
         for (param_name, arg), param in zip(args.items(), func.params):
             if arg.is_literal():
                 context.current_scope.add_command(
                     Copy.copy_literals(
                         DataPath(
-                            jump_scope.get_symbol_path(param_name),
+                            call_scope.get_symbol_path(param_name),
                             context.objective,
                             StorageLocation.get_storage(param.get_data_type())
                         ),
@@ -39,7 +41,7 @@ class IRCallProcessor(IRProcessor):
                 context.current_scope.add_command(
                     Copy.copy(
                         DataPath(
-                            jump_scope.get_symbol_path(param_name),
+                            call_scope.get_symbol_path(param_name),
                             context.objective,
                             StorageLocation.get_storage(param.get_data_type())
                         ),
@@ -50,11 +52,14 @@ class IRCallProcessor(IRProcessor):
                         )
                     )
                 )
+
+        # 调用函数
         context.current_scope.add_command(
             FunctionBuilder.run(
-                f"{context.namespace}:{jump_scope.get_absolute_path('/')}"
+                f"{context.namespace}:{call_scope.get_absolute_path('/')}"
             )
         )
+        # 处理返回值
         if func.return_type != DataType.NULL and result is not None:
             context.current_scope.add_command(
                 Copy.copy(
@@ -64,7 +69,7 @@ class IRCallProcessor(IRProcessor):
                         StorageLocation.get_storage(result.dtype)
                     ),
                     DataPath(
-                        f"return_{hash(jump_scope.get_absolute_path())}",
+                        f"return_{hash(call_scope.get_absolute_path())}",
                         context.objective,
                         StorageLocation.get_storage(func.return_type)
                     )

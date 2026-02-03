@@ -19,7 +19,7 @@ class IRReturnProcessor(IRProcessor):
         return_value: Variable | Constant | Literal = instruction.get_operands()[0].value
         # 查找需要退出的函数作用域
         for scope in reversed(context.scope_stack):
-            if scope.name == StructureType.FUNCTION:
+            if scope.scope_type == StructureType.FUNCTION:
                 function_scope = scope
                 current_path = context.current_scope.get_absolute_path()
                 func_path = function_scope.get_absolute_path()

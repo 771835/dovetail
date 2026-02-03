@@ -1,4 +1,9 @@
 // _minecraft.mcdl - 临时内置函数实现
+
+func setblock(int x,int y,int z,string block_id,string mode = "destroy") {
+    exec(f"setblock {x} {y} {z} {block_id} {mode}")
+}
+
 func tp(string target,string x,string y,string z) {
     exec(f"tp {target} {x} {y} {z}")
 }

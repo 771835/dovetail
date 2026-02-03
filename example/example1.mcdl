@@ -1,11 +1,13 @@
 include "_minecraft.mcdl"
-
+include "random"
 func foo():int{
     return 350234;
 }
 @init
 func bar(){
-    if (foo()==350234/1) {
+    int r = randint(0,3);
+
+    if (foo()==350234/1+r) {
         exec("say 1")
         print("1")
     }else {

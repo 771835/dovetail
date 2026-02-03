@@ -13,6 +13,7 @@ def initialize_command_system():
     # 导入所有命令处理器
     from .execution import ExecCommand
     from .ui import TellrawJsonCommand, TellrawTextCommand
+    from .math import AbsCommand, RandintCommand
 
 
 # 在插件加载时调用
