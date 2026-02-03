@@ -1,12 +1,12 @@
 # coding=utf-8
 import re
+import uuid
 
 from transpiler.core.config import get_project_logger
 from .parameter import TemplateParameter, ParamBindingType
 from .template import CommandTemplate, TemplateRegistry
 from ... import LiteralPoolTools, DataPath, Copy, StorageLocation
 from ....commands import FunctionBuilder
-import uuid
 
 
 class TemplateEngine:
@@ -88,7 +88,6 @@ class TemplateEngine:
 
         return commands
 
-
     def render(
             self,
             template_str: str,
@@ -113,7 +112,6 @@ class TemplateEngine:
             return [self.render_inline(template_str, params)]
         else:
             return self.render_macro(function_path, params)
-
 
     def render_from_template(
             self,

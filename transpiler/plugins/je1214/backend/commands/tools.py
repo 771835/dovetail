@@ -58,3 +58,5 @@ class LiteralPoolTools:
             return DataPath(f"literal_pool.str.{hash(literal)}", target, StorageLocation.STORAGE)
         elif isinstance(literal, int):
             return DataPath(f"literal_pool.int.{'n' if literal < 0 else ''}{abs(literal)}", target)
+        else:
+            return DataPath(f"null", target)

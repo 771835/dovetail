@@ -1,9 +1,9 @@
 # coding=utf-8
-from dataclasses import dataclass, field
-from typing import Callable, Any
-from pathlib import Path
 import json
+from dataclasses import dataclass, field
 from functools import lru_cache
+from pathlib import Path
+from typing import Callable, Any
 
 
 @dataclass
@@ -18,7 +18,7 @@ class CommandTemplate:
     optional_params: dict[str, Any] = field(default_factory=dict)  # 可选参数及默认值
     validator: Callable | None = None  # 参数验证器
     description: str = ""  # 模板描述
-    tags: list[str] = field(default_factory=list) # 命令分类标签
+    tags: list[str] = field(default_factory=list)  # 命令分类标签
 
     def validate_params(self, params: dict[str, Any]) -> tuple[bool, str]:
         """
@@ -124,6 +124,7 @@ class TemplateRegistry:
     def get(cls, name: str) -> CommandTemplate | None:
         """通过名称获取模板（带缓存）"""
         return cls._templates.get(name)
+
     @classmethod
     def has(cls, name: str) -> bool:
         return name in cls._templates

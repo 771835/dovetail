@@ -15,9 +15,9 @@ from ._return import ReturnBuilder
 from ._scoreboard import ScoreboardBuilder
 from ._summon import SummonBuilder
 from .binary_op import BinaryOp
-from .unary_op import UnaryOp
 from .compare import Compare
 from .copy import Copy
 from .strlib import *
+from .unary_op import UnaryOp
 
 MINECRAFT_VERSION = "1.21.4"

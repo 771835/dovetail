@@ -1,6 +1,6 @@
 # coding=utf-8
-from .template import TemplateRegistry
 from .base import CommandRegistry
+from .template import TemplateRegistry
 from .template.builtin_templates import register_builtin_templates
 
 

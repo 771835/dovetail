@@ -5,8 +5,8 @@ from typing import Any, Optional
 from attrs import define
 
 from transpiler.core.backend import Scope
-from transpiler.core.symbols import Reference
 from transpiler.core.enums.types import ValueType, DataTypeBase
+from transpiler.core.symbols import Reference
 
 
 class ParamBindingType(Enum):

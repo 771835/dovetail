@@ -1,6 +1,7 @@
-from ..template import TemplateRegistry
+# coding=utf-8
 from ..base import CommandRegistry, CommandHandler
 from ..template import TemplateEngine, ParameterBuilder, TemplateParameter, CommandTemplate
+from ..template import TemplateRegistry
 from ...tools import LiteralPoolTools
 
 

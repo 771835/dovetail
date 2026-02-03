@@ -94,7 +94,7 @@ class BinarySerializer:
         if tag == 0xDA:  # 字符串键
             key_len = struct.unpack('>H', binary_data[index:index + 2])[0]
             index += 2
-            key = binary_data[index:index + key_len].decode('utf-8')
+            key = binary_data[index:index + key_len].decode()
             index += key_len
             return key, index
 
@@ -243,7 +243,7 @@ class BinarySerializer:
             elif tag == 0xDC:  # 字符串
                 str_len = struct.unpack('>I', binary_data[index:index + 4])[0]
                 index += 4
-                val = binary_data[index:index + str_len].decode('utf-8')
+                val = binary_data[index:index + str_len].decode()
                 index += str_len
                 return val
 

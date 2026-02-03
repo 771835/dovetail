@@ -307,7 +307,7 @@ def cleanup_cache(max_age_days: int = 30, max_size_mb: int = 1024):
     if cache_table_file.exists():
         try:
             import json
-            with open(cache_table_file, 'r', encoding='utf-8') as f:
+            with open(cache_table_file, encoding='utf-8') as f:
                 cache_table = json.load(f)
         except Exception as e:
             logger.warning(f"Failed to read cache table: {str(e)}")

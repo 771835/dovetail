@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 初始化函数写入器
 
@@ -20,7 +21,7 @@ class InitializerFunctionWriter(OutputWriter):
         with open(initializer_path, "w") as f:
             f.write(ScoreboardBuilder.add_objective(context.objective, "dummy", "Main objective") + "\n")
             f.write(FunctionBuilder.run(f"{context.namespace}:literal_pool_init") + "\n")
-            f.write(DataBuilder.modify_storage_set_value("stringlib:input", "concat", "['','']")+ "\n")
+            f.write(DataBuilder.modify_storage_set_value("stringlib:input", "concat", "['','']") + "\n")
             if context.config.debug:
                 f.write(f"say Datapack '{context.config.namespace}' is initialized\n")
 

@@ -25,7 +25,8 @@ class IRContinueProcessor(IRProcessor):
             context.add_command("# No loop scope found")
             return
         # 标记循环继续
-        context.current_scope.flags[f"continue:{loop_check_path}"] = current_path.count(".") - loop_check_path.count(".") - 1
+        context.current_scope.flags[f"continue:{loop_check_path}"] = current_path.count(".") - loop_check_path.count(
+            ".") - 1
 
         context.current_scope.add_command(
             ScoreboardBuilder.set_score(

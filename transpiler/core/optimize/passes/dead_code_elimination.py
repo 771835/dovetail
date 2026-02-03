@@ -20,7 +20,7 @@ from transpiler.core.symbols import Reference
 
 
 # FIXME:不同作用域下定义的同名变量都会被标记为活跃
-
+# FIXME:三元表达式会被错误优化，见example9.mcdl，疑似本优化管道
 @register_pass(PassMetadata(
     name="dead_code_elimination",
     display_name="死代码消除",

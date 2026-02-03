@@ -7,7 +7,7 @@ from transpiler.core.config import get_project_logger
 from transpiler.core.enums import BinaryOps, DataType
 from transpiler.core.enums.types import DataTypeBase
 from transpiler.core.instructions import IRInstruction, IROpCode
-from transpiler.core.symbols import Constant, Literal, Variable, Reference
+from transpiler.core.symbols import Constant, Literal, Variable
 from ..backend import JE1214Backend
 from ..commands.binary_op import BinaryOp
 from ..commands.strlib import strcat
@@ -15,7 +15,7 @@ from ..commands.tools import DataPath, StorageLocation
 
 
 @ir_processor(JE1214Backend, IROpCode.BINARY_OP)
-class IROpProcessor(IRProcessor): # 仅应支持基本类型运算
+class IROpProcessor(IRProcessor):  # 仅应支持基本类型运算
     def process(self, instruction: IRInstruction, context: GenerationContext):
         result: Variable | Constant = instruction.get_operands()[0]
         result_path = DataPath(

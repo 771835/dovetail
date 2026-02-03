@@ -1,9 +1,9 @@
 # coding=utf-8
-from ..plugin_api import Plugin
-from ..plugin_api.v2.registry import registry_backend
+from transpiler.utils.logger import get_logger
 from .backend.backend import JE1214Backend
 from .backend.processors import *  # NOQA
-from transpiler.utils.logger import get_logger
+from ..plugin_api import Plugin
+from ..plugin_api.v2.registry import registry_backend
 
 
 class PluginMain(Plugin):

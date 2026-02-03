@@ -64,6 +64,8 @@ class Copy:
             return DataBuilder.modify_storage_set_value(*reversed(target), f"\"{auto_escape(source)}\"")
         elif source is None:
             return ScoreboardBuilder.set_score(*target, 0)
+        else:
+            return None
 
     @staticmethod
     def copy(
