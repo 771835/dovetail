@@ -213,10 +213,11 @@ class IRGenerator(transpilerVisitor):
     ) -> Result:
         """通用函数/方法声明处理"""
         function_name = NameNormalizer.normalize(ctx.ID().getText())
-        return_type = self._get_type_definition(ctx.type_().getText(), True) if ctx.type_() else DataType.NULL
-
+        return_type = self._get_type_definition(ctx.type_(), True) if ctx.type_() else DataType.NULL
+        func_type = func_type if func_type != FunctionType.FUNCTION or ctx.block().SEMI() is None else FunctionType.FUNCTION_UNIMPLEMENTED
         # 检查重复定义
-        if self.current_scope.has_symbol(function_name):
+        symbol = self.current_scope.find_symbol(function_name)
+        if isinstance(symbol, Function) and symbol.function_type != FunctionType.FUNCTION_UNIMPLEMENTED:
             raise DuplicateDefinitionError(
                 function_name,
                 line=self._get_current_line(),
@@ -224,7 +225,7 @@ class IRGenerator(transpilerVisitor):
                 filename=self.filename
             )
 
-        # 检查函数名冲突
+        # 检查同名嵌套函数名冲突
         if check_name_conflict and not self.config.same_name_function_nesting:
             current = self.current_scope
             while current:
@@ -244,7 +245,7 @@ class IRGenerator(transpilerVisitor):
         if param_context.paramDecl():
             for param_declaration in param_context.paramDecl():
                 param_name = NameNormalizer.normalize(param_declaration.ID().getText())
-                param_type = self._get_type_definition(param_declaration.type_().getText())
+                param_type = self._get_type_definition(param_declaration.type_())
                 param_default = self.visit(param_declaration.expr()).value if param_declaration.expr() else None
                 if param_default and param_default.get_data_type() != param_type:
                     raise ArgumentTypeMismatchError(
@@ -282,29 +283,24 @@ class IRGenerator(transpilerVisitor):
         )
 
         # 添加到符号表
-        if not self.current_scope.add_symbol(func):
-            raise DuplicateDefinitionError(
-                function_name,
-                line=self._get_current_line(),
-                column=self._get_current_column(),
-                filename=self.filename
-            )
+        self.current_scope.add_symbol(func, force=True)
         self._add_ir_instruction(IRFunction(func))
 
         # 创建作用域并处理函数体
-        with self._scoped_environment(function_name, StructureType.FUNCTION):
-            for param_declaration in parameters:
-                if not self.current_scope.add_symbol(param_declaration):
-                    raise DuplicateDefinitionError(
-                        param_declaration.get_name(),
-                        line=self._get_current_line(),
-                        column=self._get_current_column(),
-                        filename=self.filename
-                    )
-                self._add_ir_instruction(IRDeclare(param_declaration.var))
+        if ctx.block().SEMI() is None:  # 空实现函数不生成作用域
+            with self._scoped_environment(function_name, StructureType.FUNCTION):
+                for param_declaration in parameters:
+                    if not self.current_scope.add_symbol(param_declaration):
+                        raise DuplicateDefinitionError(
+                            param_declaration.get_name(),
+                            line=self._get_current_line(),
+                            column=self._get_current_column(),
+                            filename=self.filename
+                        )
+                    self._add_ir_instruction(IRDeclare(param_declaration.var))
 
-            # 处理函数体
-            self.visit(ctx.block())
+                # 处理函数体
+                self.visit(ctx.block())
 
         return Result(Reference(ValueType.FUNCTION, func))
 
@@ -351,7 +347,7 @@ class IRGenerator(transpilerVisitor):
                         and current.stype == StructureType.FUNCTION
                         and current.get_parent().find_symbol(func_name) is func_symbol):
                     raise CompileRecursionError(
-                        f"函数 '{func_name}' 检测到递归调用，但递归支持未启用，启用递归请使用参数--enable-recursion",
+                        f"函数 '{func_name}' 检测到递归调用，但递归支持未启用，启用递归请使用参数--recursion",
                         line=self._get_current_line(),
                         column=self._get_current_column(),
                         filename=self.filename
@@ -474,15 +470,16 @@ class IRGenerator(transpilerVisitor):
 
     def _get_type_definition(
             self,
-            type_name: str,
+            type_: transpilerParser.TypeContext,
             allow_null=False) -> DataType | Class:
         """获取类型的具体定义（内置类型返回DataType，类返回Class实例）null特殊处理"""
-        type_name = NameNormalizer.normalize(type_name)
+        original_type_name = type_.ID().getText()
+        type_name = NameNormalizer.normalize(original_type_name)
         try:
             if builtin_type := DataType.get_by_value(type_name):
                 if builtin_type == DataType.NULL and not allow_null:
                     raise UndefinedTypeError(
-                        type_name,
+                        original_type_name,
                         line=self._get_current_line(),
                         column=self._get_current_column(),
                         filename=self.filename
@@ -494,7 +491,7 @@ class IRGenerator(transpilerVisitor):
             if symbol:
                 return symbol
         raise UndefinedTypeError(
-            type_name,
+            original_type_name,
             line=self._get_current_line(),
             column=self._get_current_column(),
             filename=self.filename
@@ -590,7 +587,7 @@ class IRGenerator(transpilerVisitor):
     def visitVarDecl(self, ctx: transpilerParser.VarDeclContext):
         """处理变量声明"""
         var_name = NameNormalizer.normalize(ctx.ID().getText())
-        dtype: DataTypeBase = self._get_type_definition(ctx.type_().getText()) if ctx.type_() else DataType.NULL
+        dtype: DataTypeBase = self._get_type_definition(ctx.type_()) if ctx.type_() else DataType.NULL
         var_value: Reference | None = None
 
         if ctx.expr():  # 如果存在初始值
@@ -651,7 +648,7 @@ class IRGenerator(transpilerVisitor):
 
     def visitConstDecl(self, ctx: transpilerParser.ConstDeclContext):
         name = NameNormalizer.normalize(ctx.ID().getText())
-        dtype: DataTypeBase = self._get_type_definition(ctx.type_().getText()) if ctx.type_() else DataType.NULL
+        dtype: DataTypeBase = self._get_type_definition(ctx.type_()) if ctx.type_() else DataType.NULL
         result = self.visit(ctx.expr())  # 处理初始化表达式
         # 如果没有显式指定类型，则根据初始值推断类型
         if dtype == DataType.NULL:
@@ -715,12 +712,12 @@ class IRGenerator(transpilerVisitor):
         types = ctx.type_()
         # 使用规则显式检查
         parent: Class | None = self._get_type_definition(
-            types[0].getText()) if ctx.EXTENDS() else None
+            types[0]) if ctx.EXTENDS() else None
         # 接口位置取决于EXTENDS是否存在
         interface: Class | None = self._get_type_definition(
-            types[1].getText()) if ctx.EXTENDS() and ctx.IMPLEMENTS() else (
+            types[1]) if ctx.EXTENDS() and ctx.IMPLEMENTS() else (
             self._get_type_definition(
-                types[0].getText()) if not ctx.EXTENDS() and ctx.IMPLEMENTS() else None
+                types[0]) if not ctx.EXTENDS() and ctx.IMPLEMENTS() else None
         )
         properties: set[Variable] = set()
         methods: set[Function] = set()
@@ -757,7 +754,7 @@ class IRGenerator(transpilerVisitor):
             for property_ctx in ctx.classPropertyDecl():
                 class_property = Variable(
                     property_ctx.ID().getText(),
-                    self._get_type_definition(property_ctx.type_().getText())
+                    self._get_type_definition(property_ctx.type_())
                 )
                 if not self.current_scope.add_symbol(class_property):
                     raise DuplicateDefinitionError(
@@ -791,7 +788,7 @@ class IRGenerator(transpilerVisitor):
 
     def visitInterfaceDecl(self, ctx: transpilerParser.InterfaceDeclContext):
         class_name = NameNormalizer.normalize(ctx.ID().getText())
-        extends = self._get_type_definition(ctx.type_().getText())
+        extends = self._get_type_definition(ctx.type_())
         properties: set[Variable] = set()
         methods: set[Function] = set()
 
@@ -1330,7 +1327,7 @@ class IRGenerator(transpilerVisitor):
         loop_identifier = next(self.counter)
         with self._scoped_environment(f"while_{loop_identifier}_check", StructureType.LOOP_CHECK) as loop_check:
             with self._scoped_environment(f"while_{loop_identifier}_body", StructureType.LOOP_BODY) as loop_body:
-                self.visit(ctx.block())
+                self.visit(ctx.statementBlock())
 
             # 从检查函数调用循环体
             condition_value = self.visit(ctx.condition()).value.value
@@ -1354,7 +1351,7 @@ class IRGenerator(transpilerVisitor):
                 with self._scoped_environment(f"for_{loop_identifier}_body", StructureType.LOOP_BODY) as loop_body:
 
                     # 处理循环体
-                    self.visit(ctx.block())
+                    self.visit(ctx.statementBlock())
 
                     # 处理更新表达式
                     if ctx.forControl().forUpdate():
@@ -1386,11 +1383,12 @@ class IRGenerator(transpilerVisitor):
 
         # 创建if分支作用域
         with self._scoped_environment(f"if_{if_identifier}", StructureType.CONDITIONAL) as if_scope:
-            self.visit(ctx.block(0))
+
+            self.visit(ctx.statementBlock(0))
         # 创建else分支作用域
-        if ctx.block(1):
+        if ctx.statementBlock(1):
             with self._scoped_environment(f"else_{if_identifier}", StructureType.CONDITIONAL) as else_scope:
-                self.visit(ctx.block(1))
+                self.visit(ctx.statementBlock(1))
             self._add_ir_instruction(IRCondJump(condition_ref.value, if_scope.name, else_scope.name))
         else:
             self._add_ir_instruction(IRCondJump(condition_ref.value, if_scope.name))

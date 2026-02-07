@@ -51,7 +51,7 @@ classPropertyDecl
 
 /* 类型系统(阉割版) */
 type
-    : ID // ('[' (type ',')* ']')?
+    : ID ('[' NUMBER ']')?
     | NULL
     ;
 
@@ -80,8 +80,7 @@ paramDecl
 
 
 block
-    : statement // 单条语句
-    | LBRACE statement* RBRACE              // 代码块，包含多个语句
+    : LBRACE statement* RBRACE              // 代码块，包含多个语句
     | SEMI // 空的代码块
     ;
 
@@ -110,8 +109,8 @@ continueStmt
     ;
 
 forStmt
-    : FOR LPAREN forControl RPAREN block        // 传统for循环
-    | FOR LPAREN type ID COLON expr RPAREN block       // 增强for循环 (expr需为可迭代class)
+    : FOR LPAREN forControl RPAREN statementBlock        // 传统for循环
+    | FOR LPAREN type ID COLON expr RPAREN statementBlock       // 增强for循环 (expr需为可迭代class)
     ;
 
 
@@ -135,7 +134,7 @@ forUpdate
 
 
 whileStmt
-    : WHILE LPAREN condition RPAREN block            // while循环
+    : WHILE LPAREN condition RPAREN statementBlock            // while循环
     ;
 
 constDecl
@@ -148,6 +147,7 @@ varDecl
     : LET ID QUESTION? ASSIGN expr
     | ID (ARROW | COLON) type QUESTION? (ASSIGN expr)?
     | type ID QUESTION? (ASSIGN expr)? // 更符合大多数人习惯的变量声明
+    | LET ID QUESTION? (ARROW | COLON) type
     | LET ID QUESTION? (ARROW | COLON) type ASSIGN expr
     ;
 
@@ -157,9 +157,13 @@ returnStmt
     ;
 
 ifStmt
-    : IF LPAREN condition RPAREN block (ELSE block)?  // 条件语句
+    : IF LPAREN condition RPAREN statementBlock (ELSE statementBlock)?  // 条件语句
     ;
 
+statementBlock
+    : statement
+    | block
+    ;
 
 /* 表达式系统 */
 expr

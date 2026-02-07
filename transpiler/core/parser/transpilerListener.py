@@ -1,4 +1,3 @@
-# coding=utf-8
 # Generated from E:/python/minecraft-datapack-language/antlr/transpiler.g4 by ANTLR 4.13.2
 from antlr4 import *
 
@@ -209,6 +208,14 @@ class transpilerListener(ParseTreeListener):
 
     # Exit a parse tree produced by transpilerParser#ifStmt.
     def exitIfStmt(self, ctx: transpilerParser.IfStmtContext):
+        pass
+
+    # Enter a parse tree produced by transpilerParser#statementBlock.
+    def enterStatementBlock(self, ctx: transpilerParser.StatementBlockContext):
+        pass
+
+    # Exit a parse tree produced by transpilerParser#statementBlock.
+    def exitStatementBlock(self, ctx: transpilerParser.StatementBlockContext):
         pass
 
     # Enter a parse tree produced by transpilerParser#TermExpr.

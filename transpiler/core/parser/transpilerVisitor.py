@@ -1,4 +1,3 @@
-# coding=utf-8
 # Generated from E:/python/minecraft-datapack-language/antlr/transpiler.g4 by ANTLR 4.13.2
 from antlr4 import *
 
@@ -110,6 +109,10 @@ class transpilerVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by transpilerParser#ifStmt.
     def visitIfStmt(self, ctx: transpilerParser.IfStmtContext):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by transpilerParser#statementBlock.
+    def visitStatementBlock(self, ctx: transpilerParser.StatementBlockContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by transpilerParser#TermExpr.

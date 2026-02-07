@@ -222,6 +222,23 @@ class Scope:
             current = current.parent
         raise ValueError(f"Undefined scope: {name}")
 
+    def resolve_symbol(self, name: str) -> Symbol | None:
+        """逐级向上查找该作用域可访问到的符号"""
+        current = self
+        while current:
+            if name in current.symbols:
+                return current.symbols[name]
+            current = current.parent
+        return None
+
+    def resolve_symbol_scope(self, name: str) -> 'Scope | None':
+        current = self
+        while current:
+            if name in current.symbols:
+                return current
+            current = current.parent
+        return None
+
 
 @define
 class GenerationContext:

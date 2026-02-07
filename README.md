@@ -5,11 +5,11 @@
 > Minecraft数据包编译语言 - 具有部分面向对象特性的解决方案
 >
 > **目前状态：**
-> - **优点:** 语法基本可用，能够编译简单程序。  
-> - **已知局限:** 缺乏大量标准库、错误信息不友好、优化器可能引入Bug、尚未实现完整的OOP特性。  
+> - **优点:** 语法基本可用，能够编译简单程序。
+> - **已知局限:** 缺乏大量标准库、错误信息不友好、优化器可能引入Bug、尚未实现完整的OOP特性。
 > - **生产环境建议:** 如果您需要用于生产环境，请考虑使用 [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)
     或其他更成熟的项目。  
-> 由于技术限制，短期内将不会有新的功能实现提交。
+    > 由于技术限制，短期内将不会有新的功能实现提交。
 
 Dovetail 是一种具有面向对象特征的语言，可以编译成`Minecraft 数据包`(以下简称`数据包`)。它旨在将传统命令的过程导向改变为目标导向。
 
@@ -110,8 +110,10 @@ A: 安装对应后端插件
 > 由于 `Minecraft` 版本的原因，实际使用时可能会对以下项目进行一定的必要修改。如果您希望您的项目不被使用或修改，请随时联系本项目作者讨论移除事宜。
 
 - 项目[fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) 快速整数开方
+
 <!--- 项目[DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) 安全字符串拼接，NBT转JSON等SNBT与字符串操作-->
 <!-- 由于dnt不支持1.21.4故不展示 -->
+
 - 项目[StringLib](https://github.com/CMDred/StringLib) 提供了大量不安全但快速的字符串操作手段
 
 ### 数据使用

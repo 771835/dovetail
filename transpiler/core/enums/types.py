@@ -21,11 +21,13 @@ class FunctionType(SafeEnum):
 
     Attributes:
         FUNCTION: 用户定义的函数
+        FUNCTION_UNIMPLEMENTED: 声明但未实现的函数
         LIBRARY: 从库加载的函数
         BUILTIN: 转译器内置函数
         METHOD: 类方法函数
     """
     FUNCTION = "function"  # 用户定义的函数
+    FUNCTION_UNIMPLEMENTED = "function-unimplemented"  # 声明但未实现的函数
     LIBRARY = "library"  # 从库加载的函数
     BUILTIN = "built-in"  # 后端内建函数
     METHOD = "method"  # 类方法函数

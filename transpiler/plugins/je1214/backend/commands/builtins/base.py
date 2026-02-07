@@ -47,7 +47,7 @@ class TemplateCommandHandler(CommandHandler):
             args: dict[str, Reference]
     ) -> None:
         # 执行预处理程序
-        self._pre_process(result,context,args)
+        self._pre_process(result, context, args)
 
         # 获取模板
         template = TemplateRegistry.get(self.template_name)
@@ -86,6 +86,7 @@ class TemplateCommandHandler(CommandHandler):
     ) -> None:
         """处理模板后执行的处理程序"""
         pass
+
 
 class DefaultCommandHandler(CommandHandler):
     def __init__(self, name: str):

@@ -29,7 +29,7 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 | 编号      | 标题                | 状态          | 分类   | 备注          |
 |---------|-------------------|-------------|------|-------------|
 | DFP 0   | McFuncDSL 提案索引与流程 | Active      | 元提案  | -           |
-| DFP 1   | 基础语法规范            | Draft       | 核心语言 | -           |
+| DFP 1   | 基础语法规范            | Active      | 核心语言 | -           |
 | DFP 2   | IR 设计与规范          | Active      | 核心语言 | -           |
 | DFP 5   | 数组支持              | Deferred    | 核心语言 | 未编写         |
 | DFP 6   | 内置注解规范            | Proposed    | 核心语言 | -           |

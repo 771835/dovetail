@@ -241,16 +241,15 @@ class Compiler:
             is_tail (bool): 是否为最后一个子节点
         """
         # 更明确的变量名
-        scope_type_display = f" ({node.stype.value})" if node.stype else ""
-        tree_line = f"{prefix}{'└── ' if is_tail else '├── '}{node.name}{scope_type_display}"
+        stype_display = f" ({node.stype.value})" if node.stype else ""
+        tree_line = f"{prefix}{'└── ' if is_tail else '├── '}{NameNormalizer.denormalize(node.name)}{stype_display}"
         print(tree_line)
 
         # 子节点处理
         child_nodes = node.children
         for child_index, child_node in enumerate(child_nodes):
             child_prefix = prefix + ("    " if is_tail else "│   ")
-            Compiler._print_scope_tree(
-                child_node, child_prefix, child_index == len(child_nodes) - 1)
+            Compiler._print_scope_tree(child_node, child_prefix, child_index == len(child_nodes) - 1)
 
 
 def main():

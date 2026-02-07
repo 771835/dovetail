@@ -64,7 +64,7 @@ class Compare:
             commands: list[str] = []
             # 将待比较的两项复制到存储中
             if a.location == StorageLocation.SCORE:
-                a = DataPath(a.path,a.target,StorageLocation.STORAGE)
+                a = DataPath(a.path, a.target, StorageLocation.STORAGE)
                 commands.append(Copy.copy_score_to_storage(a, a))
             else:
                 b = DataPath(b.path, b.target, StorageLocation.STORAGE)

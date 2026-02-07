@@ -10,4 +10,4 @@ from ..backend import JE1214Backend
 @ir_processor(JE1214Backend, IROpCode.FUNCTION)
 class IRFunctionProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
-        pass
+        context.current_scope.add_symbol(instruction.operands[0])
