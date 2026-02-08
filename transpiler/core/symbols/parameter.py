@@ -11,7 +11,7 @@ from .variable import Variable
 from ..enums.types import DataTypeBase
 
 
-@define(slots=True)
+@define(slots=True,repr=False)
 class Parameter(Symbol):
     var: Variable
     optional: bool = False
@@ -22,6 +22,9 @@ class Parameter(Symbol):
 
     def get_data_type(self) -> DataTypeBase:
         return self.var.dtype
+
+    def __repr__(self):
+        return f"{self.var.name}: {self.var.dtype.get_name()}"
 
     def __hash__(self):
         return hash((self.var, self.optional))

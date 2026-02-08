@@ -14,6 +14,7 @@ def initialize_command_system():
     from .execution import ExecCommand
     from .ui import TellrawJsonCommand, TellrawTextCommand
     from .math import AbsCommand, RandintCommand
+    from . import data
 
 
 # 在插件加载时调用

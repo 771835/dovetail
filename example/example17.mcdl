@@ -1,3 +1,4 @@
+# FIXME:由于版本原因无法使用，待修复
 include "fraction.mcdl"
 
 // 验证函数：返回布尔值而不是打印

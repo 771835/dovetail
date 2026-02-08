@@ -1,5 +1,6 @@
 # coding=utf-8
 from enum import Enum
+from itertools import chain
 from typing import Any, Optional
 
 from attrs import define
@@ -76,7 +77,8 @@ class ParameterBuilder:
         """自动构建参数"""
         return TemplateParameter.from_reference(name, arg, self.scope, self.objective)
 
-    def build_all(self, args: dict[str, Reference], param_names: list[str]) -> dict[str, TemplateParameter]:
+    def build_all(self, args: dict[str, Reference], param_names: list[str] | chain[str]) -> dict[
+        str, TemplateParameter]:
         """批量构建参数"""
         return {
             name: self.build(name, args[name])

@@ -219,6 +219,16 @@ def register_builtin_templates():
             description="设置天气",
             tags=["world", "weather"]
         ),
+
+        CommandTemplate(
+            name="substring",
+            template="data modify storage $(target1) $(path1) set string storage $(target2) $(path2) $(start) $(end)",
+            function_path="builtins/string/substring",
+            param_names=["target1", "target2", "path1", "path2"],
+            optional_params={"start": "", "end": ""},
+            description="截取字符串切片",
+            tags=["string", "data"]
+        ),
     ]
 
     # 批量注册

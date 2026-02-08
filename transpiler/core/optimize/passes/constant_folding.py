@@ -105,14 +105,21 @@ class ConstantFoldingPass(IROptimizationPass):
         def copy_state(self) -> dict[str, Reference | ConstantFoldingPass.FoldingFlags]:
             """复制当前符号表状态（包括父级）"""
             state = {}
+            # 从根到叶收集
+            stack = []
             current = self
             while current:
-                state.update(current.table)
+                stack.append(current)
                 current = current.parent
+            # 反向应用（父级先，子级后）
+            for scope in reversed(stack):
+                state.update(scope.table)
             return state
+
 
     def __init__(self, builder: IRBuilder, config: CompileConfig):
         super().__init__(builder, config)
+        self.changed = False
         self.global_table = self.SymbolTable("global", StructureType.GLOBAL)
         self.current_table: ConstantFoldingPass.SymbolTable = self.global_table
 
@@ -186,7 +193,7 @@ class ConstantFoldingPass(IROptimizationPass):
             handler = instruction_handlers.get(instr.opcode)
             if handler:
                 if handler(iterator, instr):  # NOQA
-                    self._changed = True
+                    self.changed = True
 
     def _find(self, name: Variable | Literal | Constant | Reference) -> Reference[Literal] | FoldingFlags:
         """从符号表搜索符号的最终值"""

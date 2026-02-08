@@ -75,7 +75,15 @@ class JE1214Backend(Backend):
 
     def _get_builtin_functions(self) -> dict[str, str]:
         templates: dict[str, str] = {}
-        for template in TemplateRegistry.all().values():
-            templates[template.function_path] = '\n'.join(
-                f"${line}" if '$' in line else line for line in template.template.split('\n'))
+        for template_ in TemplateRegistry.all().values():
+            if self.config.debug:
+                templates[template_.function_path] = \
+                    f'''# {template_.function_path}
+# {template_.name}({", ".join(template_.param_names)}, {", ".join(f"{name}={value}" for name, value in template_.optional_params.items())})
+# {template_.description}
+'''
+            else:
+                templates[template_.function_path] = ''
+            templates[template_.function_path] += '\n'.join(
+                f"${line}" if '$' in line else line for line in template_.template.split('\n'))
         return templates

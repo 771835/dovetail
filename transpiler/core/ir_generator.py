@@ -473,17 +473,21 @@ class IRGenerator(transpilerVisitor):
             type_: transpilerParser.TypeContext,
             allow_null=False) -> DataType | Class:
         """获取类型的具体定义（内置类型返回DataType，类返回Class实例）null特殊处理"""
+        if type_.NULL():
+            if allow_null:
+                return DataType.NULL
+            else:
+                raise UndefinedTypeError(
+                    "null",
+                    line=self._get_current_line(),
+                    column=self._get_current_column(),
+                    filename=self.filepath
+                )
+
         original_type_name = type_.ID().getText()
         type_name = NameNormalizer.normalize(original_type_name)
         try:
             if builtin_type := DataType.get_by_value(type_name):
-                if builtin_type == DataType.NULL and not allow_null:
-                    raise UndefinedTypeError(
-                        original_type_name,
-                        line=self._get_current_line(),
-                        column=self._get_current_column(),
-                        filename=self.filepath
-                    )
                 return builtin_type
         except ValueError:
             pass  # DataType不存在此类型,去寻找符号

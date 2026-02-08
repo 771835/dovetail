@@ -60,15 +60,6 @@ class Builtins(Library):
                 FunctionType.LIBRARY
             ): self._print,
             Function(
-                "strcat",
-                [
-                    Parameter(Variable("dest", DataType.STRING)),
-                    Parameter(Variable("src", DataType.STRING))
-                ],
-                DataType.STRING,
-                FunctionType.LIBRARY
-            ): self._strcat,
-            Function(
                 "__call",
                 [
                     Parameter(Variable("scope", DataType.STRING)),
@@ -297,13 +288,6 @@ class Builtins(Library):
             )
         )
         return Literal(DataType.NULL, None)
-
-    def _strcat(self, dest: Reference[Variable | Constant | Literal],
-                src: Reference[Variable | Constant | Literal]) -> Variable:
-        var = Variable(uuid.uuid4().hex, DataType.STRING)
-        self.builder.insert(IRDeclare(var))
-        self.builder.insert(IRBinaryOp(var, BinaryOps.ADD, dest, src))
-        return var
 
     def _call(self, scope: Reference[Literal]):
         if scope.value_type != ValueType.LITERAL:

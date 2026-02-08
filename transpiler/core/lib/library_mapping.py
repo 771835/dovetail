@@ -12,6 +12,7 @@ from transpiler.core.lib.lib_int_list import IntList
 from transpiler.core.lib.lib_math import Math
 from transpiler.core.lib.lib_random import Random
 from transpiler.core.lib.library import Library
+from transpiler.core.lib.strlib import Strlib
 
 
 class LibraryMapping:
@@ -27,6 +28,8 @@ class LibraryMapping:
         "builtin.math": Math,
         "int_list": IntList,
         "builtin.list.int_list": IntList,
+        "strlib": Strlib,
+        "builtin.strlib": Strlib
     }
 
     @classmethod

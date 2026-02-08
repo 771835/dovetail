@@ -1,4 +1,5 @@
 # coding=utf-8
+import itertools
 from abc import abstractmethod
 from typing import Protocol
 
@@ -56,7 +57,10 @@ class TemplateCommandHandler(CommandHandler):
 
         # 构建参数
         builder = ParameterBuilder(context.current_scope, context.objective)
-        params = builder.build_all(args, template.param_names)
+        for name, value in template.optional_params.items():
+            if name not in args:
+                args[name] = value
+        params = builder.build_all(args, itertools.chain(template.param_names,template.optional_params.keys()))
 
         # 渲染命令
         engine = TemplateEngine(context.namespace, context.objective)

@@ -192,14 +192,7 @@ class IRFunction(IRInstruction):
         super().__init__(IROpCode.FUNCTION, operands, line, column, filename)
 
     def __repr__(self):
-        return 'function ' \
-            + self.operands[0].get_name() \
-            + '(' \
-            + ','.join(
-                f"{param.get_data_type().get_name()} {param.get_name()}"
-                for param in self.operands[0].params
-            ) \
-            + ')'
+        return f'func {self.operands[0]}'
 
 
 class IRReturn(IRInstruction):
