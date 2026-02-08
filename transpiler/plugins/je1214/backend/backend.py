@@ -3,7 +3,7 @@ import functools
 from pathlib import Path
 
 from transpiler.core.backend import Backend, TagWriter, CommandWriter, MetadataWriter, FunctionWriter
-from transpiler.core.backend.context import DependencyFile
+from transpiler.core.backend.context import DependencyFile, GenerationContext
 from transpiler.core.backend.output import DependentDatapackWriter
 from transpiler.core.compile_config import CompileConfig
 from transpiler.core.ir_builder import IRBuilder
@@ -25,6 +25,22 @@ class JE1214Backend(Backend):
         self.output_manager.register_writer(DependentDatapackWriter(self.get_dependency_files()))
         self.output_manager.register_writer(InitializerFunctionWriter())
 
+    def generate(self):
+        """生成代码（主流程）"""
+        # 创建生成上下文
+        context = GenerationContext(self.config, self.target, self.ir_builder)
+
+        # 处理IR指令
+        self._process_instructions(context)
+
+        # 优化生成指令
+        for scope in context.get_all_scopes():
+            if len(scope.commands) > 0 and scope.commands[-1].startswith("return "):
+                scope.commands.pop()
+
+        # 写入输出
+        self._write_outputs(context)
+
     @staticmethod
     def is_support(config: CompileConfig) -> bool:
         version = config.version
@@ -45,7 +61,7 @@ class JE1214Backend(Backend):
             # DependencyFile(
             #     "https://codeload.github.com/Dahesor/DNT-Dahesor-NBT-Transformer/zip/refs/heads/main",
             #     "6872f86b49fd28dfdbb231b8108b2eca2620c6dfb418f1142557e25de2fabb67",
-            #     get_datapack_format('1.21.4'),
+            #     get_datapack_format('1.21.5'),
             #     get_datapack_format('1.21.11')
             # ),
             DependencyFile(

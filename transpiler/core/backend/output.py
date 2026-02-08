@@ -2,6 +2,7 @@
 """
 输出管理系统
 """
+import logging
 import os
 import shutil
 import tempfile
@@ -46,11 +47,13 @@ class CommandWriter(OutputWriter):
 
     def write(self, context: GenerationContext):
         """写入所有mcfunction文件"""
+        command_cnt = 0
         for scope in context.get_all_scopes():
             if scope.has_commands():
-                self._write_scope(scope, context)
+                command_cnt += self._write_scope(scope, context)
+        get_project_logger().info(f"共写入 {command_cnt} 条指令")
 
-    def _write_scope(self, scope: Scope, context: GenerationContext):
+    def _write_scope(self, scope: Scope, context: GenerationContext) -> int:
         """写入单个作用域的命令文件"""
         file_path = context.target / context.namespace / "data" / context.namespace / "function" / scope.get_file_path()
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -64,6 +67,7 @@ class CommandWriter(OutputWriter):
 
             for command in scope.commands:
                 f.write(command + '\n')
+        return len(scope.commands)
 
     def get_name(self) -> str:
         return "command_writer"
