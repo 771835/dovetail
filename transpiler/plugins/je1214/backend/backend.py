@@ -19,7 +19,7 @@ class JE1214Backend(Backend):
         super().__init__(ir_builder, target, config)
         self.output_manager.register_writer(TagWriter())
         self.output_manager.register_writer(CommandWriter())
-        self.output_manager.register_writer(MetadataWriter("A datapack of Minecraft 1.21.4"))
+        self.output_manager.register_writer(MetadataWriter())
         self.output_manager.register_writer(FunctionWriter(callback=self._get_builtin_functions))
         self.output_manager.register_writer(LiteralPoolWriter())
         self.output_manager.register_writer(DependentDatapackWriter(self.get_dependency_files()))

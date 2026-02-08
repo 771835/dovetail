@@ -44,7 +44,7 @@ class IRGenerator(transpilerVisitor):
         self.builtin_func_table: dict[str, Callable[..., Variable | Constant | Literal]] = {}
         self.scope_stack = [self.top_scope]
         self.counter = itertools.count()
-        self.filename = os.path.relpath(config.namespace, Path.cwd())
+        self.filepath = os.path.relpath(config.namespace, Path.cwd())
         self.ir_builder = IRBuilder()
 
         #  加载内置库
@@ -73,7 +73,7 @@ class IRGenerator(transpilerVisitor):
                 e.__repr__(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             ) from e
 
     @contextmanager
@@ -149,14 +149,14 @@ class IRGenerator(transpilerVisitor):
                 f"参数数量不匹配: 期望最多 {max_args} 个参数，实际 {len(argument_list)} 个",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         elif len(argument_list) < min_args:
             raise InvalidSyntaxError(
                 f"参数数量不匹配: 期望至少 {min_args} 个参数，实际 {len(argument_list)} 个",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         # 效验数据并记录参数字典
@@ -171,7 +171,7 @@ class IRGenerator(transpilerVisitor):
                     actual=arg_value.get_data_type(),
                     line=self._get_current_line(),
                     column=self._get_current_column(),
-                    filename=self.filename
+                    filename=self.filepath
                 )
 
         return args_dict
@@ -222,7 +222,7 @@ class IRGenerator(transpilerVisitor):
                 function_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         # 检查同名嵌套函数名冲突
@@ -235,7 +235,7 @@ class IRGenerator(transpilerVisitor):
                         scope_name=current.get_name(),
                         line=self._get_current_line(),
                         column=self._get_current_column(),
-                        filename=self.filename
+                        filename=self.filepath
                     )
                 current = current.parent
 
@@ -254,7 +254,7 @@ class IRGenerator(transpilerVisitor):
                         param_default.get_data_type(),
                         self._get_current_line(),
                         self._get_current_column(),
-                        self.filename
+                        self.filepath
                     )
                 parameters.append(
                     Parameter(
@@ -295,7 +295,7 @@ class IRGenerator(transpilerVisitor):
                             param_declaration.get_name(),
                             line=self._get_current_line(),
                             column=self._get_current_column(),
-                            filename=self.filename
+                            filename=self.filepath
                         )
                     self._add_ir_instruction(IRDeclare(param_declaration.var))
 
@@ -324,7 +324,7 @@ class IRGenerator(transpilerVisitor):
                 identifier_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         if not isinstance(resolved_symbol, (Variable, Constant, Parameter, Function, Class)):
             raise SymbolCategoryError(
@@ -333,7 +333,7 @@ class IRGenerator(transpilerVisitor):
                 actual=resolved_symbol.__class__.__name__,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         if isinstance(resolved_symbol, Parameter):
             return resolved_symbol.var
@@ -350,7 +350,7 @@ class IRGenerator(transpilerVisitor):
                         f"函数 '{func_name}' 检测到递归调用，但递归支持未启用，启用递归请使用参数--recursion",
                         line=self._get_current_line(),
                         column=self._get_current_column(),
-                        filename=self.filename
+                        filename=self.filepath
                     )
                 current = current.parent
 
@@ -441,7 +441,7 @@ class IRGenerator(transpilerVisitor):
                 actual=var_symbol.__class__.__name__,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         # 创建类型转换临时变量
@@ -482,7 +482,7 @@ class IRGenerator(transpilerVisitor):
                         original_type_name,
                         line=self._get_current_line(),
                         column=self._get_current_column(),
-                        filename=self.filename
+                        filename=self.filepath
                     )
                 return builtin_type
         except ValueError:
@@ -494,7 +494,7 @@ class IRGenerator(transpilerVisitor):
             original_type_name,
             line=self._get_current_line(),
             column=self._get_current_column(),
-            filename=self.filename
+            filename=self.filepath
         )
 
     def _get_current_line(self):
@@ -527,7 +527,7 @@ class IRGenerator(transpilerVisitor):
                 actual_type=b_ref.get_data_type(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         cond_ref = self.visit(cond).value
@@ -601,7 +601,7 @@ class IRGenerator(transpilerVisitor):
                         actual_type="null (initial value has null type)",
                         line=self._get_current_line(),
                         column=self._get_current_column(),
-                        filename=self.filename,
+                        filename=self.filepath,
                         msg="变量不能初始化为null类型"
                     )
             # 如果指定了类型，则进行类型检查
@@ -611,7 +611,7 @@ class IRGenerator(transpilerVisitor):
                     actual_type=result.value.get_data_type(),
                     line=self._get_current_line(),
                     column=self._get_current_column(),
-                    filename=self.filename
+                    filename=self.filepath
                 )
 
             var_value = result.value
@@ -623,7 +623,7 @@ class IRGenerator(transpilerVisitor):
                     actual_type="null (no type specified and no initial value to infer from)",
                     line=self._get_current_line(),
                     column=self._get_current_column(),
-                    filename=self.filename,
+                    filename=self.filepath,
                     msg="变量声明必须指定类型或提供初始值以推断类型"
                 )
 
@@ -637,7 +637,7 @@ class IRGenerator(transpilerVisitor):
                 var_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         self._add_ir_instruction(IRDeclare(var))
@@ -660,7 +660,7 @@ class IRGenerator(transpilerVisitor):
                 actual_type=result.value.get_data_type(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         value = result.value
@@ -672,7 +672,7 @@ class IRGenerator(transpilerVisitor):
                 actual_type="null (no type specified and no initial value to infer from)",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename,
+                filename=self.filepath,
                 msg="变量声明必须指定类型或提供初始值以推断类型"
             )
 
@@ -686,7 +686,7 @@ class IRGenerator(transpilerVisitor):
                 name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         self._add_ir_instruction(IRDeclare(constant))
@@ -735,7 +735,7 @@ class IRGenerator(transpilerVisitor):
                 class_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         self._add_ir_instruction(IRClass(class_))
 
@@ -746,7 +746,7 @@ class IRGenerator(transpilerVisitor):
                     "类继承",
                     line=self._get_current_line(),
                     column=self._get_current_column(),
-                    filename=self.filename
+                    filename=self.filepath
                 )  # TODO:处理继承
 
             # 处理实例属性和方法
@@ -761,7 +761,7 @@ class IRGenerator(transpilerVisitor):
                         class_property.name,
                         line=self._get_current_line(),
                         column=self._get_current_column(),
-                        filename=self.filename
+                        filename=self.filepath
                     )
                 properties.add(class_property)
 
@@ -781,7 +781,7 @@ class IRGenerator(transpilerVisitor):
                         missing_methods=pending_implementation_methods[1],
                         line=self._get_current_line(),
                         column=self._get_current_column(),
-                        filename=self.filename
+                        filename=self.filepath
                     )
 
         return Result(Reference(ValueType.CLASS, class_))
@@ -804,7 +804,7 @@ class IRGenerator(transpilerVisitor):
                 class_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         self._add_ir_instruction(IRClass(class_))
 
@@ -815,7 +815,7 @@ class IRGenerator(transpilerVisitor):
                     "类继承",
                     line=self._get_current_line(),
                     column=self._get_current_column(),
-                    filename=self.filename
+                    filename=self.filepath
                 )  # TODO:处理继承
             # 处理字段和方法
             for method in ctx.methodDecl():
@@ -831,7 +831,7 @@ class IRGenerator(transpilerVisitor):
                 ctx.expr().getText(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         return result
 
@@ -861,7 +861,7 @@ class IRGenerator(transpilerVisitor):
                 actual_type=right_operand.get_data_type(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         # 生成唯一结果变量
         result_variable = self._create_temp_var(DataType.BOOLEAN, "result_variable")
@@ -881,7 +881,7 @@ class IRGenerator(transpilerVisitor):
                 actual_type=f"{left_operand.get_data_type()}和{right_operand.get_data_type()}",
                 line=ctx.expr(0).start.line,
                 column=ctx.expr(0).start.column,
-                filename=self.filename
+                filename=self.filepath
             )
         # 生成唯一结果变量
         result_var = self._create_temp_var(DataType.BOOLEAN, "bool")
@@ -910,7 +910,7 @@ class IRGenerator(transpilerVisitor):
                 actual_type=f"{left.get_data_type()}和{right.get_data_type()}",
                 line=ctx.expr(0).start.line,
                 column=ctx.expr(0).start.column,
-                filename=self.filename
+                filename=self.filepath
             )
         # 生成唯一结果变量
         result_var = self._create_temp_var(DataType.BOOLEAN, "bool")
@@ -948,7 +948,7 @@ class IRGenerator(transpilerVisitor):
                 f"不能修改常量 '{var_name}'",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         elif not isinstance(var_symbol, Variable):
             raise SymbolCategoryError(
@@ -957,7 +957,7 @@ class IRGenerator(transpilerVisitor):
                 actual=var_symbol.__class__.__name__,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         # 类型检查
@@ -967,7 +967,7 @@ class IRGenerator(transpilerVisitor):
                 actual_type=expr_result.value.get_data_type(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         self._add_ir_instruction(IRAssign(var_symbol, expr_result.value))
@@ -985,7 +985,7 @@ class IRGenerator(transpilerVisitor):
                 instance_type.get_name(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         # 搜索被修改的变量或常量
         member_symbol = next(
@@ -1000,7 +1000,7 @@ class IRGenerator(transpilerVisitor):
                 field_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         self._add_ir_instruction(IRSetProperty(instance_ref.value, field_name, value))
         return Result(value)
@@ -1016,7 +1016,7 @@ class IRGenerator(transpilerVisitor):
                 array_type.get_name(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         setitem_method = method_symbol = next(
             (
@@ -1030,7 +1030,7 @@ class IRGenerator(transpilerVisitor):
                 NameNormalizer.normalize("__setitem__"),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         if setitem_method.function_type != FunctionType.LIBRARY:
             self._add_ir_instruction(
@@ -1058,14 +1058,14 @@ class IRGenerator(transpilerVisitor):
                     actual_type=right.value.get_data_type(),
                     line=self._get_current_line(),
                     column=self._get_current_column(),
-                    filename=self.filename
+                    filename=self.filepath
                 )
         if left.value.get_data_type() == DataType.STRING:
             raise InvalidOperatorError(
                 op.value,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         # 生成唯一结果变量
@@ -1089,7 +1089,7 @@ class IRGenerator(transpilerVisitor):
                 actual_type=right_type,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         if left_type == DataType.STRING and op != BinaryOps.ADD:
@@ -1097,7 +1097,7 @@ class IRGenerator(transpilerVisitor):
                 str(op.value),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         # 生成唯一结果变量
@@ -1119,7 +1119,7 @@ class IRGenerator(transpilerVisitor):
                 actual_type=expr_result.value,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         if expr_result.value_type != ValueType.LITERAL:
             self._add_ir_instruction(
@@ -1190,7 +1190,7 @@ class IRGenerator(transpilerVisitor):
                 symbol.__class__.__name__,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         else:
             raise NotCallableError(
@@ -1198,7 +1198,7 @@ class IRGenerator(transpilerVisitor):
                 symbol.__class__.__name__,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
     def visitMethodCall(self, ctx: transpilerParser.MethodCallContext):
@@ -1211,7 +1211,7 @@ class IRGenerator(transpilerVisitor):
                 instance_type.get_name(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         # 搜索被调用的符号
         method_symbol = next(
@@ -1226,7 +1226,7 @@ class IRGenerator(transpilerVisitor):
                 method_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         args_dict = self._process_call_arguments(method_symbol, ctx.argumentList(), instance_ref)
@@ -1251,7 +1251,7 @@ class IRGenerator(transpilerVisitor):
                 instance_type.get_name(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         # 搜索被访问的变量或常量
         member_symbol = next(
@@ -1266,7 +1266,7 @@ class IRGenerator(transpilerVisitor):
                 property_name,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         result_var = self._create_temp_var(member_symbol.dtype, "result")
         self._add_ir_instruction(
@@ -1288,7 +1288,7 @@ class IRGenerator(transpilerVisitor):
                 array_type.get_name(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         getitem_method = method_symbol = next(
             (
@@ -1302,7 +1302,7 @@ class IRGenerator(transpilerVisitor):
                 "__getitem__",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         if getitem_method.function_type != FunctionType.LIBRARY:
             result_var = self._create_temp_var(array_type, "result")
@@ -1371,7 +1371,7 @@ class IRGenerator(transpilerVisitor):
                 "增强for循环",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )  # TODO:增强for循环实现
         return Result(None)
 
@@ -1414,7 +1414,7 @@ class IRGenerator(transpilerVisitor):
                 msg="return在函数之外",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         func_name = current.get_name()
         func_symbol: Function | None = current.get_parent().find_symbol(func_name)
@@ -1424,7 +1424,7 @@ class IRGenerator(transpilerVisitor):
                 actual_type=result_dtype,
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         return Result(None)
 
@@ -1449,7 +1449,7 @@ class IRGenerator(transpilerVisitor):
                 "找不到文件",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
     def visitIncludeStmt(self, ctx: transpilerParser.IncludeStmtContext):
@@ -1467,9 +1467,13 @@ class IRGenerator(transpilerVisitor):
 
         # 处理导入的文件
         try:
-            old_filename = self.filename
-            self.filename = os.path.relpath(new_path, Path.cwd())
-            input_stream = FileStream(self.filename, encoding='utf-8')
+            old_filepath = self.filepath
+            # 尽可能使显示的路径为相对路径
+            if new_path.is_relative_to(Path.cwd()):
+                self.filepath = os.path.relpath(new_path, Path.cwd())
+            else:
+                self.filepath = str(new_path)
+            input_stream = FileStream(self.filepath, encoding='utf-8')
             lexer = transpilerLexer(input_stream)
             stream = CommonTokenStream(lexer)
             parser = transpilerParser(stream)
@@ -1478,14 +1482,14 @@ class IRGenerator(transpilerVisitor):
             # 访问并处理导入的文件
             self.visit(tree)
             # 重新回到原来的文件
-            self.filename = old_filename
+            self.filepath = old_filepath
         except Exception as e:
             raise CompilerIncludeError(
                 os.path.relpath(new_path, Path.cwd()),
                 e.__repr__(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
 
         return Result(None)
@@ -1497,7 +1501,7 @@ class IRGenerator(transpilerVisitor):
                 "continue 语句只能在循环结构中使用",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         self._add_ir_instruction(IRContinue(loop_scope_name))
         return Result(None)
@@ -1509,7 +1513,7 @@ class IRGenerator(transpilerVisitor):
                 "break 语句只能在循环结构中使用",
                 line=self._get_current_line(),
                 column=self._get_current_column(),
-                filename=self.filename
+                filename=self.filepath
             )
         self._add_ir_instruction(IRBreak(loop_scope_name))
         return Result(None)

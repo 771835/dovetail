@@ -17,7 +17,10 @@ PACK_CONFIG_VALIDATOR = fastjsonschema.compile({
     "properties": {
         "main": {
             "type": "string",
-        }
+        },
+        "description": {
+            "type": "string",
+        },
     },
     "required": ["main"]
 })

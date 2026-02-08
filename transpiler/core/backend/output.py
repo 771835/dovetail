@@ -2,7 +2,6 @@
 """
 输出管理系统
 """
-import logging
 import os
 import shutil
 import tempfile
@@ -110,13 +109,10 @@ class FunctionWriter(OutputWriter):
 class MetadataWriter(OutputWriter):
     """元数据写入器"""
 
-    def __init__(self, description: str = None):
-        self.description = description
-
     def write(self, context: GenerationContext):
         """写入 pack.mcmeta 基本结构"""
         pack_format = get_datapack_format(context.config.version)
-        context.pack_meta.description = self.description or context.namespace
+        context.pack_meta.description = context.config.description or context.namespace
         context.pack_meta.min_format = pack_format
         context.pack_meta.max_format = pack_format
         # 写入文件

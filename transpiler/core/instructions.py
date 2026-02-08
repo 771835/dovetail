@@ -361,7 +361,7 @@ class IRBinaryOp(IRInstruction):
 
     def __repr__(self):
         ops = self.operands
-        return f'{ops[0].get_name()} = {ops[2]} {ops[1].value} {ops[2]}'
+        return f'{ops[0].get_name()} = {ops[2]} {ops[1].value} {ops[3]}'
 
 
 class IRCompare(IRInstruction):

@@ -101,15 +101,17 @@ class Compiler:
         # 尝试解析配置文件
         try:
             with open(pack_config_path, encoding='utf-8') as config_file:
-                pack_config_data = json.load(config_file)
-            if not isinstance(pack_config_data, dict):
-                self.logger.error(f"The file 'pack.config' has an invalid format.")
-                return -1
+                pack_config_data:dict = json.load(config_file)
             # 检查配置文件格式是否正确
             PACK_CONFIG_VALIDATOR(pack_config_data)
         except (json.JSONDecodeError, fastjsonschema.JsonSchemaException):
             self.logger.error(f"The file 'pack.config' has an invalid format.")
             return -1
+
+        if pack_config_data.get("description"):
+            self.config.description = pack_config_data["description"]
+
+
         return self._compile_file(Path(source_path / pack_config_data["main"]).resolve(), target_path, source_path)
 
     def _compile_file(
@@ -287,7 +289,8 @@ def main():
             parsed_args.same_name_function_nesting,
             False,
             parsed_args.experimental,
-            Path(parsed_args.lib_path).resolve() if parsed_args.lib_path else Path("lib").resolve()
+            Path(parsed_args.lib_path).resolve() if parsed_args.lib_path else Path("lib").resolve(),
+            "A datapack of Minecraft"
         ),
         parsed_args.backend,
         generate=not parsed_args.no_generate_commands,
