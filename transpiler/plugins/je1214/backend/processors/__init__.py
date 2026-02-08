@@ -13,9 +13,9 @@ from .ir_continue import IRContinueProcessor
 from .ir_declare import IRDeclareProcessor
 from .ir_function import IRFunctionProcessor
 from .ir_jump import IRJumpProcessor
-from .ir_op import IROpProcessor
+from .ir_binary_op import IROpProcessor
 from .ir_return import IRReturnProcessor
 from .ir_scope_begin import IRScopeBeginProcessor
 from .ir_scope_end import IRScopeEndProcessor
-
+from .ir_unary_op import IRUnaryOpProcessor
 __all__ = []

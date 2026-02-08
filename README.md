@@ -114,7 +114,7 @@ A: 安装对应后端插件
 <!--- 项目[DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) 安全字符串拼接，NBT转JSON等SNBT与字符串操作-->
 <!-- 由于dnt不支持1.21.4故不展示 -->
 
-- 项目[StringLib](https://github.com/CMDred/StringLib) 提供了大量不安全但快速的字符串操作手段
+- 项目[StringLib](https://github.com/CMDred/StringLib) 提供了大量不安全但还算快速的字符串操作手段
 
 ### 数据使用
 

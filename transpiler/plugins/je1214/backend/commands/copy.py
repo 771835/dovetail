@@ -61,7 +61,7 @@ class Copy:
         if isinstance(source, int):
             return ScoreboardBuilder.set_score(*target, int(source))
         elif isinstance(source, str):
-            return DataBuilder.modify_storage_set_value(*reversed(target), f"\"{auto_escape(source)}\"")
+            return DataBuilder.modify_storage_set_value(*reversed(target), f"\"{source}\"")
         elif source is None:
             return ScoreboardBuilder.set_score(*target, 0)
         else:
