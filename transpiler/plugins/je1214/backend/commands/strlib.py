@@ -46,30 +46,12 @@ def to_str(result: DataPath, value: DataPath | int):
     if isinstance(value, int):
         return [Copy.copy_literals(result, str(value))]
 
-    return [
-        Copy.copy(
-            DataPath(
-                "to_string.Input",
-                "stringlib:input",
-                StorageLocation.STORAGE
-            ),
-            value
-        ),
-        FunctionBuilder.run_with_source(
-            "stringlib:util/to_string",
-            "storage",
-            "stringlib:input",
-            "to_string"
-        ),
-        Copy.copy(
-            result,
-            DataPath(
-                "to_string",
-                "stringlib:output",
-                StorageLocation.STORAGE
-            )
-        )
-    ]
+    if value.location == StorageLocation.SCORE:
+        return [Copy.copy_score_to_storage(value, value),
+                DataBuilder.modify_storage_set_string_storage(*reversed(result), *reversed(value))
+                ]
+    else:
+        return [DataBuilder.modify_storage_set_string_storage(*reversed(result), *reversed(value))]
 
 
 def to_int(result: DataPath, value: DataPath | str):

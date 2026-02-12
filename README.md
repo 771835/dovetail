@@ -29,10 +29,9 @@ Dovetail 是一种具有面向对象特征的语言，可以编译成`Minecraft 
 - [ ] 完善插件api
 - [ ] 提高优化效果
 - [ ] 寻找尽量节省性能的堆栈实现方法
-- [ ] 转译器国际化支持
-- [ ] 转译器多线程优化
+- [ ] 编译器国际化支持
 - [ ] 允许通过简单的语法声明和调用其他数据包
-- [ ] 谓词，自定义数据等功能
+- [ ] 谓词，自定义数据[inference.c](../../C/llm/inference.c)等功能
 - [ ] 函数一等公民化
 - [ ] 简易事件系统及注解功能
 - [ ] 完善内置库
@@ -112,9 +111,10 @@ A: 安装对应后端插件
 - 项目[fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) 快速整数开方
 
 <!--- 项目[DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) 安全字符串拼接，NBT转JSON等SNBT与字符串操作-->
-<!-- 由于dnt不支持1.21.4故不展示 -->
+<!-- 由于dnt不支持1.21.4故不展示和使用 -->
 
 - 项目[StringLib](https://github.com/CMDred/StringLib) 提供了大量不安全但还算快速的字符串操作手段
+<!-- 似乎这个库的东西我可以自己写哎，还会快一些，不管了，相信数据包大佬们，品质有保障（ -->
 
 ### 数据使用
 
