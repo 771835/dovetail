@@ -1,8 +1,8 @@
-func greet(name: string) {
-    print(f"Hello, {name}");
+fn greet(name: string) {
+    print(f"Hello, {name}")
 }
 @init
-func main() {
+fn main() {
     greet("World")
     greet("Bob")
 }

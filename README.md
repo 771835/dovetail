@@ -31,7 +31,7 @@ Dovetail 是一种具有面向对象特征的语言，可以编译成`Minecraft 
 - [ ] 寻找尽量节省性能的堆栈实现方法
 - [ ] 编译器国际化支持
 - [ ] 允许通过简单的语法声明和调用其他数据包
-- [ ] 谓词，自定义数据[inference.c](../../C/llm/inference.c)等功能
+- [ ] 谓词，自定义数据等功能
 - [ ] 函数一等公民化
 - [ ] 简易事件系统及注解功能
 - [ ] 完善内置库
@@ -56,13 +56,13 @@ python main.py -O2 xxx.mcdl
 
 ```mcdl
 // 定义函数
-func greet(name: string) {
+fn greet(name: string) {
     print(f"Hello, {name}");
 }
 
 // 主函数（使用@init注解）
 @init
-func main() {
+fn main() {
     greet("World")
     greet("Bob")
 }
@@ -106,7 +106,7 @@ A: 安装对应后端插件
 
 ### 代码使用
 
-> 由于 `Minecraft` 版本的原因，实际使用时可能会对以下项目进行一定的必要修改。如果您希望您的项目不被使用或修改，请随时联系本项目作者讨论移除事宜。
+> 由于 `Minecraft` 版本的原因，实际使用时可能会对以下项目进行一定的必要修改。如果您是以下项目作者或贡献值，且希望您的项目不被使用或修改，请随时联系本项目作者讨论移除事宜。
 
 - 项目[fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) 快速整数开方
 
@@ -114,15 +114,15 @@ A: 安装对应后端插件
 <!-- 由于dnt不支持1.21.4故不展示和使用 -->
 
 - 项目[StringLib](https://github.com/CMDred/StringLib) 提供了大量不安全但还算快速的字符串操作手段
-<!-- 似乎这个库的东西我可以自己写哎，还会快一些，不管了，相信数据包大佬们，品质有保障（ -->
+<!-- 似乎这个库的东西我可以自己写哎，这样还能内联（ -->
 
 ### 数据使用
 
-- [wiki数据包版本](https://zh.minecraft.wiki/w/Template:Data_pack_format) 动态更新`Minecraft`与`数据包版本`之间的对应关系
+- [中文wiki数据包版本](https://zh.minecraft.wiki/w/Template:Data_pack_format) 动态更新`Minecraft`与`数据包版本`之间的对应关系
 
 ### 思路来源/大佬鸣谢
 
-- 大佬[zmr-233](https://github.com/zmr-233/) 提出了解决递归问题的思路(虽然ta推荐的书我都没看)
-- 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 处理堆栈一条不同技术路线(很优秀的一个项目)
-- 项目[clang-mc](https://github.com/xia-mc/clang-mc) 十分创新的想法，实现汇编的在mc中的部分支持
+- 大佬[zmr-233](https://github.com/zmr-233/) 提出了解决递归问题的思路(虽然ta推荐的书我都没看，也没实现)
+- 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 处理堆栈的一个不同技术路线的优秀项目
+- 项目[clang-mc](https://github.com/xia-mc/clang-mc) 十分创新的想法，实现汇编的在mc中的部分支持，潜力巨大
 

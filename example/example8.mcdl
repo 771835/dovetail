@@ -1,15 +1,15 @@
-func t(): boolean {
+fn t(): boolean {
     print("true")
     return true
 }
 
-func f(): boolean {
+fn f(): boolean {
     print("false")
     return false
 }
 
 @init
-func main(): null {
+fn main(): null {
     if (t() and t())
         print("Passed")
     else

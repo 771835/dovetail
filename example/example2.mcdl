@@ -9,9 +9,9 @@ class foo {
     }
 }
 @init
-func main(){
-    let var = foo();
-    var.bar();
+fn main(){
+    let var = foo()
+    var.bar()
     var.a = 123
-    var.bar();
+    var.bar()
 }

@@ -23,8 +23,8 @@ Minecraft 指令逻辑。
 ## 项目架构
 
 ```
- dovetail/
-├── transpiler/ # 核心编译器
+ root/
+├── dovetail/ # 核心编译器
 │ ├── core/ # 编译器核心组件
 │ ├── plugins/ # 后端插件系统
 │ └── utils/ # 工具函数

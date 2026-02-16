@@ -4,7 +4,7 @@
 
 ```dovetail
 @init
-func main() {
+fn main() {
     print("Hello, Minecraft!");
 }
 ```
@@ -45,7 +45,7 @@ python main.py input.mcdl --debug
 
 ```dovetail
 @init
-func main() {
+fn main() {
     string playerName = "Steve";
     print(f"欢迎 {playerName} 来到我的世界!");
     
@@ -54,7 +54,7 @@ func main() {
 }
  
 @tick
-func gameLoop() {
+fn gameLoop() {
     // 每 tick 执行的逻辑
     exec("scoreboard players add timer global 1");
 }
@@ -82,7 +82,7 @@ class Player {
 }
  
 @init
-func main() {
+fn main() {
     Player steve = Player("Steve");
     steve.heal(steve, 5);
 }

@@ -65,7 +65,7 @@ func greet(name: string) {
 
 // Main function (using @init annotation)
 @init
-func main() {
+fn main() {
     greet("World")
     greet("Bob")
 }

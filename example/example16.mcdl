@@ -1,5 +1,5 @@
 class a {
-    int i;
+    int i
 
     method __init__() -> a {
 
@@ -7,14 +7,14 @@ class a {
 }
 
 @init
-func main() {
-    a obj;
-    a obj2;
-    for (int i = 0;i<=5;i=i+1) {
-        obj = a();
-        obj.i = i;
+fn main() {
+    a obj
+    a obj2
+    for (let i = 0;i<=5;i=i+1) {
+        obj = a()
+        obj.i = i
         if (i==3) {
-            obj2 = obj;
+            obj2 = obj
         }
     }
     print(str(obj2.i))

@@ -84,6 +84,7 @@ func slowUpdate() {
 - **语义**：标记为外部可访问，防止优化删除
 - **用途**：API函数、调试接口、插件入口点
 - **优化影响**：阻止死代码消除
+- **特殊事宜**：此注解的函数名不会被修改
 
 ##### `@internal`
 
@@ -97,19 +98,6 @@ func helperFunction() {
 - **语义**：标记为内部实现，可积极优化
 - **优化影响**：允许内联、删除未使用分支
 - **默认行为**：未标注的函数默认为 @internal
-
-##### `@public`
-
-```dovetail
-@public
-func libraryFunction() {
-    // 库函数，对其他模块可见
-}
-```
-
-- **语义**：跨模块可见性
-- **作用域**：模块级别的可见性控制
-- **与 @export 区别**：@public 是模块间可见，@export 是优化保护
 
 ##### `@noinline`
 
@@ -140,10 +128,6 @@ func bedrockSpecific() {
     // 仅在BE后端生成
 }
 
-@target(["je", "be"])  // 多目标
-func crossPlatform() {
-    // 在指定平台生成
-}
 ```
 
 - **参数**：目标平台标识符
@@ -176,14 +160,9 @@ func modernFeature() {
 func oldFunction() {
     // 标记为已废弃
 }
-
-@deprecated(since="1.2.0", removal="2.0.0")  
-func legacyAPI() {
-    // 详细废弃信息
-}
 ```
 
-- **参数**：废弃消息、版本信息
+- **参数**：废弃消息
 - **编译时警告**：使用时产生警告
 - **文档生成**：影响API文档
 

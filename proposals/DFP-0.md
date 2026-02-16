@@ -1,14 +1,11 @@
 # DFP 0: Dovetail Enhancement Proposals Index
 
-> ⚠️ 迁移提示：本提案体系原名 `MCFP`（McFuncDSL Enhancement Proposals）  
-> 自 2025-07-15 起正式更名为 `DFP`（Dovetail Enhancement Proposals）
-
 ## 元提案
 
 **状态**: Active  
 **作者**: 771835 <2790834181@qq.com>  
 **创建日期**: 2025-06-06  
-**最新更新**: 2025-12-18
+**最新更新**: 2026-02-14
 
 ---
 
@@ -33,12 +30,12 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 | DFP 2   | IR 设计与规范          | Active      | 核心语言 | -           |
 | DFP 5   | 数组支持              | Deferred    | 核心语言 | 未编写         |
 | DFP 6   | 内置注解规范            | Proposed    | 核心语言 | -           |
-| DFP 7   | 错误恢复机制	           | Draft       | 核心语言 | -           |
+| DFP 7   | 错误恢复及报告机制	        | Accepted    | 核心语言 | -           |
 | DFP 8   | 命名归一化策略           | Draft       | 核心语言 | -           |
 | DFP 300 | 内置函数              | Active      | 标准库  | -           |
 | DFP 301 | 后端指令生成函数表         | Active      | 内置模块 | -           |
 | DFP 600 | 语言服务器协议           | Deferred    | 工具链  | 未编写         |
-| DFP 601 | 日志输出规范            | Implemented | 编译器  | 计划补充国际化相关内容 |
+| DFP 601 | 日志输出规范            | Implemented | 编译器  | 计划增加国际化相关内容 |
 | DFP 602 | 插件系统规范            | Draft       | 	工具链 | -           |
 | DFP 603 | 编译缓存与增量编译         | Draft       | 编译器  | -           |
 | DFP 901 | 发行版管理规则           | Active      | 发行版  | -           |

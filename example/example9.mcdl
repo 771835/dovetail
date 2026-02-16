@@ -1,8 +1,8 @@
 
-func fizz_buzz(int n): null {
-    for (int i = 1; i <= n; i = i + 1) {
+fn fizz_buzz(int n): null {
+    for (let i = 1; i <= n; i = i + 1) {
         if (i % 3 == 0 or i % 5 == 0) {
-            string s = "";
+            string s = ""
             if (i % 3 == 0) {
                 s = s + "Fizz"
             }
@@ -17,11 +17,11 @@ func fizz_buzz(int n): null {
 }
 
 @init
-func main(): null {
+fn main(): null {
     fizz_buzz(100)
 }
 /*
-func fizz_buzz(int n) {
+fn fizz_buzz(int n) {
     for (int i = 1; i <= n; i = i + 1) {
         if (i % 3 == 0 or i % 5 == 0) {
             print((i % 3 == 0 ? "Fizz" : "") + (i % 5 == 0 ? "Buzz" : ""))
@@ -32,7 +32,7 @@ func fizz_buzz(int n) {
 }
 
 @init
-func main(): null {
+fn main(): null {
     fizz_buzz(100)
 }
 */

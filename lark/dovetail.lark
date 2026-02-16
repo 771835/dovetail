@@ -1,0 +1,143 @@
+// 程序结构
+program : (include)* (class | interface | function | var | const)*
+
+include : "include" literal               // 包含库文件，如：include "mathlib.mcdl"
+
+// 注解系统
+// 仅允许使用内置注解及插件注解
+annotation : "@" ID | "@" ID "(" literal ("," literal)* ")"
+
+// 类(单继承、单接口)
+class : annotation* "class" ID ("extends" type)? ("implements" type)? "{" (class_property | method)* "}"
+
+// 接口(单继承)
+interface : annotation* "interface" ID ("extends" type)? "{"(class_property | method)* "}"
+
+class_property : type ID "?"?| "let" ID "?"? ("->" | ":") type
+
+// 类型系统
+type.2: ID ("[" ARRAY_SIZE "]")*
+
+
+function : annotation* ("function"|"fn"|"def") ID params (("->" | ":") type)? [block]
+    | annotation* ("function"|"fn") type ID params [block]
+
+
+method : annotation* "method" ID params block
+    | annotation* "method" ID params (("->" | ":") type) block
+    | annotation* "method" type ID params block
+
+params : "(" (param ("," param)*)? ")"| "()"
+
+// 强制类型标注
+param : ID ("->" | ":") type ("=" expr)?
+    | type ID ("=" expr)?
+
+// 代码块，包含多个语句
+block : "{" statement* "}"
+    | statement
+
+// 流程控制
+statement : function                           // 函数定义
+        | var                                  // 变量声明
+        | const                                // 常量声明
+        | for_loop                             // for循环
+        | while_loop                           // while循环
+        | expr                                 // 表达式语句
+        | return                               // 返回
+        | if_else                              // 条件语句
+        | "break"                                // break语句
+        | "continue"                             // continue语句
+        | "pass"                                 // 空语句
+
+for_loop : "for" "(" for_control ")" block        // 传统for循环
+    | "for" "(" type ID ":" expr ")" block       // 增强for循环 (expr需为可迭代class)
+
+
+while_loop : "while" "(" condition ")" block            // while循环
+
+for_control : for_init? ";" condition? ";" for_update?
+
+
+for_init : var | expr
+
+condition : expr
+
+for_update : expr
+
+const : "const" ID (("->" | ":") type)? "?"? ("=" expr)  // 常量声明
+    | "const" type ID ("=" expr)
+
+// 变量声明
+var: type ID "?"? ("=" expr)?
+   | "let" ID "?"? "=" expr
+   | ID ("->" | ":") type "?"? ("=" expr)?
+   | "let" ID "?"? ("->" | ":") type ("=" expr)?
+
+
+
+return : "return" expr?                  // 返回语句，如：return result
+
+if_else : "if" "(" condition ")" block ("else" block)?  // 条件语句
+
+
+//| expr '?' '.' ID                                      -> SafeNavigation           // 安全导航
+// 表达式
+?expr : primary                                       // 基础表达式
+    | "null"                                          -> null_expr               // null表达式
+    | expr "." ID arguments                           -> method_call             // 方法调用
+    | expr "." ID                                     -> member_access           // 成员访问
+    | expr "[" expr "]"                               -> array_access            // 数组访问
+    | expr arguments                                  -> function_call           // 函数调用
+    | "-" expr                                        -> neg_expr                // 负号
+    | ("not"|"!") expr                                -> logical_not_expr        // not运算符
+    | expr ("*"|"/"|"%") expr                         -> factor_expr             // 乘除模运算
+    | expr ("+" | "-") expr                           -> term_expr               // 加减运算
+    | expr (">"|"<"|"=="|"!="|"<="|">=") expr         -> compare_expr            // 比较运算
+    | expr ("and"|"&&") expr                          -> logical_and_expr        // and运算符
+    | expr ("or"|"||") expr                           -> logical_or_expr         // or运算符
+    | expr "[" expr "]" "=" expr                      -> array_assignment_expr   // 数组元素赋值
+    | expr "." ID "=" expr                            -> member_assignment_expr  // 成员属性访问
+    | ID "=" expr                                     -> local_assignment_expr   // 变量赋值
+
+
+?primary : literal               // 字面量
+    | identifier     // 标识符（变量、函数、类等）
+    | paren          // 括号
+
+identifier: ID
+paren: "(" expr ")"
+
+// 辅助规则
+
+arguments : ("(" exprs? ")") | "()"
+
+?exprs : expr ("," expr)*    // 表达式列表
+
+// 数字、普通字符串、插值字符串、布尔值、空值
+literal : INT
+    | FLOAT
+    | FSTRING
+    | STRING
+    | "true" -> true
+    | "false" -> false
+
+PYTHONIC_COMMENT: /#[^\n]*/
+
+ID : CNAME
+
+ARRAY_SIZE: /[1-9][0-9]*/     // 数组大小（正整数）
+INT: /-?[0-9]+/               // 整数（可以为负）
+FLOAT: /-?[0-9]+\.[0-9]+/     // 浮点数
+
+FSTRING.3: /f"([^"\\]|\\.)*"/
+
+%import common.ESCAPED_STRING -> STRING
+%import common.CNAME
+%import common.WS
+%import common.CPP_COMMENT
+%import common.C_COMMENT
+%ignore WS
+%ignore CPP_COMMENT
+%ignore C_COMMENT
+%ignore PYTHONIC_COMMENT

@@ -8,25 +8,22 @@ from contextlib import chdir
 from pathlib import Path
 
 import fastjsonschema
-from antlr4 import FileStream, CommonTokenStream
 
-from transpiler.core.backend import BackendFactory
-from transpiler.core.compile_config import CompileConfig
-from transpiler.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, set_project_logger, PROJECT_NAME, \
+from dovetail.core.backend import BackendFactory
+from dovetail.core.compile_config import CompileConfig
+from dovetail.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, set_project_logger, PROJECT_NAME, \
     get_project_logger
-from transpiler.core.enums.minecraft import MinecraftVersion
-from transpiler.core.enums.optimization import OptimizationLevel
-from transpiler.core.errors import CompilationError
-from transpiler.core.ir_builder import IRBuilder
-from transpiler.core.ir_generator import IRGenerator
-from transpiler.core.optimize.optimizer import Optimizer
-from transpiler.core.parser import transpilerLexer, transpilerParser
-from transpiler.core.scope import Scope
-from transpiler.plugins.plugin_loader.loader import plugin_loader
-from transpiler.utils.annotations import timed
-from transpiler.utils.ir_serializer import IRSymbolSerializer
-from transpiler.utils.logger import get_logger
-from transpiler.utils.naming import NameNormalizer
+from dovetail.core.enums.minecraft import MinecraftVersion
+from dovetail.core.enums.optimization import OptimizationLevel
+from dovetail.core._errors import CompilationError
+from dovetail.core.ir_builder import IRBuilder
+from dovetail.core.parser.parser import ASTTransformer, parser_code
+from dovetail.core._scope import Scope
+from dovetail.plugins.plugin_loader.loader import plugin_loader
+from dovetail.utils.annotations import timed
+from dovetail.utils.ir_serializer import IRSymbolSerializer
+from dovetail.utils.logger import get_logger
+from dovetail.utils.naming import NameNormalizer
 
 
 class Compiler:
@@ -53,7 +50,7 @@ class Compiler:
         Args:
             config (CompileConfig): 编译器配置对象
             backend_name (str): 后端名(不填时自动选择)
-            generate (bool): 生成指令
+            generate (bool): 是否生成指令
             output_temp_file (bool): 输出临时文件
         """
         self.config = config
@@ -101,7 +98,7 @@ class Compiler:
         # 尝试解析配置文件
         try:
             with open(pack_config_path, encoding='utf-8') as config_file:
-                pack_config_data:dict = json.load(config_file)
+                pack_config_data: dict = json.load(config_file)
             # 检查配置文件格式是否正确
             PACK_CONFIG_VALIDATOR(pack_config_data)
         except (json.JSONDecodeError, fastjsonschema.JsonSchemaException):
@@ -110,7 +107,6 @@ class Compiler:
 
         if pack_config_data.get("description"):
             self.config.description = pack_config_data["description"]
-
 
         return self._compile_file(Path(source_path / pack_config_data["main"]).resolve(), target_path, source_path)
 
@@ -131,21 +127,25 @@ class Compiler:
         Returns:
             int: 编译结果状态码，0表示成功，非0表示失败
         """
+        source_path = source_path.resolve()
         working_directory = working_directory or source_path.parent
 
         if not source_path.exists():
             self.logger.error(f"The path '{source_path}' is not valid.")
             return -1
 
-        tree = self._parser_file(source_path)
-        if not tree:
-            return -1
-
-        generator: IRGenerator = IRGenerator(self.config)
+        generator = None
 
         with chdir(working_directory):
             try:
-                ir_builder = self._build_and_optimize_ir(generator, tree)
+                tree = parser_code(source_path)
+
+                print(tree.pretty())
+
+                ASTTransformer(self.config, source_path).transform(tree)
+
+                # builder = self._build_and_optimize_ir(generator, tree)
+                ir_builder = IRBuilder()
 
                 if self.output_temp_file:
                     self._write_temp_file(ir_builder, target_dir_path)
@@ -164,49 +164,6 @@ class Compiler:
             except Exception as e:
                 # 重新抛出异常显示错误详情
                 raise CompilationError("意外的错误") from e
-
-    @staticmethod
-    @timed("入口文件AST解析用时{:.3f}s")
-    def _parser_file(file_path: Path) -> transpilerParser.transpilerParser.ProgramContext | None:
-        """
-        解析文件并返回语法树
-
-        Args:
-            file_path (Path): 文件路径
-
-        Returns:
-            Optional[ProgramContext]: 解析后的语法树，如果解析失败返回None
-        """
-        if file_path.exists() and file_path.is_file():
-            input_stream = FileStream(str(file_path.resolve()), "utf-8")
-            lexer = transpilerLexer.transpilerLexer(input_stream)
-            stream = CommonTokenStream(lexer)
-            parser = transpilerParser.transpilerParser(stream)
-
-            return parser.program()
-        else:
-            return None
-
-    @timed("IR生成与优化用时{:.3f}s")
-    def _build_and_optimize_ir(
-            self, generator: IRGenerator,
-            tree: transpilerParser.transpilerParser.ProgramContext
-    ) -> IRBuilder:
-        """
-        构建和优化中间表示(IR)
-
-        Args:
-            generator (IRGenerator): IR生成器
-            tree (transpilerParser.transpilerParser.ProgramContext): 语法树
-
-        Returns:
-            IRBuilder: 优化后的IR构建器
-        """
-        generator.visit(tree)
-        get_project_logger().info("IR生成完成")
-        ir_builder = Optimizer(generator.get_ir(), self.config).optimize()
-        get_project_logger().info("IR优化完成")
-        return ir_builder
 
     @timed("写入临时文件用时{:.3f}s")
     def _write_temp_file(self, builder: IRBuilder, target_dir_path: Path):

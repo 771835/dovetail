@@ -1,10 +1,10 @@
-func boolean fn(int x) {
-    return false;
+fn boolean foo(int x) {
+    return false
 }
 
 @init
-func main() : int{
-    int a = 1;
-    fn(a);
+fn main() : int{
+    let a = 1
+    foo(a)
 
 }
