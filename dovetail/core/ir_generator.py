@@ -2,6 +2,7 @@
 """
 遍历AST，生成中间指令
 """
+
 import itertools
 import os.path
 from contextlib import contextmanager

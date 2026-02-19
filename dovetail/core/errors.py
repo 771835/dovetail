@@ -3,7 +3,10 @@
 编译期错误定义和报告模块
 """
 import os
+import random
+from typing import Optional
 
+from dovetail.core.config import DEFAULT_RANDOM_SUGGESTION
 from dovetail.utils.safe_enum import SafeEnum
 import sys
 from pathlib import Path
@@ -35,8 +38,9 @@ class Errors(SafeEnum):
     UndefinedType = (0x2002, "未定义类型", "未定义的类型 '%s'。", ErrorType.SemanticError)
     ArgumentTypeMismatch = (0x2003, "参数类型不匹配", "参数 '%s' 类型不匹配: 期望 %s，实际为 %s。",
                             ErrorType.SemanticError)
-    ArgumentNumberMismatch = (0x2004, "参数数量不匹配", "调用函数 '%s' 参数数量不匹配: 期望 %s 个参数，实际为 %s 个参数。",
-                            ErrorType.SemanticError)
+    ArgumentNumberMismatch = (0x2004, "参数数量不匹配",
+                              "调用函数 '%s' 参数数量不匹配: 期望 %s 个参数，实际为 %s 个参数。",
+                              ErrorType.SemanticError)
     NotCallable = (0x2005, "不可调用", "符号 '%s' (类型 %s) 不可调用。", ErrorType.SemanticError)
     PrimitiveTypeOperation = (0x2006, "基本类型操作错误", "不支持的操作：'%s' 不能应用于基本类型 '%s'。",
                               ErrorType.SemanticError)
@@ -139,7 +143,7 @@ def report(
         filepath: Path | str = "<unknown>",
         line: int = -1,
         column: int = -1,
-        suggestion: str = "",
+        suggestion: Optional[str] = None,
 ):
     error_code, error_name, error_details, error_type = error.value
     original_error_name = error.name
@@ -154,12 +158,18 @@ def report(
 
     sys.stderr.write(f"发生错误: {error_name}({error_type.name})\n")
     sys.stderr.write(f"文件 '{filepath}', 行 {line}, 纵 {column}\n")
+
+    # 输出错误代码块
     if code:
         sys.stderr.write(f"相关代码:\n")
 
         for l, linecode in zip(range(max(line - 1, 1), line + 2), code):
             if len(linecode) > 0:
                 sys.stderr.write(f" {l} | {linecode}\n")
+
+    # 选择建议
+    if suggestion is None:
+        suggestion = random.choice(DEFAULT_RANDOM_SUGGESTION)
     sys.stderr.write(f"{error_name}({original_error_name}): {error_details % tuple(args)}{suggestion}\n\n")
 
     if error_type.value[0] > 3:

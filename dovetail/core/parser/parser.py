@@ -409,7 +409,7 @@ class ASTTransformer(Transformer):
                 filepath=self.filepath,
                 line=line,
                 column=column,
-                suggestion=f"你的意思是'{suggestion}'？" if suggestion else "",
+                suggestion=f"你的意思是'{suggestion}'？" if suggestion else None,
             )
             self.errored = True
             return Reference.literal(None)

@@ -123,6 +123,7 @@ literal : INT
     | "false" -> false
 
 PYTHONIC_COMMENT: /#[^\n]*/
+LUA_COMMENT: "[[" /(.|\n)*?/ "]]"
 
 ID : CNAME
 
@@ -141,3 +142,4 @@ FSTRING.3: /f"([^"\\]|\\.)*"/
 %ignore CPP_COMMENT
 %ignore C_COMMENT
 %ignore PYTHONIC_COMMENT
+%ignore LUA_COMMENT

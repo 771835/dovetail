@@ -41,7 +41,7 @@ class Fraction {
     }
 
     method square_root(Fraction self): Fraction {
-        return Fraction(sqrt(self.numerator), sqrt(self.denominator))
+        return Fraction(isqrt(self.numerator), isqrt(self.denominator))
     }
 
     method exponential(Fraction self): Fraction {

@@ -9,17 +9,17 @@
 > - **已知局限:** 缺乏大量标准库、错误信息不友好、优化器可能引入Bug、尚未实现完整的OOP特性。
 > - **生产环境建议:** 如果您需要用于生产环境，请考虑使用 [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)
     或其他更成熟的项目。  
-> 由于技术限制，短期内将不会有新的功能实现提交。
+    > 由于技术限制，短期内将不会有新的功能实现提交。
 
-Dovetail 是一种具有面向对象特征的语言，可以编译成`Minecraft 数据包`(以下简称`数据包`)。它旨在将传统命令的过程导向改变为目标导向。
+**Dovetail** 是一种具有面向对象特征的语言，可以编译成`Minecraft 数据包`(以下简称`数据包`)。它旨在将传统命令的过程导向改变为目标导向。
 
 ## 目标
 
 - [ ] 一次编写，处处~~报错~~编译
 - [ ] 基本面对对象支持
-- [ ] 完善的依赖库，使开发者不直接面向指令
-- [ ] 数据包开销降低
-- [ ] 迭代版本跟上我的世界版本更新
+- [ ] 完善的依赖库，使开发者不直接面向指令编程
+- [ ] 数据包低开销
+- [ ] 迭代版本跟上我的世界版本大版本更新
 
 ## 中长期计划
 
@@ -43,7 +43,7 @@ Dovetail 是一种具有面向对象特征的语言，可以编译成`Minecraft 
 - Python 3.10+
 - Minecraft Java Edition 1.21.4
 
-### 快速开始
+### 安装
 
 ```bash
 git clone https://github.com/771835/dovetail.git
@@ -52,7 +52,7 @@ pip install -r requirements.txt
 python main.py -O2 xxx.mcdl
 ```
 
-## 示例
+### 代码示例
 
 ```mcdl
 // 定义函数
@@ -67,6 +67,18 @@ fn main() {
     greet("Bob")
 }
 ```
+
+## 如何贡献
+
+- 错误建议列表
+    - 提出一个issue，等待项目作者或其他贡献者进行修改
+- 错误修复或提交
+    1. 提出issue或拉取请求等待修复或实现
+- 较复杂功能实现
+    1. 根据对应功能新建或更改DFP文档提案
+    2. 待社区讨论一致后克隆新分支进行更改
+    3. 测试错误
+    4. 合并到主分支
 
 ## FAQ
 
@@ -108,12 +120,14 @@ A: 安装对应后端插件
 
 > 由于 `Minecraft` 版本的原因，实际使用时可能会对以下项目进行一定的必要修改。如果您是以下项目作者或贡献值，且希望您的项目不被使用或修改，请随时联系本项目作者讨论移除事宜。
 
-- 项目[fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) 快速整数开方
+- 项目[fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) 快速整数开方  
+  _具体使用见[mathlib](lib/mathlib.mcdl)中的isqrt函数_
 
 <!--- 项目[DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) 安全字符串拼接，NBT转JSON等SNBT与字符串操作-->
 <!-- 由于dnt不支持1.21.4故不展示和使用 -->
 
 - 项目[StringLib](https://github.com/CMDred/StringLib) 提供了大量不安全但还算快速的字符串操作手段
+
 <!-- 似乎这个库的东西我可以自己写哎，这样还能内联（ -->
 
 ### 数据使用
