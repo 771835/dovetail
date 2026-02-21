@@ -19,7 +19,6 @@ from dovetail.core.errors import CompilationError
 from dovetail.core.errors import report, Errors
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.parser.parser import ASTTransformer, parser_code
-from dovetail.core._scope import Scope
 from dovetail.plugins.plugin_loader.loader import plugin_loader
 from dovetail.utils.annotations import timed
 from dovetail.utils.ir_serializer import IRSymbolSerializer
@@ -154,6 +153,7 @@ class Compiler:
             try:
                 tree = parser_code(source_path)
 
+
                 ASTTransformer(self.config, source_path).visit(tree)
 
                 # builder = self._build_and_optimize_ir(generator, tree)
@@ -165,9 +165,7 @@ class Compiler:
                 if self.generate:
                     self._generate_backend_code(ir_builder, target_dir_path)
             except CompilationError as e:
-                if generator:
-                    self.logger.debug("作用域结构:")
-                    self._print_scope_tree(generator.scope_stack[0])
+
                 self.logger.critical(e.__repr__())
                 if self.config.debug:
                     # 重新抛出异常显示错误详情
@@ -200,27 +198,6 @@ class Compiler:
             target_path (Path): 目标目录路径
         """
         BackendFactory.auto_select(self.config, self.backend_name)(builder, target_path, self.config).generate()
-
-    @staticmethod
-    def _print_scope_tree(node: Scope, prefix: str = "", is_tail: bool = True):
-        """
-        递归打印作用域树结构
-
-        Args:
-            node (Scope): 要打印的节点
-            prefix (str): 前缀字符串，用于缩进显示
-            is_tail (bool): 是否为最后一个子节点
-        """
-        # 更明确的变量名
-        stype_display = f" ({node.stype.value})" if node.stype else ""
-        tree_line = f"{prefix}{'└── ' if is_tail else '├── '}{NameNormalizer.denormalize(node.name)}{stype_display}"
-        print(tree_line)
-
-        # 子节点处理
-        child_nodes = node.children
-        for child_index, child_node in enumerate(child_nodes):
-            child_prefix = prefix + ("    " if is_tail else "│   ")
-            Compiler._print_scope_tree(child_node, child_prefix, child_index == len(child_nodes) - 1)
 
 
 def main():

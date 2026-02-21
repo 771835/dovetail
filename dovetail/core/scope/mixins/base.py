@@ -41,7 +41,7 @@ class SymbolStorageMixin:
             bool: 添加成功返回 True，符号已存在且未强制时返回 False
         """
         symbol_name = symbol.get_name()
-        if symbol_name in self.symbols and not force:
+        if not force and symbol_name in self.symbols:
             return False
         self.symbols[symbol_name] = symbol
         return True

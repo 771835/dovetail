@@ -71,7 +71,7 @@ class Builtins(Library):
                 [
                     Parameter(Variable("command", DataType.STRING))
                 ],
-                DataType.NULL,
+                DataType.NULL_TYPE,
                 FunctionType.BUILTIN
             ): None,
             Function(
@@ -80,7 +80,7 @@ class Builtins(Library):
                     Parameter(Variable("target", DataType.STRING)),
                     Parameter(Variable("msg", DataType.STRING)),
                 ],
-                DataType.NULL,
+                DataType.NULL_TYPE,
                 FunctionType.BUILTIN
             ): None,
             Function(
@@ -89,7 +89,7 @@ class Builtins(Library):
                     Parameter(Variable("target", DataType.STRING)),
                     Parameter(Variable("json", DataType.STRING)),
                 ],
-                DataType.NULL,
+                DataType.NULL_TYPE,
                 FunctionType.BUILTIN
             ): None,
         }
@@ -286,7 +286,7 @@ class Builtins(Library):
                 }
             )
         )
-        return Literal(DataType.NULL, None)
+        return Literal(DataType.NULL_TYPE, None)
 
     def _call(self, scope: Reference[Literal]):
         if scope.value_type != ValueType.LITERAL:
@@ -294,7 +294,7 @@ class Builtins(Library):
                 Errors.InvalidSyntax,
                 "跳转目标必须是字面量字符串"
             )
-            return Literal(DataType.NULL, None)
+            return Literal(DataType.NULL_TYPE, None)
         exist = False
         for instr in reversed(self.builder.get_instructions()):
             if isinstance(instr, IRScopeBegin):
@@ -307,7 +307,7 @@ class Builtins(Library):
                 Errors.InvalidControlFlow,
                 f"跳转目标作用域 '{scope.value.value}' 不存在"
             )
-            return Literal(DataType.NULL, None)
+            return Literal(DataType.NULL_TYPE, None)
         return Literal(DataType.INT, 0)
 
     def _type_of(self, value: Reference[Variable | Constant | Literal]):

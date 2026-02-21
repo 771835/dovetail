@@ -30,7 +30,7 @@ class IntList(Library):
                 Function(
                     NameNormalizer.normalize("__setitem__"),
                     int_list_setitem_params,
-                    DataType.NULL,
+                    DataType.NULL_TYPE,
                     FunctionType.LIBRARY
                 ),
                 Function(
@@ -42,19 +42,19 @@ class IntList(Library):
                 Function(
                     NameNormalizer.normalize("append"),
                     int_list_append_params,
-                    DataType.NULL,
+                    DataType.NULL_TYPE,
                     FunctionType.LIBRARY
                 ),
                 Function(
                     NameNormalizer.normalize("__init__"),
                     int_list_init_params,
-                    DataType.NULL,
+                    DataType.NULL_TYPE,
                     FunctionType.LIBRARY
                 ),
                 Function(
                     "clear",
                     int_list_init_params,
-                    DataType.NULL,
+                    DataType.NULL_TYPE,
                     FunctionType.LIBRARY
                 ),
                 Function(
@@ -192,12 +192,12 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL,
+                                DataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         )
                     ],
-                    DataType.NULL,
+                    DataType.NULL_TYPE,
                     FunctionType.BUILTIN
                 ),
                 {
@@ -218,7 +218,7 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL,
+                                DataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         ),
@@ -237,7 +237,7 @@ class IntList(Library):
                             )
                         )
                     ],
-                    DataType.NULL,
+                    DataType.NULL_TYPE,
                     FunctionType.BUILTIN
                 ),
                 {
@@ -259,7 +259,7 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL,
+                                DataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         ),
@@ -271,7 +271,7 @@ class IntList(Library):
                             )
                         )
                     ],
-                    DataType.NULL,
+                    DataType.NULL_TYPE,
                     FunctionType.BUILTIN
                 ),
                 {
@@ -296,7 +296,7 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL,
+                                DataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         ),
@@ -330,12 +330,12 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL,
+                                DataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         )
                     ],
-                    DataType.NULL,
+                    DataType.NULL_TYPE,
                     FunctionType.BUILTIN
                 ),
                 {
@@ -359,7 +359,7 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL,
+                                DataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         ),

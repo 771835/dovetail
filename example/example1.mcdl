@@ -16,3 +16,6 @@ fn foo():int{
     return 350234
 }
 
+fn fo1(){
+    return null
+}

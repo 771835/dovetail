@@ -128,7 +128,7 @@ def read_lines_from_file(file_path, start_line, end_line) -> list[str]:
     """
     lines = []
 
-    with open(file_path, 'r', encoding='utf-8') as file:
+    with open(file_path, encoding='utf-8') as file:
         for current_line_number, line in enumerate(file, start=1):
             if start_line <= current_line_number <= end_line:
                 lines.append(line.strip("\n"))  # 去除行末换行符和空格

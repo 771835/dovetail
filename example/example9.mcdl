@@ -1,5 +1,5 @@
 
-fn fizz_buzz(int n): null {
+fn fizz_buzz(int n) {
     for (let i = 1; i <= n; i = i + 1) {
         if (i % 3 == 0 or i % 5 == 0) {
             string s = ""
@@ -17,7 +17,7 @@ fn fizz_buzz(int n): null {
 }
 
 @init
-fn main(): null {
+fn main() {
     fizz_buzz(100)
 }
 /*
@@ -32,7 +32,7 @@ fn fizz_buzz(int n) {
 }
 
 @init
-fn main(): null {
+fn main() {
     fizz_buzz(100)
 }
 */

@@ -34,7 +34,7 @@ block : "{" statement* "}"
     | statement
 
 // 流程控制
-statement : function                           // 函数定义
+?statement : function                           // 函数定义
         | var                                  // 变量声明
         | const                                // 常量声明
         | for_loop                             // for循环
@@ -81,7 +81,7 @@ if_else : "if" "(" condition ")" block ("else" block)?  // 条件语句
 // 表达式
 ?expr : primary                                       // 基础表达式
     | FSTRING                                         -> fstring                 // 插值字符串
-    | "null"                                          -> null_expr               // null表达式
+    | "null"                                          -> null_expr               // null句柄
     | expr "." ID arguments                           -> method_call             // 方法调用
     | expr "." ID                                     -> member_access           // 成员访问
     | expr "[" expr "]"                               -> array_access            // 数组访问

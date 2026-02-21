@@ -249,7 +249,7 @@ class transpilerParser(Parser):
                      "SEMI", "COMMA", "QUESTION", "ARROW", "COLON", "DOUBLE_COLON",
                      "INCLUDE", "FUNC", "METHOD", "CLASS", "INTERFACE",
                      "EXTENDS", "IMPLEMENTS", "CONST", "LET", "RETURN",
-                     "FOR", "WHILE", "IF", "ELSE", "TRUE", "FALSE", "NULL",
+                     "FOR", "WHILE", "IF", "ELSE", "TRUE", "FALSE", "NULL_TYPE",
                      "BREAK", "CONTINUE", "ASSIGN", "ADD_ASSIGN", "SUB_ASSIGN",
                      "MUL_ASSIGN", "DIV_ASSIGN", "MOD_ASSIGN", "NOT", "MUL",
                      "DIV", "MOD", "ADD", "SUB", "GT", "LT", "EQ", "NEQ",

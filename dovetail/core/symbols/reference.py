@@ -64,7 +64,7 @@ class Reference(Symbol, Generic[T]):
         elif isinstance(value, str):
             return cls(ValueType.LITERAL, Literal(DataType.STRING, str(value)))
         elif value is None:
-            return cls(ValueType.LITERAL, Literal(DataType.NULL, None))
+            return cls(ValueType.LITERAL, Literal(DataType.NULL_TYPE, None))
         else:
             raise TypeError(f"Unsupported literal type: {type(value)}")
 

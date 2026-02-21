@@ -67,7 +67,6 @@ class DataTypeBase:
         """
         return True
 
-
     def __repr__(self):
         return self.get_name()
 
@@ -81,21 +80,25 @@ class DataType(DataTypeBase, SafeEnum):
 
     Type Hierarchy:
         - BOOLEAN 是 INT 的子类型（可以强制转换）
-        - NULL、UNDEFINED 是特殊类型，不能显式声明
+        - NULL_TYPE、UNDEFINED 是特殊类型，不能显式声明
 
     Attributes:
-        INT: 整数类型，对应 Minecraft 计分板分数
-        STRING: 字符串类型，用于命名和文本处理
-        BOOLEAN: 布尔类型，内部表示为 0/1 整数
-        NULL: 空值类型，表示未初始化或无效值
+        INT: 整数类型
+        STRING: 字符串类型
+        BOOLEAN: 布尔类型
+        NULL_TYPE: 句柄null的独有类型，不可作为其他值的类型
+        VOID: 表示空
         UNDEFINED: 特殊类型，仅编译错误时使用
+        FUNCTION: 函数句柄，表示一个函数
     """
     INT = 'int'
     STRING = 'string'
     BOOLEAN = 'boolean'
-    NULL = 'null'  # 特殊类型，不可为变量的类型
-    UNDEFINED = 'undefined'  # 特殊类型，仅编译期填充错误时使用
-    Function = 'function'
+    NULL_TYPE = 'null'  # 特殊类型，不可为变量的类型
+    VOID = 'void'
+    UNDEFINED = 'undefined'  # 特殊类型，仅编译期时使用
+    FUNCTION = 'function'
+
     # Type = 'type'  # 特殊类型，待使用
 
     def get_name(self) -> str:
@@ -111,7 +114,7 @@ class DataType(DataTypeBase, SafeEnum):
         return False
 
     def is_definable(self) -> bool:
-        return self is not DataType.UNDEFINED
+        return self not in (DataType.UNDEFINED, DataType.NULL_TYPE)
 
 
 class Array(DataTypeBase):
@@ -206,6 +209,7 @@ class VariableType(SafeEnum):
     COMMON = "common"
     RETURN = "return"
 
+
 @deprecated("INTERFACE将被移除")
 class ClassType(SafeEnum):
     """
@@ -216,7 +220,7 @@ class ClassType(SafeEnum):
 
     Attributes:
         CLASS: 具体类，可实例化
-        INTERFACE: 接口类，定义契约
+        INTERFACE: 接口类，定义契约(已弃用)
     """
     CLASS = "class"
 

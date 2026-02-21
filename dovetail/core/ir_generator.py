@@ -214,7 +214,7 @@ class IRGenerator(transpilerVisitor):
     ) -> Result:
         """通用函数/方法声明处理"""
         function_name = NameNormalizer.normalize(ctx.ID().getText())
-        return_type = self._get_type_definition(ctx.type_(), True) if ctx.type_() else DataType.NULL
+        return_type = self._get_type_definition(ctx.type_(), True) if ctx.type_() else DataType.NULL_TYPE
         func_type = func_type if func_type != FunctionType.FUNCTION or ctx.block().SEMI() is None else FunctionType.FUNCTION_UNIMPLEMENTED
         # 检查重复定义
         symbol = self.current_scope.find_symbol(function_name)
@@ -476,7 +476,7 @@ class IRGenerator(transpilerVisitor):
         """获取类型的具体定义（内置类型返回DataType，类返回Class实例）null特殊处理"""
         if type_.NULL():
             if allow_null:
-                return DataType.NULL
+                return DataType.NULL_TYPE
             else:
                 raise UndefinedTypeError(
                     "null",
@@ -515,7 +515,7 @@ class IRGenerator(transpilerVisitor):
     def _ternary(self, cond, a, b):
         if_id = next(self.counter)
 
-        result_var = self._create_temp_var(DataType.NULL, "ternary")  # 此处数据类型需要根据后文得出
+        result_var = self._create_temp_var(DataType.NULL_TYPE, "ternary")  # 此处数据类型需要根据后文得出
         self._add_ir_instruction(IRDeclare(result_var))
         with self._scoped_environment(f"ternary_{if_id}_a", StructureType.CONDITIONAL) as a_scope:
             a_ref = self.visit(a).value
@@ -592,15 +592,15 @@ class IRGenerator(transpilerVisitor):
     def visitVarDecl(self, ctx: transpilerParser.VarDeclContext):
         """处理变量声明"""
         var_name = NameNormalizer.normalize(ctx.ID().getText())
-        dtype: DataTypeBase = self._get_type_definition(ctx.type_()) if ctx.type_() else DataType.NULL
+        dtype: DataTypeBase = self._get_type_definition(ctx.type_()) if ctx.type_() else DataType.NULL_TYPE
         var_value: Reference | None = None
 
         if ctx.expr():  # 如果存在初始值
             result = self.visit(ctx.expr())  # 处理初始化表达式
             # 如果没有显式指定类型，则根据初始值推断类型
-            if dtype == DataType.NULL:
+            if dtype == DataType.NULL_TYPE:
                 dtype = result.value.get_data_type()
-                if dtype == DataType.NULL:
+                if dtype == DataType.NULL_TYPE:
                     raise TypeMismatchError(
                         expected_type="any type",
                         actual_type="null (initial value has null type)",
@@ -622,7 +622,7 @@ class IRGenerator(transpilerVisitor):
             var_value = result.value
 
             # 检查是否存在类型（显式指定或推断出的）
-            if dtype == DataType.NULL:
+            if dtype == DataType.NULL_TYPE:
                 raise TypeMismatchError(
                     expected_type="any type",
                     actual_type="null (no type specified and no initial value to infer from)",
@@ -653,10 +653,10 @@ class IRGenerator(transpilerVisitor):
 
     def visitConstDecl(self, ctx: transpilerParser.ConstDeclContext):
         name = NameNormalizer.normalize(ctx.ID().getText())
-        dtype: DataTypeBase = self._get_type_definition(ctx.type_()) if ctx.type_() else DataType.NULL
+        dtype: DataTypeBase = self._get_type_definition(ctx.type_()) if ctx.type_() else DataType.NULL_TYPE
         result = self.visit(ctx.expr())  # 处理初始化表达式
         # 如果没有显式指定类型，则根据初始值推断类型
-        if dtype == DataType.NULL:
+        if dtype == DataType.NULL_TYPE:
             dtype = result.value.get_data_type()
         # 如果指定了类型，则进行类型检查
         elif dtype != result.value.get_data_type():
@@ -671,7 +671,7 @@ class IRGenerator(transpilerVisitor):
         value = result.value
 
         # 检查是否存在类型（显式指定或推断出的）
-        if dtype == DataType.NULL:
+        if dtype == DataType.NULL_TYPE:
             raise TypeMismatchError(
                 expected_type="any type",
                 actual_type="null (no type specified and no initial value to infer from)",
@@ -802,7 +802,7 @@ class IRGenerator(transpilerVisitor):
                        interface=None,
                        parent=extends,
                        properties=properties,
-                       type=ClassType.INTERFACE)
+                       type=ClassType.INTERFACE)#
 
         if not self.current_scope.add_symbol(class_):
             raise DuplicateDefinitionError(
@@ -845,7 +845,7 @@ class IRGenerator(transpilerVisitor):
         if value == 'true' or value == 'false':
             return Result.from_literal(value == 'true', DataType.BOOLEAN)
         elif value == 'null':
-            return Result.from_literal(None, DataType.NULL)
+            return Result.from_literal(None, DataType.NULL_TYPE)
         elif value[0] == 'f':
             return Result(self._process_fstring(value))
         elif value.isdigit():
@@ -1158,7 +1158,7 @@ class IRGenerator(transpilerVisitor):
                 result_var = self.builtin_func_table[symbol.get_name()](**args_dict)
             else:
                 result_var = self._create_temp_var(symbol.return_type, "result")
-                if symbol.return_type != DataType.NULL:
+                if symbol.return_type != DataType.NULL_TYPE:
                     self._add_ir_instruction(IRDeclare(result_var))
                     self._add_ir_instruction(IRCall(result_var, symbol, args_dict))
                 else:
@@ -1241,10 +1241,10 @@ class IRGenerator(transpilerVisitor):
             result_var = self._create_temp_var(method_symbol.return_type, "result")
             self._add_ir_instruction(IRDeclare(result_var))
             self._add_ir_instruction(IRCallMethod(result_var, instance_type, method_symbol, args_dict))
-        if method_symbol.return_type != DataType.NULL:
+        if method_symbol.return_type != DataType.NULL_TYPE:
             return Result(Reference(ValueType.VARIABLE, result_var))
         else:
-            return Result(Reference.variable("result_null", DataType.NULL))
+            return Result(Reference.variable("result_null", DataType.NULL_TYPE))
 
     def visitMemberAccess(self, ctx: transpilerParser.MemberAccessContext):
         instance_ref = self.visit(ctx.expr()).value
@@ -1400,7 +1400,7 @@ class IRGenerator(transpilerVisitor):
         return Result(None)
 
     def visitReturnStmt(self, ctx: transpilerParser.ReturnStmtContext):
-        result_dtype: DataTypeBase = DataType.NULL
+        result_dtype: DataTypeBase = DataType.NULL_TYPE
         result_var_ref: Reference[Variable | Constant | Literal] | None = None
         if ctx.expr():
             result_var_ref = self.visit(ctx.expr()).value

@@ -65,7 +65,7 @@ class IRCallProcessor(IRProcessor):
             )
         )
         # 处理返回值
-        if func.return_type != DataType.NULL and result is not None:
+        if func.return_type != DataType.NULL_TYPE and result is not None:
             context.current_scope.add_command(
                 Copy.copy(
                     DataPath(

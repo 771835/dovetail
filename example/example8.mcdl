@@ -9,7 +9,7 @@ fn f(): boolean {
 }
 
 @init
-fn main(): null {
+fn main() {
     if (t() and t())
         print("Passed")
     else

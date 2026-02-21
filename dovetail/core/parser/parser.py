@@ -24,6 +24,7 @@ from dovetail.core.parser.scope import Scope
 from dovetail.core.scope.protocols import ScopeCore
 from dovetail.core.symbols import Constant, Variable, Reference, Literal, Function, Class, Parameter
 from dovetail.core.symbols.annotation import Annotation
+from dovetail.utils.annotations import timed
 from dovetail.utils.naming import NameNormalizer
 from dovetail.utils.string_similarity import suggest_similar
 
@@ -31,6 +32,7 @@ lark_parser = Lark(open(r".\lark\dovetail.lark", encoding='utf-8').read(), start
                    cache=".cache", propagate_positions=True)
 
 
+@timed("解析用时 {:.5f}.")
 def parser_code(filepath: Path | str, start=None) -> Tree | None:
     """
     解析代码
@@ -48,9 +50,9 @@ def parser_code(filepath: Path | str, start=None) -> Tree | None:
     with open(filepath, encoding='utf-8') as f:
         code = f.read()
     if start is None:
-        return lark_parser.parse(code)
+        return lark_parser.parse(code, on_error=lambda e: True)
     else:
-        return lark_parser.parse(code, start=start)
+        return lark_parser.parse(code, start=start, on_error=lambda e: True)
 
 
 class ASTTransformer(Interpreter):
@@ -78,6 +80,10 @@ class ASTTransformer(Interpreter):
             self._load_library(LibraryMapping.get("experimental", self.builder))
         # 是否发生错误
         self.errored = False
+
+    def __default__(self, tree: Tree):
+        print(tree.pretty())
+        return self.visit_children(tree)
 
     @lru_cache(maxsize=None)
     def _load_library(self, library: Library):
@@ -177,46 +183,6 @@ class ASTTransformer(Interpreter):
             self.errored = True
             return None
 
-    def _get_dtype(self, type_name, size: Optional[list[int]] = None,
-                   meta: Meta = None) -> DataType | Class | Array | DataTypeBase:
-        try:
-            dtype = DataType.get_by_value(type_name)
-            if dtype.is_definable():
-                if size is not None:
-                    return Array(dtype, size)
-                else:
-                    return dtype
-            else:
-                report(
-                    Errors.TypeMismatch,
-                    "可定义类型",
-                    type_name,
-                    filepath=self.filepath,
-                    line=meta.line if meta is not None else -1,
-                    column=meta.column if meta is not None else -1,
-                    suggestion=f"{type_name}不适用于此场景"
-                )
-                self.errored = True
-                return DataType.UNDEFINED
-        except ValueType:
-            pass  # DataType不存在此类型,去查找符号
-        dtype = self.current_scope.resolve_symbol(NameNormalizer.normalize(type_name))
-        if isinstance(dtype, DataTypeBase):
-            if size is not None:
-                return Array(dtype, size)
-            else:
-                return dtype
-
-        report(
-            Errors.UndefinedType,
-            type_name,
-            filepath=self.filepath,
-            line=meta.line if meta is not None else -1,
-            column=meta.column if meta is not None else -1,
-        )
-        self.errored = True
-        return DataType.UNDEFINED
-
     def get_ir(self) -> IRBuilder:
         """
         返回IRBuilder
@@ -251,15 +217,24 @@ class ASTTransformer(Interpreter):
                     # 跳过编译该函数
                     return
 
-        function_name: str = NameNormalizer.normalize(children.pop(0).value)
-        params: list[Parameter] = self.visit(children.pop(0))
-        return_type: DataTypeBase = DataType.NULL
-        if children[0].data == "type":
+        params: list[Parameter]
+        return_type: DataTypeBase
+        name: str
+        # 处理函数签名
+        if isinstance(children[0], Tree) and children[0].data == 'type':
+            # annotation* ("function"|"fn") type ID params (block|";")
+            return_type = self.visit(children.pop(0))
+            name = NameNormalizer.normalize(children.pop(0).value)
+            params = self.visit(children.pop(0))
+        else:
+            # annotation* ("function"|"fn"|"def") ID params (("->" | ":") type)? (block|":")
+            name = NameNormalizer.normalize(children.pop(0).value)
+            params = self.visit(children.pop(0))
             return_type = self.visit(children.pop(0))
 
         # 创建函数对象
         function = Function(
-            function_name,
+            name,
             params,
             return_type,
             FunctionType.FUNCTION if len(children) == 1 else FunctionType.FUNCTION_UNIMPLEMENTED,
@@ -272,9 +247,17 @@ class ASTTransformer(Interpreter):
         self._append_ir(IRFunction(function))
 
         if len(children) == 1:
-            with self._scoped_environment(f"fn_{function_name}", StructureType.FUNCTION) as sp:
+            with self._scoped_environment(f"fn_{name}", StructureType.FUNCTION):
+                for param in params:
+                    if not self.current_scope.add_symbol(param):
+                        report(
+                            Errors.DuplicateDefinition,
+                            param.get_name(),
+                            filepath=self.filepath,
+                            line=meta.line,
+                            column=meta.column
+                        )
                 self.visit(children.pop(0))
-
 
     @v_args(meta=True)
     def var(self, children: list[Tree | Token], meta: Meta):
@@ -284,21 +267,23 @@ class ASTTransformer(Interpreter):
 
         # 分析数据类型和初始值
         if isinstance(children[0], Tree) and children[0].data == 'type':  # type ID "?"? ("=" expr)?
-            dtype = self.visit(children[0])
-            children[1]: Token
-            symbol_name = str(children[1].data)
+            dtype = self.visit(children.pop(0))
+
+            # children[0] is Token[ID]
+            symbol_name = str(children.pop(0).value)
+
             if len(children) > 2:
-                default_value = self.visit(children[2])
+                default_value = self.visit(children.pop(0))
         else:
-            symbol_name = str(children[1].data)
-            if isinstance(children[1], Tree) and children[1].data == 'type':
+            symbol_name = str(children.pop(0).value)
+            if isinstance(children[0], Tree) and children[0].data == 'type':
                 # ID ("->" | ":") type "?"? ("=" expr)?
                 # "let" ID "?"? ("->" | ":") type ("=" expr)?
-                dtype = self.visit(children[1])
+                dtype = self.visit(children.pop(0))
                 if len(children) > 2:
-                    default_value = self.visit(children[2])
+                    default_value = self.visit(children.pop(0))
             else:  # "let" ID "?"? "=" expr
-                default_value = self.visit(children[1])
+                default_value = self.visit(children.pop(0))
                 assert isinstance(default_value, Reference)
                 dtype = default_value.get_data_type()
 
@@ -411,13 +396,21 @@ class ASTTransformer(Interpreter):
         return params
 
     @v_args(meta=True)
-    def param(self, tree: Tree, meta: Meta):
-        children: list[Tree | Token] = tree.children
-        name: str = NameNormalizer.normalize(children[0].value)
-        dtype: DataTypeBase = self.visit(children[1])
+    def param(self, children: list[Tree | Token], meta: Meta):
+        name: str
+        dtype: DataTypeBase
+        if isinstance(children[0], Tree) and children[0].data == "type":
+            # type ID ("=" expr)?
+            dtype = self.visit(children.pop(0))
+            name: str = NameNormalizer.normalize(children.pop(0).value)
+        else:
+            # ID ("->" | ":") type ("=" expr)?
+            name: str = NameNormalizer.normalize(children.pop(0).value)
+            dtype = self.visit(children.pop(0))
+
         default_value: Reference | None = None
-        if len(children) > 2:
-            default_value = self.visit(children[2])
+        if len(children) >= 1:
+            default_value = self.visit(children.pop(0))
 
             if default_value.get_data_type() != dtype:
                 report(
@@ -436,7 +429,7 @@ class ASTTransformer(Interpreter):
 
     @v_args(meta=True)
     def include(self, children: list, meta: Meta):
-        original_filepath: str = self.visit(children[0]).value.value
+        original_filepath: str = self.visit(children.pop(0)).value.value
         # 判断是否为内置库
         if library := LibraryMapping.get(original_filepath, self.builder):
             self._load_library(library)
@@ -470,8 +463,46 @@ class ASTTransformer(Interpreter):
             return
 
     @v_args(meta=True)
-    def type(self, children: list, meta: Meta):
-        return self._get_dtype(children[0], children[1:] if len(children) >= 2 else None, meta)
+    def type(self, children: list, meta: Meta) -> DataType | Class | Array | DataTypeBase:
+        original_name: str = children.pop(0).value
+
+        try:
+            dtype = DataType.get_by_value(original_name)
+            if dtype.is_definable():
+                if len(children) >= 1:
+                    return Array(dtype, children)
+                else:
+                    return dtype
+            else:
+                report(
+                    Errors.TypeMismatch,
+                    "可定义类型",
+                    original_name,
+                    filepath=self.filepath,
+                    line=meta.line if meta is not None else -1,
+                    column=meta.column if meta is not None else -1,
+                    suggestion=f"{original_name} 不可被定义"
+                )
+                self.errored = True
+                return DataType.UNDEFINED
+        except ValueError:
+            pass  # DataType不存在此类型,去查找符号
+        dtype = self.current_scope.resolve_symbol(NameNormalizer.normalize(original_name))
+        if isinstance(dtype, DataTypeBase):
+            if len(children) >= 1:
+                return Array(dtype, children)
+            else:
+                return dtype
+
+        report(
+            Errors.UndefinedType,
+            original_name,
+            filepath=self.filepath,
+            line=meta.line,
+            column=meta.column,
+        )
+        self.errored = True
+        return DataType.UNDEFINED
 
     def null_expr(self, _: Tree):
         return Reference.literal(None)
