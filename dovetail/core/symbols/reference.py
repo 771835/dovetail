@@ -7,12 +7,11 @@ from typing import TYPE_CHECKING, TypeVar, Generic
 from attrs import define
 
 from .base import Symbol
-from .literal import Literal
-from .variable import Variable
+
 from ..enums.types import DataTypeBase, DataType, ValueType, VariableType
 
 if TYPE_CHECKING:
-    from . import Class, Function
+    from . import Class, Function, Constant, Variable, Literal
 T = TypeVar(
     'T',
     'Variable', 'Constant', 'Literal', 'Function', 'Class'  # 使用字符串前向引用
@@ -51,12 +50,13 @@ class Reference(Symbol, Generic[T]):
         elif isinstance(self.value, Function):
             return DataType.Function
         elif isinstance(self.value, Parameter):
-            return self.value.get_data_type()
+            return self.value.get_dtype()
         else:
             return self.value.dtype
 
     @classmethod
     def literal(cls, value):
+        from .literal import Literal
         if isinstance(value, bool):
             return cls(ValueType.LITERAL, Literal(DataType.BOOLEAN, value))
         elif isinstance(value, (int, float)):
@@ -70,6 +70,7 @@ class Reference(Symbol, Generic[T]):
 
     @classmethod
     def variable(cls, var_name, dtype: DataType, var_type: VariableType = VariableType.COMMON) -> Reference:
+        from .variable import Variable
         return cls(ValueType.VARIABLE, Variable(var_name, dtype, var_type))
 
     def is_literal(self) -> bool:

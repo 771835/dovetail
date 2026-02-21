@@ -15,7 +15,8 @@ from dovetail.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, set_p
     get_project_logger
 from dovetail.core.enums.minecraft import MinecraftVersion
 from dovetail.core.enums.optimization import OptimizationLevel
-from dovetail.core._errors import CompilationError
+from dovetail.core.errors import CompilationError
+from dovetail.core.errors import report, Errors
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.parser.parser import ASTTransformer, parser_code
 from dovetail.core._scope import Scope
@@ -77,8 +78,14 @@ class Compiler:
             else:
                 return self._compile_directory(source_path, target_path)
         else:
-            self.logger.error(f"{source_path} does not exist")
-            raise FileNotFoundError(f"{source_path} does not exist")
+            report(
+                Errors.FileNotFound,
+                str(source_path),
+                filepath=source_path,
+                suggestion="仔细检查你的路径w",
+                should_raise=False
+            )
+            return -1
 
     def _compile_directory(self, source_path: Path, target_path: Path) -> int:
         """
@@ -93,8 +100,11 @@ class Compiler:
         """
         pack_config_path = source_path / "pack.config"
         if not pack_config_path.exists() or not pack_config_path.is_file():
-            self.logger.error(f"The path '{pack_config_path}' is not a file.")
-            return -1
+            report(
+                Errors.ConfigurationError,  # SystemError，将会直接抛出异常
+                "文件 pack.config 不存在或不是一个文件",
+                filepath=pack_config_path
+            )
         # 尝试解析配置文件
         try:
             with open(pack_config_path, encoding='utf-8') as config_file:
@@ -102,8 +112,12 @@ class Compiler:
             # 检查配置文件格式是否正确
             PACK_CONFIG_VALIDATOR(pack_config_data)
         except (json.JSONDecodeError, fastjsonschema.JsonSchemaException):
-            self.logger.error(f"The file 'pack.config' has an invalid format.")
-            return -1
+            report(
+                Errors.ConfigurationError,  # SystemError，将会直接抛出异常
+                "文件 pack.config 格式无效",
+                filepath=pack_config_path,
+                suggestion="确认编译配置正确吗?"
+            )
 
         if pack_config_data.get("description"):
             self.config.description = pack_config_data["description"]
@@ -140,9 +154,7 @@ class Compiler:
             try:
                 tree = parser_code(source_path)
 
-                print(tree.pretty())
-
-                ASTTransformer(self.config, source_path).transform(tree)
+                ASTTransformer(self.config, source_path).visit(tree)
 
                 # builder = self._build_and_optimize_ir(generator, tree)
                 ir_builder = IRBuilder()

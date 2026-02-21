@@ -2,10 +2,9 @@
 import uuid
 from typing import Callable, Optional
 
-from dovetail.core.enums.operations import BinaryOps
 from dovetail.core.enums.types import FunctionType, DataType, ValueType
-from dovetail.core._errors import ASTSyntaxError, InvalidControlFlowError
-from dovetail.core.instructions import IRInstruction, IRCast, IRDeclare, IRBinaryOp, IRScopeBegin, \
+from dovetail.core.errors import report, Errors
+from dovetail.core.instructions import IRInstruction, IRCast, IRDeclare, IRScopeBegin, \
     IRJump, IRCall
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
@@ -291,9 +290,11 @@ class Builtins(Library):
 
     def _call(self, scope: Reference[Literal]):
         if scope.value_type != ValueType.LITERAL:
-            raise ASTSyntaxError(
+            report(
+                Errors.InvalidSyntax,
                 "跳转目标必须是字面量字符串"
             )
+            return Literal(DataType.NULL, None)
         exist = False
         for instr in reversed(self.builder.get_instructions()):
             if isinstance(instr, IRScopeBegin):
@@ -302,10 +303,12 @@ class Builtins(Library):
         if exist:
             self.builder.insert(IRJump(scope.value.value))
         else:
-            raise InvalidControlFlowError(
+            report(
+                Errors.InvalidControlFlow,
                 f"跳转目标作用域 '{scope.value.value}' 不存在"
             )
-        return Literal(DataType.INT, 1)
+            return Literal(DataType.NULL, None)
+        return Literal(DataType.INT, 0)
 
     def _type_of(self, value: Reference[Variable | Constant | Literal]):
         return Literal(DataType.STRING, str(value.get_data_type()))

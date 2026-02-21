@@ -139,7 +139,7 @@ class IRGenerator(transpilerVisitor):
             ArgumentTypeMismatchError: 当参数类型不匹配时
         """
 
-        min_args: int = sum(not param.optional for param in func_symbol.params)
+        min_args: int = sum(not param.is_optional() for param in func_symbol.params)
         max_args: int = len(func_symbol.params)
         # 参数字典
         args_dict: dict[str, Reference] = {}
@@ -162,13 +162,13 @@ class IRGenerator(transpilerVisitor):
 
         # 效验数据并记录参数字典
         for i, (arg_ref, param) in enumerate(itertools.zip_longest(argument_list, func_symbol.params)):
-            arg_value = arg_ref or param.default
+            arg_value: Reference = arg_ref or param.default
             args_dict[param.get_name()] = arg_value
             # 类型检查
-            if not arg_value.get_data_type().is_subclass_of(param.get_data_type()):
+            if not arg_value.get_data_type().is_subclass_of(param.get_dtype()):
                 raise ArgumentTypeMismatchError(
                     param_name=param.get_name(),
-                    expected=param.get_data_type(),
+                    expected=param.get_dtype(),
                     actual=arg_value.get_data_type(),
                     line=self._get_current_line(),
                     column=self._get_current_column(),

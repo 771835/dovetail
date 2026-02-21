@@ -67,7 +67,6 @@ class IRSymbolSerializer:
             metadata['value'] = symbol.value
         elif isinstance(symbol, Parameter):
             metadata['var'] = id(symbol.var)
-            metadata['optional'] = symbol.optional
             metadata['default'] = id(symbol.default)
         elif isinstance(symbol, Reference):
             metadata['value_type'] = symbol.value_type.value
@@ -113,7 +112,6 @@ class IRSymbolSerializer:
             self._add_symbol_id_map(symbol.function_type)
         elif isinstance(symbol, Parameter):
             self._add_symbol_id_map(symbol.var)
-            self._add_symbol_id_map(symbol.optional)
             self._add_symbol_id_map(symbol.default)
         elif isinstance(symbol, Class):
             self._add_symbol_id_map(symbol.properties)

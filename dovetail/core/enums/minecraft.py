@@ -45,6 +45,11 @@ class MinecraftEdition(SafeEnum):
         }
         return names.get(self, self.value)
 
+    @staticmethod
+    def from_str(edition: str) -> MinecraftEdition:
+        if any(keyword in edition.lower() for keyword in ['be', 'bedrock', 'pe']):
+            return MinecraftEdition.BEDROCK_EDITION
+        return MinecraftEdition.JAVA_EDITION
 
 @total_ordering
 class MinecraftVersion(ABC):
@@ -142,9 +147,7 @@ class OldMinecraftVersion(MinecraftVersion):
         # 标准化版本字符串
         clean_version = version.replace('v', '').strip()
 
-        minecraft_edition = MinecraftEdition.JAVA_EDITION
-        if any(keyword in edition.lower() for keyword in ['be', 'bedrock', 'pe']):
-            minecraft_edition = MinecraftEdition.BEDROCK_EDITION
+        minecraft_edition = MinecraftEdition.from_str(edition)
 
         try:
             # 处理版本号
@@ -225,9 +228,7 @@ class NewMinecraftVersion(MinecraftVersion):
     @classmethod
     def from_str(cls, version: str, edition: str = "java_edition") -> NewMinecraftVersion:
         """从字符串创建新版Minecraft版本对象"""
-        minecraft_edition = MinecraftEdition.JAVA_EDITION
-        if any(keyword in edition.lower() for keyword in ['be', 'bedrock', 'pe']):
-            minecraft_edition = MinecraftEdition.BEDROCK_EDITION
+        minecraft_edition = MinecraftEdition.from_str(edition)
 
         try:
             version_parts = list(map(int, version.split(".")))

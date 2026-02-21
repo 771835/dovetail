@@ -7,7 +7,7 @@ from .base import Symbol
 from ..enums.types import AnnotationCategory
 
 
-@define(slots=True)
+@define(slots=True,frozen=True)
 class Annotation(Symbol):
     name: str  # 注解名称
     params: Optional[dict[str, Any]]  # 参数字典

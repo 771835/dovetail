@@ -1,5 +1,5 @@
 // 程序结构
-program : (include)* (class | interface | function | var | const)*
+program : (include)* (class | function | var | const)*
 
 include : "include" literal               // 包含库文件，如：include "mathlib.mcdl"
 
@@ -8,10 +8,7 @@ include : "include" literal               // 包含库文件，如：include "ma
 annotation : "@" ID | "@" ID "(" literal ("," literal)* ")"
 
 // 类(单继承、单接口)
-class : annotation* "class" ID ("extends" type)? ("implements" type)? "{" (class_property | method)* "}"
-
-// 接口(单继承)
-interface : annotation* "interface" ID ("extends" type)? "{"(class_property | method)* "}"
+class : annotation* "class" ID ("(" type*")")? "{" (class_property | method)* "}"
 
 class_property : type ID "?"?| "let" ID "?"? ("->" | ":") type
 
@@ -19,12 +16,11 @@ class_property : type ID "?"?| "let" ID "?"? ("->" | ":") type
 type.2: ID ("[" ARRAY_SIZE "]")*
 
 
-function : annotation* ("function"|"fn"|"def") ID params (("->" | ":") type)? [block]
-    | annotation* ("function"|"fn") type ID params [block]
+function : annotation* ("function"|"fn"|"def") ID params (("->" | ":") type)? (block|":")
+    | annotation* ("function"|"fn") type ID params (block|";")
 
 
-method : annotation* "method" ID params block
-    | annotation* "method" ID params (("->" | ":") type) block
+method :annotation* "method" ID params (("->" | ":") type)? block
     | annotation* "method" type ID params block
 
 params : "(" (param ("," param)*)? ")"| "()"
@@ -84,6 +80,7 @@ if_else : "if" "(" condition ")" block ("else" block)?  // 条件语句
 //| expr '?' '.' ID                                      -> SafeNavigation           // 安全导航
 // 表达式
 ?expr : primary                                       // 基础表达式
+    | FSTRING                                         -> fstring                 // 插值字符串
     | "null"                                          -> null_expr               // null表达式
     | expr "." ID arguments                           -> method_call             // 方法调用
     | expr "." ID                                     -> member_access           // 成员访问
@@ -98,13 +95,14 @@ if_else : "if" "(" condition ")" block ("else" block)?  // 条件语句
     | expr ("or"|"||") expr                           -> logical_or_expr         // or运算符
     | expr "[" expr "]" "=" expr                      -> array_assignment_expr   // 数组元素赋值
     | expr "." ID "=" expr                            -> member_assignment_expr  // 成员属性访问
-    | ID "=" expr                                     -> local_assignment_expr   // 变量赋值
+    | identifier "=" expr                             -> local_assignment_expr   // 变量赋值
 
 
 ?primary : literal               // 字面量
     | identifier     // 标识符（变量、函数、类等）
     | paren          // 括号
 
+// 标识符(不适用定义)
 identifier: ID
 paren: "(" expr ")"
 
@@ -114,10 +112,9 @@ arguments : ("(" exprs? ")") | "()"
 
 ?exprs : expr ("," expr)*    // 表达式列表
 
-// 数字、普通字符串、插值字符串、布尔值、空值
+// 数字、普通字符串、布尔值、空值
 literal : INT
     | FLOAT
-    | FSTRING
     | STRING
     | "true" -> true
     | "false" -> false
@@ -125,16 +122,13 @@ literal : INT
 PYTHONIC_COMMENT: /#[^\n]*/
 LUA_COMMENT: "[[" /(.|\n)*?/ "]]"
 
-ID : CNAME
-
 ARRAY_SIZE: /[1-9][0-9]*/     // 数组大小（正整数）
 INT: /-?[0-9]+/               // 整数（可以为负）
 FLOAT: /-?[0-9]+\.[0-9]+/     // 浮点数
-
 FSTRING.3: /f"([^"\\]|\\.)*"/
 
 %import common.ESCAPED_STRING -> STRING
-%import common.CNAME
+%import common.CNAME -> ID
 %import common.WS
 %import common.CPP_COMMENT
 %import common.C_COMMENT

@@ -8,10 +8,11 @@ from typing import Dict, Type
 from dovetail.core.backend.base import Backend
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.config import get_project_logger
+from dovetail.core.errors import report, Errors, CompilationError
 from dovetail.core.ir_builder import IRBuilder
 
 
-class BackendNotFoundError(Exception):
+class BackendNotFoundError(CompilationError):
     """后端未找到"""
     pass
 
@@ -29,7 +30,7 @@ class BackendFactory:
         get_project_logger().info(f"Registered backend: {name}")
 
     @classmethod
-    def create(cls, name: str, ir_builder: IRBuilder, target: Path, config: CompileConfig) -> Backend:
+    def create(cls, name: str, ir_builder: IRBuilder, target: Path, config: CompileConfig) -> Backend | None:
         """
         创建后端实例
 
@@ -46,14 +47,17 @@ class BackendFactory:
             BackendNotFoundError: 未找到后端时
         """
         backend_class = cls._backends.get(name)
-
         if not backend_class:
-            raise BackendNotFoundError(f"Backend '{name}' not found. Available: {list(cls._backends.keys())}")
-
+            report(
+                Errors.ConfigurationError,
+                f"后端 {name} 不存在。",
+                raise_error=BackendNotFoundError
+            )
+            return None
         return backend_class(ir_builder, target, config)
 
     @classmethod
-    def auto_select(cls, config: CompileConfig, backend_name: str = None) -> Type[Backend]:
+    def auto_select(cls, config: CompileConfig, backend_name: str = None) -> type[Backend] | None:
         """
         自动选择合适的后端
 
@@ -68,14 +72,27 @@ class BackendFactory:
             BackendNotFoundError: 没有合适的后端
         """
         if backend_name:
-            return cls._backends.get(backend_name, None)
+            backend = cls._backends.get(backend_name, None)
+            if backend is not None:
+                return backend
+            report(
+                Errors.UnsupportedTargetVersion,
+                "没有找到适合该配置的合适后端",
+                raise_error=BackendNotFoundError
+            )
+            return None
         else:
             for name, backend in cls._backends.items():
                 if backend.is_support(config):
                     get_project_logger().info(f"Selected backend '{name}' ({id(backend)}).")
                     return backend
 
-        raise BackendNotFoundError("No suitable backend found for the given configuration")
+        report(
+            Errors.UnsupportedTargetVersion,
+            "没有找到适合该配置的合适后端",
+            raise_error=BackendNotFoundError
+        )
+        return None
 
     @classmethod
     def get_available_backends(cls) -> list[str]:

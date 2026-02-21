@@ -7,6 +7,8 @@
 """
 from __future__ import annotations
 
+from typing_extensions import deprecated
+
 from dovetail.utils.safe_enum import SafeEnum
 
 
@@ -93,8 +95,7 @@ class DataType(DataTypeBase, SafeEnum):
     BOOLEAN = 'boolean'
     NULL = 'null'  # 特殊类型，不可为变量的类型
     UNDEFINED = 'undefined'  # 特殊类型，仅编译期填充错误时使用
-
-    # Function = 'function'  # 特殊类型，待使用
+    Function = 'function'
     # Type = 'type'  # 特殊类型，待使用
 
     def get_name(self) -> str:
@@ -205,7 +206,7 @@ class VariableType(SafeEnum):
     COMMON = "common"
     RETURN = "return"
 
-
+@deprecated("INTERFACE将被移除")
 class ClassType(SafeEnum):
     """
     面向对象系统中的类声明类型
@@ -218,6 +219,7 @@ class ClassType(SafeEnum):
         INTERFACE: 接口类，定义契约
     """
     CLASS = "class"
+
     INTERFACE = "interface"
 
 

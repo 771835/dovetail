@@ -37,7 +37,7 @@ class IRCallProcessor(IRProcessor):
                         DataPath(
                             f"{func_path}.{param_name}",
                             context.objective,
-                            StorageLocation.get_storage(param.get_data_type())
+                            StorageLocation.get_storage(param.get_dtype())
                         ),
                         arg.value.value
                     )
@@ -48,7 +48,7 @@ class IRCallProcessor(IRProcessor):
                         DataPath(
                             f"{func_path}.{param_name}",
                             context.objective,
-                            StorageLocation.get_storage(param.get_data_type())
+                            StorageLocation.get_storage(param.get_dtype())
                         ),
                         DataPath(
                             context.current_scope.get_symbol_path(arg.get_name()),

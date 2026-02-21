@@ -2,10 +2,12 @@
 
 from typing import Self
 
+from typing_extensions import deprecated
+
 from dovetail.core.enums.types import StructureType
 from dovetail.core.symbols.base import Symbol
 
-
+@deprecated("该作用域系统已弃用，请使用dovetail.core.parser.scope.Scope")
 class Scope:
     def __init__(self, name: str, parent: Self | None,
                  structure_type: StructureType):

@@ -3,6 +3,7 @@ from typing import Any
 
 from attrs import define, field
 
+from .annotation import Annotation
 from .base import Symbol
 from .parameter import Parameter
 from ..enums.types import FunctionType, DataTypeBase
@@ -14,7 +15,7 @@ class Function(Symbol):
     params: list[Parameter]
     return_type: DataTypeBase
     function_type: FunctionType = FunctionType.FUNCTION
-    annotations: dict[str, dict[str, Any]] = field(factory=dict)
+    annotations: dict[Annotation, dict[str, Any]] = field(factory=dict)
 
     def get_name(self) -> str:
         """

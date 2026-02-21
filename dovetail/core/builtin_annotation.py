@@ -8,7 +8,7 @@ builtin_annotations: dict[str, Annotation] = {
     "export": Annotation("export", None, AnnotationCategory.VISIBILITY),
     "internal": Annotation("internal", None, AnnotationCategory.VISIBILITY),
     "noinline": Annotation("noinline", None, AnnotationCategory.OPTIMIZATION),
-    "target": Annotation("target", None, AnnotationCategory.CONDITIONAL),
+    "target": Annotation("target", {"edition": "java"}, AnnotationCategory.CONDITIONAL),
     "version": Annotation("version", {"min": "1.20.4", "max": "1.21.4"}, AnnotationCategory.METADATA),
     "deprecated": Annotation("deprecated", {"msg": "Please use newFunction instead"}, AnnotationCategory.METADATA),
     "doc": Annotation("doc", {"doce": "why use @doc?"}, AnnotationCategory.METADATA),

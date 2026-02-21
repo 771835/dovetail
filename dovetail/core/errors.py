@@ -104,6 +104,7 @@ class Errors(SafeEnum):
     VersionCompatibility = (0x9201, "版本兼容性错误", "功能 '%s' 需要版本 %s，当前版本 %s。", ErrorType.SystemError)
     MemoryLimit = (0x9202, "内存限制错误", "操作 '%s' 超过内存限制 (%s)。", ErrorType.SystemError)
     ConfigurationError = (0x9203, "配置错误", "配置错误: %s。", ErrorType.SystemError)
+    FileNotFound = (0x9204, "找不到文件错误", "文件 '%s' 不存在。", ErrorType.SystemError)
 
 
 class CompilationError(Exception):
@@ -144,7 +145,25 @@ def report(
         line: int = -1,
         column: int = -1,
         suggestion: Optional[str] = None,
-):
+        raise_error: type = CompilationError,
+        should_raise: bool = True
+) -> None:
+    """
+    报告一个错误
+
+    Args:
+        error: 报告错误的类型
+        *args: 错误提示参数
+        filepath: 错误发生文件
+        line: 错误发生具体行数
+        column: 错误发生具体列数
+        suggestion: 错误修复建议
+        raise_error: 致命错误报错时的类型
+        should_raise: 是否引发错误
+
+    Raises:
+        CompilationError: 当错误类型为RuntimeError、SystemError、FatalError时引发（如果 should_raise 为 True）
+    """
     error_code, error_name, error_details, error_type = error.value
     original_error_name = error.name
     filepath = Path(filepath)
@@ -172,5 +191,5 @@ def report(
         suggestion = random.choice(DEFAULT_RANDOM_SUGGESTION)
     sys.stderr.write(f"{error_name}({original_error_name}): {error_details % tuple(args)}{suggestion}\n\n")
 
-    if error_type.value[0] > 3:
-        raise CompilationError("编译提前终止")
+    if error_type.value[0] > 3 and should_raise:
+        raise raise_error("编译提前终止")

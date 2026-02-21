@@ -1,6 +1,5 @@
 include "random"
-
-fn foo():int
+fn foo() -> int:
 
 @init
 fn bar(){
@@ -16,3 +15,4 @@ fn bar(){
 fn foo():int{
     return 350234
 }
+

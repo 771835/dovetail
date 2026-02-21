@@ -2,6 +2,8 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar, Any
 
+from typing_extensions import deprecated
+
 from dovetail.core.enums.operations import UnaryOps, BinaryOps, CompareOps
 from dovetail.core.enums.types import DataType, StructureType
 from dovetail.core.symbols import Literal, Class, Constant, Function, Reference, Variable, Symbol
@@ -121,12 +123,15 @@ class IRInstruction(ABC):
     def get_operands(self):
         return self.operands
 
+    @deprecated("line属性已弃用")
     def get_line(self):
         return self.line
 
+    @deprecated("column属性已弃用")
     def get_column(self):
         return self.column
 
+    @deprecated("filename属性已弃用")
     def get_filename(self):
         return self.filename
 

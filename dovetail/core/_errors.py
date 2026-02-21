@@ -4,6 +4,8 @@
 """
 from pathlib import Path
 
+from typing_extensions import deprecated
+
 from dovetail.core.enums.types import DataTypeBase
 
 __all__ = [
@@ -63,7 +65,7 @@ __all__ = [
     'VersionCompatibilityError',
 ]
 
-
+@deprecated("基于python错误通道的异常已弃用")
 class CompilationError(Exception):
     """
     编译器错误异常基类
