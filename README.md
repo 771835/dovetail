@@ -41,7 +41,7 @@
 ### 环境要求
 
 - Python 3.10+
-- Minecraft Java Edition 1.21.4
+- Minecraft Java Edition 1.21.4-1.21.5
 
 ### 安装
 
