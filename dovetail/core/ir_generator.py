@@ -165,11 +165,11 @@ class IRGenerator(transpilerVisitor):
             arg_value: Reference = arg_ref or param.default
             args_dict[param.get_name()] = arg_value
             # 类型检查
-            if not arg_value.get_data_type().is_subclass_of(param.get_dtype()):
+            if not arg_value.get_dtype().is_subclass_of(param.get_dtype()):
                 raise ArgumentTypeMismatchError(
                     param_name=param.get_name(),
                     expected=param.get_dtype(),
-                    actual=arg_value.get_data_type(),
+                    actual=arg_value.get_dtype(),
                     line=self._get_current_line(),
                     column=self._get_current_column(),
                     filename=self.filepath
@@ -248,11 +248,11 @@ class IRGenerator(transpilerVisitor):
                 param_name = NameNormalizer.normalize(param_declaration.ID().getText())
                 param_type = self._get_type_definition(param_declaration.type_())
                 param_default = self.visit(param_declaration.expr()).value if param_declaration.expr() else None
-                if param_default and param_default.get_data_type() != param_type:
+                if param_default and param_default.get_dtype() != param_type:
                     raise ArgumentTypeMismatchError(
                         param_name,
                         param_type,
-                        param_default.get_data_type(),
+                        param_default.get_dtype(),
                         self._get_current_line(),
                         self._get_current_column(),
                         self.filepath
@@ -303,7 +303,7 @@ class IRGenerator(transpilerVisitor):
                 # 处理函数体
                 self.visit(ctx.block())
 
-        return Result(Reference(ValueType.FUNCTION, func))
+        return Result(Reference(func))
 
     def _resolve_identifier(self, identifier_name: str) -> Symbol:
         """
@@ -398,8 +398,7 @@ class IRGenerator(transpilerVisitor):
         # 初始化结果变量
         result_var = self._create_temp_var(DataType.STRING, "fstring")
         self._add_ir_instruction(IRDeclare(result_var))
-        self._add_ir_instruction(IRAssign(result_var, Reference(ValueType.LITERAL,
-                                                                Literal(DataType.STRING, ""))))
+        self._add_ir_instruction(IRAssign(result_var, Reference(Literal(DataType.STRING, ""))))
 
         # 逐段处理字符串内容
         for i, part in enumerate(parts):
@@ -408,7 +407,7 @@ class IRGenerator(transpilerVisitor):
             else:  # 变量段
                 result_var = self._append_variable_to_result(result_var, part)
 
-        return Reference(ValueType.VARIABLE, result_var)
+        return Reference(result_var)
 
     def _create_temp_var(self, dtype: DataTypeBase, prefix: str) -> Variable:
         """创建带唯一编号的临时变量"""
@@ -423,7 +422,7 @@ class IRGenerator(transpilerVisitor):
         new_var = self._create_temp_var(DataType.STRING, "fstring")
         self._add_ir_instruction(IRDeclare(new_var))
         self._add_ir_instruction(IRBinaryOp(new_var, BinaryOps.ADD,
-                                            Reference(ValueType.VARIABLE, current_var),
+                                            Reference(current_var),
                                             Reference.literal(text)))
         return new_var
 
@@ -450,16 +449,14 @@ class IRGenerator(transpilerVisitor):
             cast_var = self._create_temp_var(DataType.STRING, "cast")
             self._add_ir_instruction(IRDeclare(cast_var))
             self._add_ir_instruction(IRCast(cast_var, DataType.STRING,
-                                            Reference(ValueType.VARIABLE, var_symbol)))
+                                            Reference(var_symbol)))
         else:
             # 对于string类型不进行转换
             cast_var = var_symbol
         # 拼接字符串
         new_var = self._create_temp_var(DataType.STRING, "fstring")
         self._add_ir_instruction(IRDeclare(new_var))
-        self._add_ir_instruction(IRBinaryOp(new_var, BinaryOps.ADD,
-                                            Reference(ValueType.VARIABLE, current_var),
-                                            Reference(ValueType.VARIABLE, cast_var)))
+        self._add_ir_instruction(IRBinaryOp(new_var, BinaryOps.ADD,Reference(current_var),Reference(cast_var)))
         return new_var
 
     def _resolve_type_symbol(self, type_name: str) -> Class | None:
@@ -525,11 +522,11 @@ class IRGenerator(transpilerVisitor):
             b_ref = self.visit(b).value
             self._add_ir_instruction(IRAssign(result_var, b_ref))
         # 将结果类型修改为实际类型
-        result_var.dtype = a_ref.get_data_type()
-        if a_ref.get_data_type() != b_ref.get_data_type():
+        result_var.dtype = a_ref.get_dtype()
+        if a_ref.get_dtype() != b_ref.get_dtype():
             raise TypeMismatchError(
-                expected_type=a_ref.get_data_type(),
-                actual_type=b_ref.get_data_type(),
+                expected_type=a_ref.get_dtype(),
+                actual_type=b_ref.get_dtype(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filepath
@@ -599,7 +596,7 @@ class IRGenerator(transpilerVisitor):
             result = self.visit(ctx.expr())  # 处理初始化表达式
             # 如果没有显式指定类型，则根据初始值推断类型
             if dtype == DataType.NULL_TYPE:
-                dtype = result.value.get_data_type()
+                dtype = result.value.get_dtype()
                 if dtype == DataType.NULL_TYPE:
                     raise TypeMismatchError(
                         expected_type="any type",
@@ -610,10 +607,10 @@ class IRGenerator(transpilerVisitor):
                         msg="变量不能初始化为null类型"
                     )
             # 如果指定了类型，则进行类型检查
-            elif dtype != result.value.get_data_type():
+            elif dtype != result.value.get_dtype():
                 raise TypeMismatchError(
                     expected_type=dtype,
-                    actual_type=result.value.get_data_type(),
+                    actual_type=result.value.get_dtype(),
                     line=self._get_current_line(),
                     column=self._get_current_column(),
                     filename=self.filepath
@@ -649,7 +646,7 @@ class IRGenerator(transpilerVisitor):
         if var_value:
             self._add_ir_instruction(IRAssign(var, var_value))
 
-        return Result(Reference(ValueType.VARIABLE, var))
+        return Result(Reference(var))
 
     def visitConstDecl(self, ctx: transpilerParser.ConstDeclContext):
         name = NameNormalizer.normalize(ctx.ID().getText())
@@ -657,12 +654,12 @@ class IRGenerator(transpilerVisitor):
         result = self.visit(ctx.expr())  # 处理初始化表达式
         # 如果没有显式指定类型，则根据初始值推断类型
         if dtype == DataType.NULL_TYPE:
-            dtype = result.value.get_data_type()
+            dtype = result.value.get_dtype()
         # 如果指定了类型，则进行类型检查
-        elif dtype != result.value.get_data_type():
+        elif dtype != result.value.get_dtype():
             raise TypeMismatchError(
                 expected_type=dtype,
-                actual_type=result.value.get_data_type(),
+                actual_type=result.value.get_dtype(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filepath
@@ -696,7 +693,7 @@ class IRGenerator(transpilerVisitor):
 
         self._add_ir_instruction(IRDeclare(constant))
         self._add_ir_instruction(IRAssign(constant, value))
-        return Result(Reference(ValueType.CONSTANT, constant))
+        return Result(Reference(constant))
 
     def visitFunctionDecl(self, ctx: transpilerParser.FunctionDeclContext):
         return self._process_function_declaration(
@@ -789,7 +786,7 @@ class IRGenerator(transpilerVisitor):
                         filename=self.filepath
                     )
 
-        return Result(Reference(ValueType.CLASS, class_))
+        return Result(Reference(class_))
 
     def visitInterfaceDecl(self, ctx: transpilerParser.InterfaceDeclContext):
         class_name = NameNormalizer.normalize(ctx.ID().getText())
@@ -826,12 +823,12 @@ class IRGenerator(transpilerVisitor):
             for method in ctx.methodDecl():
                 methods.add(self.visit(method).value.value)
 
-        return Result(Reference(ValueType.CLASS, class_))
+        return Result(Reference(class_))
 
     def visitCondition(self, ctx: transpilerParser.ConditionContext):
         result = self.visit(ctx.expr())
         # 评估条件表达式
-        if result.value.get_data_type() != DataType.BOOLEAN:
+        if result.value.get_dtype() != DataType.BOOLEAN:
             raise InvalidSyntaxError(
                 ctx.expr().getText(),
                 line=self._get_current_line(),
@@ -860,10 +857,10 @@ class IRGenerator(transpilerVisitor):
         left_operand: Reference = self.visit(ctx.expr(0)).value
         right_operand: Reference = self.visit(ctx.expr(1)).value
         operator_text = ctx.getChild(1).getText()
-        if left_operand.get_data_type() != right_operand.get_data_type():
+        if left_operand.get_dtype() != right_operand.get_dtype():
             raise TypeMismatchError(
-                expected_type=left_operand.get_data_type(),
-                actual_type=right_operand.get_data_type(),
+                expected_type=left_operand.get_dtype(),
+                actual_type=right_operand.get_dtype(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filepath
@@ -874,16 +871,16 @@ class IRGenerator(transpilerVisitor):
         self._add_ir_instruction(IRDeclare(result_variable))
         self._add_ir_instruction(IRCompare(result_variable, CompareOps(operator_text), left_operand, right_operand))
 
-        return Result(Reference(ValueType.VARIABLE, result_variable))
+        return Result(Reference(result_variable))
 
     def visitLogicalAndExpr(self, ctx: transpilerParser.LogicalAndExprContext):
         left_operand: Reference = self.visit(ctx.expr(0)).value
         right_operand: Reference = self.visit(ctx.expr(1)).value
 
-        if left_operand.get_data_type() != DataType.BOOLEAN or right_operand.get_data_type() != DataType.BOOLEAN:
+        if left_operand.get_dtype() != DataType.BOOLEAN or right_operand.get_dtype() != DataType.BOOLEAN:
             raise TypeMismatchError(
                 expected_type="boolean与boolean",
-                actual_type=f"{left_operand.get_data_type()}和{right_operand.get_data_type()}",
+                actual_type=f"{left_operand.get_dtype()}和{right_operand.get_dtype()}",
                 line=ctx.expr(0).start.line,
                 column=ctx.expr(0).start.column,
                 filename=self.filepath
@@ -899,20 +896,20 @@ class IRGenerator(transpilerVisitor):
             IRCompare(
                 result_var,
                 CompareOps.EQ,
-                Reference(ValueType.VARIABLE, temp_var),
+                Reference(temp_var),
                 Reference.literal(2)
             )
         )
-        return Result(Reference(ValueType.VARIABLE, result_var))
+        return Result(Reference(result_var))
 
     def visitLogicalOrExpr(self, ctx: transpilerParser.LogicalOrExprContext):
         left: Reference = self.visit(ctx.expr(0)).value
         right: Reference = self.visit(ctx.expr(1)).value
 
-        if left.get_data_type() != DataType.BOOLEAN or right.get_data_type() != DataType.BOOLEAN:
+        if left.get_dtype() != DataType.BOOLEAN or right.get_dtype() != DataType.BOOLEAN:
             raise TypeMismatchError(
                 expected_type="boolean与boolean",
-                actual_type=f"{left.get_data_type()}和{right.get_data_type()}",
+                actual_type=f"{left.get_dtype()}和{right.get_dtype()}",
                 line=ctx.expr(0).start.line,
                 column=ctx.expr(0).start.column,
                 filename=self.filepath
@@ -928,21 +925,21 @@ class IRGenerator(transpilerVisitor):
             IRCompare(
                 result_var,
                 CompareOps.NE,
-                Reference(ValueType.VARIABLE, temp_var),
+                Reference(temp_var),
                 Reference.literal(0),
             )
         )
-        return Result(Reference(ValueType.VARIABLE, result_var))
+        return Result(Reference(result_var))
 
     def visitLogicalNotExpr(self, ctx: transpilerParser.LogicalNotExprContext):
         value_ref = self.visit(ctx.expr()).value
         result_var = self._create_temp_var(DataType.BOOLEAN, "bool")
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(IRUnaryOp(result_var, UnaryOps.NOT, value_ref))
-        return Result(Reference(ValueType.VARIABLE, result_var))
+        return Result(Reference(result_var))
 
     def visitIdentifierExpr(self, ctx: transpilerParser.IdentifierExprContext):
-        return Result(Reference(ValueType.VARIABLE, self._resolve_identifier(ctx.ID().getText())))
+        return Result(Reference(self._resolve_identifier(ctx.ID().getText())))
 
     def visitLocalAssignmentExpr(self, ctx: transpilerParser.LocalAssignmentExprContext):
         var_name = ctx.ID().getText()
@@ -966,10 +963,10 @@ class IRGenerator(transpilerVisitor):
             )
 
         # 类型检查
-        if var_symbol.dtype != expr_result.value.get_data_type():
+        if var_symbol.dtype != expr_result.value.get_dtype():
             raise TypeMismatchError(
                 expected_type=var_symbol.dtype,
-                actual_type=expr_result.value.get_data_type(),
+                actual_type=expr_result.value.get_dtype(),
                 line=self._get_current_line(),
                 column=self._get_current_column(),
                 filename=self.filepath
@@ -977,11 +974,11 @@ class IRGenerator(transpilerVisitor):
 
         self._add_ir_instruction(IRAssign(var_symbol, expr_result.value))
 
-        return Result(Reference(ValueType.VARIABLE, var_symbol))
+        return Result(Reference(var_symbol))
 
     def visitMemberAssignmentExpr(self, ctx: transpilerParser.MemberAssignmentExprContext):
         instance_ref = self.visit(ctx.expr(0)).value
-        instance_type = instance_ref.get_data_type()
+        instance_type = instance_ref.get_dtype()
         field_name = NameNormalizer.normalize(ctx.ID().getText())
         value = self.visit(ctx.expr(1)).value
         if not isinstance(instance_type, Class):
@@ -1014,7 +1011,7 @@ class IRGenerator(transpilerVisitor):
         array = self.visit(ctx.expr(0)).value
         index = self.visit(ctx.expr(1)).value
         value = self.visit(ctx.expr(2)).value
-        array_type = array.get_data_type()
+        array_type = array.get_dtype()
         if not isinstance(array_type, Class):
             raise PrimitiveTypeOperationError(
                 "数组修改",
@@ -1055,17 +1052,17 @@ class IRGenerator(transpilerVisitor):
         right = self.visit(ctx.expr(1))
         op = ctx.getChild(1).getText()
 
-        if left.value.get_data_type() != right.value.get_data_type():
-            if (left.value.get_data_type() not in (DataType.BOOLEAN, DataType.INT)
-                    or right.value.get_data_type() not in (DataType.BOOLEAN, DataType.INT)):
+        if left.value.get_dtype() != right.value.get_dtype():
+            if (left.value.get_dtype() not in (DataType.BOOLEAN, DataType.INT)
+                    or right.value.get_dtype() not in (DataType.BOOLEAN, DataType.INT)):
                 raise TypeMismatchError(
-                    expected_type=left.value.get_data_type(),
-                    actual_type=right.value.get_data_type(),
+                    expected_type=left.value.get_dtype(),
+                    actual_type=right.value.get_dtype(),
                     line=self._get_current_line(),
                     column=self._get_current_column(),
                     filename=self.filepath
                 )
-        if left.value.get_data_type() == DataType.STRING:
+        if left.value.get_dtype() == DataType.STRING:
             raise InvalidOperatorError(
                 op.value,
                 line=self._get_current_line(),
@@ -1074,17 +1071,17 @@ class IRGenerator(transpilerVisitor):
             )
 
         # 生成唯一结果变量
-        result_var = self._create_temp_var(left.value.get_data_type(), "calc")
+        result_var = self._create_temp_var(left.value.get_dtype(), "calc")
 
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(IRBinaryOp(result_var, BinaryOps(op), left.value, right.value))
-        return Result(Reference(ValueType.VARIABLE, result_var))
+        return Result(Reference(result_var))
 
     def visitTermExpr(self, ctx: transpilerParser.TermExprContext):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
-        left_type: DataTypeBase = left.value.get_data_type()
-        right_type: DataTypeBase = right.value.get_data_type()
+        left_type: DataTypeBase = left.value.get_dtype()
+        right_type: DataTypeBase = right.value.get_dtype()
 
         op = BinaryOps(ctx.getChild(1).getText())
 
@@ -1114,11 +1111,11 @@ class IRGenerator(transpilerVisitor):
 
         self._add_ir_instruction(IRDeclare(result_var))
         self._add_ir_instruction(IRBinaryOp(result_var, op, left.value, right.value))
-        return Result(Reference(ValueType.VARIABLE, result_var))
+        return Result(Reference(result_var))
 
     def visitNegExpr(self, ctx: transpilerParser.NegExprContext):
         expr_result = self.visit(ctx.expr()).value
-        if expr_result.get_data_type() not in (DataType.BOOLEAN, DataType.INT):
+        if expr_result.get_dtype() not in (DataType.BOOLEAN, DataType.INT):
             raise TypeMismatchError(
                 expected_type="int/boolean",
                 actual_type=expr_result.value,
@@ -1135,15 +1132,15 @@ class IRGenerator(transpilerVisitor):
                     Reference.literal(-1)
                 )
             )
-            return Result(Reference(ValueType.VARIABLE, expr_result.value))
+            return Result(Reference(expr_result.value))
         else:
             return Result(Reference.literal(expr_result.value.value * -1))
 
     def visitTernaryPythonicExpr(self, ctx: transpilerParser.TernaryPythonicExprContext):
-        return Result(Reference(ValueType.VARIABLE, self._ternary(ctx.expr(1), ctx.expr(0), ctx.expr(2))))
+        return Result(Reference(self._ternary(ctx.expr(1), ctx.expr(0), ctx.expr(2))))
 
     def visitTernaryTraditionalExpr(self, ctx: transpilerParser.TernaryTraditionalExprContext):
-        return Result(Reference(ValueType.VARIABLE, self._ternary(ctx.expr(0), ctx.expr(1), ctx.expr(2))))
+        return Result(Reference(self._ternary(ctx.expr(0), ctx.expr(1), ctx.expr(2))))
 
     def visitFunctionCall(self, ctx: transpilerParser.FunctionCallContext):
         symbol: Symbol = self.visit(ctx.expr()).value.value
@@ -1164,7 +1161,7 @@ class IRGenerator(transpilerVisitor):
                 else:
                     self._add_ir_instruction(IRCall(None, symbol, args_dict))
 
-            return Result(Reference(ValueType.VARIABLE, result_var))
+            return Result(Reference(result_var))
         elif isinstance(symbol, Class):
             if init_func := next(
                     (method for method in list(symbol.methods) if
@@ -1181,14 +1178,14 @@ class IRGenerator(transpilerVisitor):
                 args_dict = self._process_call_arguments(
                     init_func,
                     ctx.argumentList(),
-                    Reference(ValueType.VARIABLE, instance)
+                    Reference(instance)
                 )
                 # 调用函数
                 if init_func.function_type == FunctionType.LIBRARY:
                     self.builtin_func_table[f"{symbol.get_name()}:__init__"](**args_dict)
                 else:
                     self._add_ir_instruction(IRCallMethod(None, symbol, init_func, args_dict))
-                return Result(Reference(ValueType.VARIABLE, instance))
+                return Result(Reference(instance))
 
             raise NotCallableError(
                 symbol_name,
@@ -1208,7 +1205,7 @@ class IRGenerator(transpilerVisitor):
 
     def visitMethodCall(self, ctx: transpilerParser.MethodCallContext):
         instance_ref = self.visit(ctx.expr()).value
-        instance_type = instance_ref.get_data_type()
+        instance_type = instance_ref.get_dtype()
         method_name = NameNormalizer.normalize(ctx.ID().getText())
         if not isinstance(instance_type, Class):
             raise PrimitiveTypeOperationError(
@@ -1242,13 +1239,13 @@ class IRGenerator(transpilerVisitor):
             self._add_ir_instruction(IRDeclare(result_var))
             self._add_ir_instruction(IRCallMethod(result_var, instance_type, method_symbol, args_dict))
         if method_symbol.return_type != DataType.NULL_TYPE:
-            return Result(Reference(ValueType.VARIABLE, result_var))
+            return Result(Reference(result_var))
         else:
             return Result(Reference.variable("result_null", DataType.NULL_TYPE))
 
     def visitMemberAccess(self, ctx: transpilerParser.MemberAccessContext):
         instance_ref = self.visit(ctx.expr()).value
-        instance_type = instance_ref.get_data_type()
+        instance_type = instance_ref.get_dtype()
         property_name = NameNormalizer.normalize(ctx.ID().getText())
         if not isinstance(instance_type, Class):
             raise PrimitiveTypeOperationError(
@@ -1281,12 +1278,12 @@ class IRGenerator(transpilerVisitor):
                 property_name
             )
         )
-        return Result(Reference(ValueType.VARIABLE, result_var))
+        return Result(Reference(result_var))
 
     def visitArrayAccess(self, ctx: transpilerParser.ArrayAccessContext):
         array = self.visit(ctx.expr(0)).value
         index = self.visit(ctx.expr(1)).value
-        array_type = array.get_data_type()
+        array_type = array.get_dtype()
         if not isinstance(array_type, Class):
             raise PrimitiveTypeOperationError(
                 "数组访问",
@@ -1321,7 +1318,7 @@ class IRGenerator(transpilerVisitor):
             )
         else:
             result_var = self.builtin_func_table[f"{array_type.get_name()}:__getitem__"](array, index)
-        return Result(Reference(ValueType.VARIABLE, result_var))
+        return Result(Reference(result_var))
 
     def visitBlock(self, ctx: transpilerParser.BlockContext):
         # 遍历子节点
@@ -1404,7 +1401,7 @@ class IRGenerator(transpilerVisitor):
         result_var_ref: Reference[Variable | Constant | Literal] | None = None
         if ctx.expr():
             result_var_ref = self.visit(ctx.expr()).value
-            result_dtype = result_var_ref.get_data_type()
+            result_dtype = result_var_ref.get_dtype()
             if isinstance(result_var_ref.value, (Constant, Variable)):
                 result_var_ref.value.var_type = VariableType.RETURN
         self._add_ir_instruction(IRReturn(result_var_ref))

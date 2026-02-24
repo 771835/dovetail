@@ -34,7 +34,7 @@ class TemplateParameter:
                 name=name,
                 value=ref.value.value,
                 binding_type=ParamBindingType.LITERAL,
-                dtype=ref.get_data_type()
+                dtype=ref.get_dtype()
             )
         else:
             return cls(
@@ -43,7 +43,7 @@ class TemplateParameter:
                 binding_type=ParamBindingType.REFERENCE,
                 storage_path=scope.get_symbol_path(ref),
                 objective=objective,
-                dtype=ref.get_data_type()
+                dtype=ref.get_dtype()
             )
 
     @classmethod

@@ -182,12 +182,13 @@ class ValueType(SafeEnum):
 
     Attributes:
         LITERAL: 字面量值，编译时已知
-        CONSTANT: 常量值，不可修改
-        VARIABLE: 变量值，运行时确定
+        CONSTANT: 常量(弃用)
+        VARIABLE: 变量
         FUNCTION: 函数值，可调用对象
         CLASS: 类值，类型对象
     """
     LITERAL = "literal"  # 字面量
+
     CONSTANT = "constant"
     VARIABLE = "variable"  # 变量
     FUNCTION = "function"  # 函数

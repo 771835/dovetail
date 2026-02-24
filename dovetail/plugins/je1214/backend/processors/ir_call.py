@@ -53,7 +53,7 @@ class IRCallProcessor(IRProcessor):
                         DataPath(
                             context.current_scope.get_symbol_path(arg.get_name()),
                             context.objective,
-                            StorageLocation.get_storage(arg.get_data_type())
+                            StorageLocation.get_storage(arg.get_dtype())
                         )
                     )
                 )

@@ -198,7 +198,7 @@ class ConstantFoldingPass(IROptimizationPass):
     def _find(self, name: Variable | Literal | Constant | Reference) -> Reference[Literal] | FoldingFlags:
         """从符号表搜索符号的最终值"""
         if isinstance(name, Literal):
-            return Reference(ValueType.LITERAL, name)
+            return Reference(name)
         if isinstance(name, Reference) and name.value_type == ValueType.LITERAL:
             return name
 
@@ -351,8 +351,8 @@ class ConstantFoldingPass(IROptimizationPass):
         if not self._is_literal(left) or not self._is_literal(right):
             return False
 
-        left_dtype = left.get_data_type()
-        right_dtype = right.get_data_type()
+        left_dtype = left.get_dtype()
+        right_dtype = right.get_dtype()
 
         # 两边有任意一方非基本类型跳过
         if not isinstance(left_dtype, DataType) or not isinstance(right_dtype, DataType):
@@ -388,8 +388,8 @@ class ConstantFoldingPass(IROptimizationPass):
         if not self._is_literal(left) or not self._is_literal(right):
             return False
 
-        left_dtype = left.get_data_type()
-        right_dtype = right.get_data_type()
+        left_dtype = left.get_dtype()
+        right_dtype = right.get_dtype()
 
         # 两边有任意一方非基本类型跳过
         if not isinstance(left_dtype, DataType) or not isinstance(right_dtype, DataType):
@@ -413,7 +413,7 @@ class ConstantFoldingPass(IROptimizationPass):
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
         operand = self._resolve_ref(operand_ref)
-        if not self._is_literal(operand) or not isinstance(operand.get_data_type(), DataType):
+        if not self._is_literal(operand) or not isinstance(operand.get_dtype(), DataType):
             return False
 
         try:
@@ -585,13 +585,13 @@ class ConstantFoldingPass(IROptimizationPass):
             return False
 
         if isinstance(value, Reference) and value.value_type == ValueType.LITERAL:
-            if dtype == value.get_data_type():
+            if dtype == value.get_dtype():
                 new_assign = IRAssign(result, value)
                 iterator.set_current(new_assign)
                 self._assign(iterator, new_assign)
                 return True
 
-            if dtype == DataType.STRING and value.get_data_type() in (DataType.INT, DataType.BOOLEAN):
+            if dtype == DataType.STRING and value.get_dtype() in (DataType.INT, DataType.BOOLEAN):
                 str_val = str(int(value.value.value))
                 str_literal_ref = Reference.literal(str_val)
                 new_assign = IRAssign(result, str_literal_ref)
@@ -604,5 +604,5 @@ class ConstantFoldingPass(IROptimizationPass):
     def _function(self, iterator: IRBuilderIterator, instr: IRFunction) -> bool:
         """处理函数定义"""
         function: Function = instr.get_operands()[0]
-        self.current_table.set(function.get_name(), Reference(ValueType.FUNCTION, function))
+        self.current_table.set(function.get_name(), Reference(function))
         return False

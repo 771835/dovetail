@@ -23,7 +23,7 @@ class ErrorType(SafeEnum):
 
 
 class Errors(SafeEnum):
-    """具体错误类型，每个错误都属于一个 ErrorType"""
+    """具体错误类型"""
 
     # ==================== 语法错误 (ErrorType.SyntaxError) ====================
     # 基础语法错误

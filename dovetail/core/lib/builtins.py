@@ -311,7 +311,7 @@ class Builtins(Library):
         return Literal(DataType.INT, 0)
 
     def _type_of(self, value: Reference[Variable | Constant | Literal]):
-        return Literal(DataType.STRING, str(value.get_data_type()))
+        return Literal(DataType.STRING, str(value.get_dtype()))
 
     def __str__(self) -> str:
         return "built-in"
@@ -322,7 +322,7 @@ class Builtins(Library):
     def get_functions(self) -> dict[Function, Callable[..., Variable | Constant | Literal]]:
         return self._functions
 
-    def get_constants(self) -> dict[Constant, Reference]:
+    def get_variables(self) -> dict[Constant, Reference]:
         return self._constants
 
     def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Constant | Literal]]]:

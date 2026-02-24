@@ -35,7 +35,7 @@ class IRAssignProcessor(IRProcessor):
                     DataPath(
                         context.current_scope.get_symbol_path(source.get_name()),
                         context.objective,
-                        StorageLocation.get_storage(source.get_data_type())
+                        StorageLocation.get_storage(source.get_dtype())
                     )
                 )
             )

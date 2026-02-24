@@ -25,7 +25,7 @@ class IRCompareProcessor(IRProcessor):
             a_path = DataPath(
                 context.current_scope.get_symbol_path(a.get_name()),
                 context.objective,
-                StorageLocation.get_storage(a.get_data_type())
+                StorageLocation.get_storage(a.get_dtype())
             )
         if b.value_type == ValueType.LITERAL:
             b_path = b.value.value
@@ -33,7 +33,7 @@ class IRCompareProcessor(IRProcessor):
             b_path = DataPath(
                 context.current_scope.get_symbol_path(b.get_name()),
                 context.objective,
-                StorageLocation.get_storage(b.get_data_type())
+                StorageLocation.get_storage(b.get_dtype())
             )
         context.add_commands(
             Compare.compare(

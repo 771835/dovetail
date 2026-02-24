@@ -56,5 +56,5 @@ class Strlib(Library):
         self.builder.insert(IRBinaryOp(var, BinaryOps.ADD, dest, src))
         return var
 
-    def get_constants(self) -> dict[Constant, Reference]:
+    def get_variables(self) -> dict[Constant, Reference]:
         return {}

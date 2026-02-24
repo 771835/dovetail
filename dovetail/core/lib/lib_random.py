@@ -34,5 +34,5 @@ class Random(Library):
     def get_functions(self) -> dict[Function, Callable[..., Variable | Constant | Literal]]:
         return self._functions
 
-    def get_constants(self) -> dict[Constant, Reference]:
+    def get_variables(self) -> dict[Constant, Reference]:
         return self._constant

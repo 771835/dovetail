@@ -28,8 +28,8 @@ class Library(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_constants(self) -> dict[Constant, Reference]:
-        """获取库中定义的所有常量"""
+    def get_variables(self) -> dict[Variable, Reference]:
+        """获取库中定义的所有量"""
         pass
 
     def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Constant | Literal]]]:

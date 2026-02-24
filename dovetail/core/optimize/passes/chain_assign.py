@@ -101,7 +101,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 var = instr.get_operands()[0]
                 var_name = var.get_name()
                 # 变量声明时指向自己
-                alias_maps[current_scope][var_name] = Reference(ValueType.VARIABLE, var)
+                alias_maps[current_scope][var_name] = Reference(var)
 
             elif isinstance(instr, IRAssign):
                 target, source = instr.get_operands()
@@ -118,7 +118,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
                         alias_maps[current_scope][target_name] = source
                     else:
                         # 其他类型（函数调用结果等）清除别名
-                        alias_maps[current_scope][target_name] = Reference(ValueType.VARIABLE, target)
+                        alias_maps[current_scope][target_name] = Reference(target)
 
             elif isinstance(instr, IRCondJump):
                 # 条件跳转后，合并分支的别名状态
@@ -142,13 +142,13 @@ class ChainAssignEliminationPass(IROptimizationPass):
                         if var_name in alias_maps[current_scope]:
                             # 创建一个指向自身的引用
                             var = Variable(var_name, DataType.INT)  # 类型不重要，后续会被覆盖
-                            alias_maps[current_scope][var_name] = Reference(ValueType.VARIABLE, var)
+                            alias_maps[current_scope][var_name] = Reference(var)
 
             elif isinstance(instr, (IRBinaryOp, IRCompare, IRUnaryOp, IRCall)):
                 # 这些指令产生新值，结果变量不是别名
                 result = instr.get_operands()[0]
                 if isinstance(result, Variable):
-                    alias_maps[current_scope][result.name] = Reference(ValueType.VARIABLE, result)
+                    alias_maps[current_scope][result.name] = Reference(result)
 
         return scope_tree, alias_maps
 
@@ -192,7 +192,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 break
 
         # 循环或未找到，返回原始变量
-        return Reference(ValueType.VARIABLE, Variable(var_name, DataType.INT))
+        return Reference(Variable(var_name, DataType.INT))
 
     def _aliases_equal(self, alias1: Reference | None, alias2: Reference | None) -> bool:
         """判断两个别名是否相等"""

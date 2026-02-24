@@ -17,7 +17,7 @@ type.2: ID ("[" ARRAY_SIZE "]")*
 
 
 function : annotation* ("function"|"fn"|"def") ID params (("->" | ":") type)? (block|":")
-    | annotation* ("function"|"fn") type ID params (block|";")
+    | annotation* ("function"|"fn")? type ID params (block|";")
 
 
 method :annotation* "method" ID params (("->" | ":") type)? block
@@ -34,17 +34,17 @@ block : "{" statement* "}"
     | statement
 
 // 流程控制
-?statement : function                           // 函数定义
-        | var                                  // 变量声明
-        | const                                // 常量声明
-        | for_loop                             // for循环
-        | while_loop                           // while循环
-        | expr                                 // 表达式语句
-        | return                               // 返回
-        | if_else                              // 条件语句
-        | "break"                                // break语句
-        | "continue"                             // continue语句
-        | "pass"                                 // 空语句
+?statement : function
+    | var                                                           // 变量声明
+    | const                                                         // 常量声明
+    | for_loop                                                      // for循环
+    | while_loop                                                    // while循环
+    | expr                                                          // 表达式
+    | "return" expr?                                -> return_stmt  // 返回
+    | "if" "(" condition ")" block ("else" block)?  -> if_stmt      // 条件语句
+    | "break"                                       -> break_stmt   // break语句
+    | "continue"                                    -> continue_stmt// continue语句
+    | "pass"                                        -> pass_stmt    // 空语句
 
 for_loop : "for" "(" for_control ")" block        // 传统for循环
     | "for" "(" type ID ":" expr ")" block       // 增强for循环 (expr需为可迭代class)
@@ -71,34 +71,28 @@ var: type ID "?"? ("=" expr)?
    | "let" ID "?"? ("->" | ":") type ("=" expr)?
 
 
-
-return : "return" expr?                  // 返回语句，如：return result
-
-if_else : "if" "(" condition ")" block ("else" block)?  // 条件语句
-
-
 //| expr '?' '.' ID                                      -> SafeNavigation           // 安全导航
 // 表达式
-?expr : primary                                       // 基础表达式
-    | FSTRING                                         -> fstring                 // 插值字符串
-    | "null"                                          -> null_expr               // null句柄
-    | expr "." ID arguments                           -> method_call             // 方法调用
-    | expr "." ID                                     -> member_access           // 成员访问
-    | expr "[" expr "]"                               -> array_access            // 数组访问
-    | expr arguments                                  -> function_call           // 函数调用
-    | "-" expr                                        -> neg_expr                // 负号
-    | ("not"|"!") expr                                -> logical_not_expr        // not运算符
-    | expr ("*"|"/"|"%") expr                         -> factor_expr             // 乘除模运算
-    | expr ("+" | "-") expr                           -> term_expr               // 加减运算
-    | expr (">"|"<"|"=="|"!="|"<="|">=") expr         -> compare_expr            // 比较运算
-    | expr ("and"|"&&") expr                          -> logical_and_expr        // and运算符
-    | expr ("or"|"||") expr                           -> logical_or_expr         // or运算符
-    | expr "[" expr "]" "=" expr                      -> array_assignment_expr   // 数组元素赋值
-    | expr "." ID "=" expr                            -> member_assignment_expr  // 成员属性访问
-    | identifier "=" expr                             -> local_assignment_expr   // 变量赋值
+?expr : primary                                   // 基础表达式
+    | FSTRING                                     -> fstring            // 插值字符串
+    | "null"                                      -> null               // null句柄
+    | expr "." ID arguments                       -> method_call        // 方法调用
+    | expr "." ID                                 -> member_access      // 成员访问
+    | expr "[" expr "]"                           -> array_access       // 数组访问
+    | expr arguments                              -> function_call      // 函数调用
+    | "-" expr                                    -> neg                // 负号
+    | ("not"|"!") expr                            -> logical_not        // not运算符
+    | expr ("*"|"/"|"%") expr                     -> factor             // 乘除模运算
+    | expr ("+" | "-") expr                       -> term               // 加减运算
+    | expr (">"|"<"|"=="|"!="|"<="|">=") expr     -> compare            // 比较运算
+    | expr ("and"|"&&") expr                      -> logical_and        // and运算符
+    | expr ("or"|"||") expr                       -> logical_or         // or运算符
+    | expr "[" expr "]" "=" expr                  -> array_assignment   // 数组元素赋值
+    | expr "." ID "=" expr                        -> member_assignment  // 成员属性访问
+    | identifier "=" expr                         -> local_assignment   // 变量赋值
 
 
-?primary : literal               // 字面量
+?primary : literal   // 字面量
     | identifier     // 标识符（变量、函数、类等）
     | paren          // 括号
 

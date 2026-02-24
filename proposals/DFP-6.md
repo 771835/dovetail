@@ -24,11 +24,9 @@
 
 ### 注解语法
 
-```antlrv4
-annotation // 仅允许使用内置注解及插件注解
-    : '@' ID
-    | '@' ID LPAREN literal (COMMA literal)* RPAREN
-    ;
+```lark
+// 仅允许使用内置注解及插件注解
+annotation : "@" ID | "@" ID "(" literal ("," literal)* ")"
 ```
 
 ### 注解分类体系
@@ -41,7 +39,7 @@ annotation // 仅允许使用内置注解及插件注解
 
 ```dovetail
 @init
-func setup() {
+fn setup() {
     // 数据包加载时执行，用于初始化
 }
 ```
@@ -54,12 +52,12 @@ func setup() {
 
 ```dovetail
 @tick
-func gameLoop() {
+fn gameLoop() {
     // 每游戏刻执行
 }
 
 @tick(20)  // 每20刻执行一次
-func slowUpdate() {
+fn slowUpdate() {
     // 降频执行的逻辑
 }
 ```
@@ -76,7 +74,7 @@ func slowUpdate() {
 
 ```dovetail
     @export
-    func publicAPI() {
+    fn publicAPI() {
         // 导出函数，不会被优化删除
     }
 ```
@@ -84,13 +82,14 @@ func slowUpdate() {
 - **语义**：标记为外部可访问，防止优化删除
 - **用途**：API函数、调试接口、插件入口点
 - **优化影响**：阻止死代码消除
+- **可选参数**：`type` - 导出格式
 - **特殊事宜**：此注解的函数名不会被修改
 
 ##### `@internal`
 
 ```dovetail
 @internal  
-func helperFunction() {
+fn helperFunction() {
     // 内部函数，可激进优化
 }
 ```
@@ -103,7 +102,7 @@ func helperFunction() {
 
 ```dovetail
 @noinline
-func complexFunction() {
+fn complexFunction() {
     // 禁止内联此函数
 }
 ```
@@ -119,12 +118,12 @@ func complexFunction() {
 
 ```dovetail
 @target("je")  // Java Edition
-func javaSpecific() {
+fn javaSpecific() {
     // 仅在JE后端生成
 }
 
 @target("be")  // Bedrock Edition  
-func bedrockSpecific() {
+fn bedrockSpecific() {
     // 仅在BE后端生成
 }
 
@@ -139,7 +138,7 @@ func bedrockSpecific() {
 
 ```dovetail
 @version(min="1.19", max="1.20")
-func modernFeature() {
+fn modernFeature() {
     // 版本限制的功能
 }
 ```
@@ -157,7 +156,7 @@ func modernFeature() {
 
 ```dovetail
 @deprecated("Use newFunction() instead")
-func oldFunction() {
+fn oldFunction() {
     // 标记为已废弃
 }
 ```
@@ -170,7 +169,7 @@ func oldFunction() {
 
 ```dovetail
 @doc("Calculates player distance in blocks")
-func getDistance(player1: string, player2: string): float {
+fn getDistance(player1: string, player2: string): float {
     // 文档注解
 }
 ```
@@ -183,7 +182,7 @@ func getDistance(player1: string, player2: string): float {
 
 ```dovetail
 @author("PlayerName")
-func customLogic() {
+fn customLogic() {
     // 作者标记
 }
 ```
@@ -196,7 +195,7 @@ func customLogic() {
 
 ```dovetail
 @since("1.1.0")
-func newFeature() {
+fn newFeature() {
     // 版本引入标记
 }
 ```

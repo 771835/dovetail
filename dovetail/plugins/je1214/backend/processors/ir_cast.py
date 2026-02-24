@@ -27,11 +27,11 @@ class IRCastProcessor(IRProcessor):
         value_path = DataPath(
             context.current_scope.get_symbol_path(value),
             context.objective,
-            StorageLocation.get_storage(value.get_data_type())
+            StorageLocation.get_storage(value.get_dtype())
         ) if not value.is_literal() else value.value.value
 
         # int -> str
-        if value.get_data_type().is_subclass_of(DataType.INT) and dtype == DataType.STRING:
+        if value.get_dtype().is_subclass_of(DataType.INT) and dtype == DataType.STRING:
             context.add_commands(to_str(result_path, value_path))
         elif value == DataType.STRING and dtype.is_subclass_of(DataType.INT):
             # str -> int

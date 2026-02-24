@@ -1,5 +1,6 @@
 include "random"
-fn foo() -> int:
+int foo();
+fn charAt(s: string, idx: int): int;
 
 @init
 fn bar(){
@@ -14,8 +15,4 @@ fn bar(){
 
 fn foo():int{
     return 350234
-}
-
-fn fo1(){
-    return null
 }

@@ -2,6 +2,8 @@
 """
 基础功能 Mixins - 作用域系统的构建块
 """
+from typing import Callable
+
 from dovetail.core.symbols.base import Symbol
 from dovetail.core.enums.types import StructureType
 from dovetail.core.scope.protocols import ScopeCore
@@ -135,14 +137,18 @@ class SymbolResolutionMixin:
         current = self
 
         while current:
-            if hasattr(current, 'find_symbol'):
+            if hasattr(current, 'find_symbol') and callable(current.find_symbol):
+                find_symbol: Callable[[str], Symbol | None] = current.find_symbol  # NOQA
                 if chain is None or current.stype in chain:
-                    symbol = current.find_symbol(name)
+                    symbol: Symbol | None = find_symbol(name)
                     if symbol:
                         return symbol
+            else:
+                return None
             current = current.parent
 
         return None
+
 
     def get_all_symbols(self: ScopeCore) -> dict[str, Symbol]:
         """
@@ -162,7 +168,6 @@ class SymbolResolutionMixin:
             if hasattr(current, 'symbols'):
                 symbols.update(current.symbols)
         return symbols
-
 
 
 class HierarchyMixin:
@@ -228,6 +233,8 @@ class HierarchyMixin:
             current = current.parent
 
         return None
+
+
 
     def get_ancestors(self: ScopeCore) -> list[ScopeCore]:
         """

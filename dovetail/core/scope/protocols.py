@@ -12,7 +12,7 @@ from dovetail.core.symbols.base import Symbol
 class ScopeCore(Protocol):
     """作用域核心属性协议"""
     name: str
-    parent: Self | None
+    parent: 'Self | None'
     stype: StructureType
 
 

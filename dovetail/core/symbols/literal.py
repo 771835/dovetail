@@ -16,3 +16,6 @@ class Literal(Symbol):
         返回空值
         """
         return
+
+    def get_dtype(self) -> DataTypeBase:
+        return self.dtype

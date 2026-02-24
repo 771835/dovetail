@@ -392,7 +392,7 @@ class IntList(Library):
     def get_functions(self) -> dict[Function, Callable[..., Variable | Constant | Literal]]:
         return {}
 
-    def get_constants(self) -> dict[Constant, Reference]:
+    def get_variables(self) -> dict[Constant, Reference]:
         return {}
 
     def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Constant | Literal]]]:

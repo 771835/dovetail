@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 from attrs import define
+from typing_extensions import deprecated
 
 from .base import Symbol
 from ..enums.types import DataTypeBase, VariableType
 
-
+@deprecated("Use `Variable` instead")
 @define(slots=True)
 class Constant(Symbol):
     name: str
@@ -20,6 +21,9 @@ class Constant(Symbol):
         :return: 常量的名称
         """
         return self.name
+
+    def get_dtype(self) -> DataTypeBase:
+        return self.dtype
 
     def __hash__(self):
         return hash((self.name, id(self.dtype), self.var_type))
