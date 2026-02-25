@@ -138,6 +138,9 @@ def read_lines_from_file(file_path, start_line, end_line) -> list[str]:
     return lines
 
 
+count = 0
+
+
 def report(
         error: Errors,
         *args: str,
@@ -164,6 +167,10 @@ def report(
     Raises:
         CompilationError: 当错误类型为RuntimeError、SystemError、FatalError时引发（如果 should_raise 为 True）
     """
+    global count
+    count += 1
+    if count % 10 == 0:
+        sys.stderr.write(f"第 {count} 个报错了，再接再厉！")
     error_code, error_name, error_details, error_type = error.value
     original_error_name = error.name
     filepath = Path(filepath)
