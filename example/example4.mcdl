@@ -3,7 +3,7 @@ fn boolean foo(int x) {
 }
 
 @init
-fn main() : int{
+fn main() -> int{
     let a = 1
     foo(a)
 

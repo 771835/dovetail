@@ -1,5 +1,5 @@
 // 程序结构
-program : (include)* (class | function | var | const)*
+program : (include)* (class | function | let | const)*
 
 include : "include" literal               // 包含库文件，如：include "mathlib.mcdl"
 
@@ -7,47 +7,47 @@ include : "include" literal               // 包含库文件，如：include "ma
 // 仅允许使用内置注解及插件注解
 annotation : "@" ID | "@" ID "(" literal ("," literal)* ")"
 
-// 类(单继承、单接口)
+// 类(多继承)
 class : annotation* "class" ID ("(" identifier*")")? "{" (class_property | method)* "}"
 
-class_property : type ID "?"?| "let" ID "?"? ("->" | ":") type
+class_property : type ID | "let" ID ":" type
 
 // 类型系统
-type.2: ID array_dimension*
-array_dimension: ("[" (ARRAY_SIZE | ID) "]") | "[]"
+type.2: ID array_dimension* "?"? // 仅对象应允许可空
+array_dimension: ("[" (ARRAY_SIZE | identifier) "]") | "[]"// 允许动态数组大小
 
-// type: ID ("[" (INT | ID) "]")*  // 允许变量
+function: annotation* ("function"|"fn"|"def") ID params ("->" type)? (block|pass_stmt)
+        | annotation* ("function"|"fn")? type ID params (block|pass_stmt)
 
-function : annotation* ("function"|"fn"|"def") ID params (("->" | ":") type)? (block|":")
-         | annotation* ("function"|"fn")? type ID params (block|";")
-
-
-method :annotation* "method" ID params (("->" | ":") type)? block
-    | annotation* "method" type ID params block
+method: annotation* "method"? ID params ("->" type)? (block|pass_stmt)
+      | annotation* "method"? type ID params (block|pass_stmt)
 
 params : "(" (param ("," param)*)? ")"
 
 // 强制类型标注
-param: "mut"? ID ("->" | ":") type ("=" expr)?
+param: "mut"? ID ":" type ("=" expr)?
      | "mut"? type ID ("=" expr)?
 
 // 代码块，包含多个语句
-block : "{" statement* "}"
-    | statement
+?block : "{" statement* "}"
 
 // 流程控制
 ?statement : function
-    | var                                                           // 变量声明
-    | const                                                         // 常量声明
-    | for_loop                                                      // for循环
-    | while_loop                                                    // while循环
-    | expr                                                          // 表达式
-    | "free" identifier                             -> free_stmt    // 清理资源
-    | "return" expr?                                -> return_stmt  // 返回
-    | "if" "(" condition ")" block ("else" block)?  -> if_stmt      // 条件语句
-    | "break"                                       -> break_stmt   // break语句
-    | "continue"                                    -> continue_stmt// continue语句
-    | "pass"                                        -> pass_stmt    // 空语句
+    | let                                     // 变量声明
+    | const                                   // 常量声明
+    | for_loop                                // for循环
+    | while_loop                              // while循环
+    | expr                                    // 表达式
+    | if_stmt                                 // 条件语句
+    | "free" identifier       -> free_stmt    // 清理资源
+    | "return" expr?          -> return_stmt  // 返回
+    | "break"                 -> break_stmt   // break语句
+    | "continue"              -> continue_stmt// continue语句
+    | pass_stmt                               // 空语句
+
+if_stmt : "if" "(" condition ")" block ("else" (if_stmt|block))?
+
+pass_stmt: "pass"|";"
 
 for_loop : "for" "(" for_control ")" block        // 传统for循环
     | "for" "(" type ID ":" expr ")" block       // 增强for循环 (expr需为可迭代class)
@@ -58,25 +58,23 @@ while_loop : "while" "(" condition ")" block            // while循环
 for_control : for_init? ";" condition? ";" for_update?
 
 
-for_init: var | expr
+for_init: let | expr
 
 condition: expr
 
 for_update: expr
 
-const: "const" ID (("->" | ":") type)? ("=" expr)  // 常量声明
+const: "const" ID (":" type)? ("=" expr)  // 常量声明
      | "const" type ID ("=" expr)
 
 // 变量声明
-var: type "?"? ID ("=" expr)?
-   | "let" ID "=" expr
-   | ID ("->" | ":") type "?"? ("=" expr)?
-   | "let" ID ("->" | ":") type "?"? ("=" expr)?
+let: type ID ("=" expr)?
+   | "let" ID "=" expr // 自动推导类型
+   | "let"? ID ":" type ("=" expr)?
 
 
-//| expr '?' '.' ID                                      -> SafeNavigation           // 安全导航
 // 表达式
-?expr : primary                                   // 基础表达式
+?expr: primary                                                          // 基础表达式
     | FSTRING                                     -> fstring            // 插值字符串
     | "null"                                      -> null               // null句柄
     | expr "." ID arguments                       -> method_call        // 方法调用
@@ -92,6 +90,7 @@ var: type "?"? ID ("=" expr)?
     | expr ("or"|"||") expr                       -> logical_or         // or运算符
     | expr "[" expr "]" "=" expr                  -> array_assignment   // 数组元素赋值
     | expr "." ID "=" expr                        -> member_assignment  // 成员属性访问
+    | identifier ("+=" | "-=" | "*=" | "/=" | "%=") expr -> compound_assignment
     | identifier "=" expr                         -> local_assignment   // 变量赋值
 
 
@@ -101,7 +100,7 @@ var: type "?"? ID ("=" expr)?
 
 // 标识符(不适用定义)
 identifier: ID
-paren: "(" expr ")"
+?paren: "(" expr ("," expr)* ")"
 
 // 辅助规则
 

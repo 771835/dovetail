@@ -2,7 +2,7 @@
 include "fraction.mcdl"
 
 // 验证函数：返回布尔值而不是打印
-fn verify_fraction(Fraction f, int expected_num, int expected_den): boolean {
+fn verify_fraction(Fraction f, int expected_num, int expected_den) -> boolean {
     return (f.numerator == expected_num && f.denominator == expected_den)
 }
 
@@ -171,7 +171,7 @@ fn performance_test() {
 }
 
 // 辅助函数：将整数转换为简单的标识符
-fn to_scaled_string(int value): string {
+fn to_scaled_string(int value) -> string {
     // 这里需要实现一个简单的整数到字符串的映射
     // 在实际的 MCDL 环境中，可能需要使用不同的方法
     if (value == 10) return "ten"

@@ -59,9 +59,10 @@ class Reference(Symbol, Generic[T]):
             raise TypeError(f"Unsupported literal type: {type(value)}")
 
     @classmethod
-    def variable(cls, var_name, dtype: DataType, var_type: VariableType = VariableType.COMMON) -> Reference:
+    def variable(cls, var_name, dtype: DataType, var_type: VariableType = VariableType.COMMON,
+                 mutable: bool = True) -> Reference:
         from .variable import Variable
-        return cls(Variable(var_name, dtype, var_type))
+        return cls(Variable(var_name, dtype, var_type, mutable))
 
     def is_literal(self) -> bool:
         return self.value_type == ValueType.LITERAL

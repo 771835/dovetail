@@ -1,7 +1,6 @@
 include "random"
 int foo();
-fn charAt(s: string, idx: int): int;
-
+fn charAt(s: string, idx: int) -> int;
 @init
 fn bar(){
     if (foo()==350234 / 1 ) {
@@ -13,6 +12,6 @@ fn bar(){
 }
 
 
-fn foo():int{
+fn foo() -> int{
     return 350234
 }

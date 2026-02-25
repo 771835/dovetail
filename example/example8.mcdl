@@ -1,9 +1,9 @@
-fn t(): boolean {
+fn t() -> boolean {
     print("true")
     return true
 }
 
-fn f(): boolean {
+fn f() -> boolean {
     print("false")
     return false
 }

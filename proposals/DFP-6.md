@@ -169,7 +169,7 @@ fn oldFunction() {
 
 ```dovetail
 @doc("Calculates player distance in blocks")
-fn getDistance(player1: string, player2: string): float {
+fn getDistance(player1: string, player2: string) -> float {
     // 文档注解
 }
 ```

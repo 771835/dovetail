@@ -270,15 +270,24 @@ class ASTTransformer(Interpreter):
         name: str
         # 处理函数签名
         if isinstance(children[0], Tree) and children[0].data == 'type':
-            # annotation* ("function"|"fn") type ID params (block|";")
+            # annotation* ("function"|"fn")? type ID params block
             return_type = self.visit(children.pop(0))
             name = NameNormalizer.normalize(children.pop(0).value)
             params = self.visit(children.pop(0))
         else:
-            # annotation* ("function"|"fn"|"def") ID params (("->" | ":") type)? (block|":")
+            # annotation* ("function"|"fn"|"def") ID params ("->" type)? block
             name = NameNormalizer.normalize(children.pop(0).value)
             params = self.visit(children.pop(0))
-            return_type = self.visit(children.pop(0))
+            if children[0].data == 'type':
+                return_type = self.visit(children.pop(0))
+            else:
+                return_type = DataType.VOID
+
+        # 当块为无意义指令时弹出
+        if len(children) == 0:
+            print(name, params, return_type)
+        if len(children) == 1 and children[0].data == 'pass_stmt':
+            children.pop()
 
         # 创建函数对象
         function = Function(
@@ -308,31 +317,30 @@ class ASTTransformer(Interpreter):
                 self.visit(children.pop(0))
 
     @v_args(meta=True)
-    def var(self, children: list[Tree | Token], meta: Meta):
+    def let(self, children: list[Tree | Token], meta: Meta):
         dtype: DataTypeBase
         symbol_name: str
         default_value: Reference | None = None
 
         # 分析数据类型和初始值
-        if isinstance(children[0], Tree) and children[0].data == 'type':  # type ID "?"? ("=" expr)?
-            dtype = self.visit(children.pop(0))
+        if isinstance(children[0], Tree) and children[0].data == 'type':
+            # type ID ("=" expr)?
+            dtype = self.visit(children.pop(0))  # type
+            symbol_name = str(children.pop(0).value)  # ID
 
-            # children[0] is Token[ID]
-            symbol_name = str(children.pop(0).value)
-
-            if len(children) > 2:
-                default_value = self.visit(children.pop(0))
+            if len(children) >= 1:
+                default_value = self.visit(children.pop(0))  # expr
         else:
             symbol_name = str(children.pop(0).value)
             if isinstance(children[0], Tree) and children[0].data == 'type':
-                # ID ("->" | ":") type "?"? ("=" expr)?
-                # "let" ID "?"? ("->" | ":") type ("=" expr)?
+                # "let"? ID ":" type ("=" expr)?
                 dtype = self.visit(children.pop(0))
-                if len(children) > 2:
+                if len(children) >= 1:
                     default_value = self.visit(children.pop(0))
-            else:  # "let" ID "?"? "=" expr
+            else:  # "let" ID "=" expr
                 default_value = self.visit(children.pop(0))
                 assert isinstance(default_value, Reference)
+                # 自动推导类型
                 dtype = default_value.get_dtype()
 
         return self._decl_variable(symbol_name, dtype, default_value, meta)
@@ -342,17 +350,20 @@ class ASTTransformer(Interpreter):
         dtype: DataTypeBase
         symbol_name: str
         value: Reference
-        if isinstance(children[0], Tree) and children[0].data == "type":  # "const" type ID ("=" expr)
-            dtype = self.visit(children[0])
-            symbol_name: str = children[1].value
-            value = self.visit(children[2])
+        if isinstance(children[0], Tree) and children[0].data == "type":
+            # "const" type ID ("=" expr)
+            dtype = self.visit(children[0])  # type
+            symbol_name: str = children[1].value  # ID
+            value = self.visit(children[2])  # expr
         else:
-            symbol_name = children[0].value
+            # "const" ID (":" type)? ("=" expr)
+            symbol_name = children[0].value  # ID
             if isinstance(children[1], Tree) and children[1].data == "type":
-                dtype = self.visit(children[1])
-                value = self.visit(children[2])
+                dtype = self.visit(children[1])  # type
+                value = self.visit(children[2])  # expr
             else:
-                value = self.visit(children[1])
+                value = self.visit(children[1])  # expr
+                # 自动推导类型
                 dtype = value.get_dtype()
 
         return self._decl_variable(symbol_name, dtype, value, meta, mutable=False)
@@ -362,19 +373,18 @@ class ASTTransformer(Interpreter):
         for param in tree.children:
             params.append(self.visit(param))
         return params
-
     @v_args(meta=True)
     def param(self, children: list[Tree | Token], meta: Meta):
         name: str
         dtype: DataTypeBase
         if isinstance(children[0], Tree) and children[0].data == "type":
-            # type ID ("=" expr)?
-            dtype = self.visit(children.pop(0))
-            name: str = NameNormalizer.normalize(children.pop(0).value)
+            # "mut"? type ID ("=" expr)?
+            dtype = self.visit(children.pop(0)) # type
+            name: str = NameNormalizer.normalize(children.pop(0).value) # ID
         else:
-            # ID ("->" | ":") type ("=" expr)?
-            name: str = NameNormalizer.normalize(children.pop(0).value)
-            dtype = self.visit(children.pop(0))
+            # "mut"? ID ("->" | ":") type ("=" expr)?
+            name: str = NameNormalizer.normalize(children.pop(0).value) # ID
+            dtype = self.visit(children.pop(0)) # type
 
         default_value: Reference | None = None
         if len(children) >= 1:
