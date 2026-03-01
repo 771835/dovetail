@@ -10,16 +10,17 @@ annotation : "@" ID | "@" ID "(" literal ("," literal)* ")"
 // 类(多继承)
 class : annotation* "class" ID ("(" identifier*")")? "{" (class_property | method)* "}"
 
-class_property : type ID | "let" ID ":" type
+class_property : "let" ID ":" type
 
 // 类型系统
 type.2: ID array_dimension* "?"? // 仅对象应允许可空
 array_dimension: ("[" (ARRAY_SIZE | identifier) "]") | "[]"// 允许动态数组大小
 
-function: annotation* ("function"|"fn"|"def") ID params ("->" type)? (block|pass_stmt)
-        | annotation* ("function"|"fn")? type ID params (block|pass_stmt)
+function: annotation* ("function"|"fn"|"def") ID params ["->" type] (block|pass_stmt)
+        | annotation* ("function"|"fn") type ID params (block|pass_stmt)
 
-method: annotation* "method"? ID params ("->" type)? (block|pass_stmt)
+
+method: annotation* "method"? ID params ["->" type] (block|pass_stmt)
       | annotation* "method"? type ID params (block|pass_stmt)
 
 params : "(" (param ("," param)*)? ")"
@@ -52,57 +53,45 @@ pass_stmt: "pass"|";"
 for_loop : "for" "(" for_control ")" block        // 传统for循环
     | "for" "(" type ID ":" expr ")" block       // 增强for循环 (expr需为可迭代class)
 
-
 while_loop : "while" "(" condition ")" block            // while循环
 
-for_control : for_init? ";" condition? ";" for_update?
+for_control : [let | expr] ";" condition ";" [expr]
 
-
-for_init: let | expr
-
+// condition 在语义分析时检查类型
 condition: expr
 
-for_update: expr
-
-const: "const" ID (":" type)? ("=" expr)  // 常量声明
-     | "const" type ID ("=" expr)
+const: "const" ID [":" type] "=" expr  // 常量声明
+     | "const" type ID "=" expr
 
 // 变量声明
-let: type ID ("=" expr)?
-   | "let" ID "=" expr // 自动推导类型
-   | "let"? ID ":" type ("=" expr)?
-
+let: "let" ID "=" expr // 自动推导类型
+   | "let" ID ":" type ["=" expr]
 
 // 表达式
-?expr: primary                                                          // 基础表达式
-    | FSTRING                                     -> fstring            // 插值字符串
-    | "null"                                      -> null               // null句柄
-    | expr "." ID arguments                       -> method_call        // 方法调用
-    | expr "." ID                                 -> member_access      // 成员访问
-    | expr "[" expr "]"                           -> array_access       // 数组访问
-    | expr arguments                              -> function_call      // 函数调用
-    | "-" expr                                    -> neg                // 负号
-    | ("not"|"!") expr                            -> logical_not        // not运算符
-    | expr ("*"|"/"|"%") expr                     -> factor             // 乘除模运算
-    | expr ("+" | "-") expr                       -> term               // 加减运算
-    | expr (">"|"<"|"=="|"!="|"<="|">=") expr     -> compare            // 比较运算
-    | expr ("and"|"&&") expr                      -> logical_and        // and运算符
-    | expr ("or"|"||") expr                       -> logical_or         // or运算符
-    | expr "[" expr "]" "=" expr                  -> array_assignment   // 数组元素赋值
-    | expr "." ID "=" expr                        -> member_assignment  // 成员属性访问
-    | identifier ("+=" | "-=" | "*=" | "/=" | "%=") expr -> compound_assignment
-    | identifier "=" expr                         -> local_assignment   // 变量赋值
+?expr: primary                                                     // 基础表达式
+    | FSTRING                                -> fstring            // 插值字符串
+    | "null"                                 -> null               // null句柄
+    | expr "." ID arguments                  -> method_call        // 方法调用
+    | expr "." ID                            -> member_access      // 成员访问
+    | expr "[" expr "]"                      -> array_access       // 数组访问
+    | expr arguments                         -> function_call      // 函数调用
+    | "-" expr                               -> neg                // 负号
+    | LOGICAL_NOT expr                       -> logical_not        // not运算符
+    | expr MULTIPLY expr                     -> factor             // 乘除模运算
+    | expr ADDSUB expr                       -> term               // 加减运算
+    | expr COMPARE_OP expr                   -> compare            // 比较运算
+    | expr LOGICAL_AND expr                  -> logical_and        // and运算符
+    | expr LOGICAL_OR expr                   -> logical_or         // or运算符
+    | expr "[" expr "]" COMPOUND_ASSIGN expr -> array_assignment   // 数组元素赋值
+    | expr "." ID COMPOUND_ASSIGN expr       -> member_assignment  // 成员属性访问
+    | identifier COMPOUND_ASSIGN expr        -> local_assignment   // 变量赋值
 
-
-?primary : literal   // 字面量
-    | identifier     // 标识符（变量、函数、类等）
-    | paren          // 括号
+// 字面量、标识符（变量、函数、类）、括号
+?primary: literal | identifier | paren
+?paren: "(" expr ("," expr)* ")"
 
 // 标识符(不适用定义)
 identifier: ID
-?paren: "(" expr ("," expr)* ")"
-
-// 辅助规则
 
 arguments : ("(" (argument ("," argument)*)? ")")
 
@@ -117,15 +106,27 @@ literal : INT
     | "false" -> false
     | array_literal
 
-array_literal : "[" (literal ("," literal)*)? "]"
-
-PYTHONIC_COMMENT: /#[^\n]*/
-LUA_COMMENT: "[[" /(.|\n)*?/ "]]"
-
+// 常量
+array_literal: "[" (literal ("," literal)*)? "]"
 ARRAY_SIZE: /[1-9][0-9]*/     // 数组大小（正整数）
 INT: /-?[0-9]+/               // 整数（可以为负）
 FLOAT: /-?[0-9]+\.[0-9]+/     // 浮点数
+
+// f-string
 FSTRING.3: /f"([^"\\]|\\.)*"/
+
+// 运算符
+COMPOUND_ASSIGN: "+="|"-="|"*="|"/="|"%="|"="
+COMPARE_OP: "=="|"!="|"<="|">="|">"|"<"
+MULTIPLY: "*"|"/"|"%"
+ADDSUB: "+"|"-"
+LOGICAL_AND: "and"|"&&"
+LOGICAL_OR: "or"|"||"
+LOGICAL_NOT: "not"|"!"
+
+// 注释
+PYTHONIC_COMMENT: /#[^\n]*/
+LUA_COMMENT: "[[" /(.|\n)*?/ "]]"
 
 %import common.ESCAPED_STRING -> STRING
 %import common.CNAME -> ID
