@@ -4,7 +4,7 @@ from typing import Callable
 
 from dovetail.core.instructions import IRInstruction
 from dovetail.core.ir_builder import IRBuilder
-from dovetail.core.symbols import Constant, Class, Function, Reference, Variable, Literal
+from dovetail.core.symbols import Class, Function, Reference, Variable, Literal
 
 
 class Library(metaclass=ABCMeta):
@@ -23,7 +23,7 @@ class Library(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_functions(self) -> dict[Function, Callable[..., Variable | Constant | Literal]]:
+    def get_functions(self) -> dict[Function, Callable[..., Variable | Literal]]:
         """获取函数及其处理函数的映射"""
         pass
 
@@ -32,7 +32,7 @@ class Library(metaclass=ABCMeta):
         """获取库中定义的所有量"""
         pass
 
-    def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Constant | Literal]]]:
+    def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Literal]]]:
         """获取库中定义的所有类"""
         return {}
 

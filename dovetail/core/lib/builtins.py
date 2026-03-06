@@ -8,7 +8,7 @@ from dovetail.core.instructions import IRInstruction, IRCast, IRDeclare, IRScope
     IRJump, IRCall
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
-from dovetail.core.symbols import Constant, Class, Function, Reference, Variable, Literal, Parameter
+from dovetail.core.symbols import Class, Function, Reference, Variable, Literal, Parameter
 from dovetail.utils.naming import NameNormalizer
 
 
@@ -16,8 +16,7 @@ class Builtins(Library):
 
     def __init__(self, builder: IRBuilder):
         self.builder = builder
-        self._constants = {}
-        self._functions: dict[Function, Optional[Callable[..., Variable | Constant | Literal]]] = {
+        self._functions: dict[Function, Optional[Callable[..., Variable | Literal]]] = {
             Function(
                 "int",
                 [
@@ -263,19 +262,19 @@ class Builtins(Library):
         ): None,
         """
 
-    def _int(self, value: Reference[Variable | Constant | Literal]) -> Variable:
+    def _int(self, value: Reference[Variable | Literal]) -> Variable:
         result: Variable = Variable(uuid.uuid4().hex, DataType.INT)
         self.builder.insert(IRDeclare(result))
         self.builder.insert(IRCast(result, DataType.INT, value))
         return result
 
-    def _str(self, value: Reference[Variable | Constant | Literal]) -> Variable:
+    def _str(self, value: Reference[Variable | Literal]) -> Variable:
         result: Variable = Variable(uuid.uuid4().hex, DataType.STRING)
         self.builder.insert(IRDeclare(result))
         self.builder.insert(IRCast(result, DataType.STRING, value))
         return result
 
-    def _print(self, msg: Reference[Variable | Constant | Literal]) -> Literal:
+    def _print(self, msg: Reference[Variable | Literal]) -> Literal:
         self.builder.insert(
             IRCall(
                 None,
@@ -310,8 +309,8 @@ class Builtins(Library):
             return Literal(DataType.NULL_TYPE, None)
         return Literal(DataType.INT, 0)
 
-    def _type_of(self, value: Reference[Variable | Constant | Literal]):
-        return Literal(DataType.STRING, str(value.get_dtype()))
+    def _type_of(self, value: Reference[Variable | Literal]):
+        return Literal(DataType.STRING, str(value.get_dtype().get_name()))
 
     def __str__(self) -> str:
         return "built-in"
@@ -319,11 +318,11 @@ class Builtins(Library):
     def load(self) -> list[IRInstruction]:
         return []
 
-    def get_functions(self) -> dict[Function, Callable[..., Variable | Constant | Literal]]:
+    def get_functions(self) -> dict[Function, Callable[..., Variable | Literal]]:
         return self._functions
 
-    def get_variables(self) -> dict[Constant, Reference]:
-        return self._constants
+    def get_variables(self) -> dict[Variable, Reference]:
+        return {}
 
-    def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Constant | Literal]]]:
+    def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Literal]]]:
         return {}

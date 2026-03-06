@@ -14,7 +14,11 @@ from traceback import print_tb
 from typing import List, Dict
 
 # 正则表达式匹配：name (type): description
-name_type_desc_pattern = re.compile(r"^(?P<name>[\w.]+)\s*\(\s*(?P<type>[\w\s\[\],.*'\"]+)*\)\s*:(?P<description>.+)$")
+name_type_desc_pattern = re.compile(
+    r"^(?P<name>[\w.]+)\s*" # name
+    r"\(\s*(?P<type>[\w\s\[\],.*'\"|]+)*\s*\)\s*" # type
+    r":(?P<description>.+)$" # description
+)
 
 # 颜色支持 - 使用 colorama 实现跨平台颜色输出
 try:
@@ -220,12 +224,13 @@ class DocstringParser:
 
         for i, line in enumerate(content, 1):
             line = line.strip()
+
             # 跳过空行
             if not line:
                 continue
             m = re.fullmatch(name_type_desc_pattern, line)
             if m is None:
-                invalid_lines.append((i, "格式不正确，应为 'name (type): description'"))
+                invalid_lines.append((i, f"格式不正确，应为 'name (type): description'"))
                 continue
 
             params[m.group('name')] = {
@@ -310,13 +315,18 @@ class NamingConventionChecker:
             'pattern': r'^[a-z_][a-zA-Z0-9_]*$',
             'description': '下划线命名法',
             'color': Fore.GREEN
+        },
+        'enum_member': {
+            'pattern': r'^([A-Z_][A-Z0-9_]*|[A-Z][a-zA-Z0-9]*)$',
+            'description': '大写加下划线或大驼峰命名法（枚举成员）',
+            'color': Fore.YELLOW
         }
     }
 
     @classmethod
     def check_naming(cls, name: str, node_type: str) -> bool:
         """检查命名是否符合规范"""
-        if name.endswith("Type"):
+        if name.endswith("Type") or name.endswith("T"):
             return True  # 对于TypeVar直接通过
         if node_type in cls.NAMING_RULES:
             pattern = cls.NAMING_RULES[node_type]['pattern']
@@ -414,9 +424,21 @@ class CodeVisitor(ast.NodeVisitor):
         """检查类定义"""
         self.current_class = node.name
         self._check_naming(node.name, 'class', node.lineno)
+
+        # 缓存是否为枚举类
+        is_enum = self._is_enum_class(node)
+        self._current_is_enum = is_enum
+
+        # 检查枚举成员命名
+        if is_enum:
+            self._check_enum_members(node)
+
         self._check_class_docstring(node)
         self.generic_visit(node)
+
+        # 清理状态
         self.current_class = None
+        self._current_is_enum = False
 
     def visit_FunctionDef(self, node):
         """检查函数定义"""
@@ -429,19 +451,48 @@ class CodeVisitor(ast.NodeVisitor):
 
     def visit_AsyncFunctionDef(self, node):
         """检查异步函数定义"""
-        self.visit_FunctionDef(node)
+        self.visit_FunctionDef(node) # NOQA: 异步函数拥有与普通函数相同的属性
 
     def visit_Assign(self, node):
         """检查变量赋值"""
-        if isinstance(node.targets[0], ast.Name):
-            var_name = node.targets[0].id
+        var = node.targets[0]
+        if isinstance(var, ast.Name):
+            var_name = var.id
             line_no = node.lineno
+
+            # 跳过枚举类内部的赋值（已在 _check_enum_members 中处理）
+            if self.current_class and self._is_in_enum_class():
+                self.generic_visit(node)
+                return
+
             # 检查是否为常量（全大写）
             if var_name.isupper():
                 self._check_naming(var_name, 'constant', line_no)
             else:
                 self._check_naming(var_name, 'variable', line_no)
         self.generic_visit(node)
+
+    def _is_enum_class(self, node) -> bool:
+        """判断类是否是枚举类型"""
+        for base in node.bases:
+            if isinstance(base, ast.Name) and ('Enum' in base.id or 'Flag' in base.id):
+                return True
+            elif isinstance(base, ast.Attribute) and ('Enum' in base.attr or 'Flag' in base.attr):
+                return True
+        return False
+
+    def _is_in_enum_class(self) -> bool:
+        """检查当前是否在枚举类中"""
+        # 需要在 visit_ClassDef 中缓存枚举类信息
+        return hasattr(self, '_current_is_enum') and self._current_is_enum
+
+    def _check_enum_members(self, node):
+        """检查枚举成员命名"""
+        for stmt in node.body:
+            if isinstance(stmt, ast.Assign):
+                for target in stmt.targets:
+                    if isinstance(target, ast.Name) and not target.id.startswith('_'):
+                        self._check_naming(target.id, 'enum_member', stmt.lineno)
 
     def _check_function_length(self, node):
         """检查函数长度 - 排除文档字符串、注释和空行"""
@@ -816,7 +867,7 @@ class CodeVisitor(ast.NodeVisitor):
                     file_path=self.file_path,
                     line_number=node.lineno,
                     type=ViolationType.MISSING_TYPE_HINT,
-                    message="函数有返回语句但缺少返回值类型提示",
+                    message=f"函数有返回语句但缺少返回值类型提示",
                     node_name=node_name
                 ))
 
@@ -892,7 +943,9 @@ class ProjectScanner:
                 else:
                     color = violation.get_color()
                     print(
-                        f"  {color}⚠️  第{violation.line_number}行{node_info}: {violation.type.value} - {violation.message}{Style.RESET_ALL}")
+                        f"  {color}⚠️  第{violation.line_number}行{node_info}:"
+                        f" {violation.type.value} - {violation.message}{Style.RESET_ALL}"
+                    )
             print()
 
         if show_summary:

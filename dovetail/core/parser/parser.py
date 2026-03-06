@@ -34,13 +34,13 @@ lark_parser = Lark(open(r".\lark\dovetail.lark", encoding='utf-8').read(), start
 
 
 @timed("解析用时 {:.5f}.")
-def parser_code(filepath: Path | str, start=None) -> Tree | None:
+def parser_code(filepath: Path | str, start: str = None) -> Tree | None:
     """
     解析代码
 
     Args:
         filepath (Path | str): 代码文件路径
-        start:
+        start (str): 语法解析起点
 
     Returns: 返回AST树
     """
@@ -122,6 +122,9 @@ class ASTTransformer(Interpreter):
         Args:
             name: 作用域名称
             scope_type: 作用域类型
+
+        Yields:
+            Scope: 新建的作用域
         """
         new_scope = self.current_scope.create_child(name, scope_type)
         self.current_scope = new_scope
@@ -304,7 +307,7 @@ class ASTTransformer(Interpreter):
         self._append_ir(IRFunction(function))
 
         if len(children) >= 1:
-            with self._scoped_environment(name, StructureType.FUNCTION):
+            with self._scoped_environment(name, StructureType.FUNCTION): # NOQA
                 for param in params:
                     if not self.current_scope.add_symbol(param):
                         report(
@@ -373,18 +376,19 @@ class ASTTransformer(Interpreter):
         for param in tree.children:
             params.append(self.visit(param))
         return params
+
     @v_args(meta=True)
     def param(self, children: list[Tree | Token], meta: Meta):
         name: str
         dtype: DataTypeBase
         if isinstance(children[0], Tree) and children[0].data == "type":
             # "mut"? type ID ("=" expr)?
-            dtype = self.visit(children.pop(0)) # type
-            name: str = NameNormalizer.normalize(children.pop(0).value) # ID
+            dtype = self.visit(children.pop(0))  # type
+            name: str = NameNormalizer.normalize(children.pop(0).value)  # ID
         else:
             # "mut"? ID ("->" | ":") type ("=" expr)?
-            name: str = NameNormalizer.normalize(children.pop(0).value) # ID
-            dtype = self.visit(children.pop(0)) # type
+            name: str = NameNormalizer.normalize(children.pop(0).value)  # ID
+            dtype = self.visit(children.pop(0))  # type
 
         default_value: Reference | None = None
         if len(children) >= 1:

@@ -6,7 +6,7 @@ from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.config import get_project_logger
 from dovetail.core.enums import DataType
 from dovetail.core.instructions import IRInstruction, IROpCode
-from dovetail.core.symbols import Variable, Constant, Class, Reference, Literal
+from dovetail.core.symbols import Variable, Class, Reference, Literal
 from ..backend import JE1214Backend
 from ..commands.strlib import to_str, to_int
 from ..commands.tools import DataPath, StorageLocation
@@ -15,9 +15,9 @@ from ..commands.tools import DataPath, StorageLocation
 @ir_processor(JE1214Backend, IROpCode.CAST)
 class IRCastProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
-        result: Variable | Constant = instruction.operands[0]
+        result: Variable = instruction.operands[0]
         dtype: DataType | Class = instruction.operands[1]
-        value: Reference[Variable | Constant | Literal] = instruction.operands[2]
+        value: Reference[Variable | Literal] = instruction.operands[2]
 
         result_path = DataPath(
             context.current_scope.get_symbol_path(result),

@@ -2,7 +2,7 @@
 from functools import lru_cache
 
 from dovetail.core.backend import GenerationContext
-from dovetail.core.symbols import Variable, Constant, Reference, Literal
+from dovetail.core.symbols import Variable, Reference, Literal
 from .. import TemplateRegistry
 from ..base import CommandHandler, TemplateCommandHandler
 from ..template import CommandTemplate
@@ -12,11 +12,11 @@ from ...builtins import CommandRegistry
 
 @CommandRegistry.register("strlen")
 class StrlenCommand(CommandHandler):
-    def handle(self, result: Variable | Constant | None, context: GenerationContext,
+    def handle(self, result: Variable | None, context: GenerationContext,
                args: dict[str, Reference]) -> None:
         if result is None:
             return
-        s: Variable | Constant | Literal = args["s"].value
+        s: Variable | Literal = args["s"].value
         result_path = DataPath(context.current_scope.get_symbol_path(result), context.objective)
         s_path = DataPath(context.current_scope.get_symbol_path(s), context.objective, StorageLocation.STORAGE)
 
@@ -37,7 +37,7 @@ class SubstringCommand(TemplateCommandHandler):
 
     def _pre_process(
             self,
-            result: Variable | Constant | None,
+            result: Variable | None,
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:

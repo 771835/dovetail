@@ -8,7 +8,7 @@ from typing import Any, Dict, Union
 from dovetail.core.config import PROJECT_VERSION
 from dovetail.core.enums.types import DataTypeBase, DataType
 from dovetail.core.ir_builder import IRBuilder
-from dovetail.core.symbols import Symbol, Variable, Constant, Literal, Parameter, Reference, Class, Function
+from dovetail.core.symbols import Symbol, Literal, Parameter, Reference, Class, Function
 from dovetail.utils.binary_serializer import BinarySerializer
 
 
@@ -60,9 +60,6 @@ class IRSymbolSerializer:
                 metadata['value'][id(key)] = id(value)
         elif isinstance(symbol, Enum):
             metadata['value'] = symbol.value
-        elif isinstance(symbol, (Variable, Constant)):
-            metadata['dtype'] = id(symbol.dtype)
-            metadata['var_type'] = id(symbol.var_type)
         elif isinstance(symbol, Literal):
             metadata['value'] = symbol.value
         elif isinstance(symbol, Parameter):
@@ -102,9 +99,6 @@ class IRSymbolSerializer:
         if isinstance(symbol, Reference):
             self._add_symbol_id_map(symbol.value)
             self._add_symbol_id_map(symbol.value_type)
-        elif isinstance(symbol, (Variable, Constant)):
-            self._add_symbol_id_map(symbol.dtype)
-            self._add_symbol_id_map(symbol.var_type)
         elif isinstance(symbol, Function):
             for param_symbol in symbol.params:
                 self._add_symbol_id_map(param_symbol)

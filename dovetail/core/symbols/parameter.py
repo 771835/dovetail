@@ -17,14 +17,14 @@ from ..enums.types import DataTypeBase
 class Parameter(Symbol):
     var: Variable
     optional: bool = False
-    default: Optional[Reference[Variable | Literal | Constant]] = None
-
+    default: Optional[Reference[Variable | Literal]] = None
 
     def is_optional(self) -> bool:
         """
         参数是否选填
 
-        Returns: 一个bool，代表参数是否选填
+        Returns:
+            bool: 代表参数是否选填
 
         """
         return True if self.default is not None else False

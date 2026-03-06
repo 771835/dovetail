@@ -5,7 +5,7 @@ IRCall 指令处理器
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.enums import FunctionType, DataType
 from dovetail.core.instructions import IRInstruction, IROpCode
-from dovetail.core.symbols import Variable, Constant, Function, Literal, Reference
+from dovetail.core.symbols import Variable, Function, Literal, Reference
 from ..backend import JE1214Backend
 from ..commands import FunctionBuilder, Copy, DataPath, StorageLocation
 from ..commands.builtins import CommandRegistry
@@ -14,9 +14,9 @@ from ..commands.builtins import CommandRegistry
 @ir_processor(JE1214Backend, IROpCode.CALL)
 class IRCallProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
-        result: Variable | Constant = instruction.get_operands()[0]
+        result: Variable = instruction.get_operands()[0]
         func: Function = instruction.get_operands()[1]
-        args: dict[str, Reference[Variable | Constant | Literal]] = instruction.get_operands()[2]
+        args: dict[str, Reference[Variable | Literal]] = instruction.get_operands()[2]
         if func.function_type == FunctionType.BUILTIN:
             # 搜索内置函数
             CommandRegistry.get(func.name).handle(result, context, args)

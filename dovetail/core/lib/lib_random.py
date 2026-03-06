@@ -5,15 +5,13 @@ from dovetail.core.enums.types import FunctionType, DataType
 from dovetail.core.instructions import IRInstruction
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
-from dovetail.core.symbols import Constant, Reference, Function, Variable, Literal, Parameter
+from dovetail.core.symbols import Reference, Function, Variable, Literal, Parameter
 
 
 class Random(Library):
     def __init__(self, builder: IRBuilder):
         self.builder = builder
-        self._constant: dict[Constant, Reference] = {
-        }
-        self._functions: dict[Function, Callable[..., Variable | Constant | Literal] | None] = {
+        self._functions: dict[Function, Callable[..., Variable | Literal] | None] = {
             Function(
                 "randint",
                 [
@@ -31,8 +29,8 @@ class Random(Library):
     def load(self) -> list[IRInstruction]:
         return []
 
-    def get_functions(self) -> dict[Function, Callable[..., Variable | Constant | Literal]]:
+    def get_functions(self) -> dict[Function, Callable[..., Variable | Literal]]:
         return self._functions
 
-    def get_variables(self) -> dict[Constant, Reference]:
-        return self._constant
+    def get_variables(self) -> dict[Variable, Reference]:
+        return {}

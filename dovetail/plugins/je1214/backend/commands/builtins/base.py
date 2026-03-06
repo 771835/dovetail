@@ -5,7 +5,7 @@ from typing import Protocol
 
 from dovetail.core.backend import GenerationContext
 from dovetail.core.config import get_project_logger
-from dovetail.core.symbols import Variable, Constant, Reference
+from dovetail.core.symbols import Variable, Reference
 from .template.parameter import ParameterBuilder
 from .template.template import TemplateRegistry
 from .template.template_engine import TemplateEngine
@@ -17,7 +17,7 @@ class CommandHandler(Protocol):
     @abstractmethod
     def handle(
             self,
-            result: Variable | Constant | None,
+            result: Variable | None,
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:
@@ -43,7 +43,7 @@ class TemplateCommandHandler(CommandHandler):
 
     def handle(
             self,
-            result: Variable | Constant | None,
+            result: Variable | None,
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:
@@ -75,7 +75,7 @@ class TemplateCommandHandler(CommandHandler):
 
     def _pre_process(
             self,
-            result: Variable | Constant | None,
+            result: Variable | None,
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:
@@ -84,7 +84,7 @@ class TemplateCommandHandler(CommandHandler):
 
     def _post_process(
             self,
-            result: Variable | Constant | None,
+            result: Variable | None,
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:

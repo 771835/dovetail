@@ -7,6 +7,8 @@
 """
 from __future__ import annotations
 
+from functools import reduce
+
 from typing_extensions import deprecated
 
 from dovetail.utils.safe_enum import SafeEnum
@@ -38,11 +40,17 @@ class FunctionType(SafeEnum):
 class DataTypeBase:
     """
     类型基类
+
+    See Also:
+        此类不应该被实例化
     """
 
     def get_name(self) -> str:
         """
         获取类型名称
+
+        Returns:
+            str: 类型名称
         """
 
     def is_subclass_of(self, other: DataTypeBase) -> bool:
@@ -133,7 +141,22 @@ class Array(DataTypeBase):
     def get_name(self) -> str:
         return f"{repr(self.dtype)}{''.join(f'[{size}]' for size in self.size)}"
 
-    def get_size(self) -> list:
+    def get_all_of_size(self) -> int:
+        """
+        获取数组总大小
+
+        Returns:
+            int: 该数组所有维度的大小的总乘积
+        """
+        return reduce(lambda x, y: x * y, self.size)
+
+    def get_size(self) -> list[int]:
+        """
+        获得数组大小列表
+
+        Returns:
+            list[int]: 数组大小列表
+        """
         return self.size
 
     def is_subclass_of(self, other):
@@ -169,7 +192,7 @@ class StructureType(SafeEnum):
     CLASS = "class"
     LOOP_CHECK = "loop_check"
     LOOP_BODY = "loop_body"
-    INTERFACE = 'interface'
+    INTERFACE = "interface"
     CONDITIONAL = "conditional"
 
 
@@ -221,10 +244,11 @@ class ClassType(SafeEnum):
 
     Attributes:
         CLASS: 具体类，可实例化
+        ENUM: 枚举类，编译器时将被内联
         INTERFACE: 接口类，定义契约(已弃用)
     """
     CLASS = "class"
-
+    ENUM = "enum"
     INTERFACE = "interface"
 
 

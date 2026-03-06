@@ -5,7 +5,7 @@ from dovetail.core.enums import DataType, BinaryOps, FunctionType
 from dovetail.core.instructions import IRInstruction, IRDeclare, IRBinaryOp
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
-from dovetail.core.symbols import Constant, Reference, Function, Variable, Literal, Parameter
+from dovetail.core.symbols import Reference, Function, Variable, Literal, Parameter
 
 
 class Strlib(Library):
@@ -18,7 +18,7 @@ class Strlib(Library):
     def load(self) -> list[IRInstruction]:
         return []
 
-    def get_functions(self) -> dict[Function, Callable[..., Variable | Constant | Literal]]:
+    def get_functions(self) -> dict[Function, Callable[..., Variable  | Literal]]:
         return {
             Function(
                 "strcat",
@@ -49,12 +49,12 @@ class Strlib(Library):
             ): None,
         }
 
-    def _strcat(self, dest: Reference[Variable | Constant | Literal],
-                src: Reference[Variable | Constant | Literal]) -> Variable:
+    def _strcat(self, dest: Reference[Variable  | Literal],
+                src: Reference[Variable  | Literal]) -> Variable:
         var = Variable(uuid.uuid4().hex, DataType.STRING)
         self.builder.insert(IRDeclare(var))
         self.builder.insert(IRBinaryOp(var, BinaryOps.ADD, dest, src))
         return var
 
-    def get_variables(self) -> dict[Constant, Reference]:
+    def get_variables(self) -> dict[Variable, Reference]:
         return {}

@@ -6,7 +6,7 @@ from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.config import get_project_logger
 from dovetail.core.enums import StructureType
 from dovetail.core.instructions import IRInstruction, IROpCode
-from dovetail.core.symbols import Variable, Constant, Literal
+from dovetail.core.symbols import Variable, Literal
 from ..backend import JE1214Backend
 from ..commands import ScoreboardBuilder, ReturnBuilder
 from ..commands.copy import Copy
@@ -16,7 +16,7 @@ from ..commands.tools import DataPath, StorageLocation
 @ir_processor(JE1214Backend, IROpCode.RETURN)
 class IRReturnProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
-        return_value: Variable | Constant | Literal = instruction.get_operands()[0].value
+        return_value: Variable | Literal = instruction.get_operands()[0].value
         # 查找需要退出的函数作用域
         for scope in reversed(context.scope_stack):
             if scope.scope_type == StructureType.FUNCTION:

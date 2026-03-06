@@ -14,6 +14,9 @@ class Literal(Symbol):
     def get_name(self) -> None:
         """
         返回空值
+
+        Returns:
+            NoneType: None
         """
         return
 

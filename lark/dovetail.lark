@@ -1,16 +1,25 @@
 // 程序结构
-program : (include)* (class | function | let | const)*
+program: include* (enums|class|struct|function|let|const|typedef)*
 
-include : "include" literal               // 包含库文件，如：include "mathlib.mcdl"
+include: "include" literal               // 包含库文件，如：include "mathlib.mcdl"
 
-// 注解系统
-// 仅允许使用内置注解及插件注解
-annotation : "@" ID | "@" ID "(" literal ("," literal)* ")"
+// 注解系统(仅允许使用内置注解及插件注解)
+annotation: "@" ID | "@" ID "(" literal ("," literal)* ")"
 
 // 类(多继承)
-class : annotation* "class" ID ("(" identifier*")")? "{" (class_property | method)* "}"
+class: annotation* "class" ID ("(" identifier*")")? "{" (class_property | method)* "}"
 
-class_property : "let" ID ":" type
+class_property: "let" ID ":" type
+
+// 结构体
+struct: annotation* "struct" ID "{" struct_field* "}"
+
+struct_field: ID ":" type
+
+// 枚举
+enums : annotation* "enum" ID "{" (enum_member ("," enum_member)* ","?)? "}"
+
+enum_member : ID "=" literal
 
 // 类型系统
 type.2: ID array_dimension* "?"? // 仅对象应允许可空
@@ -33,7 +42,8 @@ param: "mut"? ID ":" type ("=" expr)?
 ?block : "{" statement* "}"
 
 // 流程控制
-?statement : function
+?statement: function
+    | typedef                                 // 类型别名
     | let                                     // 变量声明
     | const                                   // 常量声明
     | for_loop                                // for循环
@@ -46,16 +56,18 @@ param: "mut"? ID ":" type ("=" expr)?
     | "continue"              -> continue_stmt// continue语句
     | pass_stmt                               // 空语句
 
-if_stmt : "if" "(" condition ")" block ("else" (if_stmt|block))?
+typedef: "typedef" type ID
+
+if_stmt : "if" "(" [condition] ")" block ("else" (if_stmt|block))?
 
 pass_stmt: "pass"|";"
 
 for_loop : "for" "(" for_control ")" block        // 传统for循环
     | "for" "(" type ID ":" expr ")" block       // 增强for循环 (expr需为可迭代class)
 
-while_loop : "while" "(" condition ")" block            // while循环
+while_loop : "while" "(" [condition] ")" block            // while循环
 
-for_control : [let | expr] ";" condition ";" [expr]
+for_control : [let | expr] ";" [condition] ";" [expr]
 
 // condition 在语义分析时检查类型
 condition: expr

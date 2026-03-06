@@ -1,18 +1,18 @@
 # coding=utf-8
 from dovetail.core.backend import GenerationContext
 from dovetail.core.enums import BinaryOps
-from dovetail.core.symbols import Variable, Constant, Reference, Literal
+from dovetail.core.symbols import Variable, Reference, Literal
 from ..base import CommandRegistry, CommandHandler
 from ... import Copy, DataPath, Execute, ScoreboardBuilder, LiteralPoolTools, BinaryOp
 
 
 @CommandRegistry.register('abs')
 class AbsCommand(CommandHandler):
-    def handle(self, result: Variable | Constant | None, context: GenerationContext, args: dict[str, Reference]):
+    def handle(self, result: Variable | None, context: GenerationContext, args: dict[str, Reference]):
         if result is None:
             return
 
-        value: Variable | Constant | Literal = args["value"].value
+        value: Variable | Literal = args["value"].value
         result_path = DataPath(context.current_scope.get_symbol_path(result), context.objective)
         if isinstance(value, Literal):
             context.current_scope.add_command(
@@ -47,7 +47,7 @@ class AbsCommand(CommandHandler):
 
 @CommandRegistry.register('min')
 class MinCommand(CommandHandler):
-    def handle(self, result: Variable | Constant | None, context: GenerationContext, args: dict[str, Reference]):
+    def handle(self, result: Variable | None, context: GenerationContext, args: dict[str, Reference]):
         if result is None:
             return
         a = args["a"].value
@@ -63,7 +63,7 @@ class MinCommand(CommandHandler):
 
 @CommandRegistry.register('max')
 class MaxCommand(CommandHandler):
-    def handle(self, result: Variable | Constant | None, context: GenerationContext, args: dict[str, Reference]):
+    def handle(self, result: Variable | None, context: GenerationContext, args: dict[str, Reference]):
         if result is None:
             return
         a = args["a"].value

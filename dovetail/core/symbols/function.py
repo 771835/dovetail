@@ -23,7 +23,7 @@ class Function(Symbol):
         获得函数名称
 
         Returns:
-            (str): 函数的名称
+            str: 函数的名称
         """
         return self.name
 

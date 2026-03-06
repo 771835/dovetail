@@ -37,7 +37,8 @@ class Reference(Symbol, Generic[T]):
         """
         返回所引用的符号的名称
 
-        :return: 符号名称
+        Returns:
+            str | None: 所引用符号的名称，当为字面量时返回None
         """
         return self.value.get_name()
 

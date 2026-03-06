@@ -7,7 +7,7 @@ from dovetail.core.config import get_project_logger
 from dovetail.core.enums import BinaryOps, DataType
 from dovetail.core.enums.types import DataTypeBase
 from dovetail.core.instructions import IRInstruction, IROpCode
-from dovetail.core.symbols import Constant, Literal, Variable
+from dovetail.core.symbols import Literal, Variable
 from ..backend import JE1214Backend
 from ..commands.binary_op import BinaryOp
 from ..commands.strlib import strcat
@@ -20,11 +20,11 @@ class IROpProcessor(IRProcessor):  # 仅应支持基本类型运算
         result_path = self._get_symbol_path(instruction.operands[0], context)
         op: BinaryOps = instruction.operands[1]
 
-        left: Variable | Constant | Literal = instruction.operands[2].value
+        left: Variable | Literal = instruction.operands[2].value
         left_dtype: DataTypeBase = left.dtype
         left_path = self._get_symbol_path(left, context)
 
-        right: Variable | Constant | Literal = instruction.operands[3].value
+        right: Variable | Literal = instruction.operands[3].value
         right_dtype: DataTypeBase = right.dtype
         right_path = self._get_symbol_path(right, context)
 
@@ -36,7 +36,7 @@ class IROpProcessor(IRProcessor):  # 仅应支持基本类型运算
         else:
             get_project_logger().error(f"unsupported operand type(s) for {op}: '{left_dtype}' and '{right_dtype}'")
 
-    def _get_symbol_path(self, value: Variable | Constant | Literal,
+    def _get_symbol_path(self, value: Variable | Literal,
                          context: GenerationContext) -> DataPath | int | bool | str:
         if isinstance(value, Literal):
             return value.value

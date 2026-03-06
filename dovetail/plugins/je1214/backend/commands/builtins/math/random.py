@@ -1,5 +1,5 @@
 from dovetail.core.backend import GenerationContext
-from dovetail.core.symbols import Variable, Constant, Reference
+from dovetail.core.symbols import Variable, Reference
 from .. import CommandRegistry, TemplateRegistry
 from ..base import TemplateCommandHandler
 from ..template import CommandTemplate
@@ -11,7 +11,7 @@ class RandintCommand(TemplateCommandHandler):
 
     def _pre_process(
             self,
-            result: Variable | Constant | None,
+            result: Variable | None,
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:
@@ -20,7 +20,7 @@ class RandintCommand(TemplateCommandHandler):
 
     def _post_process(
             self,
-            result: Variable | Constant | None,
+            result: Variable  | None,
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:

@@ -7,6 +7,7 @@ from typing_extensions import deprecated
 from .base import Symbol
 from ..enums.types import DataTypeBase, VariableType
 
+
 @deprecated("Use `Variable` instead")
 @define(slots=True)
 class Constant(Symbol):

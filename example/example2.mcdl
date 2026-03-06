@@ -1,10 +1,6 @@
 // 数组测试
 let arr1 : int[100]
 let p = 0
-fn int main(arr :int[]) {
-
-
-}
 fn foo(arr : int[]) -> int {
     arr1[p] = 1
 }
