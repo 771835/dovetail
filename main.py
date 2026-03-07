@@ -82,7 +82,6 @@ class Compiler:
                 str(source_path),
                 filepath=source_path,
                 suggestion="仔细检查你的路径w",
-                should_raise=False
             )
             return -1
 
@@ -100,10 +99,11 @@ class Compiler:
         pack_config_path = source_path / "pack.config"
         if not pack_config_path.exists() or not pack_config_path.is_file():
             report(
-                Errors.ConfigurationError,  # SystemError，将会直接抛出异常
+                Errors.ConfigurationError,
                 "文件 pack.config 不存在或不是一个文件",
                 filepath=pack_config_path
             )
+            raise CompilationError("文件 pack.config 不存在或不是一个文件")
         # 尝试解析配置文件
         try:
             with open(pack_config_path, encoding='utf-8') as config_file:
@@ -112,11 +112,12 @@ class Compiler:
             PACK_CONFIG_VALIDATOR(pack_config_data)
         except (json.JSONDecodeError, fastjsonschema.JsonSchemaException):
             report(
-                Errors.ConfigurationError,  # SystemError，将会直接抛出异常
+                Errors.ConfigurationError,
                 "文件 pack.config 格式无效",
                 filepath=pack_config_path,
                 suggestion="确认编译配置正确吗?"
             )
+            raise CompilationError("文件 pack.config 格式无效")
 
         if pack_config_data.get("description"):
             self.config.description = pack_config_data["description"]
@@ -152,7 +153,7 @@ class Compiler:
         with chdir(working_directory):
             try:
                 tree = parser_code(source_path)
-
+                print(tree.pretty())
 
                 ASTTransformer(self.config, source_path).visit(tree)
 

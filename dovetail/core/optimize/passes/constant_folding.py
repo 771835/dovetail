@@ -218,7 +218,7 @@ class ConstantFoldingPass(IROptimizationPass):
             return value
         elif value.value_type == ValueType.FUNCTION:
             return value
-        elif value.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+        elif value.value_type == ValueType.VARIABLE:
             return self._find(value)
         else:
             return ConstantFoldingPass.FoldingFlags.UNKNOWN
@@ -322,7 +322,7 @@ class ConstantFoldingPass(IROptimizationPass):
         resolved_source = source_ref
         changed = False
 
-        if source_ref.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+        if source_ref.value_type == ValueType.VARIABLE:
             new_source = self._resolve_ref(source_ref)
             if isinstance(new_source, ConstantFoldingPass.FoldingFlags):
                 pass
@@ -538,7 +538,7 @@ class ConstantFoldingPass(IROptimizationPass):
         if v1.value_type == ValueType.LITERAL:
             return v1.value.value == v2.value.value
 
-        if v1.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+        if v1.value_type == ValueType.VARIABLE:
             return v1.get_name() == v2.get_name()
 
         return False
@@ -557,7 +557,7 @@ class ConstantFoldingPass(IROptimizationPass):
                 new_args[param_name] = arg_ref
                 continue
 
-            if arg_ref.value_type in (ValueType.VARIABLE, ValueType.CONSTANT):
+            if arg_ref.value_type == ValueType.VARIABLE:
                 arg_value = self._find(arg_ref.value)
                 if isinstance(arg_value, ConstantFoldingPass.FoldingFlags):
                     new_args[param_name] = arg_ref

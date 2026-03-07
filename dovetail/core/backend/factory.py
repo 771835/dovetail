@@ -51,9 +51,8 @@ class BackendFactory:
             report(
                 Errors.ConfigurationError,
                 f"后端 {name} 不存在。",
-                raise_error=BackendNotFoundError
             )
-            return None
+            raise BackendNotFoundError(f"后端 {name} 不存在。")
         return backend_class(ir_builder, target, config)
 
     @classmethod
@@ -78,9 +77,8 @@ class BackendFactory:
             report(
                 Errors.UnsupportedTargetVersion,
                 "没有找到适合该配置的合适后端",
-                raise_error=BackendNotFoundError
             )
-            return None
+            raise BackendNotFoundError("没有找到适合该配置的合适后端")
         else:
             for name, backend in cls._backends.items():
                 if backend.is_support(config):
@@ -90,9 +88,8 @@ class BackendFactory:
         report(
             Errors.UnsupportedTargetVersion,
             "没有找到适合该配置的合适后端",
-            raise_error=BackendNotFoundError
         )
-        return None
+        raise BackendNotFoundError("没有找到适合该配置的合适后端")
 
     @classmethod
     def get_available_backends(cls) -> list[str]:

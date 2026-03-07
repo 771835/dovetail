@@ -8,6 +8,7 @@ import inspect
 import uuid
 from functools import wraps
 from threading import RLock
+from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
 # ==== 类型别名 ====
@@ -420,12 +421,12 @@ class MixinManager:
 
 # ==== 用户公共 API ====
 
-def Mixin(target_class: type, force: bool = False) -> Callable[[type], type]:
+def Mixin(target_class: type | ModuleType, force: bool = False) -> Callable[[type], type]:
     """
     类装饰器，用于声明一个 Mixin 及其目标类。
 
     Args:
-        target_class (type): 要注入 Mixin 的类。
+        target_class (type | ModuleType): 要注入 Mixin 的类。
         force (force): 如果为True，则使用 `type.__setattr__` 绕过元类限制。
 
     Returns:

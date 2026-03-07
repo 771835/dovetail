@@ -22,7 +22,7 @@ enums : annotation* "enum" ID "{" (enum_member ("," enum_member)* ","?)? "}"
 enum_member : ID "=" literal
 
 // 类型系统
-type.2: ID array_dimension* "?"? // 仅对象应允许可空
+type.2: ID array_dimension* QUESTION? // 仅对象应允许可空
 array_dimension: ("[" (ARRAY_SIZE | identifier) "]") | "[]"// 允许动态数组大小
 
 function: annotation* ("function"|"fn"|"def") ID params ["->" type] (block|pass_stmt)
@@ -35,8 +35,8 @@ method: annotation* "method"? ID params ["->" type] (block|pass_stmt)
 params : "(" (param ("," param)*)? ")"
 
 // 强制类型标注
-param: "mut"? ID ":" type ("=" expr)?
-     | "mut"? type ID ("=" expr)?
+param: [MUT] ID ":" type ("=" expr)?
+     | [MUT] type ID ("=" expr)?
 
 // 代码块，包含多个语句
 ?block : "{" statement* "}"
@@ -108,7 +108,7 @@ identifier: ID
 arguments : ("(" (argument ("," argument)*)? ")")
 
 // 当存在mut时代表传入量可变，目前仅对数组有效
-argument : "mut"? expr
+argument : [MUT] expr
 
 // 数字、普通字符串、布尔值、空值
 literal : INT
@@ -135,6 +135,12 @@ ADDSUB: "+"|"-"
 LOGICAL_AND: "and"|"&&"
 LOGICAL_OR: "or"|"||"
 LOGICAL_NOT: "not"|"!"
+
+// 所有权关键字
+MUT: "mut"
+
+// 可空关键字
+QUESTION: "?"
 
 // 注释
 PYTHONIC_COMMENT: /#[^\n]*/

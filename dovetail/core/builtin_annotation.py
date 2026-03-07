@@ -2,7 +2,7 @@
 from dovetail.core.enums.types import AnnotationCategory
 from dovetail.core.symbols.annotation import Annotation
 
-builtin_annotations: dict[str, Annotation] = {
+_annotations: dict[str, Annotation] = {
     "init": Annotation("init", None, AnnotationCategory.LIFECYCLE),
     "tick": Annotation("tick", {"interval": 1}, AnnotationCategory.LIFECYCLE),
     "export": Annotation("export", {"path": "", "abi": "dovetail"}, AnnotationCategory.VISIBILITY),
@@ -21,12 +21,12 @@ def get_annotation(name: str) -> Annotation | None:
     """
     获取内建注解的注解对象
 
-    如果插件要增加自己设置的注解可以注入这个函数，不推荐直接修改builtin_annotations
+    如果插件要增加自己设置的注解可以注入这个函数，不推荐直接修改_annotations
 
     Args:
         name: 内建函数的函数名
 
     Returns:
-        注解对象
+        注解对象，当不存在时返回None
     """
-    return builtin_annotations.get(name)
+    return _annotations.get(name)

@@ -147,9 +147,7 @@ def report(
         filepath: Path | str = "<unknown>",
         line: int = -1,
         column: int = -1,
-        suggestion: Optional[str] = None,
-        raise_error: type = CompilationError,
-        should_raise: bool = True
+        suggestion: Optional[str] = None
 ) -> None:
     """
     报告一个错误
@@ -161,8 +159,6 @@ def report(
         line: 错误发生具体行数
         column: 错误发生具体列数
         suggestion: 错误修复建议
-        raise_error: 致命错误报错时的类型
-        should_raise: 是否引发错误
 
     Raises:
         CompilationError: 当错误类型为RuntimeError、SystemError、FatalError时引发（如果 should_raise 为 True）
@@ -197,6 +193,3 @@ def report(
     if suggestion is None:
         suggestion = random.choice(DEFAULT_RANDOM_SUGGESTION)
     sys.stderr.write(f"{error_name}({original_error_name}): {error_details % tuple(args)}{suggestion}\n\n")
-
-    if error_type.value[0] > 3 and should_raise:
-        raise raise_error("编译提前终止")

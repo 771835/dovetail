@@ -9,7 +9,7 @@ from lark import Lark, Tree, v_args, Token
 from lark.tree import Meta
 from lark.visitors import Interpreter
 
-from dovetail.core.builtin_annotation import get_annotation
+from dovetail.core import builtin_annotation
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import StructureType, DataType, VariableType, MinecraftVersion, MinecraftEdition, \
     FunctionType
@@ -25,12 +25,13 @@ from dovetail.core.parser.scope import Scope
 from dovetail.core.scope.protocols import ScopeCore
 from dovetail.core.symbols import Variable, Reference, Literal, Function, Class, Parameter
 from dovetail.core.symbols.annotation import Annotation
+from dovetail.core.symbols.typedef import Typedef
 from dovetail.utils.annotations import timed
 from dovetail.utils.naming import NameNormalizer
 from dovetail.utils.string_similarity import suggest_similar
 
 lark_parser = Lark(open(r".\lark\dovetail.lark", encoding='utf-8').read(), start="program", parser='lalr',
-                   cache=".cache", propagate_positions=True)
+                   cache=".cache", propagate_positions=True, maybe_placeholders=True)
 
 
 @timed("解析用时 {:.5f}.")
@@ -57,6 +58,21 @@ def parser_code(filepath: Path | str, start: Optional[str] = None) -> Tree | Non
 
 
 class ASTTransformer(Interpreter):
+    """
+    AST访问器
+
+    访问AST并生成IR
+
+    Attributes:
+        config(CompileConfig): 编译配置
+        filepath(Path): 编译入口文件
+        top_scope(Scope): 顶层作用域
+        current_scope(Scope): 当前作用域
+        scope_stack(list[Scope]): 作用域栈
+        builtin_function(dict): 内建函数表
+        include_manager(IncludeManager): 导入管理器
+        builder(IRBuilder): IR构建器
+    """
 
     def __init__(self, config: CompileConfig, source_path: Path):
         super().__init__()
@@ -79,11 +95,11 @@ class ASTTransformer(Interpreter):
         self._load_library(LibraryMapping.get("builtins", self.builder))
         if self.config.experimental:
             self._load_library(LibraryMapping.get("experimental", self.builder))
-        # 是否发生错误
-        self.errored = False
+        # 编译错误统计
+        self.error_count = 0
+        self.warning_count = 0
 
     def __default__(self, tree: Tree) -> list[Any]:
-        print(tree.pretty())
         return self.visit_children(tree)
 
     @lru_cache(maxsize=None)
@@ -103,13 +119,12 @@ class ASTTransformer(Interpreter):
                     self.builtin_function[f"{class_.name}:{method_name}"] = handler
         except Exception as e:
             library_name = library.get_name()
-            report(
+            self._report(
                 Errors.LibraryLoad,
                 library_name,
                 e.__repr__(),
                 filepath=self.filepath,
             )
-            self.errored = True
 
     @contextmanager
     def _scoped_environment(self, name: str, scope_type: StructureType):
@@ -176,7 +191,7 @@ class ASTTransformer(Interpreter):
         if include_path:
             return include_path
         else:
-            report(
+            self._report(
                 Errors.CompilerInclude,
                 str(filepath),
                 "找不到文件",
@@ -184,14 +199,13 @@ class ASTTransformer(Interpreter):
                 line=line,
                 column=column
             )
-            self.errored = True
             return None
 
     def _decl_variable(self, name: str, dtype: DataTypeBase, value: Optional[Reference] = None,
                        meta: Optional[Meta] = None, mutable: bool = True):
         # 检查类型是否正确
         if not dtype.is_definable():
-            report(
+            self._report(
                 Errors.TypeMismatch,
                 "可定义类型",
                 dtype.get_name(),
@@ -199,10 +213,9 @@ class ASTTransformer(Interpreter):
                 line=meta.line if meta is not None else -1,
                 column=meta.column if meta is not None else -1
             )
-            self.errored = True
             return None
         if value is not None and dtype != value.get_dtype():
-            report(
+            self._report(
                 Errors.TypeMismatch,
                 dtype.get_name(),
                 value.get_dtype().get_name(),
@@ -210,19 +223,17 @@ class ASTTransformer(Interpreter):
                 line=meta.line if meta is not None else -1,
                 column=meta.column if meta is not None else -1
             )
-            self.errored = True
             return None
 
         variable = Variable(NameNormalizer.normalize(name), dtype, mutable=mutable)
         if not self.current_scope.add_symbol(variable):
-            report(
+            self._report(
                 Errors.DuplicateDefinition,
                 name,
                 filepath=self.filepath,
                 line=meta.line if meta is not None else -1,
                 column=meta.column if meta is not None else -1
             )
-            self.errored = True
             return None
 
         self._append_ir(IRDeclare(variable))
@@ -231,14 +242,22 @@ class ASTTransformer(Interpreter):
 
         return Reference(variable)
 
-    def get_ir(self) -> IRBuilder:
-        """
-        返回IRBuilder
-
-        Returns:
-            IRBuilder: IRBuilder对象
-        """
-        return self.builder
+    def _report(self,
+                error: Errors,
+                *args: str,
+                filepath: Path | str = "<unknown>",
+                line: int = -1,
+                column: int = -1,
+                suggestion: Optional[str] = None) -> None:
+        report(
+            error,
+            *args,
+            filepath=filepath,
+            line=line,
+            column=column,
+            suggestion=suggestion
+        )
+        self.error_count += 1
 
     @v_args(meta=True)
     def function(self, children: list[Tree | Token], meta: Meta):
@@ -270,23 +289,22 @@ class ASTTransformer(Interpreter):
         name: str
         # 处理函数签名
         if isinstance(children[0], Tree) and children[0].data == 'type':
-            # annotation* ("function"|"fn")? type ID params block
-            return_type = self.visit(children.pop(0))
-            name = NameNormalizer.normalize(children.pop(0).value)
-            params = self.visit(children.pop(0))
+            # annotation* ("function"|"fn") type ID params (block|pass_stmt)
+            return_type = self.visit(children.pop(0))  # type
+            name = NameNormalizer.normalize(children.pop(0).value)  # ID
+            params = self.visit(children.pop(0))  # params
         else:
-            # annotation* ("function"|"fn"|"def") ID params ("->" type)? block
+            # annotation* ("function"|"fn"|"def") ID params ["->" type] (block|pass_stmt)
             name = NameNormalizer.normalize(children.pop(0).value)
             params = self.visit(children.pop(0))
-            if children[0].data == 'type':
+            if children[0] is not None:
                 return_type = self.visit(children.pop(0))
             else:
                 return_type = DataType.VOID
+                children.pop(0)
 
-        # 当块为无意义指令时弹出
-        if len(children) == 0:
-            print(name, params, return_type)
-        if len(children) == 1 and children[0].data == 'pass_stmt':
+        # 当块为无意义指令时直接弹出
+        if children[0].data == 'pass_stmt':
             children.pop()
 
         # 创建函数对象
@@ -304,10 +322,10 @@ class ASTTransformer(Interpreter):
         self._append_ir(IRFunction(function))
 
         if len(children) >= 1:
-            with self._scoped_environment(name, StructureType.FUNCTION): # NOQA
+            with self._scoped_environment(name, StructureType.FUNCTION):  # NOQA
                 for param in params:
                     if not self.current_scope.add_symbol(param):
-                        report(
+                        self._report(
                             Errors.DuplicateDefinition,
                             param.get_name(),
                             filepath=self.filepath,
@@ -323,25 +341,18 @@ class ASTTransformer(Interpreter):
         default_value: Reference | None = None
 
         # 分析数据类型和初始值
+        symbol_name = str(children.pop(0).value)
         if isinstance(children[0], Tree) and children[0].data == 'type':
-            # type ID ("=" expr)?
-            dtype = self.visit(children.pop(0))  # type
-            symbol_name = str(children.pop(0).value)  # ID
+            # "let" ID ":" type ["=" expr]
+            dtype = self.visit(children.pop(0))
 
-            if len(children) >= 1:
-                default_value = self.visit(children.pop(0))  # expr
-        else:
-            symbol_name = str(children.pop(0).value)
-            if isinstance(children[0], Tree) and children[0].data == 'type':
-                # "let"? ID ":" type ("=" expr)?
-                dtype = self.visit(children.pop(0))
-                if len(children) >= 1:
-                    default_value = self.visit(children.pop(0))
-            else:  # "let" ID "=" expr
+            if len(children) >= 1 and children[0] is not None:
                 default_value = self.visit(children.pop(0))
-                assert isinstance(default_value, Reference)
-                # 自动推导类型
-                dtype = default_value.get_dtype()
+        else:  # "let" ID "=" expr
+            default_value = self.visit(children.pop(0))
+            assert isinstance(default_value, Reference)
+            # 自动推导类型
+            dtype = default_value.get_dtype()
 
         return self._decl_variable(symbol_name, dtype, default_value, meta)
 
@@ -351,25 +362,25 @@ class ASTTransformer(Interpreter):
         symbol_name: str
         value: Reference
         if isinstance(children[0], Tree) and children[0].data == "type":
-            # "const" type ID ("=" expr)
+            # "const" type ID "=" expr
             dtype = self.visit(children[0])  # type
             symbol_name: str = children[1].value  # ID
             value = self.visit(children[2])  # expr
         else:
-            # "const" ID (":" type)? ("=" expr)
+            # "const" ID [":" type] "=" expr
             symbol_name = children[0].value  # ID
-            if isinstance(children[1], Tree) and children[1].data == "type":
-                dtype = self.visit(children[1])  # type
+            if children[1] is None:
                 value = self.visit(children[2])  # expr
-            else:
-                value = self.visit(children[1])  # expr
                 # 自动推导类型
                 dtype = value.get_dtype()
+            else:
+                dtype = self.visit(children[1])  # type
+                value = self.visit(children[2])  # expr
 
         return self._decl_variable(symbol_name, dtype, value, meta, mutable=False)
 
     def params(self, tree: Tree) -> list[Parameter]:
-        params = []
+        params: list[Parameter] = []
         for param in tree.children:
             params.append(self.visit(param))
         return params
@@ -378,12 +389,17 @@ class ASTTransformer(Interpreter):
     def param(self, children: list[Tree | Token], meta: Meta):
         name: str
         dtype: DataTypeBase
+        is_mut: bool = False
+
+        if children.pop(0) is not None:
+            is_mut = True
+
         if isinstance(children[0], Tree) and children[0].data == "type":
-            # "mut"? type ID ("=" expr)?
+            # [MUT] type ID ("=" expr)?
             dtype = self.visit(children.pop(0))  # type
             name: str = NameNormalizer.normalize(children.pop(0).value)  # ID
         else:
-            # "mut"? ID ("->" | ":") type ("=" expr)?
+            # [MUT] ID ":" type ("=" expr)?
             name: str = NameNormalizer.normalize(children.pop(0).value)  # ID
             dtype = self.visit(children.pop(0))  # type
 
@@ -392,7 +408,7 @@ class ASTTransformer(Interpreter):
             default_value = self.visit(children.pop(0))
 
             if default_value.get_dtype() != dtype:
-                report(
+                self._report(
                     Errors.TypeMismatch,
                     default_value.get_dtype().get_name(),
                     dtype.get_name(),
@@ -400,7 +416,6 @@ class ASTTransformer(Interpreter):
                     line=meta.line,
                     column=meta.column
                 )
-                self.errored = True
                 # 发生错误时返回无默认值的参数对象
                 return Parameter(Variable(name, dtype, VariableType.PARAMETER))
 
@@ -422,21 +437,20 @@ class ASTTransformer(Interpreter):
         # 获取函数定义的返回类型
         function_scope = next(scope for scope in reversed(self.scope_stack) if scope.stype == StructureType.FUNCTION)
         if function_scope is None:
-            report(
+            self._report(
                 Errors.InvalidControlFlow,
                 "return在函数之外",
                 filepath=self.filepath,
                 line=meta.line,
                 column=meta.column
             )
-            self.errored = True
             return
 
         if value is not None:
             function_symbol: Function | None = function_scope.parent.find_symbol(function_scope.name)
 
             if function_symbol.return_type != value.get_dtype():
-                report(
+                self._report(
                     Errors.TypeMismatch,
                     function_symbol.return_type.get_name(),
                     value.get_dtype().get_name(),
@@ -444,7 +458,6 @@ class ASTTransformer(Interpreter):
                     line=meta.line,
                     column=meta.column
                 )
-                self.errored = True
                 return
 
         self._append_ir(IRReturn(value))
@@ -455,14 +468,13 @@ class ASTTransformer(Interpreter):
         loop_scope = self._get_loop_check_scope_type()
 
         if loop_scope is None:
-            report(
+            self._report(
                 Errors.InvalidControlFlow,
                 "break 语句必须在循环中",
                 filepath=self.filepath,
                 line=meta.line,
                 column=meta.column
             )
-            self.errored = True
             return
 
         self._append_ir(IRBreak(loop_scope.name))
@@ -473,14 +485,13 @@ class ASTTransformer(Interpreter):
         loop_scope = self._get_loop_check_scope_type()
 
         if loop_scope is None:
-            report(
+            self._report(
                 Errors.InvalidControlFlow,
                 "continue 语句必须在循环中",
                 filepath=self.filepath,
                 line=meta.line,
                 column=meta.column
             )
-            self.errored = True
             return
 
         self._append_ir(IRContinue(loop_scope.name))
@@ -509,7 +520,7 @@ class ASTTransformer(Interpreter):
             # 重新设置为原来的文件
             self.filepath = old_filepath
         except Exception as e:
-            report(
+            self._report(
                 Errors.CompilerInclude,
                 str(filepath),
                 f"无法正确解析文件:{e.__repr__()}",
@@ -517,54 +528,66 @@ class ASTTransformer(Interpreter):
                 line=meta.line,
                 column=meta.column
             )
-            self.errored = True
 
     @v_args(meta=True)
-    def type(self, children: list[Token|Tree|int], meta: Meta) -> DataType | Class | Array | DataTypeBase:
-        original_name: str = children.pop(0).value # type: ignore
+    def type(self, children: list[Token | Tree | int], meta: Meta) -> DataType | Class | Array | DataTypeBase:
+        original_name: str = children.pop(0).value  # type: ignore
 
         try:
             dtype = DataType.get_by_value(original_name)
-            if dtype.is_definable():
-                if len(children) >= 1:
-                    return Array(dtype, children)
-                else:
-                    return dtype
-            else:
-                report(
-                    Errors.TypeMismatch,
-                    "可定义类型",
+        except ValueError:
+            dtype = self.current_scope.resolve_symbol(NameNormalizer.normalize(original_name))
+
+            # 展开类型别名
+            if isinstance(dtype, Typedef):
+                dtype = dtype.dtype
+
+            if not isinstance(dtype, DataTypeBase):
+                self._report(
+                    Errors.UndefinedType,
                     original_name,
                     filepath=self.filepath,
                     line=meta.line,
                     column=meta.column,
-                    suggestion=f"{original_name} 不可被定义"
                 )
-                self.errored = True
                 return DataType.UNDEFINED
-        except ValueError:
-            pass  # DataType不存在此类型,去查找符号
-        dtype = self.current_scope.resolve_symbol(NameNormalizer.normalize(original_name))
-        if isinstance(dtype, DataTypeBase):
+
+        if dtype.is_definable():
             if len(children) >= 1:
                 return Array(dtype, children)
             else:
                 return dtype
+        else:
+            self._report(
+                Errors.TypeMismatch,
+                "可定义类型",
+                original_name,
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column,
+                suggestion=f"{original_name} 不可被定义"
+            )
+            return DataType.UNDEFINED
 
-        report(
-            Errors.UndefinedType,
-            original_name,
-            filepath=self.filepath,
-            line=meta.line,
-            column=meta.column,
-        )
-        self.errored = True
-        return DataType.UNDEFINED
+    @v_args(meta=True)
+    def typedef(self, children: list[Token | Tree | int], meta: Meta):
+        original_type: DataTypeBase = self.visit(children.pop(0))
+        new_name: str = children.pop(0).value
+        new_type = Typedef(new_name, original_type)
+        if not self.current_scope.add_symbol(new_type):
+            self._report(
+                Errors.DuplicateDefinition,
+                new_name,
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+        return None
 
     def null(self, _: Tree):
         return Reference.literal(None)
 
-    def paren(self, tree: Tree) -> Reference[Literal|Variable|Class|Function]:
+    def paren(self, tree: Tree) -> Reference[Literal | Variable | Class | Function]:
         return self.visit(tree.children[-1])
 
     def literal(self, tree: Tree):
@@ -593,19 +616,16 @@ class ASTTransformer(Interpreter):
             symbol_name = children
         symbol = self.current_scope.resolve_symbol(NameNormalizer.normalize(symbol_name))
         if symbol is None:
-            line = meta.line
-            column = meta.column
             suggestion = suggest_similar(NameNormalizer.normalize(symbol_name),
                                          list(self.current_scope.get_all_symbols().keys()))
-            report(
+            self._report(
                 Errors.UndefinedSymbol,
                 symbol_name,
                 filepath=self.filepath,
-                line=line,
-                column=column,
+                line=meta.line,
+                column=meta.column,
                 suggestion=f"你的意思是'{suggestion}'？" if suggestion else None,
             )
-            self.errored = True
             return Reference.literal(None)
 
         return Reference(symbol)
@@ -613,23 +633,32 @@ class ASTTransformer(Interpreter):
     @v_args(meta=True)
     def annotation(self, children: list[str], meta: Meta) -> tuple[Annotation, dict[str, str]]:
         name = children.pop(0)
-        annotation = get_annotation(name)
+        annotation = builtin_annotation.get_annotation(name)
         if annotation is None:
-            report(
+            self._report(
                 Errors.UndefinedSymbol,
                 name,
                 filepath=self.filepath,
                 line=meta.line,
                 column=meta.column
             )
-            self.errored = True
             return Annotation("undefined", None, AnnotationCategory.METADATA), {}
 
         if annotation.params is None:
+            if len(children) >= 1:
+                self._report(
+                    Errors.ArgumentNumberMismatch,
+                    name,
+                    "0",
+                    str(len(children)),
+                    filepath=self.filepath,
+                    line=meta.line,
+                    column=meta.column
+                )
             return annotation, {}
 
         if len(children) != len(annotation.params):
-            report(
+            self._report(
                 Errors.ArgumentNumberMismatch,
                 name,
                 str(len(annotation.params)),

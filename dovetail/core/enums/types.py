@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from functools import reduce
 
-from typing_extensions import deprecated
-
 from dovetail.utils.safe_enum import SafeEnum
 
 
@@ -205,14 +203,11 @@ class ValueType(SafeEnum):
 
     Attributes:
         LITERAL: 字面量值，编译时已知
-        CONSTANT: 常量(弃用)
         VARIABLE: 变量
         FUNCTION: 函数值，可调用对象
         CLASS: 类值，类型对象
     """
     LITERAL = "literal"  # 字面量
-
-    CONSTANT = "constant"
     VARIABLE = "variable"  # 变量
     FUNCTION = "function"  # 函数
     CLASS = "class"
@@ -234,7 +229,6 @@ class VariableType(SafeEnum):
     RETURN = "return"
 
 
-@deprecated("INTERFACE将被移除")
 class ClassType(SafeEnum):
     """
     面向对象系统中的类声明类型
@@ -245,11 +239,9 @@ class ClassType(SafeEnum):
     Attributes:
         CLASS: 具体类，可实例化
         ENUM: 枚举类，编译器时将被内联
-        INTERFACE: 接口类，定义契约(已弃用)
     """
     CLASS = "class"
     ENUM = "enum"
-    INTERFACE = "interface"
 
 
 class AnnotationCategory(SafeEnum):
