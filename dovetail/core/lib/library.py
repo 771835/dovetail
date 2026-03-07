@@ -28,7 +28,7 @@ class Library(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_variables(self) -> dict[Variable, Reference]:
+    def get_variables(self) -> dict[Variable, Reference[Variable]]:
         """获取库中定义的所有量"""
         pass
 

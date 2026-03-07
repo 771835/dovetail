@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import warnings
 from enum import Enum
-from typing import Any, Callable
+from typing import Any, Callable, Self
 
 
 class SafeEnum(Enum):
@@ -122,7 +122,7 @@ class SafeEnum(Enum):
         return tuple(member.value for member in cls)
 
     @classmethod
-    def get_by_value(cls, value: Any) -> SafeEnum:
+    def get_by_value(cls, value: Any) -> Self:
         """
         通过值获取枚举成员
 
@@ -130,7 +130,7 @@ class SafeEnum(Enum):
             value (Any): 枚举值
 
         Returns:
-            SafeEnum: 对应的枚举成员
+            Self: 对应的枚举成员
 
         Raises:
             ValueError: 值不存在时抛出

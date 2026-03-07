@@ -2,17 +2,17 @@
 """
 基础功能 Mixins - 作用域系统的构建块
 """
-from typing import Callable
+from typing import Callable, Self
 
 from dovetail.core.symbols.base import Symbol
 from dovetail.core.enums.types import StructureType
-from dovetail.core.scope.protocols import ScopeCore
+from dovetail.core.scope.protocols import ScopeCore, SymbolContainer, SymbolResolver
 
 
-class CoreMixin:
+class CoreMixin(ScopeCore):
     """核心属性初始化 mixin"""
 
-    def __init__(self, name: str, parent: ScopeCore | None, structure_type: StructureType):
+    def __init__(self, name: str, parent: Self | None, structure_type: StructureType):
         """初始化核心属性"""
         self.name = name
         self.parent = parent
@@ -43,6 +43,9 @@ class SymbolStorageMixin:
             bool: 添加成功返回 True，符号已存在且未强制时返回 False
         """
         symbol_name = symbol.get_name()
+        if symbol_name is None:
+            return False
+
         if not force and symbol_name in self.symbols:
             return False
         self.symbols[symbol_name] = symbol
@@ -64,6 +67,9 @@ class SymbolStorageMixin:
             bool: 操作成功返回 True
         """
         symbol_name = symbol.get_name()
+        if symbol_name is None:
+            return False
+
         if symbol_name not in self.symbols and not force:
             return False
         self.symbols[symbol_name] = symbol
@@ -93,14 +99,14 @@ class SymbolStorageMixin:
         return self.symbols.get(str(name), None)
 
 
-class SymbolResolutionMixin:
+class SymbolResolutionMixin(SymbolResolver,ScopeCore,SymbolContainer):
     """
     符号解析功能 - 向上链式查找
 
     提供跨越作用域边界的符号解析能力。
     """
 
-    def resolve_symbol(self: ScopeCore, name: str) -> Symbol | None:
+    def resolve_symbol(self: Self, name: str) -> Symbol | None:
         """
         逐级向上解析符号
 
@@ -122,7 +128,7 @@ class SymbolResolutionMixin:
 
         return None
 
-    def resolve_symbol_in_chain(self: ScopeCore, name: str, chain: list[type] | None = None) -> Symbol | None:
+    def resolve_symbol_in_chain(self: Self, name: str, chain: list[StructureType] | None = None) -> Symbol | None:
         """
         在指定类型的作用域链中解析符号
 
@@ -150,14 +156,14 @@ class SymbolResolutionMixin:
         return None
 
 
-    def get_all_symbols(self: ScopeCore) -> dict[str, Symbol]:
+    def get_all_symbols(self: Self) -> dict[str, Symbol]:
         """
         获得完整符号表
 
         Returns: 返回从当前作用域开始向上直到根作用域的符号表
 
         """
-        scope_stack: list[ScopeCore] = []
+        scope_stack: list[Self] = []
         current = self
         while current:
             scope_stack.append(current)
@@ -170,7 +176,7 @@ class SymbolResolutionMixin:
         return symbols
 
 
-class HierarchyMixin:
+class HierarchyMixin(ScopeCore):
     """
     层级管理功能 - 作用域树的构建与导航
     """
@@ -178,9 +184,9 @@ class HierarchyMixin:
     def __init__(self):
         """初始化子作用域列表"""
         if not hasattr(self, 'children'):
-            self.children: list[ScopeCore] = []
+            self.children: list[Self] = []
 
-    def create_child(self: ScopeCore, name: str, stype: StructureType) -> ScopeCore:
+    def create_child(self: Self, name: str, stype: StructureType) -> Self:
         """
         创建子作用域
 
@@ -189,14 +195,14 @@ class HierarchyMixin:
             stype: 子作用域类型
 
         Returns:
-            ScopeCore: 新创建的子作用域
+            Self: 新创建的子作用域
         """
         # 使用当前类创建子作用域，保持类型一致性
-        child = self.__class__(name, self, stype)
+        child = self.__class__(name, self, stype) # 此处实际运行时将调用CoreMixin的__init__方法 # type: ignore
         self.children.append(child)
         return child
 
-    def find_scope(self: ScopeCore, name: str) -> ScopeCore | None:
+    def find_scope(self: Self, name: str) -> Self | None:
         """
         在直接子作用域中查找
 
@@ -204,7 +210,7 @@ class HierarchyMixin:
             name: 作用域名称
 
         Returns:
-            ScopeCore | None: 找到的子作用域或 None
+            Self | None: 找到的子作用域或 None
         """
         name = str(name)
         for child in self.children:
@@ -212,7 +218,7 @@ class HierarchyMixin:
                 return child
         return None
 
-    def resolve_scope(self: ScopeCore, name: str) -> ScopeCore | None:
+    def resolve_scope(self: Self, name: str) -> Self | None:
         """
         逐级向上解析可访问的子作用域
 
@@ -220,7 +226,7 @@ class HierarchyMixin:
             name: 要解析的作用域名称
 
         Returns:
-            ScopeCore | None: 找到的作用域或 None
+            Self | None: 找到的作用域或 None
         """
         name = str(name)
         current = self
@@ -236,14 +242,14 @@ class HierarchyMixin:
 
 
 
-    def get_ancestors(self: ScopeCore) -> list[ScopeCore]:
+    def get_ancestors(self: Self) -> list[Self]:
         """
         获取所有祖先作用域（从父作用域到根）
 
         Returns:
-            list[ScopeCore]: 祖先作用域列表
+            list[Self]: 祖先作用域列表
         """
-        ancestors = []
+        ancestors: list[Self] = []
         current = self.parent
 
         while current:
@@ -252,7 +258,7 @@ class HierarchyMixin:
 
         return ancestors
 
-    def get_depth(self: ScopeCore) -> int:
+    def get_depth(self: Self) -> int:
         """
         获取当前作用域的深度（根作用域为 0）
 

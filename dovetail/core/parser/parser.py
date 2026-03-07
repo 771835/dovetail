@@ -34,7 +34,7 @@ lark_parser = Lark(open(r".\lark\dovetail.lark", encoding='utf-8').read(), start
 
 
 @timed("解析用时 {:.5f}.")
-def parser_code(filepath: Path | str, start: str = None) -> Tree | None:
+def parser_code(filepath: Path | str, start: Optional[str] = None) -> Tree | None:
     """
     解析代码
 
@@ -68,7 +68,7 @@ class ASTTransformer(Interpreter):
             StructureType.GLOBAL
         )
         self.current_scope = self.top_scope
-        self.scope_stack: list[ScopeCore] = [self.top_scope]
+        self.scope_stack: list[Scope] = [self.top_scope]
 
         self.builtin_function: dict[str, Callable[..., Variable | Literal]] = {}
         # 包含管理器
@@ -82,7 +82,7 @@ class ASTTransformer(Interpreter):
         # 是否发生错误
         self.errored = False
 
-    def __default__(self, tree: Tree):
+    def __default__(self, tree: Tree) -> list[Any]:
         print(tree.pretty())
         return self.visit_children(tree)
 
@@ -102,10 +102,7 @@ class ASTTransformer(Interpreter):
                 for method_name, handler in method_handlers.items():
                     self.builtin_function[f"{class_.name}:{method_name}"] = handler
         except Exception as e:
-            if isinstance(library, Library):
-                library_name = library.get_name()
-            else:
-                library_name = str(library)
+            library_name = library.get_name()
             report(
                 Errors.LibraryLoad,
                 library_name,
@@ -523,8 +520,8 @@ class ASTTransformer(Interpreter):
             self.errored = True
 
     @v_args(meta=True)
-    def type(self, children: list, meta: Meta) -> DataType | Class | Array | DataTypeBase:
-        original_name: str = children.pop(0).value
+    def type(self, children: list[Token|Tree|int], meta: Meta) -> DataType | Class | Array | DataTypeBase:
+        original_name: str = children.pop(0).value # type: ignore
 
         try:
             dtype = DataType.get_by_value(original_name)
@@ -539,8 +536,8 @@ class ASTTransformer(Interpreter):
                     "可定义类型",
                     original_name,
                     filepath=self.filepath,
-                    line=meta.line if meta is not None else -1,
-                    column=meta.column if meta is not None else -1,
+                    line=meta.line,
+                    column=meta.column,
                     suggestion=f"{original_name} 不可被定义"
                 )
                 self.errored = True
@@ -567,7 +564,7 @@ class ASTTransformer(Interpreter):
     def null(self, _: Tree):
         return Reference.literal(None)
 
-    def paren(self, tree: Tree):
+    def paren(self, tree: Tree) -> Reference[Literal|Variable|Class|Function]:
         return self.visit(tree.children[-1])
 
     def literal(self, tree: Tree):
@@ -589,15 +586,15 @@ class ASTTransformer(Interpreter):
                 return Reference.literal(str(token))
 
     @v_args(meta=True)
-    def identifier(self, children: list[str] | str, meta: Meta = None):
+    def identifier(self, children: list[str] | str, meta: Meta):
         if isinstance(children, list):
             symbol_name = children.pop()
         else:
             symbol_name = children
         symbol = self.current_scope.resolve_symbol(NameNormalizer.normalize(symbol_name))
         if symbol is None:
-            line = -1 if meta is None else meta.line
-            column = -1 if meta is None else meta.column
+            line = meta.line
+            column = meta.column
             suggestion = suggest_similar(NameNormalizer.normalize(symbol_name),
                                          list(self.current_scope.get_all_symbols().keys()))
             report(
@@ -614,7 +611,7 @@ class ASTTransformer(Interpreter):
         return Reference(symbol)
 
     @v_args(meta=True)
-    def annotation(self, children, meta: Meta):
+    def annotation(self, children: list[str], meta: Meta) -> tuple[Annotation, dict[str, str]]:
         name = children.pop(0)
         annotation = get_annotation(name)
         if annotation is None:
@@ -631,7 +628,7 @@ class ASTTransformer(Interpreter):
         if annotation.params is None:
             return annotation, {}
 
-        if len(children) != annotation.params:
+        if len(children) != len(annotation.params):
             report(
                 Errors.ArgumentNumberMismatch,
                 name,

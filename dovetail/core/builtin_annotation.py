@@ -5,7 +5,7 @@ from dovetail.core.symbols.annotation import Annotation
 builtin_annotations: dict[str, Annotation] = {
     "init": Annotation("init", None, AnnotationCategory.LIFECYCLE),
     "tick": Annotation("tick", {"interval": 1}, AnnotationCategory.LIFECYCLE),
-    "export": Annotation("export", None, AnnotationCategory.VISIBILITY),
+    "export": Annotation("export", {"path": "", "abi": "dovetail"}, AnnotationCategory.VISIBILITY),
     "extern": Annotation("extern", {"path": "", "abi": "dovetail"}, AnnotationCategory.VISIBILITY),
     "internal": Annotation("internal", None, AnnotationCategory.VISIBILITY),
     "noinline": Annotation("noinline", None, AnnotationCategory.OPTIMIZATION),
@@ -16,7 +16,6 @@ builtin_annotations: dict[str, Annotation] = {
     "author": Annotation("author", {"author": ""}, AnnotationCategory.CONDITIONAL),
     "since": Annotation("author", {"version": ""}, AnnotationCategory.CONDITIONAL)
 }
-
 
 def get_annotation(name: str) -> Annotation | None:
     """

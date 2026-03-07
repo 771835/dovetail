@@ -15,6 +15,10 @@ class ScopeCore(Protocol):
     parent: 'Self | None'
     stype: StructureType
 
+    def __init__(self, name: str, parent: Self | None, structure_type: StructureType):
+        """初始化核心属性"""
+        ...  # 由 mixin 实现
+
 
 class SymbolContainer(Protocol):
     """符号容器协议"""

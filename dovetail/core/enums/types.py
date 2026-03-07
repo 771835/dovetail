@@ -259,16 +259,18 @@ class AnnotationCategory(SafeEnum):
     用于区分注解类型并根据注解类型在不同时机处理
 
     Attributes:
-        LIFECYCLE: 控制函数执行时机，如@init, @tick
-        VISIBILITY: 控制可见性和优化，如@export, @internal
-        OPTIMIZATION: 控制优化行为，如@noinline
-        CONDITIONAL: 条件编译，如@target
-        METADATA: 元数据注解，不影响编译逻辑，如@doc, @author, @since, @deprecated
+        LIFECYCLE: 控制函数执行时机
+        VISIBILITY: 控制可见性和优化
+        OPTIMIZATION: 控制优化行为
+        LINKAGE: 控制后端链接接口指令的生成
+        CONDITIONAL: 条件编译
+        METADATA: 元数据注解，不影响编译逻辑
     """
     # 核心语义注解 - 影响代码生成和执行
     LIFECYCLE = "lifecycle"  # @init, @tick - 控制函数执行时机
-    VISIBILITY = "visibility"  # @export, @internal - 控制可见性和优化
+    VISIBILITY = "visibility"  # @internal - 控制可见性和优化
     OPTIMIZATION = "optimization"  # @noinline - 控制优化行为
+    LINKAGE = "linkage"  # @export, @extern - 控制后端链接接口指令的生成
 
     # 条件编译注解 - 在AST阶段处理
     CONDITIONAL = "conditional"  # @target, @version - 条件编译
