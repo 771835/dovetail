@@ -13,6 +13,7 @@ from dovetail.core import builtin_annotation
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import StructureType, DataType, VariableType, MinecraftVersion, MinecraftEdition, \
     FunctionType
+from dovetail.core.enums.minecraft import UnknownMinecraftVersionError
 from dovetail.core.enums.types import Array, DataTypeBase, AnnotationCategory
 from dovetail.core.errors import report, Errors
 from dovetail.core.include_manager import IncludeManager
@@ -25,6 +26,7 @@ from dovetail.core.parser.scope import Scope
 from dovetail.core.scope.protocols import ScopeCore
 from dovetail.core.symbols import Variable, Reference, Literal, Function, Class, Parameter
 from dovetail.core.symbols.annotation import Annotation
+from dovetail.core.symbols.structure import Structure
 from dovetail.core.symbols.typedef import Typedef
 from dovetail.utils.annotations import timed
 from dovetail.utils.naming import NameNormalizer
@@ -258,6 +260,73 @@ class ASTTransformer(Interpreter):
             suggestion=suggestion
         )
         self.error_count += 1
+
+    @v_args(meta=True)
+    def struct(self, children: list[Tree | Token], meta: Meta):
+        # 处理注解
+        annotations: dict[Annotation, dict[str, Any]] = {}
+        while isinstance(children[0], Tree) and children[0].data == 'annotation':
+            annotation: Annotation
+            args: dict[str, Any]
+            annotation, args = self.visit(children.pop(0))
+            annotations[annotation] = args
+
+            # 处理特殊注解
+            if annotation.name == "version":
+                try:
+                    min_version = MinecraftVersion.instance(args.get("min", "1.20.4"))
+                except UnknownMinecraftVersionError:
+                    self._report(
+                        Errors.UnsupportedTargetVersion,
+                        args.get("min", "1.20.4"),
+                        filepath=self.filepath,
+                        line=meta.line,
+                        column=meta.column
+                    )
+                    return
+                try:
+                    max_version = MinecraftVersion.instance(args.get("max", "1.21.4"))
+                except UnknownMinecraftVersionError:
+                    self._report(
+                        Errors.UnsupportedTargetVersion,
+                        args.get("max", "1.21.4"),
+                        filepath=self.filepath,
+                        line=meta.line,
+                        column=meta.column
+                    )
+                    return
+
+                if self.config.version > max_version or self.config.version < min_version:
+                    # 跳过编译该函数
+                    return
+            elif annotation.name == "target":
+                target_edition = MinecraftEdition.from_str(args.get("edition", "java"))
+                compiler_edition = self.config.version.edition
+
+                if target_edition != compiler_edition:
+                    # 跳过编译该函数
+                    return
+
+        name = children.pop(0).value
+        fields: dict[str, DataTypeBase] = {}
+        for field in children:
+            field_name, field_type = self.visit(field)
+            fields[field_name] = field_type
+
+        symbol = Structure(NameNormalizer.normalize(name), fields)
+        if not self.current_scope.add_symbol(symbol):
+            self._report(
+                Errors.DuplicateDefinition,
+                name,
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+
+    def struct_field(self, tree: Tree):
+        name: str = tree.children.pop(0).value
+        dtype: DataTypeBase = self.visit(tree.children.pop(0))
+        return name, dtype
 
     @v_args(meta=True)
     def function(self, children: list[Tree | Token], meta: Meta):
