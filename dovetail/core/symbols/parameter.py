@@ -6,7 +6,6 @@ from typing import Optional
 from attrs import define
 
 from .base import Symbol
-from .constant import Constant
 from .literal import Literal
 from .reference import Reference
 from .variable import Variable
@@ -16,7 +15,7 @@ from ..enums.types import DataTypeBase
 @define(slots=True, repr=False, frozen=True)
 class Parameter(Symbol):
     var: Variable
-    optional: bool = False
+    mutable: bool = False
     default: Optional[Reference[Variable | Literal]] = None
 
     def is_optional(self) -> bool:
