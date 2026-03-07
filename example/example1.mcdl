@@ -4,9 +4,7 @@ typedef int i32;
 struct awa {
     man:i32;
 }
-
 fn foo();
-fn charAt(s: string, idx: i32) -> i32;
 @init
 fn bar(){
     if (foo()==350234 / 1 ) {
@@ -18,6 +16,7 @@ fn bar(){
 }
 
 @target("mc")
-fn foo() -> awa{
+fn foo() -> i32{
+    int num = 1
     return 350234
 }

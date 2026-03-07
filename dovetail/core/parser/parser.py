@@ -453,8 +453,9 @@ class ASTTransformer(Interpreter):
                 column=meta.column
             )
 
-    def struct_field(self, children: list[Tree | Token]) -> tuple[str, DataTypeBase]:
+    def struct_field(self, tree: Tree) -> tuple[str, DataTypeBase]:
         """处理结构体字段"""
+        children: list[Token | Tree] = tree.children
         name: str = children.pop(0).value
         dtype: DataTypeBase = self.visit(children.pop(0))
         return name, dtype
@@ -464,7 +465,6 @@ class ASTTransformer(Interpreter):
         """处理函数定义"""
         # 处理注解
         annotations = self._process_annotations(children)
-
         # 检查版本和目标平台
         if self._should_skip_for_version(annotations, meta):
             return
@@ -865,7 +865,7 @@ class ASTTransformer(Interpreter):
     @v_args(meta=True)
     def annotation(
             self,
-            children: list[str],
+            children: list[Tree | Token],
             meta: Meta
     ) -> tuple[Annotation, dict[str, str]]:
         """
@@ -878,7 +878,7 @@ class ASTTransformer(Interpreter):
         Returns:
             (注解对象, 参数字典)，出错时返回未定义注解和空字典
         """
-        name = children.pop(0)
+        name: str = children.pop(0).value
         annotation = builtin_annotation.get_annotation(name)
 
         # 检查注解是否存在
@@ -919,8 +919,9 @@ class ASTTransformer(Interpreter):
             )
             return self._undefined_annotation()
 
-        # 构建参数字典（参数名 -> 参数值）
-        return annotation, dict(zip(annotation.params, children))
+        # 访问所有参数值并构建参数字典（参数名 -> 参数值）
+        param_values = [self.visit(child).value.value for child in children]
+        return annotation, dict(zip(annotation.params, param_values))
 
     @staticmethod
     def _undefined_annotation() -> tuple[Annotation, dict]:
