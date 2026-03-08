@@ -668,8 +668,8 @@ class ASTVisitor(Interpreter):
         # "while" "(" [condition] ")" block
         loop_count = next(self.counter)
         condition, block = tree.children
-        with self._scoped_environment(f"while_check_{loop_count}", StructureType.LOOP_CHECK) as loop_check:
-            with self._scoped_environment(f"while_body_{loop_count}", StructureType.LOOP_BODY) as loop_body:
+        with self._scoped_environment(f"while_check_{loop_count}", StructureType.LOOP_CHECK) as loop_check:  # NOQA
+            with self._scoped_environment(f"while_body_{loop_count}", StructureType.LOOP_BODY) as loop_body:  # NOQA
                 self.visit(block)
 
             # 从检查函数调用循环体
@@ -687,11 +687,11 @@ class ASTVisitor(Interpreter):
         condition: Reference[Variable | Literal] = self.visit(children.pop(0))
 
         # 创建if分支作用域
-        with self._scoped_environment(f"if_{count}", StructureType.CONDITIONAL) as if_scope:
+        with self._scoped_environment(f"if_{count}", StructureType.CONDITIONAL) as if_scope:  # NOQA
             self.visit(children.pop(0))
         # 创建else分支作用域
         if children:
-            with self._scoped_environment(f"else_{count}", StructureType.CONDITIONAL) as else_scope:
+            with self._scoped_environment(f"else_{count}", StructureType.CONDITIONAL) as else_scope:  # NOQA
                 self.visit(children.pop(0))
             self._append_ir(IRCondJump(condition.value, if_scope.name, else_scope.name))
         else:
@@ -994,6 +994,33 @@ class ASTVisitor(Interpreter):
         self._append_ir(IRCompare(result_variable, CompareOps(op), left, right))
 
         return Reference(result_variable)
+
+    @v_args(meta=True)
+    def neg(self, children: list[Token | Tree | int], meta: Meta):
+        value: Reference = self.visit(children.pop(0))
+        if value.get_dtype() not in [DataType.BOOLEAN, DataType.INT]:
+            self._report(
+                Errors.InvalidOperator,
+                "-",
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return value
+
+        if value.is_literal():
+            return Reference.literal(value.value.value * -1)
+        else:
+            result_var = self._create_temp_var(DataType.INT, "calc")
+            self._append_ir(
+                IRBinaryOp(
+                    result_var,
+                    BinaryOps.MUL,
+                    value,
+                    Reference.literal(-1)
+                )
+            )
+            return result_var
 
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""
