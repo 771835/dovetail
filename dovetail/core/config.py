@@ -15,6 +15,9 @@ PROJECT_VERSION = "1.0.1"
 FILE_PREFIX = ".mcdl"
 CACHE_FILE_PREFIX = ".mcdc"
 
+# 杂项
+MAX_FILE_SIZE = 1024 * 1024 * 1024  # 最大允许单个文件1GB大小(入口文件不受此影响)
+
 # 目录编译配置文件
 PACK_CONFIG_VALIDATOR = fastjsonschema.compile({
     "type": "object",
@@ -101,7 +104,6 @@ DEFAULT_RANDOM_SUGGESTION: list[str] = [
 
 # 项目全局日志对象
 logger: ThreadSafeLogger | None = None
-
 
 
 def set_project_logger(new_logger: ThreadSafeLogger):

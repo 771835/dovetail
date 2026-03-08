@@ -1,8 +1,8 @@
 include "random"
-typedef int i32;
+typedef int i32
 
 struct awa {
-    man:i32;
+    man:i32
 }
 fn foo();
 @init
@@ -17,6 +17,6 @@ fn bar(){
 
 @target("mc")
 fn foo() -> i32{
-    int num = 1
+    let num = 1
     return 350234
 }

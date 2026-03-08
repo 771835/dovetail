@@ -6,6 +6,7 @@
 *.tokens
 *.iml
 *.mcdc
+.lark_cache
 main.build/
 main.dist/
 main.onefile-build/

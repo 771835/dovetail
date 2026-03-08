@@ -11,16 +11,17 @@ AST 转换器模块 - Dovetail 编译器前端
 
 主要组件：
     - parser_code: 代码解析函数，将源代码转换为 AST
-    - ASTTransformer: AST 访问器类，实现语法制导翻译
+    - ASTVisitor: AST 访问器类，实现语法制导翻译
 
 使用示例：
     >>> config = CompileConfig(...)
-    >>> transformer = ASTTransformer(config, Path("main.mcdl"))
+    >>> visitor = ASTVisitor(config, Path("main.mcdl"))
     >>> ast_tree = parser_code("main.mcdl")
-    >>> transformer.visit(ast_tree)
-    >>> ir_builder = transformer.builder
+    >>> visitor.visit(ast_tree)
+    >>> ir_builder = visitor.builder
 """
 import ast
+import itertools
 from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
@@ -32,9 +33,10 @@ from lark.visitors import Interpreter
 
 from dovetail.core import builtin_annotation
 from dovetail.core.compile_config import CompileConfig
+from dovetail.core.config import MAX_FILE_SIZE
 from dovetail.core.enums import (
     StructureType, DataType, VariableType,
-    MinecraftVersion, MinecraftEdition, FunctionType
+    MinecraftVersion, MinecraftEdition, FunctionType, ValueType, BinaryOps, CompareOps
 )
 from dovetail.core.enums.minecraft import UnknownMinecraftVersionError
 from dovetail.core.enums.types import Array, DataTypeBase, AnnotationCategory
@@ -42,7 +44,7 @@ from dovetail.core.errors import report, Errors
 from dovetail.core.include_manager import IncludeManager
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRInstruction, IRScopeBegin,
-    IRScopeEnd, IRFunction, IRReturn, IRBreak, IRContinue
+    IRScopeEnd, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp, IRCompare
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
@@ -62,10 +64,12 @@ lark_parser = Lark(
     open(r".\lark\dovetail.lark", encoding='utf-8').read(),
     start="program",
     parser='lalr',
-    cache=".cache",
+    cache=".lark_cache",
     propagate_positions=True,
     maybe_placeholders=True
 )
+
+_n = NameNormalizer.normalize
 
 
 @timed("解析用时 {:.5f}.")
@@ -88,10 +92,10 @@ def parser_code(filepath: Path | str, start: Optional[str] = None) -> Tree | Non
         code = f.read()
 
     parse_start = start if start is not None else "program"
-    return lark_parser.parse(code, start=parse_start, on_error=lambda e: True)
+    return lark_parser.parse(code, start=parse_start)  # , on_error=lambda e: True)
 
 
-class ASTTransformer(Interpreter):
+class ASTVisitor(Interpreter):
     """
     AST 访问器 - 遍历语法树并生成中间表示（IR）
 
@@ -124,6 +128,7 @@ class ASTTransformer(Interpreter):
         # 初始化管理器
         self.include_manager = IncludeManager()
         self.builder = IRBuilder()
+        self.counter = itertools.count()
 
         # 加载内置库
         self._load_library(LibraryMapping.get("builtins", self.builder))
@@ -195,6 +200,14 @@ class ASTTransformer(Interpreter):
                 self.current_scope = self.current_scope.parent
                 self.scope_stack.pop()
                 self._append_ir(IRScopeEnd(name, scope_type))
+
+    def _create_temp_var(self, dtype: DataTypeBase, prefix: str) -> Variable:
+        """创建带唯一编号的临时变量"""
+        temp_var = Variable(f"{prefix}_{next(self.counter)}", dtype)
+        if not self.current_scope.add_symbol(temp_var):
+            return self._create_temp_var(dtype, prefix)
+
+        return temp_var
 
     def _append_ir(self, instr: list[IRInstruction] | IRInstruction):
         """追加 IR 指令到构建器"""
@@ -308,7 +321,7 @@ class ASTTransformer(Interpreter):
             return None
 
         # 创建变量符号
-        variable = Variable(NameNormalizer.normalize(name), dtype, mutable=mutable)
+        variable = Variable(_n(name), dtype, mutable=mutable)
         if not self.current_scope.add_symbol(variable):
             self._report(
                 Errors.DuplicateDefinition,
@@ -443,7 +456,7 @@ class ASTTransformer(Interpreter):
             fields[field_name] = field_type
 
         # 添加符号
-        symbol = Structure(NameNormalizer.normalize(name), fields)
+        symbol = Structure(_n(name), fields)
         if not self.current_scope.add_symbol(symbol):
             self._report(
                 Errors.DuplicateDefinition,
@@ -477,11 +490,11 @@ class ASTTransformer(Interpreter):
         if isinstance(children[0], Tree) and children[0].data == 'type':
             # annotation* ("function"|"fn") type ID params (block|pass_stmt)
             return_type = self.visit(children.pop(0))
-            name = NameNormalizer.normalize(children.pop(0).value)
+            name = _n(children.pop(0).value)
             params = self.visit(children.pop(0))
         else:
             # annotation* ("function"|"fn"|"def") ID params ["->" type] (block|pass_stmt)
-            name = NameNormalizer.normalize(children.pop(0).value)
+            name = _n(children.pop(0).value)
             params = self.visit(children.pop(0))
             if children[0] is not None:
                 return_type = self.visit(children.pop(0))
@@ -580,10 +593,10 @@ class ASTTransformer(Interpreter):
         if isinstance(children[0], Tree) and children[0].data == "type":
             # [MUT] type ID ("=" expr)?
             dtype = self.visit(children.pop(0))
-            name = NameNormalizer.normalize(children.pop(0).value)
+            name = _n(children.pop(0).value)
         else:
             # [MUT] ID ":" type ("=" expr)?
-            name = NameNormalizer.normalize(children.pop(0).value)
+            name = _n(children.pop(0).value)
             dtype = self.visit(children.pop(0))
 
         # 处理默认值
@@ -608,6 +621,112 @@ class ASTTransformer(Interpreter):
             is_mutable,
             default_value
         )
+
+    @v_args(meta=True)
+    def for_loop(self, children: list[Tree | Token], meta: Meta):
+        """处理 for 循环"""
+        if children[0].data == "type":
+            # "for" "(" type ID ":" expr ")" block // 增强for循环
+            dtype = self.visit(children.pop(0))
+            self._report(
+                Errors.MissingImplementation,
+                "增强for循环",
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return
+        else:
+            # "for" "(" [let | expr] ";" [condition] ";" [expr] ")" block // 传统for循环
+            init, condition, expr, block = children
+            if init is not None:
+                # 处理初始化表达式
+                self.visit(init)
+
+            loop_count = next(self.counter)
+
+            # 创建循环作用域
+            with self._scoped_environment(f"for_check_{loop_count}", StructureType.LOOP_CHECK) as loop_check:  # NOQA
+                # 处理条件表达式
+                if condition:
+                    condition_value = self.visit(condition).value.value
+                else:
+                    condition_value = Literal(DataType.BOOLEAN, True)
+
+                # 处理循环体
+                with self._scoped_environment(f"for_body_{loop_count}", StructureType.LOOP_BODY) as loop_body:  # NOQA
+                    self.visit(block)
+                    # 处理更新表达式
+                    if expr:
+                        self.visit(expr)
+
+                self._append_ir(IRCondJump(condition_value, loop_body.name))
+                self._append_ir(IRCondJump(condition_value, loop_check.name))
+            self._append_ir(IRJump(loop_check.name))
+
+    def while_loop(self, tree: Tree):
+        # "while" "(" [condition] ")" block
+        loop_count = next(self.counter)
+        condition, block = tree.children
+        with self._scoped_environment(f"while_check_{loop_count}", StructureType.LOOP_CHECK) as loop_check:
+            with self._scoped_environment(f"while_body_{loop_count}", StructureType.LOOP_BODY) as loop_body:
+                self.visit(block)
+
+            # 从检查函数调用循环体
+            condition_value = self.visit(condition).value.value
+
+            self._append_ir(IRCondJump(condition_value, loop_body.name))
+            self._append_ir(IRCondJump(condition_value, loop_check.name))
+        self._append_ir(IRJump(loop_check.name))
+
+    @v_args(meta=True)
+    def if_stmt(self, children: list[Tree | Token], meta: Meta):
+        # "if" "(" [condition] ")" block ("else" (if_stmt|block))?
+        count = next(self.counter)
+        # 计算条件表达式
+        condition: Reference[Variable | Literal] = self.visit(children.pop(0))
+
+        # 创建if分支作用域
+        with self._scoped_environment(f"if_{count}", StructureType.CONDITIONAL) as if_scope:
+            self.visit(children.pop(0))
+        # 创建else分支作用域
+        if children:
+            with self._scoped_environment(f"else_{count}", StructureType.CONDITIONAL) as else_scope:
+                self.visit(children.pop(0))
+            self._append_ir(IRCondJump(condition.value, if_scope.name, else_scope.name))
+        else:
+            self._append_ir(IRCondJump(condition.value, if_scope.name))
+
+    @v_args(meta=True)
+    def condition(self, children: list[Tree | Token], meta: Meta):
+        """条件语句"""
+        value: Reference[Any] = self.visit(children.pop(0))
+        assert isinstance(value, Reference)
+
+        if value.value_type not in (ValueType.VARIABLE, ValueType.LITERAL):
+            self._report(
+                Errors.SymbolCategory,
+                value.get_name(),
+                "VARIABLE/LITERAL",
+                value.value_type.name,
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return Reference.literal(False)
+
+        if not value.get_dtype().is_subclass_of(DataType.INT):
+            self._report(
+                Errors.TypeMismatch,
+                "boolean/int",
+                value.get_dtype().get_name(),
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return Reference.literal(False)
+
+        return value
 
     @v_args(meta=True)
     def return_stmt(self, children: list[Tree | Token], meta: Meta):
@@ -718,6 +837,18 @@ class ASTTransformer(Interpreter):
         if filepath is None or self.include_manager.has_path(filepath):
             return
 
+        # 检查文件大小
+        if filepath.stat().st_size > MAX_FILE_SIZE:
+            self._report(
+                Errors.ResourceExhaustion,
+                f"被包含文件体积过大，最大支持{MAX_FILE_SIZE}字节，实际{filepath.stat().st_size}字节",
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column,
+                suggestion="编程战争罪: 单文件战神"
+            )
+            return
+
         self.include_manager.add_include_path(filepath)
 
         # 递归解析导入的文件
@@ -755,9 +886,7 @@ class ASTTransformer(Interpreter):
             dtype = DataType.get_by_value(original_name)
         except ValueError:
             # 解析自定义类型
-            dtype = self.current_scope.resolve_symbol(
-                NameNormalizer.normalize(original_name)
-            )
+            dtype = self.current_scope.resolve_symbol(_n(original_name))
 
             # 展开类型别名
             if isinstance(dtype, Typedef):
@@ -808,6 +937,64 @@ class ASTTransformer(Interpreter):
                 column=meta.column
             )
 
+    @v_args(meta=True)
+    def factor(self, children: list[Token | Tree | int], meta: Meta):
+        left: Reference = self.visit(children.pop(0))
+        op = children.pop(0).value
+        right: Reference = self.visit(children.pop(0))
+        if not left.get_dtype().is_subclass_of(right.get_dtype()) and not right.get_dtype().is_subclass_of(
+                left.get_dtype()):
+            self._report(
+                Errors.TypeMismatch,
+                left.value.get_dtype(),
+                right.value.get_dtype(),
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return left
+
+        if left.value.get_dtype() == DataType.STRING and op != "+":
+            self._report(
+                Errors.InvalidOperator,
+                op,
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return left
+
+        # 生成结果变量
+        result_type = left.get_dtype()
+        if left.get_dtype() == DataType.BOOLEAN or right.get_dtype() == DataType.BOOLEAN:
+            #  类型提升
+            result_type = DataType.INT
+        result_var = self._create_temp_var(result_type, "calc")
+
+        self._append_ir(IRDeclare(result_var))
+        self._append_ir(IRBinaryOp(result_var, BinaryOps(op), left.value, right.value))
+        return Reference(result_var)
+
+    term = factor
+
+    @v_args(meta=True)
+    def compare(self, children: list[Token | Tree | int], meta: Meta):
+        left: Reference = self.visit(children.pop(0))
+        op = children.pop(0).value
+        right: Reference = self.visit(children.pop(0))
+        if not left.get_dtype().is_subclass_of(right.get_dtype()) and not right.get_dtype().is_subclass_of(
+                left.get_dtype()):
+            # 当两方类型不同时不进行比较
+            return Reference.literal(False)
+
+        # 生成唯一结果变量
+        result_variable = self._create_temp_var(DataType.BOOLEAN, "result_variable")
+
+        self._append_ir(IRDeclare(result_variable))
+        self._append_ir(IRCompare(result_variable, CompareOps(op), left, right))
+
+        return Reference(result_variable)
+
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""
         return Reference.literal(None)
@@ -840,16 +1027,11 @@ class ASTTransformer(Interpreter):
     def identifier(self, children: list[str] | str, meta: Meta) -> Reference:
         """处理标识符引用"""
         symbol_name = children.pop() if isinstance(children, list) else children
-        symbol = self.current_scope.resolve_symbol(
-            NameNormalizer.normalize(symbol_name)
-        )
+        symbol = self.current_scope.resolve_symbol(_n(symbol_name))
 
         if symbol is None:
             # 提供相似符号建议
-            suggestion = suggest_similar(
-                NameNormalizer.normalize(symbol_name),
-                list(self.current_scope.get_all_symbols().keys())
-            )
+            suggestion = suggest_similar(_n(symbol_name), list(self.current_scope.get_all_symbols().keys()))
             self._report(
                 Errors.UndefinedSymbol,
                 symbol_name,

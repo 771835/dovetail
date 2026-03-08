@@ -62,12 +62,10 @@ if_stmt : "if" "(" [condition] ")" block ("else" (if_stmt|block))?
 
 pass_stmt: "pass"|";"
 
-for_loop : "for" "(" for_control ")" block        // 传统for循环
+for_loop : "for" "(" [let | expr] ";" [condition] ";" [expr] ")" block // 传统for循环
     | "for" "(" type ID ":" expr ")" block       // 增强for循环 (expr需为可迭代class)
 
 while_loop : "while" "(" [condition] ")" block            // while循环
-
-for_control : [let | expr] ";" [condition] ";" [expr]
 
 // condition 在语义分析时检查类型
 condition: expr

@@ -18,7 +18,7 @@ from dovetail.core.enums.optimization import OptimizationLevel
 from dovetail.core.errors import CompilationError
 from dovetail.core.errors import report, Errors
 from dovetail.core.ir_builder import IRBuilder
-from dovetail.core.parser.parser import ASTTransformer, parser_code
+from dovetail.core.parser.parser import ASTVisitor, parser_code
 from dovetail.plugins.plugin_loader.loader import plugin_loader
 from dovetail.utils.annotations import timed
 from dovetail.utils.ir_serializer import IRSymbolSerializer
@@ -155,7 +155,7 @@ class Compiler:
                 tree = parser_code(source_path)
                 print(tree.pretty())
 
-                ASTTransformer(self.config, source_path).visit(tree)
+                ASTVisitor(self.config, source_path).visit(tree)
 
                 # builder = self._build_and_optimize_ir(generator, tree)
                 ir_builder = IRBuilder()
