@@ -32,6 +32,35 @@ class Errors(SafeEnum):
     InvalidOperator = (0x1003, "无效运算符", "无效运算符 '%s'", ErrorType.SyntaxError)
     DuplicateDefinition = (0x1004, "重复定义", "标识符 '%s' 重复定义", ErrorType.SyntaxError)
 
+    # 注解相关错误
+    InvalidAnnotation = (0x1005, "无效注解", "注解 '@%s' 无效或不存在。", ErrorType.SyntaxError)
+    AnnotationArgumentError = (0x1006, "注解参数错误", "注解 '@%s' 参数错误: %s。", ErrorType.SyntaxError)
+
+    # 类型声明错误
+    InvalidTypeDeclaration = (0x1007, "无效类型声明", "类型声明无效: %s。", ErrorType.SyntaxError)
+    InvalidArrayDimension = (0x1008, "无效数组维度", "数组维度 '%s' 无效，必须是正整数或标识符。", ErrorType.SyntaxError)
+    NullableTypeError = (0x1009, "可空类型错误", "基本类型 '%s' 不能标记为可空，仅对象类型允许使用 '?'。",
+                         ErrorType.SyntaxError)
+
+    # Include 错误
+    IncludePathError = (0x100A, "包含路径错误", "include 路径 '%s' 格式错误或无效。", ErrorType.SyntaxError)
+    CircularInclude = (0x100B, "循环包含", "检测到循环包含: %s。", ErrorType.SyntaxError)
+
+    # 类/结构体/枚举错误
+    EmptyStructDefinition = (0x100C, "空结构体定义", "结构体 '%s' 定义为空。", ErrorType.SyntaxError)
+    InvalidEnumMember = (0x100D, "无效枚举成员", "枚举成员 '%s' 定义无效: %s。", ErrorType.SyntaxError)
+    InvalidClassInheritance = (0x100E, "无效类继承", "类 '%s' 继承声明无效: %s。", ErrorType.SyntaxError)
+
+    # 函数/方法错误
+    InvalidFunctionSignature = (0x100F, "无效函数签名", "函数 '%s' 签名无效: %s。", ErrorType.SyntaxError)
+    InvalidParameterDeclaration = (0x1010, "无效参数声明", "参数 '%s' 声明无效: %s。", ErrorType.SyntaxError)
+    MissingTypeAnnotation = (0x1011, "缺少类型注解", "参数 '%s' 缺少必要的类型注解。", ErrorType.SyntaxError)
+    DefaultParameterPosition = (0x1012, "默认参数位置错误", "带默认值的参数 '%s' 必须在无默认值参数之后。",
+                                ErrorType.SyntaxError)
+
+    # Typedef 错误
+    TypedefRedefinition = (0x1013, "类型别名重定义", "类型别名 '%s' 已定义。", ErrorType.SyntaxError)
+
     # ==================== 语义错误 (ErrorType.SemanticError) ====================
     # 类型系统错误
     TypeMismatch = (0x2001, "类型不匹配", "类型不匹配: 期望 %s，实际为 %s。", ErrorType.SemanticError)
@@ -45,6 +74,34 @@ class Errors(SafeEnum):
     PrimitiveTypeOperation = (0x2006, "基本类型操作错误", "不支持的操作：'%s' 不能应用于基本类型 '%s'。",
                               ErrorType.SemanticError)
 
+    # 所有权与可变性错误
+    MutabilityViolation = (0x2007, "可变性冲突", "尝试修改不可变变量 '%s'。", ErrorType.SemanticError)
+    InvalidMutUsage = (0x2008, "无效 mut 使用", "'mut' 关键字不能应用于类型 '%s'。", ErrorType.SemanticError)
+    MutArgumentMismatch = (0x2009, "mut 参数不匹配", "参数 '%s' 需要 'mut' 修饰但未提供。", ErrorType.SemanticError)
+
+    # 数组相关错误
+    ArrayDimensionMismatch = (0x2010, "数组维度不匹配", "数组维度不匹配: 期望 %s 维，实际为 %s 维。",
+                              ErrorType.SemanticError)
+    ArraySizeUndefined = (0x2011, "数组大小未定义", "数组大小 '%s' 无法在编译期确定。", ErrorType.SemanticError)
+    InvalidArrayLiteral = (0x2012, "无效数组字面量", "数组字面量类型不一致: %s。", ErrorType.SemanticError)
+
+    # 可空类型错误
+    NullableAccessError = (0x2013, "可空类型访问错误", "尝试访问可能为 null 的对象 '%s'，需要先进行 null 检查。",
+                           ErrorType.SemanticError)
+    NullAssignmentError = (0x2014, "null 赋值错误", "不能将 null 赋值给非可空类型 '%s'。", ErrorType.SemanticError)
+
+    # F-string 错误
+    FStringExpressionError = (0x2015, "F-string 表达式错误", "F-string 中的表达式 '%s' 无效: %s。",
+                              ErrorType.SemanticError)
+
+    # 成员访问错误
+    InvalidMemberAccess = (0x2016, "无效成员访问", "类型 '%s' 没有成员 '%s'。", ErrorType.SemanticError)
+    PrivateMemberAccess = (0x2017, "私有成员访问", "不能访问类 '%s' 的私有成员 '%s'。", ErrorType.SemanticError)
+
+    # 数组/迭代器错误
+    NotIterable = (0x2018, "不可迭代", "类型 '%s' 不可迭代，不能用于增强 for 循环。", ErrorType.SemanticError)
+    InvalidArrayAccess = (0x2019, "无效数组访问", "索引类型必须为整数，实际为 '%s'。", ErrorType.SemanticError)
+
     # 符号解析错误
     SymbolResolution = (0x3001, "符号解析失败", "%s '%s' 未找到。", ErrorType.SemanticError)
     UndefinedSymbol = (0x3002, "未定义符号", "符号 '%s' 未定义。", ErrorType.SemanticError)
@@ -56,12 +113,25 @@ class Errors(SafeEnum):
     InvalidControlFlow = (0x4001, "无效控制流", "控制流错误: %s。", ErrorType.SemanticError)
     RecursionError = (0x4002, "递归错误", "递归错误: %s。", ErrorType.SemanticError)
     RecursionLimit = (0x4003, "递归限制错误", "函数 '%s' 超过最大递归深度限制 (%s)。", ErrorType.SemanticError)
+    BreakOutsideLoop = (0x4004, "break 在循环外", "'break' 语句只能在循环内使用。", ErrorType.SemanticError)
+    ContinueOutsideLoop = (0x4005, "continue 在循环外", "'continue' 语句只能在循环内使用。", ErrorType.SemanticError)
+    ReturnTypeMismatch = (0x4006, "返回类型不匹配", "返回值类型 '%s' 与声明类型 '%s' 不匹配。", ErrorType.SemanticError)
+    MissingReturnStatement = (0x4007, "缺少返回语句", "函数 '%s' 声明了返回类型 '%s' 但缺少 return 语句。",
+                              ErrorType.SemanticError)
 
     # 接口与实现错误
     UnimplementedInterfaceMethods = (0x5001, "未实现接口方法", "类未实现接口要求的 %d 个方法: %s。",
                                      ErrorType.SemanticError)
     MissingImplementation = (0x5002, "缺少实现", "功能 '%s' 暂未实现。", ErrorType.SemanticError)
     FunctionNameConflict = (0x5003, "函数名冲突", "函数名称 '%s' 与嵌套作用域 '%s' 冲突。", ErrorType.SemanticError)
+
+    # 常量相关错误
+    ConstantReassignment = (0x5004, "常量重新赋值", "不能对常量 '%s' 重新赋值。", ErrorType.SemanticError)
+    ConstantRequiresInitialization = (0x5005, "常量需要初始化", "常量 '%s' 声明时必须初始化。", ErrorType.SemanticError)
+
+    # 注解语义错误
+    AnnotationNotApplicable = (0x5006, "注解不适用", "注解 '@%s' 不能应用于 %s。", ErrorType.SemanticError)
+    ConflictingAnnotations = (0x5007, "注解冲突", "注解 '@%s' 与 '@%s' 冲突。", ErrorType.SemanticError)
 
     # ==================== 内部错误 (ErrorType.InternalError) ====================
     # 编译器内部错误

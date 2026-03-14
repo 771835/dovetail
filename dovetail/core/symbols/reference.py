@@ -41,6 +41,9 @@ class Reference(Symbol, Generic[T]):
         Returns:
             Optional[str]: 所引用符号的名称，当为字面量时返回None
         """
+        if self.is_literal():
+            assert isinstance(self.value, Literal)
+            return str(self.value.value)
         return self.value.get_name()
 
     def get_dtype(self) -> DataTypeBase:

@@ -36,7 +36,7 @@ from dovetail.core.compile_config import CompileConfig
 from dovetail.core.config import MAX_FILE_SIZE
 from dovetail.core.enums import (
     StructureType, DataType, VariableType,
-    MinecraftVersion, MinecraftEdition, FunctionType, ValueType, BinaryOps, CompareOps
+    MinecraftVersion, MinecraftEdition, FunctionType, ValueType, BinaryOps, CompareOps, UnaryOps
 )
 from dovetail.core.enums.minecraft import UnknownMinecraftVersionError
 from dovetail.core.enums.types import Array, DataTypeBase, AnnotationCategory
@@ -44,7 +44,7 @@ from dovetail.core.errors import report, Errors
 from dovetail.core.include_manager import IncludeManager
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRInstruction, IRScopeBegin,
-    IRScopeEnd, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp, IRCompare
+    IRScopeEnd, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp, IRCompare, IRUnaryOp, IRCall
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
@@ -258,9 +258,8 @@ class ASTVisitor(Interpreter):
             return include_path
         else:
             self._report(
-                Errors.CompilerInclude,
+                Errors.IncludePathError,
                 str(filepath),
-                "找不到文件",
                 filepath=self.filepath,
                 line=line,
                 column=column
@@ -314,6 +313,17 @@ class ASTVisitor(Interpreter):
                 Errors.TypeMismatch,
                 dtype.get_name(),
                 value.get_dtype().get_name(),
+                filepath=self.filepath,
+                line=line,
+                column=column
+            )
+            return None
+
+        # 检查不可变常量是否有初始化量
+        if value is None and mutable:
+            self._report(
+                Errors.ConstantRequiresInitialization,
+                name,
                 filepath=self.filepath,
                 line=line,
                 column=column
@@ -435,6 +445,67 @@ class ASTVisitor(Interpreter):
                     return True
 
         return False
+
+    def _process_call_arguments(self, symbol: Function, args: list[tuple[Reference, bool]], meta: Meta) -> dict[
+        str, Reference]:
+        """
+        处理函数/方法调用的参数
+
+        根据符号形参填写实参并生成dict
+
+        Args:
+            symbol: 函数
+            args: 实参列表
+
+        Returns:
+            参数名到参数值的映射字典
+        """
+
+        min_args: int = sum(not param.is_optional() for param in symbol.params)
+        max_args: int = len(symbol.params)
+        # 参数字典
+        args_dict: dict[str, Reference] = {}
+
+        # 检查参数数量是否在有效范围内
+        if not min_args <= len(args) <= max_args:
+            self._report(
+                Errors.ArgumentNumberMismatch,
+                symbol.name,
+                f"{min_args}-{max_args}",
+                str(len(args)),
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return args_dict
+
+        # 效验数据并记录参数字典
+        for i, ((arg_ref, is_mutable), param) in enumerate(itertools.zip_longest(args, symbol.params)):
+            param: Parameter
+            arg_value: Reference = arg_ref or param.default
+            args_dict[param.get_name()] = arg_value
+            # 类型检查
+            if not arg_value.get_dtype().is_subclass_of(param.get_dtype()):
+                self._report(
+                    Errors.ArgumentTypeMismatch,
+                    symbol.name,
+                    str(param.get_dtype()),
+                    str(arg_value.get_dtype()),
+                    filepath=self.filepath,
+                    line=meta.line,
+                    column=meta.column
+                )
+
+            if param.mutable != is_mutable:
+                self._report(
+                    Errors.MutArgumentMismatch,
+                    param.get_name(),
+                    filepath=self.filepath,
+                    line=meta.line,
+                    column=meta.column
+                )
+
+        return args_dict
 
     # ==================== 访问器方法 ====================
 
@@ -772,7 +843,7 @@ class ASTVisitor(Interpreter):
 
             if function_symbol.return_type != value.get_dtype():
                 self._report(
-                    Errors.TypeMismatch,
+                    Errors.ReturnTypeMismatch,
                     function_symbol.return_type.get_name(),
                     value.get_dtype().get_name(),
                     filepath=self.filepath,
@@ -790,8 +861,7 @@ class ASTVisitor(Interpreter):
 
         if loop_scope is None:
             self._report(
-                Errors.InvalidControlFlow,
-                "break 语句必须在循环中",
+                Errors.BreakOutsideLoop,
                 filepath=self.filepath,
                 line=meta.line,
                 column=meta.column
@@ -807,8 +877,7 @@ class ASTVisitor(Interpreter):
 
         if loop_scope is None:
             self._report(
-                Errors.InvalidControlFlow,
-                "continue 语句必须在循环中",
+                Errors.ContinueOutsideLoop,
                 filepath=self.filepath,
                 line=meta.line,
                 column=meta.column
@@ -930,7 +999,7 @@ class ASTVisitor(Interpreter):
         new_type = Typedef(new_name, original_type)
         if not self.current_scope.add_symbol(new_type):
             self._report(
-                Errors.DuplicateDefinition,
+                Errors.TypedefRedefinition,
                 new_name,
                 filepath=self.filepath,
                 line=meta.line,
@@ -1012,6 +1081,7 @@ class ASTVisitor(Interpreter):
             return Reference.literal(value.value.value * -1)
         else:
             result_var = self._create_temp_var(DataType.INT, "calc")
+            self._append_ir(IRDeclare(result_var))
             self._append_ir(
                 IRBinaryOp(
                     result_var,
@@ -1021,6 +1091,159 @@ class ASTVisitor(Interpreter):
                 )
             )
             return result_var
+
+    @v_args(meta=True)
+    def logical_not(self, children: list[Token | Tree | int], meta: Meta):
+        value: Reference = self.visit(children.pop(0))
+
+        if value.get_dtype() not in [DataType.BOOLEAN, DataType.INT]:
+            self._report(
+                Errors.InvalidOperator,
+                "not",
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return value
+
+        if value.is_literal():
+            return Reference.literal(not value.value.value)
+        else:
+            result_var = self._create_temp_var(DataType.BOOLEAN, "boolean")
+            self._append_ir(IRDeclare(result_var))
+            self._append_ir(
+                IRUnaryOp(
+                    result_var,
+                    UnaryOps.NOT,
+                    value
+                )
+            )
+            return result_var
+
+    @v_args(meta=True)
+    def logical_and(self, children: list[Token | Tree | int], meta: Meta):
+        # 生成唯一结果变量
+        result_var = self._create_temp_var(DataType.BOOLEAN, "boolean")
+        and_id = next(self.counter)
+
+        self._append_ir(IRDeclare(result_var))
+
+        # 计算左侧数据的值
+        left: Reference = self.visit(children.pop(0))
+        if left.get_dtype() != DataType.BOOLEAN:
+            self._report(
+                Errors.TypeMismatch,
+                "boolean",
+                f"{left.get_dtype()}",
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return Reference.literal(False)
+
+        with self._scoped_environment(f"and_{and_id}", StructureType.CONDITIONAL):  # NOQA
+            # 当第一个条件为假时调用
+            self._append_ir(IRAssign(result_var, Reference.literal(False)))
+
+        with self._scoped_environment(f"and_{and_id}_2", StructureType.CONDITIONAL):  # NOQA
+            # 短路计算，仅第一个条件为真时调用此处
+            right: Reference = self.visit(children.pop(0))
+            if right.get_dtype() != DataType.BOOLEAN:
+                self._report(
+                    Errors.TypeMismatch,
+                    "boolean",
+                    f"{right.get_dtype()}",
+                    filepath=self.filepath,
+                    line=meta.line,
+                    column=meta.column
+                )
+                return Reference.literal(False)
+            self._append_ir(IRAssign(result_var, right))
+
+        self._append_ir(IRCondJump(left.value, f"and_{and_id}_2", f"and_{and_id}"))
+        return Reference(result_var)
+
+    @v_args(meta=True)
+    def logical_or(self, children: list[Token | Tree | int], meta: Meta):
+        # 生成唯一结果变量
+        result_var = self._create_temp_var(DataType.BOOLEAN, "boolean")
+        or_id = next(self.counter)
+
+        self._append_ir(IRDeclare(result_var))
+
+        # 计算左侧数据的值
+        left: Reference = self.visit(children.pop(0))
+        if left.get_dtype() != DataType.BOOLEAN:
+            self._report(
+                Errors.TypeMismatch,
+                "boolean",
+                f"{left.get_dtype()}",
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return Reference.literal(False)
+
+        with self._scoped_environment(f"or_{or_id}", StructureType.CONDITIONAL):  # NOQA
+            # 当第一个条件为真时调用
+            self._append_ir(IRAssign(result_var, Reference.literal(True)))
+
+        with self._scoped_environment(f"or_{or_id}_2", StructureType.CONDITIONAL):  # NOQA
+            # 短路计算，仅第一个条件不为真时调用此处
+            right: Reference = self.visit(children.pop(0))
+            if right.get_dtype() != DataType.BOOLEAN:
+                self._report(
+                    Errors.TypeMismatch,
+                    "boolean",
+                    f"{right.get_dtype()}",
+                    filepath=self.filepath,
+                    line=meta.line,
+                    column=meta.column
+                )
+                return Reference.literal(False)
+            self._append_ir(IRAssign(result_var, right))
+
+        self._append_ir(IRCondJump(left.value, f"or_{or_id}", f"or_{or_id}_2"))
+        return Reference(result_var)
+
+    @v_args(meta=True)
+    def function_call(self, children: list[Token | Tree | int], meta: Meta):
+        function: Function = self.visit(children.pop(0)).value
+        args: list[tuple[Reference, bool]] = self.visit(children.pop(0))
+        if not isinstance(function, Function):
+            self._report(
+                Errors.NotCallable,
+                function.get_name(),
+                f"{function.__class__.__name__}",
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return Reference.literal(None)
+
+        args_dict = self._process_call_arguments(function, args, meta)
+        # 调用函数
+        if function.function_type == FunctionType.LIBRARY:
+            result_var = self.builtin_function[function.get_name()](**args_dict)
+        else:
+            result_var = self._create_temp_var(function.return_type, "result")
+            if function.return_type != DataType.VOID:
+                self._append_ir(IRDeclare(result_var))
+                self._append_ir(IRCall(result_var, function, args_dict))
+            else:
+                self._append_ir(IRCall(None, function, args_dict))
+
+        return Reference(result_var)
+
+    @v_args(meta=True)
+    def arguments(self, children: list[Token | Tree | int], meta: Meta) -> list[tuple[Reference, bool]]:
+        return [self.visit(child) for child in children]
+
+    @v_args(meta=True)
+    def argument(self, children: list[Token | Tree | int], meta: Meta) -> tuple[Reference, bool]:
+        is_mutable = bool(children.pop(0))
+        value = self.visit(children.pop(0))
+        return value, is_mutable
 
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""
@@ -1093,7 +1316,7 @@ class ASTVisitor(Interpreter):
         # 检查注解是否存在
         if annotation is None:
             self._report(
-                Errors.UndefinedSymbol,
+                Errors.InvalidAnnotation,
                 name,
                 filepath=self.filepath,
                 line=meta.line,

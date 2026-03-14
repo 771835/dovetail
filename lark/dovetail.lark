@@ -90,8 +90,8 @@ let: "let" ID "=" expr // 自动推导类型
     | expr MULTIPLY expr                     -> factor             // 乘除模运算
     | expr ADDSUB expr                       -> term               // 加减运算
     | expr COMPARE_OP expr                   -> compare            // 比较运算
-    | expr LOGICAL_AND expr                  -> logical_and        // and运算符
-    | expr LOGICAL_OR expr                   -> logical_or         // or运算符
+    | expr _LOGICAL_AND expr                 -> logical_and        // and运算符
+    | expr _LOGICAL_OR expr                   -> logical_or         // or运算符
     | expr "[" expr "]" COMPOUND_ASSIGN expr -> array_assignment   // 数组元素赋值
     | expr "." ID COMPOUND_ASSIGN expr       -> member_assignment  // 成员属性访问
     | identifier COMPOUND_ASSIGN expr        -> local_assignment   // 变量赋值
@@ -100,8 +100,6 @@ let: "let" ID "=" expr // 自动推导类型
 ?primary: literal | identifier | paren
 ?paren: "(" expr ("," expr)* ")"
 
-// 标识符(不适用定义)
-identifier: ID
 
 arguments : ("(" (argument ("," argument)*)? ")")
 
@@ -130,12 +128,15 @@ COMPOUND_ASSIGN: "+="|"-="|"*="|"/="|"%="|"="
 COMPARE_OP: "=="|"!="|"<="|">="|">"|"<"
 MULTIPLY: "*"|"/"|"%"
 ADDSUB: "+"|"-"
-LOGICAL_AND: "and"|"&&"
-LOGICAL_OR: "or"|"||"
-LOGICAL_NOT: "not"|"!"
+_LOGICAL_AND.2: "and"|"&&"
+_LOGICAL_OR.2: "or"|"||"
+LOGICAL_NOT.2: "not"|"!"
+
+// 标识符(不适用定义)
+identifier: ID
 
 // 所有权关键字
-MUT: "mut"
+MUT.2: "mut"
 
 // 可空关键字
 QUESTION: "?"
