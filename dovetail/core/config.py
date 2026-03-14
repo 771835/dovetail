@@ -6,17 +6,17 @@ import fastjsonschema
 
 from dovetail.utils.logger import ThreadSafeLogger
 
-# 项目数据
+# 项目信息
 PROJECT_NAME = "Dovetail"
 PROJECT_WEBSITE = "https://github.com/771835/dovetail"
-PROJECT_VERSION = "1.0.1"
+PROJECT_VERSION = "1.0.1-2026.3.14"
 
 # 文件后缀
 FILE_PREFIX = ".mcdl"
 CACHE_FILE_PREFIX = ".mcdc"
 
 # 杂项
-MAX_FILE_SIZE = 1024 * 1024 * 1024  # 最大允许单个文件1GB大小(入口文件不受此影响)
+MAX_FILE_SIZE = 1024 * 1024 * 1024  # 最大允许单个文件1GB大小
 
 # 目录编译配置文件
 PACK_CONFIG_VALIDATOR = fastjsonschema.compile({
@@ -76,8 +76,6 @@ DEFAULT_RANDOM_SUGGESTION: list[str] = [
     "你有试过关掉再开吗？",
     "建议：不要写有 bug 的代码",
     "这不是一个 bug，这是一个未记录的特性",
-    "试试把电脑倒过来？重力可能会修复它",
-    "据统计，99% 的编译错误都是因为代码写错了",
     "你知道吗？正确的代码通常不会报错",
     "建议先检查一下今天是不是星期五",
     "也许你需要的是一杯咖啡，而不是修复代码",

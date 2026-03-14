@@ -11,7 +11,7 @@ AST 转换器模块 - Dovetail 编译器前端
 
 主要组件：
     - parser_code: 代码解析函数，将源代码转换为 AST
-    - ASTVisitor: AST 访问器类，实现语法制导翻译
+    - ASTVisitor: AST 访问器类，实现语义分析
 
 使用示例：
     >>> config = CompileConfig(...)
@@ -86,6 +86,15 @@ def parser_code(filepath: Path | str, start: Optional[str] = None) -> Tree | Non
     """
     filepath = Path(filepath)
     if not filepath.exists() or not filepath.is_file():
+        return None
+
+    if filepath.stat().st_size >= MAX_FILE_SIZE:
+        report(
+            Errors.ResourceExhaustion,
+            f"文件体积过大，最大支持{MAX_FILE_SIZE}字节，实际{filepath.stat().st_size}字节",
+            filepath=filepath,
+            suggestion="单文件战神"
+        )
         return None
 
     with open(filepath, encoding='utf-8') as f:
@@ -769,6 +778,17 @@ class ASTVisitor(Interpreter):
             self._append_ir(IRCondJump(condition.value, if_scope.name))
 
     @v_args(meta=True)
+    def free(self, children: list[Tree | Token], meta: Meta):
+        report(
+            Errors.MissingImplementation,
+            "free 命令较为危险，故暂不实现(此错误不会影响编译)",
+            filepath=self.filepath,
+            line=meta.line,
+            column=meta.column
+        )
+
+
+    @v_args(meta=True)
     def condition(self, children: list[Tree | Token], meta: Meta):
         """条件语句"""
         value: Reference[Any] = self.visit(children.pop(0))
@@ -907,14 +927,14 @@ class ASTVisitor(Interpreter):
             return
 
         # 检查文件大小
-        if filepath.stat().st_size > MAX_FILE_SIZE:
+        if filepath.stat().st_size >= MAX_FILE_SIZE:
             self._report(
                 Errors.ResourceExhaustion,
                 f"被包含文件体积过大，最大支持{MAX_FILE_SIZE}字节，实际{filepath.stat().st_size}字节",
                 filepath=self.filepath,
                 line=meta.line,
                 column=meta.column,
-                suggestion="编程战争罪: 单文件战神"
+                suggestion="单文件战神"
             )
             return
 

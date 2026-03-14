@@ -50,7 +50,7 @@ param: [MUT] ID ":" type ("=" expr)?
     | while_loop                              // while循环
     | expr                                    // 表达式
     | if_stmt                                 // 条件语句
-    | "free" identifier       -> free_stmt    // 清理资源
+    | "free" identifier       -> free         // 手动清理资源(非常危险，极其容易造成空指针等问题)
     | "return" expr?          -> return_stmt  // 返回
     | "break"                 -> break_stmt   // break语句
     | "continue"              -> continue_stmt// continue语句

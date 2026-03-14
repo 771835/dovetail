@@ -1,8 +1,8 @@
 # coding=utf-8
 from pathlib import Path
 
-from dovetail.core.ir_generator import IRGenerator
 from dovetail.core.lib.library import Library
+from dovetail.core.parser.parser import ASTVisitor
 from dovetail.plugins.plugin_api.v2.event import Event
 from dovetail.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
 
@@ -34,11 +34,11 @@ class IncludeEvent(Event):
         return self._cancelled
 
 
-@Mixin(IRGenerator)
-class IRGeneratorMixin:
+@Mixin(ASTVisitor)
+class ASTVisitorMixin:
     @staticmethod
-    @Inject("_get_include_path", At(At.TAIL), True)
-    def _get_include_path(ci: CallbackInfoReturnable, _: IRGenerator, path: str) -> Path | None | Library:
+    @Inject("_search_include_path", At(At.TAIL), True)
+    def _search_include_path(ci: CallbackInfoReturnable, _: ASTVisitor, path: str) -> Path | None | Library:
         event = IncludeEvent(path, ci.return_value)
         event.call_event()
         if event.is_cancelled():
