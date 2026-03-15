@@ -1,4 +1,5 @@
 include "random"
+include "mathlib.mcdl"
 typedef int i32
 
 struct awa {
@@ -8,15 +9,20 @@ fn foo();
 @init
 fn bar(){
     if (foo()==350234 / 1 ) {
-        exec(f"say 1")
+        exec("say 1")
         print("1")
     }else {
         exec("say 2")
     }
 }
 
-@target("mc")
+@target("java")
 fn foo() -> i32{
     let num = 1
     return 350234
+}
+
+@target("be")
+fn foo() -> i32{
+    return 0
 }

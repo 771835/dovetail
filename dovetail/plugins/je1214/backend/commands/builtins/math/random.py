@@ -20,7 +20,7 @@ class RandintCommand(TemplateCommandHandler):
 
     def _post_process(
             self,
-            result: Variable  | None,
+            result: Variable | None,
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:
@@ -49,8 +49,9 @@ class RandintCommand(TemplateCommandHandler):
                     description="生成随机数到指定位置(自动生成模板，提前填写objective)",
                     tags=["random", "math"],
                     validator=lambda p: (
-                        int(p['min']) <= int(p['max']),
-                        "min must be less than or equal to max"
+                        (p['min'] is None or p['max'] is None) or (int(p['min']) <= int(p['max'])),
+                        "min must be less than or equal to max" if p['min'] is not None and p[
+                            'max'] is not None else None
                     )
                 )
             )

@@ -149,10 +149,8 @@ def timed(message: str = "用时{:.3f}s") -> Callable[[F], F]:
             result = func(*args, **kwargs)
             end_time = time.perf_counter()
             elapsed = end_time - start_time
-            if logger := get_project_logger():
-                logger.info(message.format(elapsed))
-            else:
-                get_logger("time").info(message.format(elapsed))
+            logger = get_project_logger() or get_logger("time")
+            logger.info(message.format(elapsed))
             return result
 
         return cast(F, wrapper)

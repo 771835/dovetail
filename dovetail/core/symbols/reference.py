@@ -77,9 +77,7 @@ class Reference(Symbol, Generic[T]):
             assert isinstance(self.value, Literal)
             return repr(self.value.value)
         else:
-            name = self.get_name() 
-            assert name is not None
-            return name
+            return self.get_name()
 
     def __repr__(self):
         return self.get_display_value()

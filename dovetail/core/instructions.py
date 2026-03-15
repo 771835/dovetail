@@ -38,7 +38,7 @@ class IROpCode(SafeEnum):
     BINARY_OP = (0x23, "二元运算", InstCategory.DATA_OP)
     COMPARE = (0x24, "比较", InstCategory.DATA_OP)
     CAST = (0x25, "类型转换", InstCategory.DATA_OP)
-    FREE = (0x26,"释放变量", InstCategory.DATA_OP)
+    FREE = (0x26, "释放变量", InstCategory.DATA_OP)
 
     # OOP (0x40-0x5F) - 面对对象
     CLASS = (0x40, "类定义", InstCategory.OOP)
@@ -57,7 +57,6 @@ class IROpCode(SafeEnum):
     ARRAY_LOAD = (0x81, "数组读取", InstCategory.ARRAY)
     ARRAY_STORE = (0x82, "数组写入", InstCategory.ARRAY)
     ARRAY_FREE = (0x83, "", InstCategory.ARRAY)
-
 
     def __init__(self, code: int, desc: str, category: InstCategory):
         self.code = code
@@ -153,7 +152,7 @@ class IRCondJump(IRInstruction):
             true_scope: str | None,
             false_scope: str | None = None
     ):
-        assert condition.dtype == DataType.BOOLEAN
+        assert DataType.BOOLEAN.is_subclass_of(condition.dtype),condition.dtype
 
         operands = [
             condition,
@@ -177,7 +176,12 @@ class IRFunction(IRInstruction):
         super().__init__(IROpCode.FUNCTION, operands)
 
     def __repr__(self):
-        return f'func {self.operands[0]}'
+        function: Function = self.operands[0]
+        annotations: list[str] = []
+        for annotation, args in function.annotations.items():
+            annotations.append(f"@{annotation.name}({','.join(f'{name}={val}' for name, val in args.items())})")
+
+        return '\n'.join(annotations) + f"\nfunc {self.operands[0]}"
 
 
 class IRReturn(IRInstruction):

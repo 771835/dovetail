@@ -70,7 +70,7 @@ class Builtins(Library):
                 [
                     Parameter(Variable("command", DataType.STRING))
                 ],
-                DataType.NULL_TYPE,
+                DataType.VOID,
                 FunctionType.BUILTIN
             ): None,
             Function(
@@ -79,7 +79,7 @@ class Builtins(Library):
                     Parameter(Variable("target", DataType.STRING)),
                     Parameter(Variable("msg", DataType.STRING)),
                 ],
-                DataType.NULL_TYPE,
+                DataType.VOID,
                 FunctionType.BUILTIN
             ): None,
             Function(
@@ -88,7 +88,7 @@ class Builtins(Library):
                     Parameter(Variable("target", DataType.STRING)),
                     Parameter(Variable("json", DataType.STRING)),
                 ],
-                DataType.NULL_TYPE,
+                DataType.VOID,
                 FunctionType.BUILTIN
             ): None,
         }

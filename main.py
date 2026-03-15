@@ -148,17 +148,16 @@ class Compiler:
             self.logger.error(f"The path '{source_path}' is not valid.")
             return -1
 
-        generator = None
+        generator = ASTVisitor(self.config, source_path)
 
         with chdir(working_directory):
             try:
                 tree = parser_code(source_path)
-                print(tree.pretty())
 
-                ASTVisitor(self.config, source_path).visit(tree)
+                generator.visit(tree)
 
                 # builder = self._build_and_optimize_ir(generator, tree)
-                ir_builder = IRBuilder()
+                ir_builder = generator.builder
 
                 if self.output_temp_file:
                     self._write_temp_file(ir_builder, target_dir_path)

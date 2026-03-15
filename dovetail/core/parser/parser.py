@@ -22,6 +22,8 @@ AST 转换器模块 - Dovetail 编译器前端
 """
 import ast
 import itertools
+import typing
+import time
 from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
@@ -33,7 +35,7 @@ from lark.visitors import Interpreter
 
 from dovetail.core import builtin_annotation
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.config import MAX_FILE_SIZE
+from dovetail.core.config import MAX_FILE_SIZE, get_project_logger
 from dovetail.core.enums import (
     StructureType, DataType, VariableType,
     MinecraftVersion, MinecraftEdition, FunctionType, ValueType, BinaryOps, CompareOps, UnaryOps
@@ -55,7 +57,7 @@ from dovetail.core.symbols import Variable, Reference, Literal, Function, Class,
 from dovetail.core.symbols.annotation import Annotation
 from dovetail.core.symbols.structure import Structure
 from dovetail.core.symbols.typedef import Typedef
-from dovetail.utils.annotations import timed
+from dovetail.utils.logger import get_logger
 from dovetail.utils.naming import NameNormalizer
 from dovetail.utils.string_similarity import suggest_similar
 
@@ -72,7 +74,6 @@ lark_parser = Lark(
 _n = NameNormalizer.normalize
 
 
-@timed("解析用时 {:.5f}.")
 def parser_code(filepath: Path | str, start: Optional[str] = None) -> Tree | None:
     """
     解析代码文件生成 AST
@@ -84,6 +85,8 @@ def parser_code(filepath: Path | str, start: Optional[str] = None) -> Tree | Non
     Returns:
         AST 树，如果文件不存在或解析失败则返回 None
     """
+    start_time = time.perf_counter()
+
     filepath = Path(filepath)
     if not filepath.exists() or not filepath.is_file():
         return None
@@ -101,7 +104,13 @@ def parser_code(filepath: Path | str, start: Optional[str] = None) -> Tree | Non
         code = f.read()
 
     parse_start = start if start is not None else "program"
-    return lark_parser.parse(code, start=parse_start)  # , on_error=lambda e: True)
+
+    tree = lark_parser.parse(code, start=parse_start)  # , on_error=lambda e: True)
+
+    elapsed = time.perf_counter() - start_time
+    logger = get_project_logger() or get_logger("time")
+    logger.info(f"解析文件 '{filepath.name}' 用时 {elapsed:.5f}.")
+    return tree
 
 
 class ASTVisitor(Interpreter):
@@ -600,7 +609,7 @@ class ASTVisitor(Interpreter):
             with self._scoped_environment(name, StructureType.FUNCTION):  # NOQA
                 # 添加参数到作用域
                 for param in params:
-                    if not self.current_scope.add_symbol(param):
+                    if not self.current_scope.add_symbol(param.var):
                         self._report(
                             Errors.DuplicateDefinition,
                             param.get_name(),
@@ -705,7 +714,7 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def for_loop(self, children: list[Tree | Token], meta: Meta):
         """处理 for 循环"""
-        if children[0].data == "type":
+        if isinstance(children[0], Tree) and children[0].data == "type":
             # "for" "(" type ID ":" expr ")" block // 增强for循环
             dtype = self.visit(children.pop(0))
             self._report(
@@ -729,7 +738,7 @@ class ASTVisitor(Interpreter):
             with self._scoped_environment(f"for_check_{loop_count}", StructureType.LOOP_CHECK) as loop_check:  # NOQA
                 # 处理条件表达式
                 if condition:
-                    condition_value = self.visit(condition).value.value
+                    condition_value = self.visit(condition).value
                 else:
                     condition_value = Literal(DataType.BOOLEAN, True)
 
@@ -753,7 +762,7 @@ class ASTVisitor(Interpreter):
                 self.visit(block)
 
             # 从检查函数调用循环体
-            condition_value = self.visit(condition).value.value
+            condition_value = self.visit(condition).value
 
             self._append_ir(IRCondJump(condition_value, loop_body.name))
             self._append_ir(IRCondJump(condition_value, loop_check.name))
@@ -786,7 +795,6 @@ class ASTVisitor(Interpreter):
             line=meta.line,
             column=meta.column
         )
-
 
     @v_args(meta=True)
     def condition(self, children: list[Tree | Token], meta: Meta):
@@ -864,8 +872,8 @@ class ASTVisitor(Interpreter):
             if function_symbol.return_type != value.get_dtype():
                 self._report(
                     Errors.ReturnTypeMismatch,
-                    function_symbol.return_type.get_name(),
                     value.get_dtype().get_name(),
+                    function_symbol.return_type.get_name(),
                     filepath=self.filepath,
                     line=meta.line,
                     column=meta.column
@@ -1061,7 +1069,7 @@ class ASTVisitor(Interpreter):
         result_var = self._create_temp_var(result_type, "calc")
 
         self._append_ir(IRDeclare(result_var))
-        self._append_ir(IRBinaryOp(result_var, BinaryOps(op), left.value, right.value))
+        self._append_ir(IRBinaryOp(result_var, BinaryOps(op), left, right))
         return Reference(result_var)
 
     term = factor
@@ -1085,16 +1093,20 @@ class ASTVisitor(Interpreter):
         return Reference(result_variable)
 
     @v_args(meta=True)
-    def neg(self, children: list[Token | Tree | int], meta: Meta):
+    def unary_minus(self, children: list[Token | Tree | int], meta: Meta) -> Reference:
+        op: typing.Literal["+", "-"] = children.pop(0).value
         value: Reference = self.visit(children.pop(0))
         if value.get_dtype() not in [DataType.BOOLEAN, DataType.INT]:
             self._report(
                 Errors.InvalidOperator,
-                "-",
+                op,
                 filepath=self.filepath,
                 line=meta.line,
                 column=meta.column
             )
+            return value
+
+        if op == "+":
             return value
 
         if value.is_literal():
@@ -1110,7 +1122,7 @@ class ASTVisitor(Interpreter):
                     Reference.literal(-1)
                 )
             )
-            return result_var
+            return Reference(result_var)
 
     @v_args(meta=True)
     def logical_not(self, children: list[Token | Tree | int], meta: Meta):
@@ -1150,11 +1162,11 @@ class ASTVisitor(Interpreter):
 
         # 计算左侧数据的值
         left: Reference = self.visit(children.pop(0))
-        if left.get_dtype() != DataType.BOOLEAN:
+        if not DataType.BOOLEAN.is_subclass_of(left.get_dtype()):
             self._report(
                 Errors.TypeMismatch,
                 "boolean",
-                f"{left.get_dtype()}",
+                left.get_dtype().get_name(),
                 filepath=self.filepath,
                 line=meta.line,
                 column=meta.column
@@ -1168,7 +1180,7 @@ class ASTVisitor(Interpreter):
         with self._scoped_environment(f"and_{and_id}_2", StructureType.CONDITIONAL):  # NOQA
             # 短路计算，仅第一个条件为真时调用此处
             right: Reference = self.visit(children.pop(0))
-            if right.get_dtype() != DataType.BOOLEAN:
+            if not DataType.BOOLEAN.is_subclass_of(right.get_dtype()):
                 self._report(
                     Errors.TypeMismatch,
                     "boolean",
@@ -1193,7 +1205,7 @@ class ASTVisitor(Interpreter):
 
         # 计算左侧数据的值
         left: Reference = self.visit(children.pop(0))
-        if left.get_dtype() != DataType.BOOLEAN:
+        if not DataType.BOOLEAN.is_subclass_of(left.get_dtype()):
             self._report(
                 Errors.TypeMismatch,
                 "boolean",
@@ -1211,7 +1223,7 @@ class ASTVisitor(Interpreter):
         with self._scoped_environment(f"or_{or_id}_2", StructureType.CONDITIONAL):  # NOQA
             # 短路计算，仅第一个条件不为真时调用此处
             right: Reference = self.visit(children.pop(0))
-            if right.get_dtype() != DataType.BOOLEAN:
+            if not DataType.BOOLEAN.is_subclass_of(right.get_dtype()):
                 self._report(
                     Errors.TypeMismatch,
                     "boolean",
@@ -1225,6 +1237,54 @@ class ASTVisitor(Interpreter):
 
         self._append_ir(IRCondJump(left.value, f"or_{or_id}", f"or_{or_id}_2"))
         return Reference(result_var)
+
+    @v_args(meta=True)
+    def local_assignment(self, children: list[Token | Tree | int], meta: Meta):
+        # TODO
+        variable_ref: Reference = self.visit(children.pop(0))
+        if variable_ref.value_type != ValueType.VARIABLE:
+            self._report(
+                Errors.SymbolCategory,
+                variable_ref.get_name(),
+                "variable",
+                variable_ref.value_type.name,
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return
+        variable: Variable = variable_ref.value
+        if not variable.is_mutable():
+            self._report(
+                Errors.MutabilityViolation,
+                variable.name,
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return None
+
+        op: typing.Literal["+=", "-=", "*=", "/=", "%=", "="] = children.pop(0).value
+
+        value: Reference = self.visit(children.pop(0))
+
+        if variable.dtype != value.get_dtype():
+            self._report(
+                Errors.TypeMismatch,
+                variable.dtype.get_name(),
+                value.get_dtype().get_name(),
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
+            return None
+
+        if op == "=":
+            self._append_ir(IRAssign(variable, value))
+        else:
+            self._append_ir(IRBinaryOp(variable, BinaryOps(op[0]), variable_ref, value))
+
+        return variable_ref
 
     @v_args(meta=True)
     def function_call(self, children: list[Token | Tree | int], meta: Meta):
@@ -1247,7 +1307,7 @@ class ASTVisitor(Interpreter):
             result_var = self.builtin_function[function.get_name()](**args_dict)
         else:
             result_var = self._create_temp_var(function.return_type, "result")
-            if function.return_type != DataType.VOID:
+            if function.return_type != DataType.VOID and function.return_type.is_definable():
                 self._append_ir(IRDeclare(result_var))
                 self._append_ir(IRCall(result_var, function, args_dict))
             else:
@@ -1286,9 +1346,9 @@ class ASTVisitor(Interpreter):
                 return Reference.literal(int(token))
             case "FLOAT":
                 return Reference.literal(float(token))
-            case "true":
+            case "TRUE":
                 return Reference.literal(True)
-            case "false":
+            case "FALSE":
                 return Reference.literal(False)
             case _:
                 return Reference.literal(str(token))

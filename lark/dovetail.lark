@@ -81,15 +81,15 @@ let: "let" ID "=" expr // 自动推导类型
 ?expr: primary                                                     // 基础表达式
     | FSTRING                                -> fstring            // 插值字符串
     | "null"                                 -> null               // null句柄
+    | ADDSUB expr                            -> unary_minus        // 正负号
     | expr "." ID arguments                  -> method_call        // 方法调用
     | expr "." ID                            -> member_access      // 成员访问
     | expr "[" expr "]"                      -> array_access       // 数组访问
     | expr arguments                         -> function_call      // 函数调用
-    | "-" expr                               -> neg                // 负号
-    | LOGICAL_NOT expr                       -> logical_not        // not运算符
-    | expr MULTIPLY expr                     -> factor             // 乘除模运算
     | expr ADDSUB expr                       -> term               // 加减运算
     | expr COMPARE_OP expr                   -> compare            // 比较运算
+    | expr MULTIPLY expr                     -> factor             // 乘除模运算
+    | LOGICAL_NOT expr                       -> logical_not        // not运算符
     | expr _LOGICAL_AND expr                 -> logical_and        // and运算符
     | expr _LOGICAL_OR expr                   -> logical_or         // or运算符
     | expr "[" expr "]" COMPOUND_ASSIGN expr -> array_assignment   // 数组元素赋值
@@ -98,7 +98,7 @@ let: "let" ID "=" expr // 自动推导类型
 
 // 字面量、标识符（变量、函数、类）、括号
 ?primary: literal | identifier | paren
-?paren: "(" expr ("," expr)* ")"
+?paren: "(" expr ")"
 
 
 arguments : ("(" (argument ("," argument)*)? ")")
@@ -110,8 +110,8 @@ argument : [MUT] expr
 literal : INT
     | FLOAT
     | STRING
-    | "true" -> true
-    | "false" -> false
+    | TRUE
+    | FALSE
     | array_literal
 
 // 常量
@@ -125,12 +125,14 @@ FSTRING.3: /f"([^"\\]|\\.)*"/
 
 // 运算符
 COMPOUND_ASSIGN: "+="|"-="|"*="|"/="|"%="|"="
-COMPARE_OP: "=="|"!="|"<="|">="|">"|"<"
+COMPARE_OP.3: "=="|"!="|"<="|">="|">"|"<"
 MULTIPLY: "*"|"/"|"%"
-ADDSUB: "+"|"-"
+ADDSUB.2: "-"|"+"
 _LOGICAL_AND.2: "and"|"&&"
 _LOGICAL_OR.2: "or"|"||"
 LOGICAL_NOT.2: "not"|"!"
+TRUE: "true"
+FALSE: "false"
 
 // 标识符(不适用定义)
 identifier: ID
