@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 
 from dovetail.core.config import USED_FUTURE_INSTRUCTIONS
 
-if USED_FUTURE_INSTRUCTIONS:  # NOQA
+if USED_FUTURE_INSTRUCTIONS:
     from dovetail.core.__future__.instructions import *
 
     T = TypeVar('T', bound="IRInstruction")

@@ -17,6 +17,7 @@ CACHE_FILE_PREFIX = ".mcdc"
 
 # 杂项
 MAX_FILE_SIZE = 1024 * 1024 * 1024  # 最大允许单个文件1GB大小
+USED_FUTURE_INSTRUCTIONS = True # 临时选项: 启用新版IR指令类型
 
 # 目录编译配置文件
 PACK_CONFIG_VALIDATOR = fastjsonschema.compile({
