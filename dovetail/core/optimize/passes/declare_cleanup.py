@@ -77,13 +77,13 @@ class DeclareCleanupPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            if isinstance(instr, IRScopeBegin):
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
                 scope_name = instr.get_operands()[0]
                 parent = scope_stack[-1] if scope_stack else None
                 self.scope_tree[scope_name] = parent
                 scope_stack.append(scope_name)
 
-            elif isinstance(instr, IRScopeEnd):
+            elif instr.opcode == IROpCode.SCOPE_END:
                 if scope_stack:
                     scope_stack.pop()
 
@@ -107,12 +107,12 @@ class DeclareCleanupPass(IROptimizationPass):
                 break
 
             # 处理作用域开始和结束
-            if isinstance(instr, IRScopeBegin):
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
                 scope_name = instr.get_operands()[0]
                 scope_stack.append(scope_name)
                 current_scope = scope_name
                 self.scope_instructions[scope_name] = []
-            elif isinstance(instr, IRScopeEnd):
+            elif instr.opcode == IROpCode.SCOPE_END:
                 if scope_stack:
                     scope_stack.pop()
                     current_scope = scope_stack[-1] if scope_stack else "global"
@@ -122,17 +122,17 @@ class DeclareCleanupPass(IROptimizationPass):
                 self.scope_instructions[current_scope].append(instr)
 
             # 分析不同类型的指令
-            if isinstance(instr, IRDeclare):
+            if instr.opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
                 self.var_scopes[var.name] = current_scope
 
-            elif isinstance(instr, IRFunction):
+            elif instr.opcode == IROpCode.FUNCTION:
                 func = instr.get_operands()[0]
                 for param in func.params:
                     self.root_vars.add(param.get_name())
                     self.var_references[param.get_name()] = self.var_references.get(param.get_name(), 0) + 1
 
-            elif isinstance(instr, (IRCall, IRCallMethod)):
+            elif instr.opcode == IROpCode.CALL_METHOD:
                 if isinstance(instr, IRCall):
                     result_var, func, args = instr.get_operands()
                 else:
@@ -145,22 +145,22 @@ class DeclareCleanupPass(IROptimizationPass):
                     if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
                         self.var_references[arg_ref.get_name()] = self.var_references.get(arg_ref.get_name(), 0) + 1
 
-            elif isinstance(instr, IRReturn):
+            elif instr.opcode == IROpCode.RETURN:
                 value = instr.get_operands()[0]
                 if isinstance(value, Reference) and value.value_type == ValueType.VARIABLE:
                     self.var_references[value.get_name()] = self.var_references.get(value.get_name(), 0) + 1
 
-            elif isinstance(instr, IRCondJump):
+            elif instr.opcode == IROpCode.COND_JUMP:
                 cond_var = instr.get_operands()[0]
                 self.var_references[cond_var.name] = self.var_references.get(cond_var.name, 0) + 1
 
-            elif isinstance(instr, IRAssign):
+            elif instr.opcode == IROpCode.ASSIGN:
                 target, source = instr.get_operands()
                 if source.value_type == ValueType.VARIABLE:
                     self.var_references[source.get_name()] = self.var_references.get(source.get_name(), 0) + 1
                 self.var_references[target.name] = self.var_references.get(target.name, 0)
 
-            elif isinstance(instr, (IRBinaryOp, IRCompare, IRUnaryOp)):
+            elif instr.opcode in (IROpCode.BINARY_OP, IROpCode.UNARY_OP, IROpCode.COMPARE):
                 operands = instr.get_operands()
                 result = operands[0]
                 self.var_references[result.name] = self.var_references.get(result.name, 0)
@@ -169,7 +169,7 @@ class DeclareCleanupPass(IROptimizationPass):
                     if isinstance(op, Reference) and op.value_type == ValueType.VARIABLE:
                         self.var_references[op.get_name()] = self.var_references.get(op.get_name(), 0) + 1
 
-            elif isinstance(instr, IRCast):
+            elif instr.opcode == IROpCode.CAST:
                 target, dtype, source = instr.get_operands()
                 if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
                     self.var_references[source.get_name()] = self.var_references.get(source.get_name(), 0) + 1
@@ -185,10 +185,10 @@ class DeclareCleanupPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            if isinstance(instr, IRScopeBegin):
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
                 current_scope = instr.get_operands()[0]
 
-            elif isinstance(instr, IRDeclare):
+            elif instr.opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
                 var_name = var.name
 

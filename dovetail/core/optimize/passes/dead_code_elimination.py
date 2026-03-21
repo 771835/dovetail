@@ -4,8 +4,6 @@
 
 移除永远不会使用的变量赋值和计算结果。
 """
-from __future__ import annotations
-
 from collections import deque
 
 from dovetail.core.compile_config import CompileConfig
@@ -52,7 +50,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
         iterator = self.builder.__iter__()
 
         for instr in iterator:
-            if isinstance(instr, IRAssign):
+            if instr.opcode == IROpCode.ASSIGN:
                 target, source = instr.get_operands()
                 self.def_use_graph[target.name] = []
                 if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
@@ -61,7 +59,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
                     self.use_def_graph[source.get_name()].append(target.get_name())
                     self.def_use_graph[target.get_name()].append(source.get_name())
 
-            elif isinstance(instr, (IRBinaryOp, IRCompare, IRUnaryOp)):
+            elif instr.opcode in (IROpCode.BINARY_OP, IROpCode.COMPARE, IROpCode.UNARY_OP):
                 operands = instr.get_operands()
                 result = operands[0]
                 self.def_use_graph[result.name] = []
@@ -72,7 +70,8 @@ class DeadCodeEliminationPass(IROptimizationPass):
                             self.use_def_graph[op.get_name()] = []
                         self.use_def_graph[op.get_name()].append(result.get_name())
                         self.def_use_graph[result.get_name()].append(op.get_name())
-            elif isinstance(instr, IRCast):
+
+            elif instr.opcode == IROpCode.CAST:
                 result, dtype, value_ref = instr.get_operands()
                 self.def_use_graph[result.name] = []
 
@@ -88,12 +87,12 @@ class DeadCodeEliminationPass(IROptimizationPass):
         work_list = deque()
 
         for instr in self.builder.get_instructions():
-            if isinstance(instr, IRDeclare):
+            if instr.opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
                 if var.var_type in (VariableType.PARAMETER, VariableType.RETURN):
                     self.live_vars.add(var.name)
                     work_list.append(var.name)
-            elif isinstance(instr, IRCall):
+            elif instr.opcode == IROpCode.CALL:
                 # 标记所有参数为活跃
                 args = instr.get_operands()[2]
                 for param_name, arg_ref in args.items():
@@ -101,13 +100,13 @@ class DeadCodeEliminationPass(IROptimizationPass):
                         var_name = arg_ref.get_name()
                         if var_name not in self.live_vars:
                             self.live_vars.add(var_name)
-            elif isinstance(instr, IRCondJump):
+            elif instr.opcode == IROpCode.COND_JUMP:
                 cond_var = instr.get_operands()[0]
                 if isinstance(cond_var, type(instr.get_operands()[0])):
                     if cond_var.name not in self.live_vars:
                         self.live_vars.add(cond_var.name)
                         work_list.append(cond_var.name)
-            elif isinstance(instr, IRCast):
+            elif instr.opcode == IROpCode.CAST:
                 result, dtype, value_ref = instr.get_operands()
                 if (isinstance(value_ref, Reference) and value_ref.value_type == ValueType.VARIABLE and
                         value_ref.get_name() in self.live_vars and result.name not in self.live_vars):
@@ -143,7 +142,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            if isinstance(instr, IRAssign):
+            if instr.opcode == IROpCode.ASSIGN:
                 target, source = instr.get_operands()
                 if not self._is_declaration_exists(target.name):
                     iterator.remove_current()
@@ -152,7 +151,8 @@ class DeadCodeEliminationPass(IROptimizationPass):
                     iterator.remove_current()
                     self._changed = True
 
-            elif isinstance(instr, (IRBinaryOp, IRCompare, IRUnaryOp, IRCast)):
+
+            elif instr.opcode in (IROpCode.BINARY_OP, IROpCode.COMPARE, IROpCode.UNARY_OP, IROpCode.CAST):
                 result = instr.get_operands()[0]
                 if result.name not in self.live_vars:
                     iterator.remove_current()
@@ -160,14 +160,15 @@ class DeadCodeEliminationPass(IROptimizationPass):
 
     def _has_side_effect(self, instr):
         """判断指令是否有副作用"""
-        return isinstance(instr, (
-            IRAssign, IRCast, IRReturn, IRCall, IRCallMethod, IRNewObj,
-            IRGetProperty, IRSetProperty, IRBinaryOp, IRCompare, IRUnaryOp
-        ))
+        return instr.opcode in (
+            IROpCode.ASSIGN, IROpCode.CAST, IROpCode.RETURN, IROpCode.RETURN,
+            IROpCode.CALL, IROpCode.CALL_METHOD, IROpCode.NEW_OBJ, IROpCode.GET_PROPERTY, IROpCode.SET_PROPERTY,
+            IROpCode.BINARY_OP, IROpCode.UNARY_OP, IROpCode.COMPARE
+        )
 
     def _is_declaration_exists(self, var_name):
         """检查变量声明是否存在"""
         for instr in self.builder.get_instructions():
-            if isinstance(instr, IRDeclare) and instr.get_operands()[0].name == var_name:
+            if instr.opcode == IROpCode.DECLARE and instr.get_operands()[0].name == var_name:
                 return True
         return False

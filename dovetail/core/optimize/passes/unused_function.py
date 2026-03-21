@@ -50,15 +50,15 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            if isinstance(instr, IRFunction):
+            if instr.opcode == IROpCode.FUNCTION:
                 func = instr.get_operands()[0]
                 self.function_declarations[func.name] = func
 
-            elif isinstance(instr, IRCall):
+            elif instr.opcode == IROpCode.CALL:
                 func = instr.get_operands()[1]
                 self.function_calls[func.name] = self.function_calls.get(func.name, 0) + 1
 
-            elif isinstance(instr, IRCallMethod):
+            elif instr.opcode == IROpCode.CALL_METHOD:
                 func = instr.get_operands()[2]
                 method_name = func.name
                 self.function_calls[method_name] = self.function_calls.get(method_name, 0) + 1
@@ -83,7 +83,7 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            if isinstance(instr, IRFunction):
+            if instr.opcode == IROpCode.FUNCTION:
                 func = instr.get_operands()[0]
                 if func.name == func_name:
                     iterator.remove_current()
@@ -92,12 +92,12 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
                     continue
 
             if in_function:
-                if isinstance(instr, IRScopeBegin):
+                if instr.opcode == IROpCode.SCOPE_BEGIN:
                     level += 1
 
                 iterator.remove_current()
                 self._changed = True
-                if isinstance(instr, IRScopeEnd):
+                if instr.opcode == IROpCode.SCOPE_END:
                     level -= 1
                     if level == 0:
                         in_function = False

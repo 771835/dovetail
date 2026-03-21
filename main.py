@@ -18,6 +18,7 @@ from dovetail.core.enums.optimization import OptimizationLevel
 from dovetail.core.errors import CompilationError
 from dovetail.core.errors import report, Errors
 from dovetail.core.ir_builder import IRBuilder
+from dovetail.core.optimize.optimizer import Optimizer
 from dovetail.core.parser.parser import ASTVisitor, parser_code
 from dovetail.plugins.plugin_loader.loader import plugin_loader
 from dovetail.utils.annotations import timed
@@ -154,16 +155,19 @@ class Compiler:
             try:
                 tree = parser_code(source_path)
 
+                # print(tree.pretty())
+
                 generator.visit(tree)
 
-                # builder = self._build_and_optimize_ir(generator, tree)
-                ir_builder = generator.builder
+                builder = Optimizer(generator.builder, self.config).optimize()
+
+                # builder.print()
 
                 if self.output_temp_file:
-                    self._write_temp_file(ir_builder, target_dir_path)
+                    self._write_temp_file(builder, target_dir_path)
 
                 if self.generate:
-                    self._generate_backend_code(ir_builder, target_dir_path)
+                    self._generate_backend_code(builder, target_dir_path)
             except CompilationError as e:
 
                 self.logger.critical(e.__repr__())
@@ -242,6 +246,7 @@ def main():
         generate=not parsed_args.no_generate_commands,
         output_temp_file=parsed_args.output_temp_file
     )
+
     sys.exit(compiler.compile(source_path, target_path))
 
 

@@ -44,9 +44,9 @@ class UnreachableCodeRemovalPass(IROptimizationPass):
                 break
 
             if in_unreachable:
-                if isinstance(instr, IRScopeBegin):
+                if instr.opcode == IROpCode.SCOPE_BEGIN:
                     level += 1
-                elif isinstance(instr, IRScopeEnd):
+                elif instr.opcode == IROpCode.SCOPE_END:
                     if level == 0:
                         in_unreachable = False
                         continue
@@ -56,7 +56,7 @@ class UnreachableCodeRemovalPass(IROptimizationPass):
                 self._changed = True
                 continue
 
-            if isinstance(instr, (IRReturn, IRBreak, IRContinue)):
+            if instr.opcode in (IROpCode.RETURN, IROpCode.BREAK, IROpCode.CONTINUE):
                 in_unreachable = True
 
         return self._changed

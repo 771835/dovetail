@@ -54,11 +54,11 @@ class UselessScopeRemovalPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            if isinstance(instr, (IRJump, IRCondJump)):
+            if instr.opcode in (IROpCode.JUMP, IROpCode.COND_JUMP):
                 targets = [op for op in instr.get_operands() if isinstance(op, str)]
                 self.jump_targets.update(targets)
 
-            if isinstance(instr, IRScopeBegin):
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
                 scope_name = instr.get_operands()[0]
                 scope_type = instr.get_operands()[1]
 
@@ -70,7 +70,7 @@ class UselessScopeRemovalPass(IROptimizationPass):
                 current_scope = scope_name
                 self.scope_instructions[scope_name] = []
 
-            elif isinstance(instr, IRScopeEnd):
+            elif instr.opcode == IROpCode.SCOPE_END:
                 if scope_stack:
                     scope_stack.pop()
                     current_scope = scope_stack[-1] if scope_stack else "global"
@@ -95,7 +95,7 @@ class UselessScopeRemovalPass(IROptimizationPass):
         self.scope_reachability[scope_name] = True
 
         for instr in self.scope_instructions.get(scope_name, []):
-            if isinstance(instr, (IRJump, IRCondJump)):
+            if instr.opcode in (IROpCode.JUMP, IROpCode.COND_JUMP):
                 targets = [op for op in instr.get_operands() if isinstance(op, str)]
                 for target in targets:
                     if target in self.scope_instructions:
@@ -118,7 +118,7 @@ class UselessScopeRemovalPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            if delete_level == 0 and isinstance(instr, IRScopeBegin):
+            if delete_level == 0 and instr.opcode == IROpCode.SCOPE_BEGIN:
                 scope_name = instr.get_operands()[0]
                 if scope_name in scopes_to_remove:
                     iterator.remove_current()
@@ -126,9 +126,9 @@ class UselessScopeRemovalPass(IROptimizationPass):
                     delete_level = 1
 
             elif delete_level > 0:
-                if isinstance(instr, IRScopeBegin):
+                if instr.opcode == IROpCode.SCOPE_BEGIN:
                     delete_level += 1
-                elif isinstance(instr, IRScopeEnd):
+                elif instr.opcode == IROpCode.SCOPE_END:
                     delete_level -= 1
                     iterator.remove_current()
                     self._changed = True

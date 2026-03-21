@@ -1,4 +1,6 @@
 # coding=utf-8
+from math import floor
+
 from dovetail.core.enums import BinaryOps
 from dovetail.core.optimize.passes import ConstantFoldingPass
 from ._scoreboard import ScoreboardBuilder
@@ -28,7 +30,7 @@ class BinaryOp:
 
     @staticmethod
     def _op_both_literal(op: BinaryOps, a: int | str, b: int | str):
-        return ConstantFoldingPass.BINARY_OP_HANDLERS[op](a, b)
+        return floor(ConstantFoldingPass.BINARY_OP_HANDLERS[op](a, b))
 
     @staticmethod
     def _select_command(op: BinaryOps, target: DataPath, source: DataPath):

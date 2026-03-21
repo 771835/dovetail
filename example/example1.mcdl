@@ -5,7 +5,7 @@ typedef int i32
 struct awa {
     man:i32
 }
-fn foo();
+fn foo() -> i32;
 @init
 fn bar(){
     if (foo()==350234 / 1 ) {

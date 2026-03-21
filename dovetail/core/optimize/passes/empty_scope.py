@@ -53,12 +53,12 @@ class EmptyScopeRemovalPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            if isinstance(instr, IRScopeBegin):
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
                 scope_name = instr.get_operands()[0]
                 scope_stack.append(scope_name)
                 current_scope = scope_name
                 self.scope_instructions[scope_name] = []
-            elif isinstance(instr, IRScopeEnd):
+            elif instr.opcode == IROpCode.SCOPE_END:
                 if scope_stack:
                     scope_stack.pop()
                     current_scope = scope_stack[-1] if scope_stack else "global"
@@ -81,11 +81,11 @@ class EmptyScopeRemovalPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            if isinstance(instr, IRJump):
+            if instr.opcode == IROpCode.JUMP:
                 if instr.operands[0] in self.empty_scopes:
                     iterator.remove_current()
                     self._changed = True
-            elif isinstance(instr, IRCondJump):
+            elif instr.opcode == IROpCode.COND_JUMP:
                 cond = instr.operands[0]
                 a = None if instr.operands[1] in self.empty_scopes else instr.operands[1]
                 b = None if instr.operands[2] in self.empty_scopes else instr.operands[2]
@@ -109,19 +109,19 @@ class EmptyScopeRemovalPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            if isinstance(instr, IRScopeBegin):
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
                 scope_name = instr.get_operands()[0]
                 stype = instr.get_operands()[1]
                 if scope_name in self.empty_scopes and stype not in (StructureType.FUNCTION, StructureType.CLASS):
                     iterator.remove_current()
                     self._changed = True
                     deleting_scope = scope_name
-            elif isinstance(instr, IRScopeEnd):
+            elif instr.opcode == IROpCode.SCOPE_END:
                 if deleting_scope is not None:
                     iterator.remove_current()
                     self._changed = True
                     deleting_scope = None
-            elif isinstance(instr, (IRFunction, IRClass)):
+            elif instr.opcode in (IROpCode.FUNCTION, IROpCode.CLASS):
                 pass
             else:
                 if deleting_scope is not None:

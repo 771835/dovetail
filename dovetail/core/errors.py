@@ -74,6 +74,9 @@ class Errors(SafeEnum):
     PrimitiveTypeOperation = (0x2006, "基本类型操作错误", "不支持的操作：'%s' 不能应用于基本类型 '%s'。",
                               ErrorType.SemanticError)
 
+    CompareTypeMismatch = (0x2007, "比较对象类型不匹配", "比较对象类型不匹配 '%s' 和 '%s' 不可比较。",
+                           ErrorType.SemanticError)
+
     # 所有权与可变性错误
     MutabilityViolation = (0x2007, "可变性冲突", "尝试修改不可变变量 '%s'。", ErrorType.SemanticError)
     InvalidMutUsage = (0x2008, "无效 mut 使用", "'mut' 关键字不能应用于类型 '%s'。", ErrorType.SemanticError)

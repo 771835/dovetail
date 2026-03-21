@@ -1082,6 +1082,14 @@ class ASTVisitor(Interpreter):
         if not left.get_dtype().is_subclass_of(right.get_dtype()) and not right.get_dtype().is_subclass_of(
                 left.get_dtype()):
             # 当两方类型不同时不进行比较
+            self._report(
+                Errors.CompareTypeMismatch,
+                repr(left.get_dtype()),
+                repr(right.get_dtype()),
+                filepath=self.filepath,
+                line=meta.line,
+                column=meta.column
+            )
             return Reference.literal(False)
 
         # 生成唯一结果变量
@@ -1240,7 +1248,7 @@ class ASTVisitor(Interpreter):
 
     @v_args(meta=True)
     def local_assignment(self, children: list[Token | Tree | int], meta: Meta):
-        # TODO
+        # TODO: 需要测试
         variable_ref: Reference = self.visit(children.pop(0))
         if variable_ref.value_type != ValueType.VARIABLE:
             self._report(
@@ -1252,7 +1260,7 @@ class ASTVisitor(Interpreter):
                 line=meta.line,
                 column=meta.column
             )
-            return
+            return None
         variable: Variable = variable_ref.value
         if not variable.is_mutable():
             self._report(

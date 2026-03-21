@@ -146,7 +146,7 @@ class ConstantFoldingPass(IROptimizationPass):
         scope_stack = []
 
         for instr in self.builder.get_instructions():
-            if isinstance(instr, IRScopeBegin):
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
                 scope_name = instr.get_operands()[0]
                 scope_type = instr.get_operands()[1]
 
@@ -160,7 +160,7 @@ class ConstantFoldingPass(IROptimizationPass):
 
                 scope_stack.append(scope_name)
 
-            elif isinstance(instr, IRScopeEnd):
+            elif instr.opcode == IROpCode.SCOPE_END:
                 if scope_stack:
                     scope_stack.pop()
 
