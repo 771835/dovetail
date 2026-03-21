@@ -5,6 +5,7 @@ typedef int i32
 struct awa {
     man:i32
 }
+
 fn foo() -> i32;
 @init
 fn bar(){
