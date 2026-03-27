@@ -6,10 +6,22 @@ from enum import Enum
 from typing import Any, Dict, Union
 
 from dovetail.core.config import PROJECT_VERSION
-from dovetail.core.enums.types import DataTypeBase, DataType
+from dovetail.core.enums import CompareOps, FunctionType, ClassType, BinaryOps, UnaryOps
+from dovetail.core.enums.types import DataTypeBase, DataType, StructureType, AnnotationCategory
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.symbols import Symbol, Literal, Parameter, Reference, Class, Function, Variable
 from dovetail.utils.binary_serializer import BinarySerializer
+
+restore_enums_ref: dict[str, type[Enum]] = {
+    "DataType": DataType,
+    "StructureType": StructureType,
+    "FunctionType": FunctionType,
+    "ClassType": ClassType,
+    "AnnotationCategory": AnnotationCategory,
+    "UnaryOps": UnaryOps,
+    "BinaryOps": BinaryOps,
+    "CompareOps": CompareOps
+}
 
 
 class IRSymbolSerializer:
@@ -72,7 +84,7 @@ class IRSymbolSerializer:
             metadata['function_type'] = id(symbol.function_type)
         elif isinstance(symbol, Variable):
             metadata['dtype'] = id(symbol.dtype)
-            metadata['var_type'] = symbol.var_type.value
+            metadata['var_type'] = id(symbol.var_type)
             metadata['mutable'] = symbol.mutable
         elif isinstance(symbol, Class):
             metadata['methods'] = [id(func_symbol) for func_symbol in symbol.methods]
@@ -117,6 +129,9 @@ class IRSymbolSerializer:
             self._add_symbol_id_map(symbol.type)
             self._add_symbol_id_map(symbol.interface)
             self._add_symbol_id_map(symbol.parent)
+        elif isinstance(symbol, Variable):
+            self._add_symbol_id_map(symbol.dtype)
+            self._add_symbol_id_map(symbol.var_type)
         elif isinstance(symbol, (list, tuple, set)):
             for i in symbol:
                 self._add_symbol_id_map(i)
@@ -188,9 +203,8 @@ class IRSymbolSerializer:
                 id_to_symbol[symbol_id] = []
             elif symbol_type == 'dict':
                 id_to_symbol[symbol_id] = {}
-            elif symbol_type in 'DataType':
-                # 枚举类型
-                id_to_symbol[symbol_id] = DataType.from_literal(metadata['value'])
+            elif symbol_type in restore_enums_ref:
+                id_to_symbol[symbol_id] = restore_enums_ref[symbol_type](metadata['value'])
             else:
                 # 复杂符号类型，先占位
                 id_to_symbol[symbol_id] = None
@@ -212,12 +226,12 @@ class IRSymbolSerializer:
         for symbol_id_str, metadata in serialized['symbol'].items():
             symbol_id = int(symbol_id_str)
             if metadata['symbol_type'] == 'Variable':
-                dtype_id = metadata.get('dtype')
-                var_type_id = metadata.get('var_type')
+                dtype = id_to_symbol.get(metadata.get('dtype'))
+                var_type = id_to_symbol.get(metadata.get('var_type'))
                 id_to_symbol[symbol_id] = Variable(
                     name=metadata['symbol_name'],
-                    dtype=id_to_symbol.get(dtype_id) if dtype_id else DataType.UNDEFINED,
-                    var_type=id_to_symbol.get(var_type_id) if var_type_id else None,
+                    dtype=dtype or DataType.UNDEFINED,
+                    var_type=var_type or None,
                     mutable=metadata.get('mutable', True)
                 )
 

@@ -11,8 +11,6 @@ from .commands.builtins import TemplateRegistry
 from .initializer_function_writer import InitializerFunctionWriter
 from .literal_pool_writer import LiteralPoolWriter
 
-PACK_FORMAT_1214 = 61
-
 
 class JE1214Backend(Backend):
     def __init__(self, ir_builder: IRBuilder, target: Path, config: CompileConfig):
@@ -33,7 +31,7 @@ class JE1214Backend(Backend):
         # 处理IR指令
         self._process_instructions(context)
 
-        # 优化生成指令
+        # 优化生成指令末尾的return
         for scope in context.get_all_scopes():
             if len(scope.commands) > 0 and scope.commands[-1].startswith("return "):
                 scope.commands.pop()
@@ -79,7 +77,7 @@ class JE1214Backend(Backend):
             if self.config.debug:
                 templates[template_.function_path] = \
                     f'''# {template_.function_path}
-# {template_.name}({", ".join(template_.param_names)}, {", ".join(f"{name}={value}" for name, value in template_.optional_params.items())})
+# {template_.name}({", ".join(template_.param_names)}, {", ".join(f"{name}={repr(value)}" for name, value in template_.optional_params.items())})
 # {template_.description}
 '''
             else:

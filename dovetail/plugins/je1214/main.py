@@ -10,7 +10,7 @@ class PluginMain(Plugin):
     logger = None
 
     def load(self):
-        self.logger = get_logger("Backend1.21.4JE")
+        self.logger = get_logger("Backend-1.21.4-JE")
         self.logger.info("Loading plugin...")
         registry_backend(JE1214Backend)
 

@@ -32,8 +32,7 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 | [DFP 6](./DFP-6.md)       | 内置注解规范                        | Proposed    | 核心语言         | -           |
 | [DFP 7](./DFP-7.md)       | 错误恢复及报告机制                     | Accepted    | 核心语言         | -           |
 | [DFP 8](./DFP-8.md)       | 命名归一化策略                       | Draft       | 核心语言         | -           |
-| [DFP 300](./DFP-300.md)   | 内置函数                          | Active      | 标准库          | -           |
-| [DFP 301](./DFP-301.md)   | 后端指令生成函数表                     | Active      | 内置模块         | -           |
+| [DFP 300](./DFP-300.md)   | 内置函数系统                        | Active      | 标准库          | -           |
 | DFP 600                   | 语言服务器协议                       | Deferred    | 工具链          | 未编写         |
 | [DFP 602](./DFP-602.md)   | 插件系统规范                        | Draft       | 	工具链         | -           |
 | [DFP 603](./DFP-603.md)   | 编译缓存与增量编译                     | Draft       | 编译器          | -           |
