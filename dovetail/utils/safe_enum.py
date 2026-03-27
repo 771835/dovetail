@@ -11,6 +11,8 @@ import warnings
 from enum import Enum
 from typing import Any, Callable, Self
 
+from dovetail.core.config import FAST_MODE
+
 
 class SafeEnum(Enum):
     """
@@ -26,75 +28,77 @@ class SafeEnum(Enum):
         GREEN = "green"
     """
 
-    def __eq__(self, other: Any) -> bool:
-        """
-        重载等于运算符，添加类型安全检查
+    if not FAST_MODE:
 
-        Args:
-            other (Any): 要比较的对象
+        def __eq__(self, other: Any) -> bool:
+            """
+            重载等于运算符，添加类型安全检查
 
-        Returns:
-            bool: 比较结果
-        """
-        return self._type_checked_compare(other, super().__eq__)
+            Args:
+                other (Any): 要比较的对象
 
-    def __ne__(self, other: Any) -> bool:
-        """
-        重载不等于运算符，添加类型安全检查
+            Returns:
+                bool: 比较结果
+            """
+            return self._type_checked_compare(other, super().__eq__)
 
-        Args:
-            other (Any): 要比较的对象
+        def __ne__(self, other: Any) -> bool:
+            """
+            重载不等于运算符，添加类型安全检查
 
-        Returns:
-            bool: 比较结果
-        """
-        return self._type_checked_compare(other, super().__ne__)
+            Args:
+                other (Any): 要比较的对象
 
-    def _type_checked_compare(self, other: Any,
-                              compare_func: Callable) -> bool:
-        """
-        执行类型检查并调用比较函数
+            Returns:
+                bool: 比较结果
+            """
+            return self._type_checked_compare(other, super().__ne__)
 
-        Args:
-            other (Any): 比较对象
-            compare_func (Callable): 原始比较函数
+        def _type_checked_compare(self, other: Any,
+                                  compare_func: Callable) -> bool:
+            """
+            执行类型检查并调用比较函数
 
-        Returns:
-            bool: 比较结果布尔值
-        """
-        if isinstance(other, Enum) and not self._is_same_enum_type(other):
-            self._handle_type_mismatch(other)
-        return compare_func(other)
+            Args:
+                other (Any): 比较对象
+                compare_func (Callable): 原始比较函数
 
-    def _is_same_enum_type(self, other: Enum) -> bool:
-        """
-        检查是否为相同枚举类型或继承的类型
+            Returns:
+                bool: 比较结果布尔值
+            """
+            if isinstance(other, Enum) and not self._is_same_enum_type(other):
+                self._handle_type_mismatch(other)
+            return compare_func(other)
 
-        Args:
-            other (Enum): 要比较的枚举对象
+        def _is_same_enum_type(self, other: Enum) -> bool:
+            """
+            检查是否为相同枚举类型或继承的类型
 
-        Returns:
-            bool: 如果是相同类型返回True，否则返回False
-        """
-        return (
-            isinstance(other, self.__class__)
-        )
+            Args:
+                other (Enum): 要比较的枚举对象
 
-    def _handle_type_mismatch(self, other: Enum) -> None:
-        """
-        处理类型不匹配情况
+            Returns:
+                bool: 如果是相同类型返回True，否则返回False
+            """
+            return (
+                isinstance(other, self.__class__)
+            )
 
-        Args:
-            other (Enum): 类型不匹配的枚举对象
+        def _handle_type_mismatch(self, other: Enum) -> None:
+            """
+            处理类型不匹配情况
 
-        Returns:
-            None: 无返回值
-        """
-        err_msg = (
-            f"Enum type mismatch: Comparing {self.__class__.__name__} "
-            f"with {other.__class__.__name__}"
-        )
-        warnings.warn(err_msg, UserWarning, stacklevel=3)
+            Args:
+                other (Enum): 类型不匹配的枚举对象
+
+            Returns:
+                None: 无返回值
+            """
+            err_msg = (
+                f"Enum type mismatch: Comparing {self.__class__.__name__} "
+                f"with {other.__class__.__name__}"
+            )
+            warnings.warn(err_msg, UserWarning, stacklevel=3)
 
     @classmethod
     def is_valid_value(cls, value: Any) -> bool:

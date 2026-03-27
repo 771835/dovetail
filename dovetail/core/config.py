@@ -9,7 +9,7 @@ from dovetail.utils.logger import ThreadSafeLogger
 # 项目信息
 PROJECT_NAME = "Dovetail"
 PROJECT_WEBSITE = "https://github.com/771835/dovetail"
-PROJECT_VERSION = "1.0.1-2026.3.14"
+PROJECT_VERSION = "1.0.1-2026.3.27"
 
 # 文件后缀
 FILE_PREFIX = ".mcdl"
@@ -17,7 +17,9 @@ CACHE_FILE_PREFIX = ".mcdc"
 
 # 杂项
 MAX_FILE_SIZE = 1024 * 1024 * 1024  # 最大允许单个文件1GB大小
-USED_FUTURE_INSTRUCTIONS = True # 临时选项: 启用新版IR指令类型
+FAST_MODE = True  # 禁用一些编译器的类型检查以加速代码运行
+USED_FUTURE_INSTRUCTIONS = True  # 临时选项: 启用新版IR指令
+ENABLE_FUTURE_INSTRUCTION_VALIDATION = True  # 临时选项: 启用新版IR指令类型效验，当 FAST_MODE 开启时无效
 
 # 目录编译配置文件
 PACK_CONFIG_VALIDATOR = fastjsonschema.compile({

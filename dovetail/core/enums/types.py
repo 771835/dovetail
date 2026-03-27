@@ -122,6 +122,19 @@ class DataType(DataTypeBase, SafeEnum):
     def is_definable(self) -> bool:
         return self not in (DataType.UNDEFINED, DataType.NULL_TYPE)
 
+    @staticmethod
+    def from_literal(literal: int | str | bool | float | None):
+        if isinstance(literal, bool):
+            return DataType.BOOLEAN
+        elif isinstance(literal, int):
+            return DataType.INT
+        elif isinstance(literal, str):
+            return DataType.STRING
+        elif literal is None:
+            return DataType.NULL_TYPE
+        else:
+            raise TypeError(f"Unsupported literal type: {type(value)}")
+
 
 class Array(DataTypeBase):
     """

@@ -2,9 +2,7 @@
 """
 输出管理系统
 """
-import os
 import shutil
-import tempfile
 import zipfile
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -171,24 +169,67 @@ class DependentDatapackWriter(OutputWriter):
     @staticmethod
     def _extract_zipfile(zip_path, extract_to) -> bool:
         with zipfile.ZipFile(zip_path) as zip_ref:
-            # 创建临时目录
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # 先解压到临时目录
-                zip_ref.extractall(temp_dir)
-                # 检查是否需要子目录提取
-                if os.path.exists(os.path.join(temp_dir, 'pack.mcmeta')):
-                    # 直接移动所有文件
-                    shutil.copytree(temp_dir, extract_to, dirs_exist_ok=True)
+            namelist = zip_ref.namelist()
+
+            # 定位根目录
+            pack_root = ''
+            if 'pack.mcmeta' not in namelist:
+                for name in namelist:
+                    if '/' in name and name.count('/') == 1 and name.endswith('pack.mcmeta'):
+                        pack_root = name.rsplit('/', 1)[0] + '/'
+                        break
                 else:
-                    # 查找包含pack.mcmeta的子目录
-                    for item in os.listdir(temp_dir):
-                        item_path = os.path.join(temp_dir, item)
-                        if os.path.isdir(item_path) and os.path.exists(os.path.join(item_path, 'pack.mcmeta')):
-                            shutil.copytree(item_path, extract_to, dirs_exist_ok=True)
-                            break
-                    else:
-                        return False
-        return True
+                    return False
+
+            prefix_len = len(pack_root)
+
+            # 收集文件信息
+            files_to_extract = []
+            dirs_needed = set()
+
+            for member in zip_ref.infolist():
+                if member.is_dir() or not member.filename.startswith(pack_root):
+                    continue
+
+                relative_path = member.filename[prefix_len:]
+                if not relative_path:
+                    continue
+
+                target_path = extract_to / relative_path
+                files_to_extract.append((member, target_path, member.file_size))
+                dirs_needed.add(target_path.parent)
+
+            # 批量创建目录
+            extract_to.mkdir(parents=True, exist_ok=True)
+            for d in sorted(dirs_needed, key=lambda p: len(p.parts)):
+                d.mkdir(exist_ok=True)
+
+            # 按大小排序：先处理小文件（利用缓存局部性）
+            files_to_extract.sort(key=lambda x: x[2])
+
+            # 批量读取小文件（< 1MB）
+            small_threshold = 1048576
+            small_data = {}
+
+            for member, target, size in files_to_extract:
+                if size < small_threshold:
+                    small_data[target] = zip_ref.read(member)
+                else:
+                    break  # 已排序，后面都是大文件
+
+            # 批量写入小文件
+            for target, data in small_data.items():
+                target.write_bytes(data)
+
+            # 流式处理大文件
+            for member, target, size in files_to_extract:
+                if size >= small_threshold:
+                    buffer_size = min(2097152, max(262144, size // 10))  # 自适应 buffer
+                    with zip_ref.open(member) as src:
+                        with open(target, 'wb', buffering=buffer_size) as dst:
+                            shutil.copyfileobj(src, dst, length=buffer_size)
+
+            return True
 
     def get_name(self) -> str:
         return "dependent_datapack_writer"

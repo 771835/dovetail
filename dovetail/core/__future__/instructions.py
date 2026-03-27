@@ -8,11 +8,10 @@ IR 指令系统
 3. 使用工厂函数提供类型提示和自动补全
 4. 可选的运行时验证（通过装饰器控制）
 """
-from __future__ import annotations
-
 import functools
 from typing import Any, Optional, Union, get_type_hints, Callable
 
+from dovetail.core.config import ENABLE_FUTURE_INSTRUCTION_VALIDATION, FAST_MODE
 from dovetail.core.enums import DataType, StructureType, BinaryOps, CompareOps, UnaryOps
 from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
 from dovetail.utils.safe_enum import SafeEnum
@@ -73,14 +72,15 @@ class IROpCode(SafeEnum):
         self.desc = desc
         self.category = category
 
+    @classmethod
+    def find(cls, code: int):
+        return next(cls(val) for name, val in zip(cls.names(), cls.values()) if val[0] == code)
+
     def __hash__(self):
         return hash(self.value)
 
 
 # ==================== 验证系统 ====================
-
-# 全局开关：是否启用验证（可通过环境变量或配置控制）
-ENABLE_VALIDATION = True  # 开发时 True，发布时 False
 
 
 class ValidationError(Exception):
@@ -97,7 +97,7 @@ def validate_instruction(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        if not ENABLE_VALIDATION:
+        if FAST_MODE or not ENABLE_FUTURE_INSTRUCTION_VALIDATION:
             return func(*args, **kwargs)
 
         # 获取函数签名的类型注解
@@ -305,7 +305,7 @@ def IRCondJump(
         ValidationError: 如果条件不是布尔类型
     """
     # 类型验证
-    if ENABLE_VALIDATION:
+    if not FAST_MODE and ENABLE_FUTURE_INSTRUCTION_VALIDATION:
         if not DataType.BOOLEAN.is_subclass_of(condition.dtype):
             raise ValidationError(
                 f"条件跳转要求布尔类型，实际得到 {condition.dtype}"
@@ -619,7 +619,7 @@ def IRCompare(
     Raises:
         ValidationError: 如果结果变量不是布尔类型
     """
-    if ENABLE_VALIDATION and result.dtype != DataType.BOOLEAN:
+    if not FAST_MODE and ENABLE_FUTURE_INSTRUCTION_VALIDATION and result.dtype != DataType.BOOLEAN:
         raise ValidationError(f"比较结果必须是布尔类型，实际得到 {result.dtype}")
 
     return IRInstruction(IROpCode.COMPARE, result, op, left, right)

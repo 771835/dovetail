@@ -8,6 +8,7 @@ from attrs import define
 from .base import Symbol
 from .literal import Literal
 from .variable import Variable
+from ..config import FAST_MODE
 from ..enums.types import DataTypeBase, DataType, ValueType, VariableType
 
 T = TypeVar('T', bound=Symbol)
@@ -17,10 +18,13 @@ T = TypeVar('T', bound=Symbol)
 class Reference(Symbol, Generic[T]):
     value: T
 
-    def __attrs_post_init__(self):
-        if isinstance(self.value, Reference):
-            # 对于多重引用的情况自动拆解
-            self.value = self.value.value # type: ignore
+    if not FAST_MODE:
+        def __attrs_post_init__(self):
+            if isinstance(self.value, Reference):
+                # 对于多重引用的情况自动拆解
+                self.value = self.value.value  # type: ignore
+                from warnings import warn
+                warn("不应该存在的多重引用")
 
     @property
     def value_type(self) -> ValueType:
@@ -50,21 +54,12 @@ class Reference(Symbol, Generic[T]):
         return self.value.get_dtype()
 
     @classmethod
-    def literal(cls:type[Reference[Literal]], value: bool | int | float | str | None) -> Reference[Literal]:
-        
-        if isinstance(value, bool):
-            return cls(Literal(DataType.BOOLEAN, value))
-        elif isinstance(value, (int, float)):
-            return cls(Literal(DataType.INT, int(value)))
-        elif isinstance(value, str):
-            return cls(Literal(DataType.STRING, str(value)))
-        elif value is None:
-            return cls(Literal(DataType.NULL_TYPE, None))
-        else:
-            raise TypeError(f"Unsupported literal type: {type(value)}")
+    def literal(cls: type[Reference[Literal]], value: bool | int | float | str | None) -> Reference[Literal]:
+        return cls(Literal(DataType.from_literal(value), value))
 
     @classmethod
-    def variable(cls:type[Reference[Variable]], var_name:str, dtype: DataType, var_type: VariableType = VariableType.COMMON,
+    def variable(cls: type[Reference[Variable]], var_name: str, dtype: DataType,
+                 var_type: VariableType = VariableType.COMMON,
                  mutable: bool = True) -> Reference[Variable]:
         return cls(Variable(var_name, dtype, var_type, mutable))
 
