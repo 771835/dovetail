@@ -23,19 +23,18 @@ AST 转换器模块 - Dovetail 编译器前端
 import ast
 import itertools
 import typing
-import time
 from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable, Any, Optional
 
-from lark import Lark, Tree, v_args, Token
+from lark import Tree, v_args, Token
 from lark.tree import Meta
 from lark.visitors import Interpreter
 
 from dovetail.core import builtin_annotation
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.config import MAX_FILE_SIZE, get_project_logger
+from dovetail.core.config import MAX_FILE_SIZE
 from dovetail.core.enums import (
     StructureType, DataType, VariableType,
     MinecraftVersion, MinecraftEdition, FunctionType, ValueType, BinaryOps, UnaryOps, CompareOps
@@ -51,7 +50,7 @@ from dovetail.core.instructions import (
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
 from dovetail.core.lib.library_mapping import LibraryMapping
-from dovetail.core.parser.fstring_parser import parse_fstring_iter
+from dovetail.core.parser.parser import parser_file, parse_fstring_iter
 from dovetail.core.parser.tool.declaration_handler import DeclarationHandler
 from dovetail.core.parser.tool.error_reporter import ErrorReporter
 from dovetail.core.parser.tool.ir_emitter import IREmitter
@@ -63,60 +62,11 @@ from dovetail.core.symbols import Variable, Reference, Literal, Function, Class,
 from dovetail.core.symbols.annotation import Annotation
 from dovetail.core.symbols.structure import Structure
 from dovetail.core.symbols.typedef import Typedef
-from dovetail.utils.logger import get_logger
 from dovetail.utils.naming import NameNormalizer
-
-# 初始化 Lark 解析器
-lark_parser = Lark(
-    open(r".\lark\dovetail.lark", encoding='utf-8').read(),
-    start="program",
-    parser='lalr',
-    cache=".lark_cache",
-    propagate_positions=True,
-    maybe_placeholders=True
-)
 
 _n = NameNormalizer.normalize
 _dn = NameNormalizer.denormalize
 
-
-def parser_file(filepath: Path | str, start: Optional[str] = None) -> Tree | None:
-    """
-    解析代码文件生成 AST
-
-    Args:
-        filepath: 代码文件路径
-        start: 语法解析起点（可选）
-
-    Returns:
-        AST 树，如果文件不存在或解析失败则返回 None
-    """
-    start_time = time.perf_counter()
-
-    filepath = Path(filepath)
-    if not filepath.exists() or not filepath.is_file():
-        return None
-
-    if filepath.stat().st_size >= MAX_FILE_SIZE:
-        report(
-            Errors.ResourceExhaustion,
-            f"文件体积过大，最大支持{MAX_FILE_SIZE}字节，实际{filepath.stat().st_size}字节",
-            filepath=filepath,
-            suggestion="单文件战神"
-        )
-        return None
-
-    with open(filepath, encoding='utf-8') as f:
-        code = f.read()
-
-    parse_start = start if start is not None else "program"
-
-    tree = lark_parser.parse(code, start=parse_start)  # , on_error=lambda e: True)
-
-    elapsed = time.perf_counter() - start_time
-    logger = get_project_logger() or get_logger("time")
-    logger.info(f"解析文件 '{filepath.name}' 用时 {elapsed:.5f}.")
-    return tree
 
 
 class ASTVisitor(Interpreter):

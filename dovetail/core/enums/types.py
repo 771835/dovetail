@@ -123,14 +123,14 @@ class DataType(DataTypeBase, SafeEnum):
         return self not in (DataType.UNDEFINED, DataType.NULL_TYPE)
 
     @staticmethod
-    def from_literal(literal: int | str | bool | float | None):
-        if isinstance(literal, bool):
+    def from_literal(value: int | str | bool | float | None):
+        if isinstance(value, bool):
             return DataType.BOOLEAN
-        elif isinstance(literal, int):
+        elif isinstance(value, int):
             return DataType.INT
-        elif isinstance(literal, str):
+        elif isinstance(value, str):
             return DataType.STRING
-        elif literal is None:
+        elif value is None:
             return DataType.NULL_TYPE
         else:
             raise TypeError(f"Unsupported literal type: {type(value)}")
