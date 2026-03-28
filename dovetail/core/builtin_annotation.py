@@ -17,6 +17,7 @@ _annotations: dict[str, Annotation] = {
     "since": Annotation("author", {"version": ""}, AnnotationCategory.CONDITIONAL)
 }
 
+
 def get_annotation(name: str) -> Annotation | None:
     """
     获取内建注解的注解对象

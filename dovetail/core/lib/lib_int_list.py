@@ -16,7 +16,7 @@ from dovetail.utils.naming import NameNormalizer
 class IntList(Library):
     def __init__(self, builder: IRBuilder):
         self.builder = builder
-        self.classes: dict[Class, dict[str, Callable[..., Variable  | Literal | None]]] = {}
+        self.classes: dict[Class, dict[str, Callable[..., Variable | Literal | None]]] = {}
         # 初始化处理第一个类
         int_list_setitem_params = []
         int_list_getitem_params = []
@@ -182,7 +182,7 @@ class IntList(Library):
             "pop": self._pop
         }
 
-    def _clear(_self, self: Reference[Variable  | Literal]):
+    def _clear(_self, self: Reference[Variable | Literal]):
         _self.builder.insert(
             IRCall(
                 self.value,
@@ -206,9 +206,9 @@ class IntList(Library):
             )
         )
 
-    def _setitem(_self, self: Reference[Variable  | Literal],
-                 index: Reference[Variable  | Literal],
-                 value: Reference[Variable  | Literal]) -> None:
+    def _setitem(_self, self: Reference[Variable | Literal],
+                 index: Reference[Variable | Literal],
+                 value: Reference[Variable | Literal]) -> None:
         _self.builder.insert(
             IRCall(
                 self.value,
@@ -248,8 +248,8 @@ class IntList(Library):
             )
         )
 
-    def _append(_self, self: Reference[Variable  | Literal],
-                value: Reference[Variable  | Literal]) -> None:
+    def _append(_self, self: Reference[Variable | Literal],
+                value: Reference[Variable | Literal]) -> None:
         _self.builder.insert(
             IRCall(
                 self.value,
@@ -281,8 +281,8 @@ class IntList(Library):
             )
         )
 
-    def _getitem(_self, self: Reference[Variable  | Literal],
-                 index: Reference[Variable  | Literal]):
+    def _getitem(_self, self: Reference[Variable | Literal],
+                 index: Reference[Variable | Literal]):
         result_var = Variable(
             "result_" + uuid.uuid4().hex[:8],
             DataType.INT,
@@ -320,7 +320,7 @@ class IntList(Library):
 
         return result_var
 
-    def _init(_self, self: Reference[Variable ]) -> None:
+    def _init(_self, self: Reference[Variable]) -> None:
         _self.builder.insert(
             IRCall(
                 self.value,
@@ -345,7 +345,7 @@ class IntList(Library):
         )
         return
 
-    def _pop(_self, self: Reference[Variable ], index: Reference[Variable  | Literal]):
+    def _pop(_self, self: Reference[Variable], index: Reference[Variable | Literal]):
         result_var = Variable(
             "result_" + uuid.uuid4().hex[:8],
             DataType.INT,
@@ -389,11 +389,11 @@ class IntList(Library):
     def load(self) -> list[IRInstruction]:
         return []
 
-    def get_functions(self) -> dict[Function, Callable[..., Variable  | Literal]]:
+    def get_functions(self) -> dict[Function, Callable[..., Variable | Literal]]:
         return {}
 
     def get_variables(self) -> dict[Variable, Reference]:
         return {}
 
-    def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable  | Literal]]]:
+    def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Literal]]]:
         return self.classes

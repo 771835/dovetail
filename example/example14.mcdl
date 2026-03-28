@@ -623,6 +623,7 @@ fn matrix16x16_multiply(
 }
 
 // 16×16随机矩阵乘法测试
+@init
 fn main() {
     print("=== 16×16随机矩阵乘法测试 ===");
     print("");

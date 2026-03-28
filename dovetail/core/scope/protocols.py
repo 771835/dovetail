@@ -5,6 +5,7 @@
 定义所有 mixin 必须遵循的接口契约，确保类型安全和互操作性。
 """
 from typing import Self, Protocol
+
 from dovetail.core.enums.types import StructureType
 from dovetail.core.symbols.base import Symbol
 

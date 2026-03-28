@@ -15,9 +15,9 @@ from typing import List, Dict
 
 # 正则表达式匹配：name (type): description
 name_type_desc_pattern = re.compile(
-    r"^(?P<name>[\w.]+)\s*" # name
-    r"\(\s*(?P<type>[\w\s\[\],.*'\"|]+)*\s*\)\s*" # type
-    r":(?P<description>.+)$" # description
+    r"^(?P<name>[\w.]+)\s*"  # name
+    r"\(\s*(?P<type>[\w\s\[\],.*'\"|]+)*\s*\)\s*"  # type
+    r":(?P<description>.+)$"  # description
 )
 
 # 颜色支持 - 使用 colorama 实现跨平台颜色输出
@@ -451,7 +451,7 @@ class CodeVisitor(ast.NodeVisitor):
 
     def visit_AsyncFunctionDef(self, node):
         """检查异步函数定义"""
-        self.visit_FunctionDef(node) # NOQA: 异步函数拥有与普通函数相同的属性
+        self.visit_FunctionDef(node)  # NOQA: 异步函数拥有与普通函数相同的属性
 
     def visit_Assign(self, node):
         """检查变量赋值"""

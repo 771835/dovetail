@@ -29,6 +29,7 @@ DEFAULT_MINECRAFT_VERSION_TO_DATAPACK_FORMAT_MAP = {
     '1.21.7': 81,
     '1.21.9': 88.0,
     '1.21.11': 94.1,
+    '26.1': 101.1
 }
 
 wiki_table_pattern = re.compile(r'<tab.*?标志.*?/table>', re.DOTALL)

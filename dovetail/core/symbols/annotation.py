@@ -8,7 +8,7 @@ from ..enums import DataType
 from ..enums.types import AnnotationCategory, DataTypeBase
 
 
-@define(slots=True, hash=False, frozen=True,repr=False)
+@define(slots=True, hash=False, frozen=True, repr=False)
 class Annotation(Symbol):
     name: str  # 注解名称
     params: Optional[dict[str, Any]]  # 参数字典

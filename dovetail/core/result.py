@@ -9,6 +9,7 @@ from dovetail.core.enums.types import DataType
 from dovetail.core.symbols.literal import Literal
 from dovetail.core.symbols.reference import Reference
 
+
 @deprecated("表达式求值结果容器已被取消")
 @define(slots=True, frozen=True)
 class Result:

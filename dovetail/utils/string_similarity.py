@@ -4,8 +4,8 @@
 用于编译器错误提示中的智能建议
 """
 
-from typing import Optional
 from difflib import SequenceMatcher
+from typing import Optional
 
 
 class StringSimilarity:

@@ -12,7 +12,7 @@ from dovetail.utils.logger import get_logger
 # 初始化 Lark 解析器
 lark_parser = Lark(
     open(r".\lark\dovetail.lark", encoding='utf-8').read(),
-    start="program",
+    start=["program", "expr"],
     parser='lalr',
     cache=".lark_cache",
     propagate_positions=True,
@@ -20,7 +20,7 @@ lark_parser = Lark(
 )
 
 
-def parser_code(code: str, start: Optional[int] = None) -> Optional[Tree]:
+def parser_code(code: str, start: Optional[str] = None) -> Optional[Tree]:
     """
     解析代码生成 AST
 
@@ -72,6 +72,7 @@ def parser_file(filepath: Path | str, start: Optional[str] = None) -> Optional[T
     logger = get_project_logger() or get_logger("time")
     logger.info(f"解析文件 '{filepath.name}' 用时 {elapsed:.5f}.")
     return tree
+
 
 def parse_fstring_iter(fstring: str):
     """

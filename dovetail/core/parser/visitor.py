@@ -28,7 +28,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Callable, Any, Optional
 
-from lark import Tree, v_args, Token
+from lark import Tree, v_args, Token, LarkError
 from lark.tree import Meta
 from lark.visitors import Interpreter
 
@@ -50,11 +50,11 @@ from dovetail.core.instructions import (
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
 from dovetail.core.lib.library_mapping import LibraryMapping
-from dovetail.core.parser.parser import parser_file, parse_fstring_iter
+from dovetail.core.parser.parser import parser_file, parse_fstring_iter, parser_code
+from dovetail.core.parser.scope import Scope
 from dovetail.core.parser.tool.declaration_handler import DeclarationHandler
 from dovetail.core.parser.tool.error_reporter import ErrorReporter
 from dovetail.core.parser.tool.ir_emitter import IREmitter
-from dovetail.core.parser.scope import Scope
 from dovetail.core.parser.tool.symbol_resolver import SymbolResolver
 from dovetail.core.parser.tool.type_checker import TypeChecker
 from dovetail.core.scope.protocols import ScopeCore
@@ -66,7 +66,6 @@ from dovetail.utils.naming import NameNormalizer
 
 _n = NameNormalizer.normalize
 _dn = NameNormalizer.denormalize
-
 
 
 class ASTVisitor(Interpreter):
@@ -1094,7 +1093,6 @@ class ASTVisitor(Interpreter):
         value = self.visit(children.pop(0))
         return value, is_mutable
 
-
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""
         return Reference.literal(None)
@@ -1126,9 +1124,60 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def fstring(self, children: list[Token | Tree | int], meta: Meta):
         """处理f-string"""
-        for data_type,data in parse_fstring_iter(children.pop().value):
-            pass
+        result = self.ir_emitter.create_temp_var_declared(DataType.STRING, "fstring")
+        for data_type, data in parse_fstring_iter(children.pop().value):
+            if data_type == 'literal':
+                # 将字面量加到结果变量末尾
+                self.ir_emitter.emit(
+                    IRBinaryOp(
+                        result,
+                        BinaryOps.ADD,
+                        Reference(result),
+                        Reference.literal(data)
+                    )
+                )
+            else:
+                try:
+                    expr: Reference = self.visit(parser_code(data, "expr"))
+                except LarkError as e:
+                    self.error_reporter.report(
+                        Errors.FStringExpressionError,
+                        data,
+                        e.__repr__(),
+                        meta=meta
+                    )
+                    break
+                if DataType.BOOLEAN.is_subclass_of(expr.get_dtype()):
+                    # 将int当作str处理是极其危险且黑魔法的事情，此处如此仅是为了性能，其他地方不应该这样做
 
+                    expr_str = self.ir_emitter.create_temp_var(DataType.STRING, "fstring")
+                    self.ir_emitter.declare_and_assign(expr_str, expr)
+
+                    self.ir_emitter.emit(
+                        IRBinaryOp(
+                            result,
+                            BinaryOps.ADD,
+                            Reference(result),
+                            Reference(expr_str)
+                        )
+                    )
+                elif expr.get_dtype() == DataType.STRING:
+                    self.ir_emitter.emit(
+                        IRBinaryOp(
+                            result,
+                            BinaryOps.ADD,
+                            Reference(result),
+                            expr
+                        )
+                    )
+                else:
+                    self.error_reporter.report(
+                        Errors.FStringExpressionError,
+                        data,
+                        "不支持的字符串转换"
+                    )
+                    break
+        return Reference(result)
 
     @v_args(meta=True)
     def identifier(self, children: list[str] | str, meta: Meta) -> Reference:

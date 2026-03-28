@@ -18,7 +18,7 @@ class Strlib(Library):
     def load(self) -> list[IRInstruction]:
         return []
 
-    def get_functions(self) -> dict[Function, Callable[..., Variable  | Literal]]:
+    def get_functions(self) -> dict[Function, Callable[..., Variable | Literal]]:
         return {
             Function(
                 "strcat",
@@ -49,8 +49,8 @@ class Strlib(Library):
             ): None,
         }
 
-    def _strcat(self, dest: Reference[Variable  | Literal],
-                src: Reference[Variable  | Literal]) -> Variable:
+    def _strcat(self, dest: Reference[Variable | Literal],
+                src: Reference[Variable | Literal]) -> Variable:
         var = Variable(uuid.uuid4().hex, DataType.STRING)
         self.builder.insert(IRDeclare(var))
         self.builder.insert(IRBinaryOp(var, BinaryOps.ADD, dest, src))

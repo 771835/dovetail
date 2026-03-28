@@ -5,8 +5,8 @@ IR所有指令定义
 See Also:
     判定单条IR指令类型的唯一金标准是比较 IROpCode 的ID编号是否相同
 """
-from typing import TypeVar, Any
 from abc import ABC, abstractmethod
+from typing import TypeVar, Any
 
 from dovetail.core.config import USED_FUTURE_INSTRUCTIONS
 

@@ -60,7 +60,7 @@ class TemplateCommandHandler(CommandHandler):
         for name, value in template.optional_params.items():
             if name not in args:
                 args[name] = value
-        params = builder.build_all(args, itertools.chain(template.param_names,template.optional_params.keys()))
+        params = builder.build_all(args, itertools.chain(template.param_names, template.optional_params.keys()))
 
         # 渲染命令
         engine = TemplateEngine(context.namespace, context.objective)

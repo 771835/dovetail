@@ -202,7 +202,7 @@ class DependentDatapackWriter(OutputWriter):
             # 批量创建目录
             extract_to.mkdir(parents=True, exist_ok=True)
             for d in sorted(dirs_needed, key=lambda p: len(p.parts)):
-                d.mkdir(exist_ok=True)
+                d.mkdir(parents=True, exist_ok=True)
 
             # 按大小排序：先处理小文件（利用缓存局部性）
             files_to_extract.sort(key=lambda x: x[2])

@@ -218,9 +218,8 @@ class TypeChecker:
             )
             return None
 
-
         # 检查类型
-        for expected_type,actual_type in zip(param_types, (param.get_dtype() for param in method.params)):
+        for expected_type, actual_type in zip(param_types, (param.get_dtype() for param in method.params)):
             if not actual_type.is_subclass_of(expected_type):
                 self.error_reporter.report(
                     Errors.ArgumentTypeMismatch,

@@ -4,12 +4,12 @@
 """
 import os
 import random
-from typing import Optional
-
-from dovetail.core.config import DEFAULT_RANDOM_SUGGESTION
-from dovetail.utils.safe_enum import SafeEnum
 import sys
 from pathlib import Path
+from typing import Optional
+
+from dovetail.core.config import DEFAULT_SUGGESTIONS
+from dovetail.utils.safe_enum import SafeEnum
 
 
 class ErrorType(SafeEnum):
@@ -264,5 +264,5 @@ def report(
 
     # 选择建议
     if suggestion is None:
-        suggestion = random.choice(DEFAULT_RANDOM_SUGGESTION)
+        suggestion = random.choice(DEFAULT_SUGGESTIONS)
     sys.stderr.write(f"{error_name}({original_error_name}): {error_details % tuple(args)}{suggestion}\n\n")

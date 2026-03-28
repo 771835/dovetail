@@ -3,6 +3,7 @@
 AST解析的作用域
 """
 from __future__ import annotations
+
 from dovetail.core.enums import StructureType
 from dovetail.core.scope.mixins.base import CoreMixin, SymbolStorageMixin, SymbolResolutionMixin, HierarchyMixin
 

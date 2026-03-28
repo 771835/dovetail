@@ -4,9 +4,9 @@
 """
 from typing import Callable, Self
 
-from dovetail.core.symbols.base import Symbol
 from dovetail.core.enums.types import StructureType
 from dovetail.core.scope.protocols import ScopeCore, SymbolContainer, SymbolResolver
+from dovetail.core.symbols.base import Symbol
 
 
 class CoreMixin(ScopeCore):
@@ -99,7 +99,7 @@ class SymbolStorageMixin:
         return self.symbols.get(str(name), None)
 
 
-class SymbolResolutionMixin(SymbolResolver,ScopeCore,SymbolContainer):
+class SymbolResolutionMixin(SymbolResolver, ScopeCore, SymbolContainer):
     """
     符号解析功能 - 向上链式查找
 
@@ -155,7 +155,6 @@ class SymbolResolutionMixin(SymbolResolver,ScopeCore,SymbolContainer):
 
         return None
 
-
     def get_all_symbols(self: Self) -> dict[str, Symbol]:
         """
         获得完整符号表
@@ -198,7 +197,7 @@ class HierarchyMixin(ScopeCore):
             Self: 新创建的子作用域
         """
         # 使用当前类创建子作用域，保持类型一致性
-        child = self.__class__(name, self, stype) # 此处实际运行时将调用CoreMixin的__init__方法 # type: ignore
+        child = self.__class__(name, self, stype)  # 此处实际运行时将调用CoreMixin的__init__方法 # type: ignore
         self.children.append(child)
         return child
 
@@ -239,8 +238,6 @@ class HierarchyMixin(ScopeCore):
             current = current.parent
 
         return None
-
-
 
     def get_ancestors(self: Self) -> list[Self]:
         """

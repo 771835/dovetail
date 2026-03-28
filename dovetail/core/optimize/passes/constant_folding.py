@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Callable
 
 from attrs import define, field
 
@@ -115,7 +114,6 @@ class ConstantFoldingPass(IROptimizationPass):
             for scope in reversed(stack):
                 state.update(scope.table)
             return state
-
 
     def __init__(self, builder: IRBuilder, config: CompileConfig):
         super().__init__(builder, config)

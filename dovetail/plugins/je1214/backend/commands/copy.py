@@ -1,7 +1,6 @@
 # coding=utf-8
 from __future__ import annotations
 
-from dovetail.utils.escape_processor import auto_escape
 from ._data import DataBuilder
 from ._execute import Execute
 from ._scoreboard import ScoreboardBuilder

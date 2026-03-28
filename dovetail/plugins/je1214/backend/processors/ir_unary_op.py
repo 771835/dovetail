@@ -17,10 +17,9 @@ class IRUnaryOpProcessor(IRProcessor):
         result = instruction.operands[0]
         op = instruction.operands[1]
         operand = instruction.operands[2].value
-        result_path = DataPath(context.current_scope.get_symbol_path(result),context.objective)
+        result_path = DataPath(context.current_scope.get_symbol_path(result), context.objective)
         operand_path = DataPath(context.current_scope.get_symbol_path(operand), context.objective)
         if op == UnaryOps.NOT:
-            context.add_commands(UnaryOp.not_(result_path,operand_path))
+            context.add_commands(UnaryOp.not_(result_path, operand_path))
         else:
             get_project_logger().error(f"The unary operation {op} is not implemented.")
-

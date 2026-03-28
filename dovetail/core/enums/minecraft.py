@@ -51,6 +51,7 @@ class MinecraftEdition(SafeEnum):
             return MinecraftEdition.BEDROCK_EDITION
         return MinecraftEdition.JAVA_EDITION
 
+
 @total_ordering
 class MinecraftVersion(ABC):
     """

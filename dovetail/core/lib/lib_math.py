@@ -15,7 +15,7 @@ class Math(Library):
             Variable("INT_MAX", DataType.INT, mutable=False): Reference.literal(2147483647),
             Variable("INT_MIN", DataType.INT, mutable=False): Reference.literal(-2147483648),
         }
-        self._functions: dict[Function, Callable[..., Variable  | Literal] | None] = {
+        self._functions: dict[Function, Callable[..., Variable | Literal] | None] = {
             Function(
                 "abs",
                 [
@@ -50,7 +50,7 @@ class Math(Library):
     def load(self) -> list[IRInstruction]:
         return []
 
-    def get_functions(self) -> dict[Function, Callable[..., Variable  | Literal]]:
+    def get_functions(self) -> dict[Function, Callable[..., Variable | Literal]]:
         return self._functions
 
     def get_variables(self) -> dict[Variable, Reference]:

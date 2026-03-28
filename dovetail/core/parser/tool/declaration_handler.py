@@ -10,13 +10,13 @@ from lark.tree import Meta
 
 from dovetail.core.enums.types import DataTypeBase
 from dovetail.core.errors import Errors
-
 from dovetail.core.parser.tool.error_reporter import ErrorReporter
 from dovetail.core.parser.tool.ir_emitter import IREmitter
 from dovetail.core.parser.tool.symbol_resolver import SymbolResolver
 from dovetail.core.parser.tool.type_checker import TypeChecker
 from dovetail.core.symbols import Variable, Reference
 from dovetail.utils.naming import NameNormalizer
+
 _n = NameNormalizer.normalize
 
 
