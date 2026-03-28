@@ -16,7 +16,7 @@ AST 转换器模块 - Dovetail 编译器前端
 使用示例：
     >>> config = CompileConfig(...)
     >>> visitor = ASTVisitor(config, Path("main.mcdl"))
-    >>> ast_tree = parser_code("main.mcdl")
+    >>> ast_tree = parser_file("main.mcdl")
     >>> visitor.visit(ast_tree)
     >>> ir_builder = visitor.builder
 """
@@ -51,12 +51,13 @@ from dovetail.core.instructions import (
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
 from dovetail.core.lib.library_mapping import LibraryMapping
-from dovetail.core.parser.declaration_handler import DeclarationHandler
-from dovetail.core.parser.error_reporter import ErrorReporter
-from dovetail.core.parser.ir_emitter import IREmitter
+from dovetail.core.parser.fstring_parser import parse_fstring_iter
+from dovetail.core.parser.tool.declaration_handler import DeclarationHandler
+from dovetail.core.parser.tool.error_reporter import ErrorReporter
+from dovetail.core.parser.tool.ir_emitter import IREmitter
 from dovetail.core.parser.scope import Scope
-from dovetail.core.parser.symbol_resolver import SymbolResolver
-from dovetail.core.parser.type_checker import TypeChecker
+from dovetail.core.parser.tool.symbol_resolver import SymbolResolver
+from dovetail.core.parser.tool.type_checker import TypeChecker
 from dovetail.core.scope.protocols import ScopeCore
 from dovetail.core.symbols import Variable, Reference, Literal, Function, Class, Parameter
 from dovetail.core.symbols.annotation import Annotation
@@ -79,7 +80,7 @@ _n = NameNormalizer.normalize
 _dn = NameNormalizer.denormalize
 
 
-def parser_code(filepath: Path | str, start: Optional[str] = None) -> Tree | None:
+def parser_file(filepath: Path | str, start: Optional[str] = None) -> Tree | None:
     """
     解析代码文件生成 AST
 
@@ -828,7 +829,7 @@ class ASTVisitor(Interpreter):
             self.filepath = filepath
             self.error_reporter.set_filepath(filepath)
 
-            ast_tree = parser_code(filepath)
+            ast_tree = parser_file(filepath)
             self.visit(ast_tree)
 
             # 恢复原文件路径
@@ -1143,6 +1144,7 @@ class ASTVisitor(Interpreter):
         value = self.visit(children.pop(0))
         return value, is_mutable
 
+
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""
         return Reference.literal(None)
@@ -1170,6 +1172,13 @@ class ASTVisitor(Interpreter):
                 return Reference.literal(False)
             case _:
                 return Reference.literal(str(token))
+
+    @v_args(meta=True)
+    def fstring(self, children: list[Token | Tree | int], meta: Meta):
+        """处理f-string"""
+        for data_type,data in parse_fstring_iter(children.pop().value):
+            pass
+
 
     @v_args(meta=True)
     def identifier(self, children: list[str] | str, meta: Meta) -> Reference:

@@ -9,7 +9,9 @@ from lark.tree import Meta
 from dovetail.core.enums import DataType
 from dovetail.core.enums.types import DataTypeBase
 from dovetail.core.errors import Errors
-from dovetail.core.parser.error_reporter import ErrorReporter
+from dovetail.core.parser.tool.error_reporter import ErrorReporter
+from dovetail.core.symbols import Class, Function
+from dovetail.utils.naming import NameNormalizer
 
 
 class TypeChecker:
@@ -165,3 +167,77 @@ class TypeChecker:
 
         # 其他情况返回左操作数类型
         return left
+
+    def check_method_type(
+            self,
+            class_: Class,
+            method_name: str,
+            param_types: list[DataTypeBase],
+            return_value_type: DataTypeBase,
+            meta: Meta
+    ) -> Function | None:
+        """
+        检查特定类的函数的函数签名
+
+        Args:
+            class_: 类实例
+            method_name: 方法名
+            param_types: 形参类型
+            return_value_type: 返回值类型
+            meta: 元数据
+
+        Returns:
+            当找不到符号时返回 None
+        """
+        method = next(
+            (
+                method for method in class_.methods
+                if method.get_name() == NameNormalizer.normalize(method_name)
+            ),
+            None
+        )
+        if method is None:
+            self.error_reporter.report(
+                Errors.UndefinedFunction,
+                f"{class_.name}::{method_name}",
+                meta=meta
+            )
+            return None
+
+        min_args: int = sum(not param.is_optional() for param in method.params)
+        max_args: int = len(method.params)
+
+        # 检查参数数量是否在有效范围内
+        if not min_args <= len(param_types) <= max_args:
+            self.error_reporter.report(
+                Errors.ArgumentNumberMismatch,
+                method.name,
+                f"{min_args}-{max_args}",
+                str(len(param_types)),
+                meta=meta
+            )
+            return None
+
+
+        # 检查类型
+        for expected_type,actual_type in zip(param_types, (param.get_dtype() for param in method.params)):
+            if not actual_type.is_subclass_of(expected_type):
+                self.error_reporter.report(
+                    Errors.ArgumentTypeMismatch,
+                    method.name,
+                    str(expected_type),
+                    str(actual_type),
+                    meta=meta
+                )
+
+        # 检查返回值类型
+        if return_value_type.is_subclass_of(method.get_dtype()):
+            self.error_reporter.report(
+                Errors.ArgumentTypeMismatch,
+                method.name,
+                str(return_value_type),
+                str(method.get_dtype()),
+                meta=meta
+            )
+
+        return method

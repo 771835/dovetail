@@ -19,7 +19,7 @@ from dovetail.core.errors import CompilationError
 from dovetail.core.errors import report, Errors
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.optimizer import Optimizer
-from dovetail.core.parser.parser import ASTVisitor, parser_code
+from dovetail.core.parser.visitor import ASTVisitor, parser_file
 from dovetail.plugins.plugin_loader.loader import plugin_loader
 from dovetail.utils.annotations import timed
 from dovetail.utils.ir_serializer import IRSymbolSerializer
@@ -153,7 +153,7 @@ class Compiler:
 
         with chdir(working_directory):
             try:
-                tree = parser_code(source_path)
+                tree = parser_file(source_path)
 
                 # print(tree.pretty())
 
