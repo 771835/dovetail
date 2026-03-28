@@ -45,7 +45,7 @@ from dovetail.core.errors import report, Errors
 from dovetail.core.include_manager import IncludeManager
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp,
-    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd
+    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRCast
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
@@ -1125,17 +1125,25 @@ class ASTVisitor(Interpreter):
     def fstring(self, children: list[Token | Tree | int], meta: Meta):
         """处理f-string"""
         result = self.ir_emitter.create_temp_var_declared(DataType.STRING, "fstring")
-        for data_type, data in parse_fstring_iter(children.pop().value):
+        for index, (data_type, data) in enumerate(parse_fstring_iter(children.pop().value)):
             if data_type == 'literal':
-                # 将字面量加到结果变量末尾
-                self.ir_emitter.emit(
-                    IRBinaryOp(
-                        result,
-                        BinaryOps.ADD,
-                        Reference(result),
-                        Reference.literal(data)
+                # 直接赋值或将字面量加到结果变量末尾
+                if index == 0:
+                    self.ir_emitter.emit(
+                        IRAssign(
+                            result,
+                            Reference.literal(data)
+                        )
                     )
-                )
+                else:
+                    self.ir_emitter.emit(
+                        IRBinaryOp(
+                            result,
+                            BinaryOps.ADD,
+                            Reference(result),
+                            Reference.literal(data)
+                        )
+                    )
             else:
                 try:
                     expr: Reference = self.visit(parser_code(data, "expr"))
@@ -1148,11 +1156,8 @@ class ASTVisitor(Interpreter):
                     )
                     break
                 if DataType.BOOLEAN.is_subclass_of(expr.get_dtype()):
-                    # 将int当作str处理是极其危险且黑魔法的事情，此处如此仅是为了性能，其他地方不应该这样做
-
                     expr_str = self.ir_emitter.create_temp_var(DataType.STRING, "fstring")
-                    self.ir_emitter.declare_and_assign(expr_str, expr)
-
+                    self.ir_emitter.emit(IRCast(expr_str, DataType.STRING, expr))
                     self.ir_emitter.emit(
                         IRBinaryOp(
                             result,

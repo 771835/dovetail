@@ -162,7 +162,7 @@ class Compiler:
 
                 builder = Optimizer(generator.builder, self.config).optimize()
 
-                # builder.print()
+                builder.print()
 
                 if self.output_temp_file:
                     self._write_temp_file(builder, target_dir_path)

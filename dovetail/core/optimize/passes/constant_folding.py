@@ -193,7 +193,7 @@ class ConstantFoldingPass(IROptimizationPass):
                 if handler(iterator, instr):  # NOQA
                     self.changed = True
 
-    def _find(self, name: Variable | Literal | Constant | Reference) -> Reference[Literal] | FoldingFlags:
+    def _find(self, name: Variable | Literal | Reference) -> Reference[Literal] | FoldingFlags:
         """从符号表搜索符号的最终值"""
         if isinstance(name, Literal):
             return Reference(name)
@@ -223,7 +223,7 @@ class ConstantFoldingPass(IROptimizationPass):
 
     def _resolve_ref(
             self,
-            ref: Reference[Variable | Constant | Literal]
+            ref: Reference[Variable | Literal]
     ) -> Reference[Literal] | FoldingFlags:
         """解析引用到字面量或标识为未知/未定义"""
         if ref.value_type == ValueType.LITERAL:
@@ -315,7 +315,7 @@ class ConstantFoldingPass(IROptimizationPass):
     def _assign(self, iterator: IRBuilderIterator, instr: IRAssign) -> bool:
         """处理赋值指令"""
         target: Variable = instr.get_operands()[0]
-        source_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[1]
+        source_ref: Reference[Variable | Literal] = instr.get_operands()[1]
 
         resolved_source = source_ref
         changed = False
@@ -337,8 +337,8 @@ class ConstantFoldingPass(IROptimizationPass):
         """处理二元运算"""
         result: Variable = instr.get_operands()[0]
         op: BinaryOps = instr.get_operands()[1]
-        left_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
-        right_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
+        left_ref: Reference[Variable | Literal] = instr.get_operands()[2]
+        right_ref: Reference[Variable | Literal] = instr.get_operands()[3]
 
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
@@ -374,8 +374,8 @@ class ConstantFoldingPass(IROptimizationPass):
         """处理比较运算"""
         result: Variable = instr.get_operands()[0]
         op: CompareOps = instr.get_operands()[1]
-        left_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
-        right_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[3]
+        left_ref: Reference[Variable | Literal] = instr.get_operands()[2]
+        right_ref: Reference[Variable | Literal] = instr.get_operands()[3]
 
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
@@ -406,7 +406,7 @@ class ConstantFoldingPass(IROptimizationPass):
         """处理一元运算"""
         result: Variable = instr.get_operands()[0]
         op: UnaryOps = instr.get_operands()[1]
-        operand_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+        operand_ref: Reference[Variable | Literal] = instr.get_operands()[2]
 
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
@@ -543,11 +543,11 @@ class ConstantFoldingPass(IROptimizationPass):
 
     def _call(self, iterator: IRBuilderIterator, instr: IRCall) -> bool:
         """处理函数调用，优化参数"""
-        result: Variable | Constant = instr.get_operands()[0]
+        result: Variable = instr.get_operands()[0]
         func: Function = instr.get_operands()[1]
-        args: dict[str, Reference[Variable | Constant | Literal]] = instr.get_operands()[2]
+        args: dict[str, Reference[Variable | Literal]] = instr.get_operands()[2]
 
-        new_args: dict[str, Reference[Variable | Constant | Literal]] = {}
+        new_args: dict[str, Reference[Variable | Literal]] = {}
         changed = False
 
         for param_name, arg_ref in args.items():
@@ -572,9 +572,9 @@ class ConstantFoldingPass(IROptimizationPass):
 
     def _cast(self, iterator: IRBuilderIterator, instr: IRCast) -> bool:
         """处理类型转换"""
-        result: Variable | Constant = instr.get_operands()[0]
+        result: Variable = instr.get_operands()[0]
         dtype: DataType | Class = instr.get_operands()[1]
-        value_ref: Reference[Variable | Constant | Literal] = instr.get_operands()[2]
+        value_ref: Reference[Variable | Literal] = instr.get_operands()[2]
 
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 

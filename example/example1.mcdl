@@ -9,8 +9,8 @@ struct awa {
 fn foo() -> i32;
 @init
 fn bar(){
-    if (foo()==350234 / 1 ) {
-        exec("say 1")
+    if (foo()==350234) {
+        exec(f"say {1+foo()}")
         print("1")
     }else {
         exec("say 2")
@@ -19,7 +19,6 @@ fn bar(){
 
 @target("java")
 fn foo() -> i32{
-    let num = 1
     return 350234
 }
 
