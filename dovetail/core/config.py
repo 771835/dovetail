@@ -21,7 +21,6 @@ FAST_MODE = True  # 禁用一些编译器的类型检查以加速代码运行
 USED_FUTURE_INSTRUCTIONS = True  # 临时选项: 启用新版IR指令
 ENABLE_FUTURE_INSTRUCTION_VALIDATION = True  # 临时选项: 启用新版IR指令类型效验，当 FAST_MODE 开启时无效
 
-
 # 目录编译配置文件
 PACK_CONFIG_VALIDATOR = fastjsonschema.compile({
     "type": "object",

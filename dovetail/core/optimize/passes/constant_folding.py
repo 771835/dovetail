@@ -8,13 +8,14 @@
 from __future__ import annotations
 
 from enum import Enum, auto
+from typing import Callable, Any
 
 from attrs import define, field
 
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.enums import OptimizationLevel
+from dovetail.core.enums import OptimizationLevel, BinaryOps, CompareOps, UnaryOps, StructureType, DataType
 from dovetail.core.enums.types import ValueType
-from dovetail.core.instructions import *
+from dovetail.core.instructions import IROpCode, IRCall, IRAssign, IRJump, IRInstruction
 from dovetail.core.ir_builder import IRBuilder, IRBuilderIterator
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
@@ -239,7 +240,7 @@ class ConstantFoldingPass(IROptimizationPass):
                 ref.value_type == ValueType.LITERAL
         )
 
-    def _handle_scope_begin(self, iterator: IRBuilderIterator, instr: IRScopeBegin) -> bool:
+    def _handle_scope_begin(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """处理作用域开始"""
         scope_name = instr.get_operands()[0]
         scope_type = instr.get_operands()[1]
@@ -279,7 +280,7 @@ class ConstantFoldingPass(IROptimizationPass):
         self.current_table = new_table
         return False
 
-    def _handle_scope_end(self, iterator: IRBuilderIterator, instr: IRScopeEnd) -> bool:
+    def _handle_scope_end(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """处理作用域结束"""
         scope_name = self.current_table.name
         scope_type = self.current_table.stype
@@ -306,13 +307,13 @@ class ConstantFoldingPass(IROptimizationPass):
 
         return False
 
-    def _declare(self, iterator: IRBuilderIterator, instr: IRDeclare) -> bool:
+    def _declare(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """处理变量声明"""
         var: Variable = instr.get_operands()[0]
         self.current_table.set(var.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
         return False
 
-    def _assign(self, iterator: IRBuilderIterator, instr: IRAssign) -> bool:
+    def _assign(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """处理赋值指令"""
         target: Variable = instr.get_operands()[0]
         source_ref: Reference[Variable | Literal] = instr.get_operands()[1]
@@ -333,7 +334,7 @@ class ConstantFoldingPass(IROptimizationPass):
         self.current_table.set(target.get_name(), resolved_source)
         return changed
 
-    def _op(self, iterator: IRBuilderIterator, instr: IRBinaryOp) -> bool:
+    def _op(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """处理二元运算"""
         result: Variable = instr.get_operands()[0]
         op: BinaryOps = instr.get_operands()[1]
@@ -370,7 +371,7 @@ class ConstantFoldingPass(IROptimizationPass):
         except (TypeError, ValueError, ZeroDivisionError):
             return False
 
-    def _compare(self, iterator: IRBuilderIterator, instr: IRCompare) -> bool:
+    def _compare(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """处理比较运算"""
         result: Variable = instr.get_operands()[0]
         op: CompareOps = instr.get_operands()[1]
@@ -402,7 +403,7 @@ class ConstantFoldingPass(IROptimizationPass):
         except (TypeError, ValueError):
             return False
 
-    def _unary_op(self, iterator: IRBuilderIterator, instr: IRUnaryOp) -> bool:
+    def _unary_op(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """处理一元运算"""
         result: Variable = instr.get_operands()[0]
         op: UnaryOps = instr.get_operands()[1]
@@ -423,7 +424,7 @@ class ConstantFoldingPass(IROptimizationPass):
         except (TypeError, ValueError):
             return False
 
-    def _cond_jump(self, iterator: IRBuilderIterator, instr: IRCondJump) -> bool:
+    def _cond_jump(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """
         处理条件跳转
 
@@ -541,7 +542,7 @@ class ConstantFoldingPass(IROptimizationPass):
 
         return False
 
-    def _call(self, iterator: IRBuilderIterator, instr: IRCall) -> bool:
+    def _call(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """处理函数调用，优化参数"""
         result: Variable = instr.get_operands()[0]
         func: Function = instr.get_operands()[1]
@@ -570,7 +571,7 @@ class ConstantFoldingPass(IROptimizationPass):
 
         return changed
 
-    def _cast(self, iterator: IRBuilderIterator, instr: IRCast) -> bool:
+    def _cast(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """处理类型转换"""
         result: Variable = instr.get_operands()[0]
         dtype: DataType | Class = instr.get_operands()[1]
@@ -599,7 +600,7 @@ class ConstantFoldingPass(IROptimizationPass):
 
         return False
 
-    def _function(self, iterator: IRBuilderIterator, instr: IRFunction) -> bool:
+    def _function(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """处理函数定义"""
         function: Function = instr.get_operands()[0]
         self.current_table.set(function.get_name(), Reference(function))

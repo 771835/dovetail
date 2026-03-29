@@ -1146,7 +1146,8 @@ class ASTVisitor(Interpreter):
                     )
             else:
                 try:
-                    expr: Reference = self.visit(parser_code(data, "expr"))
+                    with self.error_reporter.context(f"格式化字符串 {meta.line}:{meta.column}"):
+                        expr: Reference = self.visit(parser_code(data, "expr"))
                 except LarkError as e:
                     self.error_reporter.report(
                         Errors.FStringExpressionError,
