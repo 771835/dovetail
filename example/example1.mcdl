@@ -2,15 +2,11 @@ include "random"
 include "mathlib.mcdl"
 typedef int i32
 
-struct awa {
-    man:i32
-}
-
 fn foo() -> i32;
 @init
 fn bar(){
     if (foo()==350234) {
-        exec(f"say {1+foo()}")
+        exec(f"say {1}")
         print("1")
     }else {
         exec("say 2")

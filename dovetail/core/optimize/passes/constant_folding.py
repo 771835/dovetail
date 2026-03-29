@@ -19,7 +19,7 @@ from dovetail.core.ir_builder import IRBuilder, IRBuilderIterator
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
-from dovetail.core.symbols import Variable, Constant, Literal, Reference, Function, Class
+from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
 
 
 @register_pass(PassMetadata(

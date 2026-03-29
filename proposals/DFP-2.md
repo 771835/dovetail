@@ -1,7 +1,5 @@
 # DFP 2: IR 设计与规范
 
-> 由于DFP-603的实现困难，可能考虑重构ir系统，使其由扁平化转为更优秀的实现
-
 ## 提案信息
 
 **作者**: 771835 <2790834181@qq.com>  
@@ -23,17 +21,17 @@
 
 #### 控制流指令
 
-| 指令          | 参数                                | 备注                  |
-|-------------|-----------------------------------|---------------------|
-| JUMP        | scope                             | 无条件跳转到指定作用域         |
-| COND_JUMP   | cond_var true_scope [false_scope] | 条件跳转到作用域（提供双目标）     |
-| FUNCTION    | func                              | 函数定义                |
-| RETURN      | [value]                           | 从函数返回（可选返回值）        |
-| CALL        | result func [args...]             | 函数调用                |
-| SCOPE_BEGIN | name type                         | 作用域开始标记（可标记为函数、循环等） |
-| SCOPE_END   | name type                         | 作用域结束标记             |
-| BREAK       | scope_name                        | 跳出指定循环              |
-| CONTINUE    | scope_name                        | 终止当前循环迭代，继续下次迭代     |
+| 指令          | 参数                                    | 备注                  |
+|-------------|---------------------------------------|---------------------|
+| JUMP        | scope                                 | 跳转到指定作用域            |
+| COND_JUMP   | cond_var \[true_scope] \[false_scope] | 条件跳转到作用域（提供双目标）     |
+| FUNCTION    | func                                  | 函数定义                |
+| RETURN      | \[value]                              | 从函数返回（可选返回值）        |
+| CALL        | result func \[args...]                | 函数调用                |
+| SCOPE_BEGIN | name type                             | 作用域开始标记（可标记为函数、循环等） |
+| SCOPE_END   | name type                             | 作用域结束标记             |
+| BREAK       | scope_name                            | 跳出指定循环              |
+| CONTINUE    | scope_name                            | 终止当前循环迭代，继续下次迭代     |
 
 #### 变量操作
 
@@ -60,7 +58,7 @@
 
 #### 1. 变量管理
 
-- 所有变量强制显式声明
+- 所有变量均需要显式声明
 - 所有变量强制手动类型转换，特殊指令除外
 - 变量作用域通过SCOPE_BEGIN和SCOPE_END指令显式声明
 
@@ -78,38 +76,36 @@ if (cond_var) {
 }
 # 转换成ir:
 
-if_1:conditional{
+scope if_41 (CONDITIONAL) {
     # if块代码
-}
-else_1:conditional{
+} // end scope if_41
+scope else_41 (CONDITIONAL) {
     # else块代码
-}
-if cond__var goto if_1 else goto else_1
+} // end scope else_41
+if cond__var goto if_41 else goto else_41
 
 ```
 
 ##### 传统for循环示例
 
 ```dovetail
-for (int i=0;i<3;i=i+1) {
+for (let i=0;i<3;i+=1) {
     # 循环体
 }
 # 转换成ir:
-int i
+declare int i
 i = 0
-for_0_check:loop_check{
-    for_0_body:loop_body{
+scope for_check_41 (LOOP_CHECK) {
+    declare boolean cmp_result_134
+    cmp_result_134 = i < 3
+    scope for_body_41 (LOOP_BODY) {
+        i = i + 1
         # 循环体
-        int calc_1
-        calc_1 = i + i
-        i = calc_1
-    }
-    boolean result_variable_2
-    result_variable_2 = i < 3
-    if result_variable_2 goto for_0_body else goto None
-    if result_variable_2 goto for_0_check else goto None
-}
-goto for_0_check
+    } // end scope for_body_41
+    if cmp_result_134 goto for_body_41
+    if cmp_result_134 goto for_check_41
+} // end scope for_check_41
+goto for_check_41
 ```
 
 ## 变更日志
@@ -149,18 +145,6 @@ class Class(Symbol, DataTypeBase):
 
 ```
 
-#### 常量定义 (Constant)
-
-```python
-@define(slots=True)
-class Constant(Symbol):
-    name: str  # 常量名
-    dtype: DataTypeBase  # 数据类型
-    var_type: VariableType = VariableType.COMMON  # 变量类型
-
-    def get_name(self) -> str: ...
-```
-
 #### 变量定义 (Variable)
 
 ```python
@@ -169,6 +153,9 @@ class Variable(Symbol):
     name: str  # 变量名
     dtype: DataTypeBase  # 数据类型
     var_type: VariableType = VariableType.COMMON  # 变量类型
+    mutable: bool = True
+
+    def is_mutable(self) -> bool: ...
 
     def get_name(self) -> str: ...
 ```
@@ -242,7 +229,6 @@ class Reference(Symbol, Generic[T]):
 
 - `LITERAL`: 字面量值，编译时已知
 - `VARIABLE`: 变量值，运行时确定
-- `CONSTANT`: 常量值，不可修改
 - `FUNCTION`: 函数值，可调用对象
 - `CLASS`: 类值，类型对象
 

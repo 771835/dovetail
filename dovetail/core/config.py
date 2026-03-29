@@ -9,7 +9,7 @@ from dovetail.utils.logger import ThreadSafeLogger
 # 项目信息
 PROJECT_NAME = "Dovetail"
 PROJECT_WEBSITE = "https://github.com/771835/dovetail"
-PROJECT_VERSION = "1.0.2-rc.1"
+PROJECT_VERSION = "1.0.2-rc.3"
 
 # 文件后缀
 FILE_PREFIX = ".mcdl"
@@ -70,7 +70,6 @@ PLUGIN_METADATA_VALIDATOR = fastjsonschema.compile({
         "plugin_version",
         "plugin_type",
         "main_class",
-        "plugin_author"
     ],
     "additionalProperties": False  # 不允许额外属性
 })

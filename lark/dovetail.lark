@@ -127,7 +127,7 @@ FSTRING.3: /f"([^"\\]|\\.)*"/
 COMPOUND_ASSIGN: "+="|"-="|"*="|"/="|"%="|"="
 COMPARE_OP.3: "=="|"!="|"<="|">="|">"|"<"
 MULTIPLY: "*"|"/"|"%"
-ADDSUB.2: "-"|"+"
+ADDSUB: "-"|"+"
 _LOGICAL_AND.2: "and"|"&&"
 _LOGICAL_OR.2: "or"|"||"
 LOGICAL_NOT.2: "not"|"!"

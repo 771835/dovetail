@@ -13,8 +13,17 @@ from typing import Any, Optional, Union, get_type_hints, Callable
 
 from dovetail.core.config import ENABLE_FUTURE_INSTRUCTION_VALIDATION, FAST_MODE
 from dovetail.core.enums import DataType, StructureType, BinaryOps, CompareOps, UnaryOps
+from dovetail.core.enums.types import Array
 from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
+from dovetail.core.symbols.structure import Structure
 from dovetail.utils.safe_enum import SafeEnum
+
+_DataTypes = Union[
+    DataType,
+    Structure,
+    Class,
+    Array
+]
 
 
 # ==================== 操作码定义 ====================
@@ -638,7 +647,7 @@ def _compare_repr(instr: IRInstruction) -> str:
 @validate_instruction
 def IRCast(
         result: Variable,
-        target_type,
+        target_type: _DataTypes,
         source: Reference
 ) -> IRInstruction:
     """

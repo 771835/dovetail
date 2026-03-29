@@ -5,7 +5,6 @@
 
 from .base import Symbol
 from .class_ import Class
-from .constant import Constant
 from .function import Function
 from .literal import Literal
 from .parameter import Parameter
@@ -19,7 +18,6 @@ __all__ = [
     'Variable',
     'Reference',
     'Literal',
-    'Constant',
     'Function',
     'Parameter'
 ]

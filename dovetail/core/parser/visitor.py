@@ -1155,26 +1155,13 @@ class ASTVisitor(Interpreter):
                         meta=meta
                     )
                     break
-                if DataType.BOOLEAN.is_subclass_of(expr.get_dtype()):
-                    expr_str = self.ir_emitter.create_temp_var(DataType.STRING, "fstring")
+
+                expr_str: Variable
+                if expr.get_dtype() == DataType.STRING:
+                    expr_str = expr.value
+                elif expr.get_dtype().is_definable() and isinstance(expr.get_dtype(), DataType):
+                    expr_str = self.ir_emitter.create_temp_var_declared(DataType.STRING, "fstring")
                     self.ir_emitter.emit(IRCast(expr_str, DataType.STRING, expr))
-                    self.ir_emitter.emit(
-                        IRBinaryOp(
-                            result,
-                            BinaryOps.ADD,
-                            Reference(result),
-                            Reference(expr_str)
-                        )
-                    )
-                elif expr.get_dtype() == DataType.STRING:
-                    self.ir_emitter.emit(
-                        IRBinaryOp(
-                            result,
-                            BinaryOps.ADD,
-                            Reference(result),
-                            expr
-                        )
-                    )
                 else:
                     self.error_reporter.report(
                         Errors.FStringExpressionError,
@@ -1182,6 +1169,16 @@ class ASTVisitor(Interpreter):
                         "不支持的字符串转换"
                     )
                     break
+
+                # 进行拼接
+                self.ir_emitter.emit(
+                    IRBinaryOp(
+                        result,
+                        BinaryOps.ADD,
+                        Reference(result),
+                        Reference(expr_str)
+                    )
+                )
         return Reference(result)
 
     @v_args(meta=True)
