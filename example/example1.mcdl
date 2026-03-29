@@ -6,7 +6,7 @@ fn foo() -> i32;
 @init
 fn bar(){
     if (foo()==350234) {
-        exec(f"say {w1}")
+        exec("say 121")
         print("1")
     }else {
         exec("say 2")

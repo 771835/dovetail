@@ -1167,7 +1167,8 @@ class ASTVisitor(Interpreter):
                     self.error_reporter.report(
                         Errors.FStringExpressionError,
                         data,
-                        "不支持的字符串转换"
+                        "不支持的字符串转换",
+                        meta=meta
                     )
                     break
 
