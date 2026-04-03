@@ -168,8 +168,9 @@ class Errors(SafeEnum):
     UnsupportedTargetVersion = (0x9001, "不支持的目标版本", "不支持的目标版本: %s。", ErrorType.SystemError)
     TargetFeatureNotSupported = (0x9002, "目标功能不支持", "目标平台不支持功能: %s。", ErrorType.SystemError)
 
-    # 输出错误
+    # 输入输出错误
     DirectoryCreationFailed = (0x9101, "目录创建失败", "无法创建目录 '%s': %s。", ErrorType.SystemError)
+    FileSizeTooLarge = (0x9103, "文件体积过大", "无法解析文件 '%s': 文件体积 %s 超过最大允许体积 %s", ErrorType.SystemError)
     FileWriteFailed = (0x9102, "文件写入失败", "无法写入文件 '%s': %s。", ErrorType.SystemError)
     DiskSpaceInsufficient = (0x9104, "磁盘空间不足", "磁盘空间不足: 需要 %s，可用 %s。", ErrorType.SystemError)
 

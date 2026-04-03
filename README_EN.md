@@ -4,47 +4,49 @@
 
 [English Version](README_EN.md) | [中文版本](README.md)
 
-> Minecraft Datapack Compilation Language - A Solution with Partial Object-Oriented Features
+> Minecraft Datapack Compilation Language - A Solution with Partial Object-Oriented Features  
+**Dovetail** is a language with object-oriented characteristics that compiles into `Minecraft Datapacks`. It aims to
+> transform the procedural orientation of traditional commands into a goal-oriented approach.
+
+> Due to technical limitations, no new feature implementations will be submitted in the short term.
 >
 > **Current Status:**
-> - **Advantages:** Basic syntax is functional and capable of compiling simple programs.
-> - **Known Limitations:** Lacks extensive standard library, unfriendly error messages, optimizer may introduce bugs,
-    complete OOP features not yet implemented.
-> - **Production Environment Recommendation:** If you need it for production use, please consider
-    using [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)
-    or other more mature projects.
-> - Due to technical limitations, no new feature implementations will be committed in the short term.
-> - **Nature:** Compared to stability-focused projects like **clang-mc**, this project leans toward using more
-    aggressive features and optimizations, as well as experimental handling of certain content. These changes may not be
-    specially marked and lack long-term stable maintenance.
-> - **Syntax:** Syntax updates iterate rapidly, therefore backward compatibility is not guaranteed. Correct syntax is
-    only guaranteed with accompanying examples when releases are published.
-
-**Dovetail** is an object-oriented language that compiles into `Minecraft Datapacks` (hereinafter referred to as
-`datapacks`). It aims to transform the procedural orientation of traditional commands into goal-oriented design.
+> - **Advantages:** Syntax is basically usable and can compile simple programs.
+> - **Known Limitations:** Lack of extensive standard library, unfriendly error messages, optimizer may introduce bugs,
+    incomplete OOP features and array borrowing mechanism not yet implemented.
+> - **Production Environment Recommendation:** If you need it for production, please consider
+    using [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) or other more mature projects.
+> - **Nature:** Compared to projects like **clang-mc** that pursue stability, this project leans towards using more
+    aggressive features and optimizations, as well as experimental handling of certain content. These modifications may
+    not be specially marked and lack long-term stable maintenance.
+> - **Syntax:** Syntax updates iterate quickly, so backward compatibility is not guaranteed. Only when official releases
+    are published is the accompanying example syntax guaranteed to be correct.
+> - **Minecraft Version Support:** Unlike other languages, this project does not have stable version support, i.e., it
+    will not stay on a specific version for long. Officially supported backends will focus their main efforts on
+    iterating to the latest game version of `Minecraft`.
 
 ## Goals
 
 - [ ] Write once, ~~crash~~ compile everywhere
 - [ ] Basic object-oriented support
-- [ ] Comprehensive dependency libraries to prevent developers from programming directly with commands
+- [ ] Comprehensive dependency library so developers don't directly manipulate commands
 - [ ] Low-overhead datapacks
-- [ ] Version iterations keeping pace with Minecraft major version updates
+- [ ] Iterative versions keep up with Minecraft major version updates
 
 ## Long-term Plans
 
-- [ ] Improve safety and performance through prerequisite datapacks
+- [ ] Improve security and performance through the use of prerequisite datapacks
 - [ ] Optimize error display
-- [x] Unified logging output
+- [x] Unified log output
 - [ ] Improve plugin API
-- [ ] Enhance optimization effectiveness
-- [ ] Find performance-efficient stack implementation methods
+- [ ] Enhance optimization effects
+- [ ] Find stack implementation methods that save as much performance as possible
 - [ ] Compiler internationalization support
 - [ ] Allow declaration and invocation of other datapacks through simple syntax
 - [ ] Predicates, custom data, and other features
-- [ ] First-class functions
+- [ ] First-class citizen functions
 - [ ] Simple event system and annotation functionality
-- [ ] Comprehensive built-in library
+- [ ] Improve built-in library
 
 ## Quick Start
 
@@ -78,101 +80,110 @@ fn main() {
 }
 ```
 
-## How to Contribute
+## Contributing
 
-- Bug Reports and Suggestions
-    - Submit an issue and wait for project authors or other contributors to make fixes
-- Bug Fixes or Submissions
-    1. Submit an issue or pull request and wait for fixes or implementation
-- Complex Feature Implementation
-    1. Create or modify DFP document proposals based on the corresponding feature
-    2. After community discussion reaches consensus, clone a new branch for modifications
-    3. Test for errors
-    4. Merge into main branch
+### How to Contribute
+
+- Submit issue suggestions:
+    - Submit an issue, and the project author or other contributors will make modifications.
+- Fix or submit issues:
+    - Submit an issue or create a pull request, waiting for fixes or feature implementation.
+- Implement complex features:
+    - Create or update DFP documentation proposals according to the corresponding feature.
+    - After community discussion reaches consensus, clone a new branch for code modifications.
+    - Conduct testing to ensure functionality is correct.
+    - Merge code into the main branch.
+
+### Regarding AI Tool Usage
+
+This project allows the use of AI and other auxiliary tools during the writing process, but please be sure to review the
+generated code. In each contribution, the proportion of code generated by AI and other tools must not exceed 30%.
 
 ## FAQ
 
 Q: Why doesn't it support recursion?  
-A: Recursion requires maintaining stack frames at runtime, which has significant performance overhead in Minecraft. It's
-recommended to rewrite recursive algorithms as iterative implementations.
+A: Recursion requires runtime maintenance of stack frames, which is very performance-intensive to implement in
+Minecraft. It's recommended to rewrite recursive algorithms into iterative implementations.
 
 Q: There are techniques to solve recursion, but the project chooses to ignore them?  
-A: Due to technical limitations and the author's limited time and energy.
+A: Due to technical limitations and the author's limited energy.
 
-Q: Why does the compiler show unknown errors with stack information? How to resolve it?  
-A: You can open an issue on the `GitHub` platform to report this problem.
+Q: Why does the compiler report an unknown error and provide stack information? How to solve it?  
+A: Please submit an issue on GitHub to report the problem.
 
 Q: My code is clearly correct, but the generated datapack doesn't execute properly.  
 A: Please try disabling code optimization. If the generated datapack executes correctly, use `Code Optimization Error`
 as the issue title prefix; otherwise, use `Unknown Error` as the title prefix.
 
-Q: Why does the generated datapack halt during execution?  
-A: Try using the `gamerule` command to appropriately increase the `maxCommandChainLength` rule value.
+Q: Why does the generated datapack abort during execution?  
+A: Please try using the `gamerule` command to appropriately increase the `maxCommandChainLength` rule value.
 
-Q: What if no available backend is found?  
+Q: What to do if no available backend is found?  
 A: Install the corresponding backend plugin.
 
-## Known Issues (Won't be fixed in the long term)
+## Known Characteristics (Won't be fixed in the long term)
 
-- No recursion support
+- Does not support recursion
 - Advanced leaky memory management
 
 ## License
 
-This project is licensed under Apache 2.0
+This project is licensed under Apache 2.0.
 
-This means you **can** freely use it for personal or commercial purposes without my direct permission.
+This means you **can** freely use it for personal or commercial purposes without direct permission from the project
+author or contributors.
 
-Meanwhile, if you use this work in your project/product and derive commercial value from it, I would greatly appreciate
-your acknowledgment through the following ways:
+However, if you use this work in your project/product and derive commercial value from it, the project author would very
+much appreciate recognition in the following ways (the following is not mandatory):
 
-- **Attribution**: Mention this project in your product documentation or About page.
-- **Share Improvements**: Contribute back improvements you've made based on this project to the community.
-- **Contribute**: Welcome code submissions, bug reports, documentation improvements, or suggestions to make the project
+- **Acknowledge the source**: Mention this project in your product documentation or About page.
+- **Share improvements**: Give back to the community improvements you've made based on this project.
+- **Contribute**: Welcome to submit code, report issues, improve documentation, or make suggestions to make the project
   better together.
 
 Thank you for your support!
-<!-- Where's the community? Who knows -->
+<!-- Where is the community? Who knows qwq -->
 
 ## Acknowledgments
 
-### Testing Participants
+### Testing Participation
 
-- 4424 discovered numerous bugs in the early stages of the project and provided many constructive suggestions
+- 4424 discovered numerous bugs in the early stages of the project and provided a large number of constructive
+  suggestions.
 
 ### Code Usage
 
-> Due to `Minecraft` version compatibility reasons, necessary modifications may be made to the following projects during
-> actual use. If you are an author or contributor to any of the following projects and wish your project not to be used or
-> modified, please feel free to contact the project author to discuss removal.
+> Due to `Minecraft` versions and actual usage, necessary modifications may be made to the following projects when used.
+> If you are an author or contributor of the following projects and do not want your project to be used or modified,
+> please contact the project author to discuss removal.
 
-- Project [fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) Fast integer square root  
+- Project [fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) - Fast integer square root  
   _See the isqrt function in [mathlib](lib/mathlib.mcdl) for specific usage_
 
-<!--- Project [DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) Safe string concatenation, NBT to JSON and other SNBT and string operations-->
-<!-- Not displayed or used because DNT doesn't support 1.21.4 -->
+<!-- Project [DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) Safe string concatenation, NBT to JSON and other SNBT and string operations -->
+<!-- Not displayed or used because dnt does not support 1.21.4 -->
 
-- Project [StringLib](https://github.com/CMDred/StringLib) Provides numerous unsafe but reasonably fast string
+- Project [StringLib](https://github.com/CMDred/StringLib) - Provides a large number of unsafe but fairly fast string
   manipulation methods
 
-<!-- It seems I can write the stuff from this library myself, and that way I can inline it too ( -->
+<!-- It seems I can write this library's stuff myself, and it can even be inlined ( -->
 
 ### Data Usage
 
-- [Chinese Wiki Datapack Version](https://zh.minecraft.wiki/w/Template:Data_pack_format) Dynamically updates the
-  correspondence between `Minecraft` and `datapack versions`
+- [Chinese Wiki Datapack Version](https://zh.minecraft.wiki/w/Template:Data_pack_format) - Dynamically updates the
+  correspondence between `Minecraft` and `Datapack versions`
 
 ### Other Recommendations
 
-- [《Feature》](https://vanillalibrary.mcfpp.top/datapack-index/feature/_index.html)
-  《Feature》is a platform hosted by the Vanilla Library team for collecting and showcasing short articles on vanilla
-  mod (datapack + resource pack) development, aimed at communication between developers, updated monthly.
+- [《Feature》](https://vanillalibrary.mcfpp.top/datapack-index/feature/_index.html)  
+  "Feature" is hosted by the Vanilla Library team, a platform for collecting and showcasing short articles for vanilla
+  mod (datapack + resource pack) development, used for communication between developers, updated monthly.
 
-### Inspiration Sources / Expert Acknowledgments
+### Inspiration Sources/Expert Acknowledgments
 
 - Expert [zmr-233](https://github.com/zmr-233/) proposed ideas for solving recursion problems (although I haven't read
-  the books they recommended, nor implemented them)
-- Project [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) An excellent project with a different technical
-  approach to handling stacks
-- Project [clang-mc](https://github.com/xia-mc/clang-mc) Very innovative idea, implementing partial support for assembly
-  in Minecraft with great potential
+  the books they recommended, nor implemented it)
+- Project [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) - An excellent project with a different technical
+  route for handling stacks
+- Project [clang-mc](https://github.com/xia-mc/clang-mc) - Very innovative idea, implementing partial support for
+  assembly in Minecraft, with great potential

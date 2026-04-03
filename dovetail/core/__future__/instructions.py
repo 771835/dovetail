@@ -15,14 +15,21 @@ from dovetail.core.config import ENABLE_FUTURE_INSTRUCTION_VALIDATION, FAST_MODE
 from dovetail.core.enums import DataType, StructureType, BinaryOps, CompareOps, UnaryOps
 from dovetail.core.enums.types import Array
 from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
+from dovetail.core.symbols.enumeration import Enumeration
 from dovetail.core.symbols.structure import Structure
 from dovetail.utils.safe_enum import SafeEnum
 
-_DataTypes = Union[
+_DefinableDataTypes = Union[
     DataType,
     Structure,
     Class,
-    Array
+    Array,
+    Enumeration
+]
+
+_CastableDataTypes = Union[
+    DataType,
+    Class,
 ]
 
 
@@ -140,7 +147,7 @@ def validate_instruction(func):
                     )
             else:
                 # 普通类型检查
-                if not isinstance(arg, expected_type):
+                if not isinstance(arg, expected_type):  # NOQA
                     raise ValidationError(
                         f"{func.__name__}: 参数 '{param_name}' 期望类型 {expected_type}，"
                         f"实际得到 {type(arg)}"
@@ -227,7 +234,7 @@ class IRInstruction:
             return False
         return hash(self) == hash(other)
 
-    def _flatten_nested(self, obj):
+    def _flatten_nested(self, obj) -> tuple | int:
         """递归处理嵌套结构"""
         if isinstance(obj, (list, tuple)):
             return tuple(self._flatten_nested(item) for item in obj)
@@ -647,7 +654,7 @@ def _compare_repr(instr: IRInstruction) -> str:
 @validate_instruction
 def IRCast(
         result: Variable,
-        target_type: _DataTypes,
+        target_type: _CastableDataTypes,
         source: Reference
 ) -> IRInstruction:
     """

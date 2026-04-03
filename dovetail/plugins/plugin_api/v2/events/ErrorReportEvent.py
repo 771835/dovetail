@@ -5,7 +5,7 @@ from typing import Optional
 from lark.tree import Meta
 
 from dovetail.core.errors import Errors
-from dovetail.core.parser.tool.error_reporter import ErrorReporter
+from dovetail.core.parser.tools.error_reporter import ErrorReporter
 from dovetail.plugins.plugin_api.v2.event import Event
 from dovetail.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
 

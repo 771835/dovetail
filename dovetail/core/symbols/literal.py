@@ -11,14 +11,14 @@ class Literal(Symbol):
     dtype: DataTypeBase
     value: str | int | bool | None
 
-    def get_name(self) -> None:
+    def get_name(self):
         """
-        返回空值
+        根据存储的数据返回其对应的展示名
 
         Returns:
-            NoneType: None
+            str: 存储的数据对应的展示名
         """
-        return
+        return repr(self.value)
 
-    def get_dtype(self) -> DataTypeBase:
+    def get_dtype(self):
         return self.dtype

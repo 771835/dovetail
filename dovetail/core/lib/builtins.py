@@ -1,22 +1,26 @@
 # coding=utf-8
-import uuid
 from typing import Callable, Optional
 
-from dovetail.core.enums.types import FunctionType, DataType, ValueType
+from dovetail.core.enums.types import FunctionType, DataType
 from dovetail.core.errors import report, Errors
-from dovetail.core.instructions import IRInstruction, IRCast, IRDeclare, IRScopeBegin, \
-    IRJump, IRCall
-from dovetail.core.ir_builder import IRBuilder
+from dovetail.core.instructions import IRCast, IRCall, IRJump
 from dovetail.core.lib.library import Library
-from dovetail.core.symbols import Class, Function, Reference, Variable, Literal, Parameter
+from dovetail.core.parser.tools import SymbolResolver, IREmitter, ErrorReporter
+from dovetail.core.symbols import Function, Reference, Variable, Literal, Parameter
 from dovetail.utils.naming import NameNormalizer
+
+_n = NameNormalizer.normalize
 
 
 class Builtins(Library):
 
-    def __init__(self, builder: IRBuilder):
-        self.builder = builder
-        self._functions: dict[Function, Optional[Callable[..., Variable | Literal]]] = {
+    def __init__(self, symbol_resolver: SymbolResolver, emitter: IREmitter,
+                 error_reporter: ErrorReporter):
+
+        self.error_reporter = error_reporter
+        self.emitter = emitter
+        self.symbol_resolver = symbol_resolver
+        self._functions: dict[Function, Optional[Callable[..., Variable | Literal | None]]] = {
             Function(
                 "int",
                 [
@@ -34,7 +38,7 @@ class Builtins(Library):
                 FunctionType.LIBRARY
             ): self._str,
             Function(
-                NameNormalizer.normalize("str_i"),
+                _n("str_i"),
                 [
                     Parameter(Variable("value", DataType.INT))
                 ],
@@ -42,7 +46,7 @@ class Builtins(Library):
                 FunctionType.LIBRARY
             ): self._str,
             Function(
-                NameNormalizer.normalize("str_b"),
+                _n("str_b"),
                 [
                     Parameter(Variable("value", DataType.BOOLEAN))
                 ],
@@ -54,15 +58,15 @@ class Builtins(Library):
                 [
                     Parameter(Variable("msg", DataType.STRING))
                 ],
-                DataType.INT,
+                DataType.VOID,
                 FunctionType.LIBRARY
             ): self._print,
             Function(
-                "__call",
+                _n("_call"),
                 [
                     Parameter(Variable("scope", DataType.STRING)),
                 ],
-                DataType.INT,
+                DataType.VOID,
                 FunctionType.LIBRARY
             ): self._call,
             Function(
@@ -263,66 +267,68 @@ class Builtins(Library):
         """
 
     def _int(self, value: Reference[Variable | Literal]) -> Variable:
-        result: Variable = Variable(uuid.uuid4().hex, DataType.INT)
-        self.builder.insert(IRDeclare(result))
-        self.builder.insert(IRCast(result, DataType.INT, value))
+        result: Variable = self.emitter.create_temp_var_declared(DataType.INT, "to_int")
+        self.emitter.emit(IRCast(result, DataType.INT, value))
         return result
 
     def _str(self, value: Reference[Variable | Literal]) -> Variable:
-        result: Variable = Variable(uuid.uuid4().hex, DataType.STRING)
-        self.builder.insert(IRDeclare(result))
-        self.builder.insert(IRCast(result, DataType.STRING, value))
+        result: Variable = self.emitter.create_temp_var_declared(DataType.STRING, "to_str")
+        self.emitter.emit(IRCast(result, DataType.STRING, value))
         return result
 
-    def _print(self, msg: Reference[Variable | Literal]) -> Literal:
-        self.builder.insert(
+    def _print(self, msg: Reference[Variable | Literal]) -> None:
+        tellraw_text = next((function for function in self._functions if function.name == "tellraw_text"), None)
+        if tellraw_text is None:
+            self.error_reporter.report(
+                Errors.SymbolResolution,
+                "函数",
+                "tellraw_text"
+            )
+            return None
+
+        self.emitter.emit(
             IRCall(
                 None,
-                next((function for function in self._functions if function.name == "tellraw_text"), None),
+                tellraw_text,
                 {
                     "target": Reference.literal("@a"),
                     "msg": msg
                 }
             )
         )
-        return Literal(DataType.NULL_TYPE, None)
+        return None
 
-    def _call(self, scope: Reference[Literal]):
-        if scope.value_type != ValueType.LITERAL:
+    def _call(self, scope_name: Reference[Literal]):
+        if not scope_name.is_literal() or scope_name.get_dtype() != DataType.STRING:
             report(
                 Errors.InvalidSyntax,
                 "跳转目标必须是字面量字符串"
             )
-            return Literal(DataType.NULL_TYPE, None)
-        exist = False
-        for instr in reversed(self.builder.get_instructions()):
-            if isinstance(instr, IRScopeBegin):
-                if instr.get_operands()[0] == scope.value.value:
-                    exist = True
-        if exist:
-            self.builder.insert(IRJump(scope.value.value))
-        else:
-            report(
+            return None
+
+        raw_scope_name = str(scope_name.value.value)
+
+        current_scope = self.symbol_resolver.scope_stack[-1]
+
+        if current_scope.resolve_scope(raw_scope_name) is None:
+            self.error_reporter.report(
                 Errors.InvalidControlFlow,
-                f"跳转目标作用域 '{scope.value.value}' 不存在"
+                f"跳转目标作用域 '{raw_scope_name}' 不存在"
             )
-            return Literal(DataType.NULL_TYPE, None)
-        return Literal(DataType.INT, 0)
+            return None
+
+        self.emitter.emit(IRJump(raw_scope_name))
+
+        return None
 
     def _type_of(self, value: Reference[Variable | Literal]):
         return Literal(DataType.STRING, str(value.get_dtype().get_name()))
 
+    def _type_repr_of(self, value: Reference[Variable | Literal]):
+        return Literal(DataType.STRING, repr(value.get_dtype()))
+
     def __str__(self) -> str:
         return "built-in"
 
-    def load(self) -> list[IRInstruction]:
-        return []
-
-    def get_functions(self) -> dict[Function, Callable[..., Variable | Literal]]:
+    def get_functions(self):
         return self._functions
-
-    def get_variables(self) -> dict[Variable, Reference]:
-        return {}
-
-    def get_classes(self) -> dict[Class, dict[str, Callable[..., Variable | Literal]]]:
-        return {}

@@ -102,7 +102,7 @@ class DataType(DataTypeBase, SafeEnum):
     BOOLEAN = 'boolean'
     NULL_TYPE = 'null'  # 特殊类型，不可为变量的类型
     VOID = 'void'
-    UNDEFINED = 'undefined'  # 特殊类型，仅编译期时使用
+    UNDEFINED = 'undefined'  # 特殊类型，仅编译期发生错误时使用，其他时候该类型不应被编译
     FUNCTION = 'function'
 
     # Type = 'type'  # 特殊类型，待使用

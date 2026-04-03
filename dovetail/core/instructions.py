@@ -6,21 +6,17 @@ See Also:
     判定单条IR指令类型的唯一金标准是比较 IROpCode 的ID编号是否相同
 """
 from abc import ABC, abstractmethod
-from typing import TypeVar, Any
+from typing import Any
 
 from dovetail.core.config import USED_FUTURE_INSTRUCTIONS
 
 if USED_FUTURE_INSTRUCTIONS:
     from dovetail.core.__future__.instructions import *
-
-    T = TypeVar('T', bound="IRInstruction")
 else:
     from dovetail.core.enums.operations import UnaryOps, BinaryOps, CompareOps
     from dovetail.core.enums.types import DataType, StructureType
     from dovetail.core.symbols import Literal, Class, Function, Reference, Variable, Symbol
     from dovetail.utils.safe_enum import SafeEnum
-
-    T = TypeVar('T', bound="IRInstruction")
 
 
     class InstCategory(SafeEnum):

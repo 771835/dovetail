@@ -1,5 +1,6 @@
 # coding=utf-8
 import time
+from collections.abc import Generator
 from pathlib import Path
 from typing import Optional
 
@@ -7,6 +8,7 @@ from lark import Lark, Tree
 
 from dovetail.core.config import MAX_FILE_SIZE, get_project_logger
 from dovetail.core.errors import report, Errors
+from dovetail.core.parser.tools import ErrorReporter
 from dovetail.utils.logger import get_logger
 
 # 初始化 Lark 解析器
@@ -20,7 +22,7 @@ lark_parser = Lark(
 )
 
 
-def parser_code(code: str, start: Optional[str] = None) -> Optional[Tree]:
+def parser_code(code: str, start: Optional[str] = None) -> Tree:
     """
     解析代码生成 AST
 
@@ -29,7 +31,7 @@ def parser_code(code: str, start: Optional[str] = None) -> Optional[Tree]:
         start: 语法解析起点（可选）
 
     Returns:
-        AST 树，如果文件不存在或解析失败则返回 None
+        AST 树
     """
 
     parse_start = start if start is not None else "program"
@@ -37,28 +39,35 @@ def parser_code(code: str, start: Optional[str] = None) -> Optional[Tree]:
     return lark_parser.parse(code, start=parse_start)  # , on_error=lambda e: True)
 
 
-def parser_file(filepath: Path | str, start: Optional[str] = None) -> Optional[Tree]:
+def parser_file(filepath: Path, start: Optional[str] = None, error_reporter: Optional[ErrorReporter] = None) -> Optional[Tree]:
     """
     解析代码文件生成 AST
 
     Args:
         filepath: 代码文件路径
         start: 语法解析起点（可选）
+        error_reporter: 错误报告器，不填则默认使用原始报告函数
 
     Returns:
         AST 树，如果文件不存在或解析失败则返回 None
     """
+    _report = error_reporter.report if error_reporter is not None else report
     start_time = time.perf_counter()
 
-    filepath = Path(filepath)
     if not filepath.exists() or not filepath.is_file():
+        _report(
+            Errors.FileNotFound,
+            str(filepath),
+        )
         return None
 
     if filepath.stat().st_size >= MAX_FILE_SIZE:
-        report(
-            Errors.ResourceExhaustion,
+        _report(
+            Errors.FileSizeTooLarge,
+            str(filepath),
+            str(filepath.stat().st_size),
+            str(MAX_FILE_SIZE),
             f"文件体积过大，最大支持{MAX_FILE_SIZE}字节，实际{filepath.stat().st_size}字节",
-            filepath=filepath,
             suggestion="单文件战神"
         )
         return None
@@ -74,7 +83,7 @@ def parser_file(filepath: Path | str, start: Optional[str] = None) -> Optional[T
     return tree
 
 
-def parse_fstring_iter(fstring: str):
+def parse_fstring_iter(fstring: str) -> Generator[tuple[str, str], None, None]:
     """
     逐个 yield (type, content)
     type: 'literal' 或 'expr'

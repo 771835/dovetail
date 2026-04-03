@@ -6,7 +6,7 @@ include "mathlib.mcdl"
  */
 fn test_abs(){
     print("=== 测试 abs 函数 ===")
-    int temp = abs(5)
+    let temp = abs(5)
     print(f"abs(5) = {temp}")
     temp = abs(-5)
     print(f"abs(-5) = {temp}")

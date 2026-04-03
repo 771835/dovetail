@@ -9,7 +9,7 @@ from lark.tree import Meta
 from dovetail.core.enums import DataType
 from dovetail.core.enums.types import DataTypeBase
 from dovetail.core.errors import Errors
-from dovetail.core.parser.tool.error_reporter import ErrorReporter
+from dovetail.core.parser.tools.error_reporter import ErrorReporter
 from dovetail.core.symbols import Class, Function
 from dovetail.utils.naming import NameNormalizer
 
@@ -25,7 +25,7 @@ class TypeChecker:
             expected: DataTypeBase,
             actual: DataTypeBase,
             context: str,
-            meta: Meta
+            meta: Meta | None
     ) -> bool:
         """
         检查类型是否匹配
@@ -53,7 +53,7 @@ class TypeChecker:
     def check_definable(
             self,
             dtype: DataTypeBase,
-            meta: Meta
+            meta: Meta | None
     ) -> bool:
         """
         检查类型是否可定义

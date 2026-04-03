@@ -1,7 +1,7 @@
 # coding=utf-8
 from __future__ import annotations
 
-from typing import Optional, TypeVar, Generic
+from typing import TypeVar, Generic
 
 from attrs import define
 
@@ -38,23 +38,20 @@ class Reference(Symbol, Generic[T]):
         else:
             return ValueType.VARIABLE
 
-    def get_name(self) -> Optional[str]:
+    def get_name(self) -> str:
         """
         返回所引用的符号的名称
 
         Returns:
-            Optional[str]: 所引用符号的名称，当为字面量时返回None
+            str: 所引用符号的名称，当为字面量时返回其所存储的数据的展示名形式
         """
-        if self.is_literal():
-            assert isinstance(self.value, Literal)
-            return str(self.value.value)
         return self.value.get_name()
 
     def get_dtype(self) -> DataTypeBase:
         return self.value.get_dtype()
 
     @classmethod
-    def literal(cls: type[Reference[Literal]], value: bool | int | float | str | None) -> Reference[Literal]:
+    def literal(cls: type[Reference[Literal]], value: bool | int | str | None) -> Reference[Literal]:
         return cls(Literal(DataType.from_literal(value), value))
 
     @classmethod
@@ -73,6 +70,16 @@ class Reference(Symbol, Generic[T]):
             return repr(self.value.value)
         else:
             return self.get_name()
+
+    @classmethod
+    def void(cls) -> Reference[Variable]:
+        """
+        返回一个类型为 DataType.VOID 的不声明变量
+
+        Returns:
+            一个类型为 DataType.VOID 的不声明变量
+        """
+        return cls.variable("_", DataType.VOID, mutable=False)
 
     def __repr__(self):
         return self.get_display_value()

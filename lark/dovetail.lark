@@ -108,7 +108,6 @@ argument : [MUT] expr
 
 // 数字、普通字符串、布尔值、空值
 literal : INT
-    | FLOAT
     | STRING
     | TRUE
     | FALSE
@@ -118,7 +117,7 @@ literal : INT
 array_literal: "[" (literal ("," literal)*)? "]"
 ARRAY_SIZE: /[1-9][0-9]*/     // 数组大小（正整数）
 INT: /-?[0-9]+/               // 整数（可以为负）
-FLOAT: /-?[0-9]+\.[0-9]+/     // 浮点数
+// FLOAT: /-?[0-9]+\.[0-9]+/     // 浮点数
 
 // f-string
 FSTRING.3: /f"([^"\\]|\\.)*"/

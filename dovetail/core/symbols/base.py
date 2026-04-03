@@ -1,13 +1,12 @@
 # coding=utf-8
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from dovetail.core.enums.types import DataTypeBase
 
 
 class Symbol(ABC):
     @abstractmethod
-    def get_name(self) -> Optional[str]:
+    def get_name(self) -> str:
         """
         返回符号名称
         """

@@ -12,7 +12,8 @@ from lark.tree import Meta
 from dovetail.core.enums import StructureType
 from dovetail.core.errors import Errors
 from dovetail.core.parser.scope import Scope
-from dovetail.core.parser.tool.error_reporter import ErrorReporter
+from dovetail.core.parser.tools.error_reporter import ErrorReporter
+from dovetail.core.symbols import Symbol
 from dovetail.utils.string_similarity import suggest_similar
 
 
@@ -33,7 +34,7 @@ class SymbolResolver:
             name: str,
             meta: Meta,
             expected_type: Optional[type] = None
-    ) -> Optional[Any]:
+    ) -> Optional[Symbol]:
         """
         解析符号，未找到时报错并给出建议
 
@@ -73,7 +74,7 @@ class SymbolResolver:
             )
             return None
 
-        return symbol
+        return symbol # NOQA
 
     def add_symbol(
             self,
