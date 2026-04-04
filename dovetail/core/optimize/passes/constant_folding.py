@@ -251,6 +251,25 @@ class ConstantFoldingPass(IROptimizationPass):
         if scope_type == StructureType.CONDITIONAL:
             parent_scope = self.conditional_branches.get(scope_name)
 
+            # ✅ 检查是否在循环体中
+            in_loop_body = False
+            current = self.current_table
+            while current:
+                if current.stype == StructureType.LOOP_BODY:
+                    in_loop_body = True
+                    break
+                current = current.parent
+
+            # ✅ 如果在循环体中，不使用 branch_base_state 机制
+            if in_loop_body:
+                new_table = ConstantFoldingPass.SymbolTable(
+                    scope_name,
+                    scope_type,
+                    parent=self.current_table
+                )
+                self.current_table = new_table
+                return False
+
             # 第一次遇到这个父作用域的条件分支
             if parent_scope and parent_scope not in self.branch_base_state:
                 # 保存当前符号表状态
