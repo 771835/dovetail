@@ -10,45 +10,53 @@ fn f() -> boolean {
 
 @init
 fn main() {
-    if (t() and t())
+    if (t() and t()) {
         print("Passed")
-    else
+    } else {
         print("(true and true) != true")
+    }
 
-    if (t() and f())
+    if (t() and f()) {
         print("(true and false) != false")
-    else
+    } else {
         print("Passed")
+    }
 
-    if (f() and f())
+    if (f() and f()) {
         print("(false and false) != false")
-    else
+    } else {
         print("Passed")
+    }
 
-    if (f() and t())
+    if (f() and t()) {
         print("(false and true) != false")
-    else
+    } else {
         print("Passed")
+    }
 
-    if (t() or t())
+    if (t() or t()) {
         print("Passed")
-    else
+    } else {
         print("(true or true) != true")
+    }
 
-    if (t() or f())
+    if (t() or f()) {
         print("Passed")
-    else
+    } else {
         print("(true or false) != true")
+    }
 
-    if (f() or f())
+    if (f() or f()) {
         print("(false or false) != false")
-    else
+    } else {
         print("Passed")
+    }
 
-    if (f() or t())
+    if (f() or t()) {
         print("Passed")
-    else
+    } else {
         print("(false or true) != true")
+    }
 
     print("Test completed")
 }
