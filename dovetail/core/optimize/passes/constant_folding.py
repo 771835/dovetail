@@ -37,7 +37,7 @@ class ConstantFoldingPass(IROptimizationPass):
 
     核心策略：
     1. 顺序遍历 IR，维护符号表
-    2. 遇到 CONDITIONAL 作用域时，保存当前状态
+    2. 遇到 CONDITION 作用域时，保存当前状态
     3. 在条件分支内使用临时符号表
     4. 遇到 COND_JUMP 时，合并所有分支的状态
     """

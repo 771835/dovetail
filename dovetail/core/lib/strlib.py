@@ -1,24 +1,20 @@
-import uuid
-from typing import Callable
-
 from dovetail.core.enums import DataType, BinaryOps, FunctionType
-from dovetail.core.instructions import IRInstruction, IRDeclare, IRBinaryOp
-from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
+from dovetail.core.parser.tools import SymbolResolver, ErrorReporter, IREmitter
 from dovetail.core.symbols import Reference, Function, Variable, Literal, Parameter
 
 
 class Strlib(Library):
-    def __init__(self, builder: IRBuilder):
-        self.builder = builder
+    def __init__(self, symbol_resolver: SymbolResolver, emitter: IREmitter,
+                 error_reporter: ErrorReporter):
+        self.error_reporter = error_reporter
+        self.emitter = emitter
+        self.symbol_resolver = symbol_resolver
 
     def __str__(self) -> str:
         return "strlib"
 
-    def load(self) -> list[IRInstruction]:
-        return []
-
-    def get_functions(self) -> dict[Function, Callable[..., Variable | Literal]]:
+    def get_functions(self):
         return {
             Function(
                 "strcat",
@@ -51,10 +47,4 @@ class Strlib(Library):
 
     def _strcat(self, dest: Reference[Variable | Literal],
                 src: Reference[Variable | Literal]) -> Variable:
-        var = Variable(uuid.uuid4().hex, DataType.STRING)
-        self.builder.insert(IRDeclare(var))
-        self.builder.insert(IRBinaryOp(var, BinaryOps.ADD, dest, src))
-        return var
-
-    def get_variables(self) -> dict[Variable, Reference]:
-        return {}
+        return self.emitter.emit_binary_calc(dest, BinaryOps.ADD, src, DataType.STRING, "strcat")

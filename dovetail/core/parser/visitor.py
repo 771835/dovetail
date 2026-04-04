@@ -542,7 +542,7 @@ class ASTVisitor(Interpreter):
             dtype = self.visit(children.pop(0))
 
         # 处理默认值
-        default_value: Reference | None = None
+        default_value: Reference
         if children:
             default_value = self.visit(children.pop(0))
 
@@ -556,10 +556,11 @@ class ASTVisitor(Interpreter):
                 # 错误时返回无默认值的参数
                 return Parameter(Variable(name, dtype, VariableType.PARAMETER))
 
+            return Parameter(Variable(name, dtype, VariableType.PARAMETER), is_mutable, default_value)
+
         return Parameter(
             Variable(name, dtype, VariableType.PARAMETER),
-            is_mutable,
-            default_value
+            is_mutable
         )
 
     @v_args(meta=True)
@@ -682,7 +683,7 @@ class ASTVisitor(Interpreter):
         # 获取返回值
         value: Reference | None = None
         if children:
-            value = self.visit(children.pop(0))
+            value: Reference = self.visit(children.pop(0))
 
             # 标记返回值的变量类型
             if isinstance(value.value, Variable):
@@ -702,6 +703,7 @@ class ASTVisitor(Interpreter):
                 meta=meta
             )
             return
+        function_scope: Scope
 
         # 类型检查
         if value is not None:

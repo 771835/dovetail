@@ -21,17 +21,17 @@ class LibraryMapping:
     _lock = threading.Lock()
     builtin_map: dict[str, type[Library]] = {
         "builtins": Builtins,
-        "builtin.builtins": Builtins,
+        "dovetail.builtins": Builtins,
         "experimental": Experimental,
-        "builtin.experimental": Experimental,
+        "dovetail.experimental": Experimental,
         "random": Random,
-        "builtin.math.random": Random,
+        "dovetail.minecraft.random": Random,
         "math": Math,
-        "builtin.math": Math,
+        "dovetail.math": Math,
         "int_list": IntList,
-        "builtin.list.int_list": IntList,
+        "dovetail.list.int_list": IntList,
         "strlib": Strlib,
-        "builtin.strlib": Strlib,
+        "dovetail.strlib": Strlib,
     }
 
     @classmethod

@@ -2,11 +2,13 @@
 """
 基础功能 Mixins - 作用域系统的构建块
 """
-from typing import Callable, Self
+from typing import Callable, Self, TypeVar
 
 from dovetail.core.enums.types import StructureType
 from dovetail.core.scope.protocols import ScopeCore, SymbolContainer, SymbolResolver
 from dovetail.core.symbols.base import Symbol
+
+_SymbolType = TypeVar('_SymbolType', bound=Symbol)
 
 
 class CoreMixin(ScopeCore):
@@ -31,7 +33,7 @@ class SymbolStorageMixin:
         if not hasattr(self, 'symbols'):
             self.symbols: dict[str, Symbol] = {}
 
-    def add_symbol(self, symbol: Symbol, force: bool = False) -> bool:
+    def add_symbol(self, symbol: _SymbolType, force: bool = False) -> bool:
         """
         添加符号到当前作用域
 
@@ -82,11 +84,11 @@ class SymbolStorageMixin:
             return True
         return False
 
-    def get_symbols(self) -> dict[str, Symbol]:
+    def get_symbols(self) -> dict[str, _SymbolType]:
         """获取当前作用域的所有符号"""
         return self.symbols.copy()
 
-    def find_symbol(self, name: str) -> Symbol | None:
+    def find_symbol(self, name: str) -> _SymbolType | None:
         """
         在当前作用域查找符号（单层查找）
 
@@ -94,7 +96,7 @@ class SymbolStorageMixin:
             name: 符号名称
 
         Returns:
-            Symbol | None: 找到的符号或 None
+            _SymbolType | None: 找到的符号或 None
         """
         return self.symbols.get(str(name), None)
 
@@ -106,7 +108,7 @@ class SymbolResolutionMixin(SymbolResolver, ScopeCore, SymbolContainer):
     提供跨越作用域边界的符号解析能力。
     """
 
-    def resolve_symbol(self: Self, name: str) -> Symbol | None:
+    def resolve_symbol(self: Self, name: str) -> _SymbolType | None:
         """
         逐级向上解析符号
 
@@ -114,7 +116,7 @@ class SymbolResolutionMixin(SymbolResolver, ScopeCore, SymbolContainer):
             name: 要解析的符号名称
 
         Returns:
-            Symbol | None: 找到的符号或 None
+            _SymbolType | None: 找到的符号或 None
         """
         name = str(name)
         current = self
@@ -128,7 +130,7 @@ class SymbolResolutionMixin(SymbolResolver, ScopeCore, SymbolContainer):
 
         return None
 
-    def resolve_symbol_in_chain(self: Self, name: str, chain: list[StructureType] | None = None) -> Symbol | None:
+    def resolve_symbol_in_chain(self: Self, name: str, chain: list[StructureType] | None = None) -> _SymbolType | None:
         """
         在指定类型的作用域链中解析符号
 
@@ -144,7 +146,7 @@ class SymbolResolutionMixin(SymbolResolver, ScopeCore, SymbolContainer):
 
         while current:
             if hasattr(current, 'find_symbol') and callable(current.find_symbol):
-                find_symbol: Callable[[str], Symbol | None] = current.find_symbol  # NOQA
+                find_symbol: Callable[[str], _SymbolType | None] = current.find_symbol  # NOQA
                 if chain is None or current.stype in chain:
                     symbol: Symbol | None = find_symbol(name)
                     if symbol:
@@ -155,7 +157,7 @@ class SymbolResolutionMixin(SymbolResolver, ScopeCore, SymbolContainer):
 
         return None
 
-    def get_all_symbols(self: Self) -> dict[str, Symbol]:
+    def get_all_symbols(self: Self) -> dict[str, _SymbolType]:
         """
         获得完整符号表
 
@@ -163,7 +165,7 @@ class SymbolResolutionMixin(SymbolResolver, ScopeCore, SymbolContainer):
 
         """
         scope_stack: list[Self] = []
-        current = self
+        current: Self | None = self
         while current:
             scope_stack.append(current)
             current = current.parent

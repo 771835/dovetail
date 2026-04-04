@@ -187,7 +187,7 @@ class StructureType(SafeEnum):
         - GLOBAL: 顶级作用域，全局可见，通常唯一
         - FUNCTION: 函数局部作用域
         - CLASS: 类成员作用域
-        - LOOP/CONDITIONAL: 块级作用域
+        - LOOP/CONDITION: 块级作用域
 
     Attributes:
         GLOBAL: 全局作用域
@@ -266,19 +266,17 @@ class AnnotationCategory(SafeEnum):
     Attributes:
         LIFECYCLE: 控制函数执行时机
         VISIBILITY: 控制可见性和优化
-        OPTIMIZATION: 控制优化行为
         LINKAGE: 控制后端链接接口指令的生成
-        CONDITIONAL: 条件编译
+        CONDITION: 条件编译
         METADATA: 元数据注解，不影响编译逻辑
     """
     # 核心语义注解 - 影响代码生成和执行
     LIFECYCLE = "lifecycle"  # @init, @tick - 控制函数执行时机
-    VISIBILITY = "visibility"  # @internal - 控制可见性和优化
-    OPTIMIZATION = "optimization"  # @noinline - 控制优化行为
+    VISIBILITY = "visibility"  # @internal, @noinline - 控制可见性和优化
     LINKAGE = "linkage"  # @export, @extern - 控制后端链接接口指令的生成
 
-    # 条件编译注解 - 在AST阶段处理
-    CONDITIONAL = "conditional"  # @target, @version - 条件编译
+    # 条件编译注解 - 在AST遍历阶段处理
+    CONDITION = "condition"  # @target, @version - 控制代码编译生成
 
     # 元数据注解 - 不影响编译逻辑
     METADATA = "metadata"  # @doc, @author, @since, @deprecated

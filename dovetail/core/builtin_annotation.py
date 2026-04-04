@@ -8,13 +8,13 @@ _annotations: dict[str, Annotation] = {
     "export": Annotation("export", {"path": "", "abi": "dovetail"}, AnnotationCategory.VISIBILITY),
     "extern": Annotation("extern", {"path": "", "abi": "dovetail"}, AnnotationCategory.VISIBILITY),
     "internal": Annotation("internal", None, AnnotationCategory.VISIBILITY),
-    "noinline": Annotation("noinline", None, AnnotationCategory.OPTIMIZATION),
-    "target": Annotation("target", {"edition": "java"}, AnnotationCategory.CONDITIONAL),
+    "noinline": Annotation("noinline", None, AnnotationCategory.VISIBILITY),
+    "target": Annotation("target", {"edition": "java"}, AnnotationCategory.CONDITION),
     "version": Annotation("version", {"min": "1.20.4", "max": "1.21.4"}, AnnotationCategory.METADATA),
     "deprecated": Annotation("deprecated", {"msg": "Please use newFunction instead"}, AnnotationCategory.METADATA),
     "doc": Annotation("doc", {"doce": "why use @doc?"}, AnnotationCategory.METADATA),
-    "author": Annotation("author", {"author": ""}, AnnotationCategory.CONDITIONAL),
-    "since": Annotation("author", {"version": ""}, AnnotationCategory.CONDITIONAL)
+    "author": Annotation("author", {"author": ""}, AnnotationCategory.CONDITION),
+    "since": Annotation("author", {"version": ""}, AnnotationCategory.CONDITION)
 }
 
 
