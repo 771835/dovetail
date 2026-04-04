@@ -249,7 +249,7 @@ class TagWriter(OutputWriter):
 
     def write(self, context: GenerationContext):
         """写入标签文件"""
-        tags_dir = context.target / context.namespace / "data" / "minecraft" / "tags" / "functions"
+        tags_dir = context.target / context.namespace / "data" / "minecraft" / "tags" / "function"
         tags_dir.mkdir(parents=True, exist_ok=True)
 
         # 写入load标签

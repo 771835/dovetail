@@ -1,5 +1,6 @@
 # coding=utf-8
 import functools
+import shutil
 from pathlib import Path
 
 from dovetail.core.backend import Backend, TagWriter, CommandWriter, MetadataWriter, FunctionWriter
@@ -15,7 +16,7 @@ from .literal_pool_writer import LiteralPoolWriter
 class JE1214Backend(Backend):
     def __init__(self, ir_builder: IRBuilder, target: Path, config: CompileConfig):
         super().__init__(ir_builder, target, config)
-        self.output_manager.register_writer(TagWriter())
+        self.output_manager.register_writer(TagWriter(["initializer"], []))
         self.output_manager.register_writer(CommandWriter())
         self.output_manager.register_writer(MetadataWriter())
         self.output_manager.register_writer(FunctionWriter(callback=self._get_builtin_functions))
@@ -67,6 +68,7 @@ class JE1214Backend(Backend):
                 "9604b264fda4de2107fea5b02cdc52de88527ee9ba65717a674506894ba5933b",
                 61,
                 94.1,
+                lambda path, minecraft_version: shutil.rmtree(path / "data" / "minecraft", ignore_errors=True)
             ),
 
         ]

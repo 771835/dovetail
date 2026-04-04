@@ -5,7 +5,7 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Optional, Callable, Any
 
 from attrs import define, field
 
@@ -21,7 +21,7 @@ class DependencyFile:
     sha256: str = None
     min_version: int | float = 0
     max_version: int | float = 127
-    hook: Callable[[Path, MinecraftVersion], None] = None  # 在下载完成后执行，对下载的包进行一定修改以适应版本
+    hook: Optional[Callable[[Path, MinecraftVersion], Any]] = None  # 在下载完成后执行，对下载的包进行一定修改以适应版本
 
 
 class PackMcmeta:
@@ -159,7 +159,7 @@ class Scope:
     children: list['Scope'] = field(factory=list)
     commands: list[str] = field(factory=list)
     symbols: dict[str, Symbol] = field(factory=dict)
-    flags: dict[str, ...] = field(factory=dict)
+    flags: dict[str, Any] = field(factory=dict)
 
     def add_command(self, command: str):
         """添加命令"""
@@ -203,6 +203,7 @@ class Scope:
         # 自动获取符号名称
         if hasattr(symbol_name, "get_name") and callable(symbol_name.get_name):
             symbol_name = symbol_name.get_name()
+        assert isinstance(symbol_name, str)
         current = self
         while current:
             if symbol_name in current.symbols:
@@ -248,8 +249,8 @@ class GenerationContext:
     ir_builder: IRBuilder
 
     # 作用域管理
-    root_scope: Optional[Scope] = field(default=None)
-    current_scope: Optional[Scope] = field(default=None)
+    root_scope: Scope = field(default=None)
+    current_scope: Scope = field(default=None)
     scope_stack: list[Scope] = field(factory=list)
 
     # 全局状态
