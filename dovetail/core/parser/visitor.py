@@ -367,9 +367,15 @@ class ASTVisitor(Interpreter):
             return args_dict
 
         # 效验数据并记录参数字典
-        for i, ((arg_ref, is_mutable), param) in enumerate(itertools.zip_longest(args, symbol.params)):
-            assert isinstance(arg_ref, Reference) and isinstance(param, Parameter)
-            arg_value: Reference = arg_ref or param.default  # NOQA
+        for i, (arg, param) in enumerate(itertools.zip_longest(args, symbol.params)):
+            assert isinstance(param, Parameter)
+            arg_value: Reference
+            if arg is not None:
+                arg_value, is_mutable = arg
+            else:
+                # 形参和缺省值必然存在一个，因此void()不可能被调用
+                arg_value = param.default or Reference.void()
+                is_mutable = param.mutable
             args_dict[param.get_name()] = arg_value
             # 类型检查
             if not arg_value.get_dtype().is_subclass_of(param.get_dtype()):
