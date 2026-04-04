@@ -24,11 +24,9 @@
 
 ### 注解语法
 
-```antlrv4
-annotation // 仅允许使用内置注解及插件注解
-    : '@' ID
-    | '@' ID LPAREN literal (COMMA literal)* RPAREN
-    ;
+```lark
+// 仅允许使用内置注解及插件注解
+annotation : "@" ID | "@" ID "(" literal ("," literal)* ")"
 ```
 
 ### 注解分类体系
@@ -41,7 +39,7 @@ annotation // 仅允许使用内置注解及插件注解
 
 ```dovetail
 @init
-func setup() {
+fn setup() {
     // 数据包加载时执行，用于初始化
 }
 ```
@@ -54,12 +52,12 @@ func setup() {
 
 ```dovetail
 @tick
-func gameLoop() {
+fn gameLoop() {
     // 每游戏刻执行
 }
 
 @tick(20)  // 每20刻执行一次
-func slowUpdate() {
+fn slowUpdate() {
     // 降频执行的逻辑
 }
 ```
@@ -72,24 +70,11 @@ func slowUpdate() {
 
 控制函数的可见性和是否可被优化器删除。
 
-##### `@export`
-
-```dovetail
-    @export
-    func publicAPI() {
-        // 导出函数，不会被优化删除
-    }
-```
-
-- **语义**：标记为外部可访问，防止优化删除
-- **用途**：API函数、调试接口、插件入口点
-- **优化影响**：阻止死代码消除
-
 ##### `@internal`
 
 ```dovetail
 @internal  
-func helperFunction() {
+fn helperFunction() {
     // 内部函数，可激进优化
 }
 ```
@@ -98,24 +83,11 @@ func helperFunction() {
 - **优化影响**：允许内联、删除未使用分支
 - **默认行为**：未标注的函数默认为 @internal
 
-##### `@public`
-
-```dovetail
-@public
-func libraryFunction() {
-    // 库函数，对其他模块可见
-}
-```
-
-- **语义**：跨模块可见性
-- **作用域**：模块级别的可见性控制
-- **与 @export 区别**：@public 是模块间可见，@export 是优化保护
-
 ##### `@noinline`
 
 ```dovetail
 @noinline
-func complexFunction() {
+fn complexFunction() {
     // 禁止内联此函数
 }
 ```
@@ -123,27 +95,61 @@ func complexFunction() {
 - **影响优化**：阻止函数内联
 - **使用场景**：调试、性能分析、代码大小控制
 
-#### 3. 代码生成控制注解 (Codegen Annotations)
+#### 3. 链接接口生成注解 (Linkage Annotations)
 
-控制目标代码生成的注解。
+控制后端链接接口指令的生成
+
+##### `@export`
+
+```dovetail
+    @export("dovetail:api/1")
+    fn publicAPI() {
+        // 导出函数，不会被优化删除
+    }
+```
+
+- **语义**：标记为外部可访问，防止优化删除
+- **用途**：API函数、调试接口、插件入口点
+- **优化影响**：阻止死代码消除
+- **参数**：
+  1. `path` - 导出路径
+  2. `type` - 导出格式
+- **特殊事宜**：有此注解的函数的函数名不会被归一化，故函数名不可使用大写字符或unicode字符
+
+
+##### `@extern`
+
+```dovetail
+    @extern("dovetail:api/1")
+    fn publicAPI(); // 导入函数，运行时寻找实际实现
+```
+
+- **语义**：标记为外部导入，不提供实现
+- **用途**：API函数、调用其他数据包
+- **优化影响**：阻止内联优化和函数调用删除
+- **参数**：
+  1. `path` - 导入路径
+  2. `type` - 参数传递格式
+- **特殊事宜**：对于一些复杂数据类型参数不支持
+
+
+#### 4. 条件编译注解注解 (Condition Annotations)
+
+控制代码编译生成的注解。
 
 ##### `@target`
 
 ```dovetail
 @target("je")  // Java Edition
-func javaSpecific() {
+fn javaSpecific() {
     // 仅在JE后端生成
 }
 
 @target("be")  // Bedrock Edition  
-func bedrockSpecific() {
+fn bedrockSpecific() {
     // 仅在BE后端生成
 }
 
-@target(["je", "be"])  // 多目标
-func crossPlatform() {
-    // 在指定平台生成
-}
 ```
 
 - **参数**：目标平台标识符
@@ -155,7 +161,7 @@ func crossPlatform() {
 
 ```dovetail
 @version(min="1.19", max="1.20")
-func modernFeature() {
+fn modernFeature() {
     // 版本限制的功能
 }
 ```
@@ -165,7 +171,7 @@ func modernFeature() {
 - **格式**：语义版本号字符串
 - **处理时机**：AST遍历阶段处理
 
-#### 4. 元数据注解 (Metadata Annotations)
+#### 5. 元数据注解 (Metadata Annotations)
 
 提供额外信息的注解，不影响代码生成。
 
@@ -173,17 +179,12 @@ func modernFeature() {
 
 ```dovetail
 @deprecated("Use newFunction() instead")
-func oldFunction() {
+fn oldFunction() {
     // 标记为已废弃
-}
-
-@deprecated(since="1.2.0", removal="2.0.0")  
-func legacyAPI() {
-    // 详细废弃信息
 }
 ```
 
-- **参数**：废弃消息、版本信息
+- **参数**：废弃消息
 - **编译时警告**：使用时产生警告
 - **文档生成**：影响API文档
 
@@ -191,7 +192,7 @@ func legacyAPI() {
 
 ```dovetail
 @doc("Calculates player distance in blocks")
-func getDistance(player1: string, player2: string): float {
+fn getDistance(player1: string, player2: string) -> float {
     // 文档注解
 }
 ```
@@ -204,7 +205,7 @@ func getDistance(player1: string, player2: string): float {
 
 ```dovetail
 @author("PlayerName")
-func customLogic() {
+fn customLogic() {
     // 作者标记
 }
 ```
@@ -217,7 +218,7 @@ func customLogic() {
 
 ```dovetail
 @since("1.1.0")
-func newFeature() {
+fn newFeature() {
     // 版本引入标记
 }
 ```

@@ -4,128 +4,128 @@ include "random"
 /**
  * 计算并返回第 n 项斐波那契数（非递归方式）
  */
-func fibonacci(n: int) -> int {
+fn fibonacci(n: int) -> int {
     if (n <= 1) {
-        return n;
+        return n
     }
 
-    let prev2 = 0;
-    let prev1 = 1;
-    let current = 0;
+    let prev2 = 0
+    let prev1 = 1
+    let current = 0
 
-    for (i : int = 2 ; i <= n; i= i+1 ) {
-        current = prev1 + prev2;
-        prev2 = prev1;
-        prev1 = current;
+    for (let i = 2 ; i <= n; i = i+1 ) {
+        current = prev1 + prev2
+        prev2 = prev1
+        prev1 = current
     }
 
-    return current;
+    return current
 }
 
 /**
  * 计算给定数的阶乘（假设输入为非负整数）
  */
-func factorial(n: int) -> int {
+fn factorial(n: int) -> int {
     if (n <= 1) {
-        return 1;
+        return 1
     }
 
-    let result = 1;
-    for (i: int = 2; i <= n; i= i+1) {
-        result = result * i;
+    let result = 1
+    for (let i = 2; i <= n; i= i+1) {
+        result = result * i
     }
 
-    return result;
+    return result
 }
 
 /**
  * 快速幂函数 (base^exp) 返回 base 的 exp 次幂（非负指数）
  */
-func pow(base: int, exp: int) -> int {
+fn pow(base: int, exp: int) -> int {
     if (exp < 0) {
-        return 0; // 假设我们不处理负数次幂
+        return 0 // 假设我们不处理负数次幂
     }
     else if (exp == 0) {
-        return 1;
+        return 1
     }
 
-    let result = 1;
-    let currentBase = base;
+    let result = 1
+    let currentBase = base
 
     for (; exp > 0;) {
         if (exp % 2 == 1) {
-            result = result * currentBase;
+            result = result * currentBase
         }
-        currentBase = currentBase * currentBase;
-        exp = exp / 2;
+        currentBase = currentBase * currentBase
+        exp = exp / 2
     }
 
-    return result;
+    return result
 }
 
 /**
  * 计算两个整数的最大公约数（欧几里得算法）
  */
-func gcd(a: int, b: int) -> int {
+fn gcd(a: int, b: int) -> int {
     while (b != 0) {
-        let temp = b;
-        b = a % b;
-        a = temp;
+        let temp = b
+        b = a % b
+        a = temp
     }
-    return a;
+    return a
 }
 
 /**
  * 计算两个整数的最小公倍数
  */
-func lcm(a: int, b: int) -> int {
-    return (a * b) / gcd(a, b);
+fn lcm(a: int, b: int) -> int {
+    return (a * b) / gcd(a, b)
 }
 
 /**
  * 计算数字的位数
  */
-func digit_count(n: int) -> int {
+fn digit_count(n: int) -> int {
     if (n == 0) {
-        return 1;
+        return 1
     }
 
-    let absN = abs(n);
-    let count = 0;
+    let absN = abs(n)
+    let count = 0
 
     while (absN > 0) {
-        count = count + 1;
-        absN = absN / 10;
+        count = count + 1
+        absN = absN / 10
     }
 
-    return count;
+    return count
 }
 
 /**
  * 反转一个整数的数字
  */
-func reverse_number(n: int) -> int {
-    let absN = abs(n);
-    let isNegative = n < 0;
-    let result = 0;
+fn reverse_number(n: int) -> int {
+    let absN = abs(n)
+    let isNegative = n < 0
+    let result = 0
 
     while (absN > 0) {
-        result = result * 10 + absN % 10;
-        absN = absN / 10;
+        result = result * 10 + absN % 10
+        absN = absN / 10
     }
 
     if (isNegative) {
-        result = -result;
+        result = -result
     }
 
-    return result;
+    return result
 }
 /**
  * 计算给定整数 x 的整数平方根（向下取整）
  * 使用分段双曲近似 + 牛顿迭代法优化，适用于 32 位整数范围内的输入
  *
  * 算法来自：https://github.com/Triton365/fast_integer_sqrt
- * 感谢 Triton365 提供的高效整数平方根近似方法。
+ * 感谢 Triton365 编写的高效整数平方根近似方法。
  *
  * 参数:
  *   x - 要计算平方根的非负整数（0 <= x <= 2147483647）
@@ -133,8 +133,8 @@ func reverse_number(n: int) -> int {
  * 返回值:
  *   返回 x 的整数平方根（即 floor(sqrt(x))）
  */
-func sqrt(int x) -> int {
-    int res = 0
+fn isqrt(int x) -> int {
+    let res = 0
 
     if (0 <= x and x <= 19310) {
         res = -594039 / (x + 4095) + 149
@@ -170,16 +170,16 @@ func sqrt(int x) -> int {
  *
  * 实现说明：
  *   - 小于 2 的数不是质数
- *   - 对于大于等于 2 的数，只需检查到 sqrt(x) 即可
+ *   - 对于大于等于 2 的数，只需检查到 isqrt(x) 即可
  *   - 若存在能整除 x 的因数，则不是质数
  */
-func is_prime(int x) -> boolean {
+fn is_prime(int x) -> boolean {
     if (x < 2) {
         return false
     }
 
-    int sqrt_x = sqrt(x)
-    for (int i = 2; i <= sqrt_x; i=i+1) {
+    let sqrt_x = isqrt(x)
+    for (let i = 2; i <= sqrt_x; i=i+1) {
         if (x % i == 0) {
             return false
         }
@@ -191,89 +191,89 @@ func is_prime(int x) -> boolean {
 /**
  * 将值限制在指定范围内
  */
-func clamp(value: int, min_val: int, max_val: int) -> int {
-    return max(min_val, min(value, max_val));
+fn clamp(value: int, min_val: int, max_val: int) -> int {
+    return max(min_val, min(value, max_val))
 }
 
 
 /**
  * 计算组合数 C(n, k)
  */
-func combination(n: int, k: int) -> int {
+fn combination(n: int, k: int) -> int {
     if (k > n || k < 0) {
-        return 0;
+        return 0
     }
     if (k == 0 || k == n) {
-        return 1;
+        return 1
     }
 
     // 优化：使用较小的k值
-    if (k > n - k) {
-        k = n - k;
+    if (k > (n - k)) {
+        k = n - k
     }
 
-    let result = 1;
-    for (i: int = 0; i < k; i = i + 1) {
-        result = result * (n - i) / (i + 1);
+    let result = 1
+    for (let i = 0; i < k; i = i + 1) {
+        result = result * (n - i) / (i + 1)
     }
 
-    return result;
+    return result
 }
 
 /**
  * 计算排列数 P(n, k)
  */
-func permutation(n: int, k: int) -> int {
+fn permutation(n: int, k: int) -> int {
     if (k > n || k < 0) {
-        return 0;
+        return 0
     }
 
-    let result = 1;
-    for (i: int = 0; i < k; i = i + 1) {
-        result = result * (n - i);
+    let result = 1
+    for (let i = 0; i < k; i = i + 1) {
+        result = result * (n - i)
     }
 
-    return result;
+    return result
 }
 
 /**
  * 生成指定范围内的随机质数
  */
-func random_prime(min_val: int, max_val: int) -> int {
-    let attempts = 0;
-    let max_attempts = 100; // 避免无限循环
+fn random_prime(min_val: int, max_val: int) -> int {
+    let attempts = 0
+    let max_attempts = 100 // 避免无限循环
 
     while (attempts < max_attempts) {
-        let candidate = randint(min_val, max_val);
+        let candidate = randint(min_val, max_val)
         if (is_prime(candidate)) {
-            return candidate;
+            return candidate
         }
-        attempts = attempts + 1;
+        attempts = attempts + 1
     }
 
     // 如果找不到，返回范围内的第一个质数
-    for (i: int = min_val; i <= max_val; i = i + 1) {
+    for (let i = min_val; i <= max_val; i = i + 1) {
         if (is_prime(i)) {
-            return i;
+            return i
         }
     }
 
-    return min_val; // 兜底返回
+    return min_val // 兜底返回
 }
 
 /**
  * 计算两点之间的曼哈顿距离
  */
-func manhattan_distance(x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> int {
-    return abs(x2 - x1) + abs(y2 - y1) + abs(z2 - z1);
+fn manhattan_distance(x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> int {
+    return abs(x2 - x1) + abs(y2 - y1) + abs(z2 - z1)
 }
 
 /**
  * 计算两点之间的欧几里得距离的平方（避免浮点运算）
  */
-func distance_squared(x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> int {
-    let dx = x2 - x1;
-    let dy = y2 - y1;
-    let dz = z2 - z1;
-    return dx * dx + dy * dy + dz * dz;
+fn distance_squared(x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> int {
+    let dx = x2 - x1
+    let dy = y2 - y1
+    let dz = z2 - z1
+    return dx * dx + dy * dy + dz * dz
 }

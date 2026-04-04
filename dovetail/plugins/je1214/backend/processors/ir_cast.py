@@ -1,0 +1,40 @@
+# coding=utf-8
+"""
+IRCast 指令处理器
+"""
+from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
+from dovetail.core.config import get_project_logger
+from dovetail.core.enums import DataType
+from dovetail.core.instructions import IRInstruction, IROpCode
+from dovetail.core.symbols import Variable, Class, Reference, Literal
+from ..backend import JE1214Backend
+from ..commands.strlib import to_str, to_int
+from ..commands.tools import DataPath, StorageLocation
+
+
+@ir_processor(JE1214Backend, IROpCode.CAST)
+class IRCastProcessor(IRProcessor):
+    def process(self, instruction: IRInstruction, context: GenerationContext):
+        result: Variable = instruction.operands[0]
+        dtype: DataType | Class = instruction.operands[1]
+        value: Reference[Variable | Literal] = instruction.operands[2]
+
+        result_path = DataPath(
+            context.current_scope.get_symbol_path(result),
+            context.objective,
+            StorageLocation.get_storage(result.dtype)
+        )
+        value_path = DataPath(
+            context.current_scope.get_symbol_path(value),
+            context.objective,
+            StorageLocation.get_storage(value.get_dtype())
+        ) if not value.is_literal() else value.value.value
+
+        # int -> str
+        if value.get_dtype().is_subclass_of(DataType.INT) and dtype == DataType.STRING:
+            context.add_commands(to_str(result_path, value_path))
+        elif value == DataType.STRING and dtype.is_subclass_of(DataType.INT):
+            # str -> int
+            context.add_commands(to_int(result_path, value_path))
+        else:
+            get_project_logger().error("Unsupported data type")

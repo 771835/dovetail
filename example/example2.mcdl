@@ -1,17 +1,12 @@
-class foo {
-    int a;
-    method __init__(self:foo){
-        print("33")
-    }
-
-    method bar(self:foo){
-        print(str(self.a))
-    }
+// 数组测试
+let arr1 : int[100]
+let p = 0
+fn foo(arr : int[]) -> int {
+    arr1[p] = 1
 }
+
 @init
-func main(){
-    let var = foo();
-    var.bar();
-    var.a = 123
-    var.bar();
+fn main(){
+    let var = foo()
+    print(str(var))
 }

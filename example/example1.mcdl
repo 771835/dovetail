@@ -1,19 +1,24 @@
-include "_minecraft.mcdl"
 include "random"
-func foo():int;
+include "mathlib.mcdl"
+typedef int i32
 
+fn foo() -> i32;
 @init
-func bar(){
-    if (foo()==350234/1) {
-        exec("say 1")
+fn bar(){
+    if (foo()==350234) {
+        exec("say 121")
         print("1")
     }else {
         exec("say 2")
-        gamerule("doFireTick","true")
     }
 }
 
+@target("java")
+fn foo() -> i32{
+    return 350234
+}
 
-func foo():int{
-    return 350234;
+@target("be")
+fn foo() -> i32{
+    return 0
 }
