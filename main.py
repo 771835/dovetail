@@ -6,6 +6,7 @@ import logging
 import sys
 from contextlib import chdir
 from pathlib import Path
+from typing import NoReturn
 
 import fastjsonschema
 
@@ -131,7 +132,7 @@ class Compiler:
             source_path: Path,
             target_dir_path: Path,
             working_directory: Path | None = None
-    ) -> int | None:
+    ) -> int | NoReturn:
         """
         编译单个文件
 
@@ -154,13 +155,14 @@ class Compiler:
 
         with chdir(working_directory):
             try:
-                tree = parser_file(source_path)
+                ast_tree = parser_file(source_path)
 
-                # print(tree.pretty())
+                print(ast_tree.pretty())
 
-                generator.visit(tree)
+                generator.visit(ast_tree)
 
                 builder = Optimizer(generator.builder, self.config).optimize()
+
 
                 builder.print()
 
@@ -179,6 +181,7 @@ class Compiler:
             except Exception as e:
                 # 重新抛出异常显示错误详情
                 raise CompilationError("意外的错误") from e
+        return 0
 
     @timed("写入临时文件用时{:.3f}s")
     def _write_temp_file(self, builder: IRBuilder, target_dir_path: Path):

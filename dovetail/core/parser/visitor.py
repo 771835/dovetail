@@ -476,6 +476,7 @@ class ASTVisitor(Interpreter):
                     # 添加参数到作用域
                     for param in params:
                         self.symbol_resolver.add_symbol(param.var, meta)
+                        self.ir_emitter.emit(IRDeclare(param.var))
                     # 访问函数体
                     self.visit(children.pop(0))
 

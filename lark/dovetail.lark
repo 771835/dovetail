@@ -77,24 +77,39 @@ const: "const" ID [":" type] "=" expr  // 常量声明
 let: "let" ID "=" expr // 自动推导类型
    | "let" ID ":" type ["=" expr]
 
-// 表达式
-?expr: primary                                                     // 基础表达式
-    | FSTRING                                -> fstring            // 插值字符串
-    | "null"                                 -> null               // null句柄
-    | ADDSUB expr                            -> unary_minus        // 正负号
-    | expr "." ID arguments                  -> method_call        // 方法调用
-    | expr "." ID                            -> member_access      // 成员访问
-    | expr "[" expr "]"                      -> array_access       // 数组访问
-    | expr arguments                         -> function_call      // 函数调用
-    | expr ADDSUB expr                       -> term               // 加减运算
-    | expr COMPARE_OP expr                   -> compare            // 比较运算
-    | expr MULTIPLY expr                     -> factor             // 乘除模运算
-    | LOGICAL_NOT expr                       -> logical_not        // not运算符
-    | expr _LOGICAL_AND expr                 -> logical_and        // and运算符
-    | expr _LOGICAL_OR expr                   -> logical_or         // or运算符
-    | expr "[" expr "]" COMPOUND_ASSIGN expr -> array_assignment   // 数组元素赋值
-    | expr "." ID COMPOUND_ASSIGN expr       -> member_assignment  // 成员属性访问
-    | identifier COMPOUND_ASSIGN expr        -> local_assignment   // 变量赋值
+// ============ 表达式优先级层次 ============
+?expr: or_expr
+
+?or_expr: and_expr
+    | or_expr _LOGICAL_OR and_expr -> logical_or
+
+?and_expr: cmp_expr
+    | and_expr _LOGICAL_AND cmp_expr -> logical_and
+
+?cmp_expr: add_expr
+    | cmp_expr COMPARE_OP add_expr -> compare
+
+?add_expr: mul_expr
+    | add_expr ADDSUB mul_expr -> term
+
+?mul_expr: unary_expr
+    | mul_expr MULTIPLY unary_expr -> factor
+
+?unary_expr: post_expr
+    | ADDSUB unary_expr -> unary_minus
+    | LOGICAL_NOT unary_expr -> logical_not
+
+?post_expr: atom
+    | post_expr "." ID arguments -> method_call
+    | post_expr "." ID -> member_access
+    | post_expr "[" expr "]" -> array_access
+    | post_expr arguments -> function_call
+    | post_expr "[" expr "]" COMPOUND_ASSIGN expr -> array_assignment
+    | post_expr "." ID COMPOUND_ASSIGN expr -> member_assignment
+    | identifier COMPOUND_ASSIGN expr -> local_assignment
+
+?atom: primary | FSTRING -> fstring | "null" -> null
+
 
 // 字面量、标识符（变量、函数、类）、括号
 ?primary: literal | identifier | paren
@@ -129,7 +144,7 @@ MULTIPLY: "*"|"/"|"%"
 ADDSUB: "-"|"+"
 _LOGICAL_AND.2: "and"|"&&"
 _LOGICAL_OR.2: "or"|"||"
-LOGICAL_NOT.2: "not"|"!"
+LOGICAL_NOT: "not"|"!"
 TRUE: "true"
 FALSE: "false"
 

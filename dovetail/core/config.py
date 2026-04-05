@@ -43,6 +43,9 @@ PLUGIN_METADATA_VALIDATOR = fastjsonschema.compile({
         "display_name": {
             "type": "string"
         },
+        "description": {
+            "type": "string"
+        },
         "plugin_main": {
             "type": "string"
         },
