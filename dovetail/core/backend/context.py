@@ -100,8 +100,10 @@ class PackMcmeta:
 
     def add_overlay(self, directory: str, formats: dict | tuple[int, int]) -> None:
         if isinstance(formats, dict):
-            formats = self._parser_format(formats)
-        self._overlays.append((directory, formats))
+            new_formats = self._parser_format(formats)
+            self._overlays.append((directory, new_formats))
+        else:
+            self._overlays.append((directory, formats))
 
     def _pickle(self, version: MinecraftVersion):
         if version >= MinecraftVersion.instance("1.21.9"):

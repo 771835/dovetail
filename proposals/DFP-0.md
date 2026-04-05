@@ -33,9 +33,13 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 | [DFP 7](./DFP-7.md)       | 错误恢复及报告机制                     | Accepted    | 核心语言         | -           |
 | [DFP 8](./DFP-8.md)       | 命名归一化策略                       | Draft       | 核心语言         | -           |
 | [DFP 300](./DFP-300.md)   | 内置函数系统                        | Active      | 标准库          | -           |
+| [DFP 301](./DFP-301.md)   | 标准库常量定义规范                     | Draft       | 标准库          | -           |
+| [DFP 302](./DFP-302.md)   | 标准库错误处理机制                     | Draft       | 标准库          | -           |
+| [DFP 305](./DFP-305.md)   | 调试工具库                         | Draft       | 标准库-开发工具     | -           |
 | DFP 600                   | 语言服务器协议                       | Deferred    | 工具链          | 未编写         |
-| [DFP 602](./DFP-602.md)   | 插件系统规范                        | Draft       | 	工具链         | -           |
-| [DFP 603](./DFP-603.md)   | 编译缓存与增量编译                     | Draft       | 编译器          | -           |
+| [DFP 601](DFP-601.md)     | 文件包含机制与项目结构规范                 | Draft       | 工具链-项目构建工具   | -           |
+| [DFP 602](./DFP-602.md)   | 插件系统规范                        | Draft       | 工具链          | -           |
+| [DFP 603](./DFP-603.md)   | 编译缓存与增量编译                     | Deferred    | 编译器          | -           |
 | [DFP 601](./DFP-601.md)   | 日志输出规范                        | Implemented | 编译器          | 计划增加国际化相关内容 |
 | [DFP 901](./DFP-901.md)   | 发行版管理规则                       | Active      | 发行版          | -           |
 | [DFP 1501](./DFP-1501.md) | @extern 与 @export 的 ABI 互操作规范 | Ephemeral   | 临时草案-核心语言-扩展 | -           |
