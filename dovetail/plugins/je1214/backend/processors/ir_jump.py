@@ -14,8 +14,10 @@ class IRJumpProcessor(IRProcessor):
         scope_name: str = instruction.get_operands()[0]
         jump_scope = context.current_scope.resolve_scope(scope_name)
         context.add_command(FunctionBuilder.run(f"{context.namespace}:{jump_scope.get_absolute_path('/')}"))
+        self._handle_flags(jump_scope, context)
 
     def _handle_flags(self, scope: Scope, context: GenerationContext):
+
         for flag in scope.flags:
             if scope.flags[flag] > 1:
                 context.current_scope.flags[flag] = scope.flags[flag] - 1

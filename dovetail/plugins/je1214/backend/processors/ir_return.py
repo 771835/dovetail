@@ -56,7 +56,6 @@ class IRReturnProcessor(IRProcessor):
         # 标记函数已返回
         context.current_scope.flags[f"return:{func_path}"] = current_path.count(".") - func_path.count(".")
 
-
         context.current_scope.add_command(
             "# 设置返回哨兵值"
         )

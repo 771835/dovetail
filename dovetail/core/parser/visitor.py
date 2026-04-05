@@ -1140,6 +1140,7 @@ class ASTVisitor(Interpreter):
     def fstring(self, children: list[Token | Tree], meta: Meta):
         """处理f-string"""
         result = self.ir_emitter.create_temp_var_declared(DataType.STRING, "fstring")
+        self.ir_emitter.emit(IRAssign(result, Reference.literal("")))
         for index, (data_type, data) in enumerate(parse_fstring_iter(children.pop().value)):
             if data_type == 'literal':
                 # 直接赋值或将字面量加到结果变量末尾

@@ -179,7 +179,7 @@ fn is_prime(int x) -> boolean {
     }
 
     let sqrt_x = isqrt(x)
-    for (let i = 2; i <= sqrt_x; i=i+1) {
+    for (let i = 2; i <= sqrt_x; i+=1) {
         if (x % i == 0) {
             return false
         }
