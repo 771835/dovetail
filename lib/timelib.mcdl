@@ -1,0 +1,106 @@
+// timelib.mcdl - Minecraft 时间系统工具库
+
+/**
+ * Minecraft 刻转秒
+ * 基于 1 秒 = 20 刻（服务器默认 TPS）
+ *
+ * 参数:
+ *   ticks - 游戏刻数
+ *
+ * 返回值:
+ *   对应的秒数（向下取整）
+ */
+fn ticks_to_seconds(ticks: int) -> int {
+    return ticks / 20
+}
+
+/**
+ * 秒转 Minecraft 刻
+ */
+fn seconds_to_ticks(seconds: int) -> int {
+    return seconds * 20
+}
+
+/**
+ * Minecraft 刻转分钟
+ */
+fn ticks_to_minutes(ticks: int) -> int {
+    return ticks / 1200
+}
+
+/**
+ * 分钟转 Minecraft 刻
+ */
+fn minutes_to_ticks(minutes: int) -> int {
+    return minutes * 1200
+}
+
+/**
+ * 游戏时间转现实时间（秒）
+ * Minecraft 一天 = 20 分钟现实时间 = 24000 刻
+ *
+ * 参数:
+ *   game_ticks - 游戏内时间刻数
+ *
+ * 返回值:
+ *   对应的现实秒数
+ */
+fn game_time_to_real_seconds(game_ticks: int) -> int {
+    return (game_ticks * 1200) / 24000
+}
+
+/**
+ * 将游戏时间（daytime）转换为小时
+ *
+ * 参数:
+ *   daytime - 范围 [0, 24000)
+ *
+ * 返回值:
+ *   对应的游戏内小时数 [0, 23]
+ *   0 = 6:00 AM, 6 = 12:00 PM, 12 = 6:00 PM, 18 = 12:00 AM
+ */
+fn daytime_to_hour(daytime: int) -> int {
+    return ((daytime / 1000) + 6) % 24
+}
+
+/**
+ * 判断是否为白天
+ * 白天定义：0 <= daytime < 13000
+ */
+fn is_daytime(daytime: int) -> boolean {
+    daytime = mod(daytime, 24000)
+    return daytime < 13000
+}
+
+/**
+ * 判断是否为夜晚
+ */
+fn is_nighttime(daytime: int) -> boolean {
+    return !is_daytime(daytime)
+}
+
+/**
+ * 计算距离下一个日出/日落的刻数
+ *
+ * 参数:
+ *   current_time - 当前游戏时间
+ *
+ * 返回值:
+ *   距离下一个 daytime 变化点的刻数
+ *   日出时间 = 0，日落时间 = 13000
+ */
+fn ticks_until_next_dawn(current_time: int) -> int {
+    let daytime = mod(current_time, 24000)
+    if (daytime < 13000) {
+        return 24000 - daytime
+    }
+    return 24000 - daytime
+}
+
+fn ticks_until_next_dusk(current_time: int) -> int {
+    let daytime = mod(current_time, 24000)
+    if (daytime < 13000) {
+        return 13000 - daytime
+    }
+    return 13000 + (24000 - daytime)
+}

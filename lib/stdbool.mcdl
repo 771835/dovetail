@@ -1,1 +1,2 @@
+// stdbool.mcdl - 布尔类型定义
 typedef boolean bool

@@ -1,0 +1,148 @@
+// coord.mcdl - Minecraft 坐标系统工具库
+
+/**
+ * 将方块坐标转换为区块坐标
+ *
+ * 参数:
+ *   block_coord - 方块坐标（X 或 Z）
+ *
+ * 返回值:
+ *   所在区块的坐标（向下取整除以 16）
+ *
+ * 示例：
+ *   to_chunk_coord(0) = 0
+ *   to_chunk_coord(15) = 0
+ *   to_chunk_coord(16) = 1
+ *   to_chunk_coord(-1) = -1
+ */
+fn to_chunk_coord(block_coord: int) -> int {
+    return div_floor(block_coord, 16)
+}
+
+/**
+ * 将方块坐标转换为区块内相对坐标
+ *
+ * 返回值:
+ *   范围 [0, 15] 的整数，表示在区块内的相对位置
+ *
+ * 示例：
+ *   to_chunk_local(17) = 1
+ *   to_chunk_local(-1) = 15
+ */
+fn to_chunk_local(block_coord: int) -> int {
+    return mod(block_coord, 16)
+}
+
+/**
+ * 检查坐标是否在立方体区域内（包含边界）
+ *
+ * 参数:
+ *   (x, y, z) - 待检查的坐标
+ *   (min_x, min_y, min_z) - 区域最小坐标
+ *   (max_x, max_y, max_z) - 区域最大坐标
+ *
+ * 返回值:
+ *   true 若坐标在区域内（含边界）
+ */
+fn in_bounds(x: int, y: int, z: int,
+              min_x: int, min_y: int, min_z: int,
+              max_x: int, max_y: int, max_z: int) -> boolean {
+    return x >= min_x && x <= max_x &&
+           y >= min_y && y <= max_y &&
+           z >= min_z && z <= max_z
+}
+
+/**
+ * 检查坐标是否在 Minecraft 世界高度限制内
+ * 适用于 1.18+ 版本（Y 范围 -64 到 319）
+ *
+ * 返回值:
+ *   true 若 -64 <= y <= 319
+ */
+fn in_world_bounds(y: int) -> boolean {
+    return y >= -64 && y <= 319
+}
+
+/**
+ * 将坐标限制在世界边界内
+ * 默认边界为 ±29999984（世界屏障位置）
+ */
+fn clamp_to_world_border(coord: int) -> int {
+    return clamp(coord, -29999984, 29999984)
+}
+
+/**
+ * 计算两点之间的水平距离的平方（忽略 Y 坐标）
+ *
+ * 返回值:
+ *   (x2 - x1)^2 + (z2 - z1)^2
+ */
+fn horizontal_distance_squared(x1: int, z1: int, x2: int, z2: int) -> int {
+    let dx = x2 - x1
+    let dz = z2 - z1
+    return dx * dx + dz * dz
+}
+
+/**
+ * 计算 2D 叉乘（用于判断左右关系）
+ *
+ * 参数:
+ *   (x1, z1) - 向量 1
+ *   (x2, z2) - 向量 2
+ *
+ * 返回值:
+ *   x1 * z2 - z1 * x2
+ *   > 0 表示向量 2 在向量 1 左侧
+ *   < 0 表示向量 2 在向量 1 右侧
+ *   = 0 表示共线
+ */
+fn cross_product_2d(x1: int, z1: int, x2: int, z2: int) -> int {
+    return x1 * z2 - z1 * x2
+}
+
+/**
+ * 判断三点是否共线（2D）
+ */
+fn is_collinear(x1: int, z1: int, x2: int, z2: int, x3: int, z3: int) -> boolean {
+    let dx1 = x2 - x1
+    let dz1 = z2 - z1
+    let dx2 = x3 - x1
+    let dz2 = z3 - z1
+    return cross_product_2d(dx1, dz1, dx2, dz2) == 0
+}
+
+/**
+ * 规范化角度到 [0, 360) 范围
+ *
+ * 参数:
+ *   angle - 任意角度（度数）
+ *
+ * 返回值:
+ *   等价角度，范围 [0, 360)
+ */
+fn normalize_angle(angle: int) -> int {
+    return mod(angle, 360)
+}
+
+/**
+ * 规范化角度到 [-180, 180) 范围
+ * 通常用于表示实体的旋转角度
+ */
+fn normalize_angle_signed(angle: int) -> int {
+    angle = mod(angle, 360)
+    if (angle >= 180) {
+        return angle - 360
+    }
+    return angle
+}
+
+/**
+ * 计算两个角度之间的最小角度差
+ *
+ * 返回值:
+ *   范围 [-180, 180]，表示从 angle1 到 angle2 的最短旋转
+ */
+fn angle_difference(angle1: int, angle2: int) -> int {
+    let diff = normalize_angle_signed(angle2 - angle1)
+    return diff
+}
