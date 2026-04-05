@@ -298,26 +298,26 @@ class Builtins(Library):
         )
         return None
 
-    def _call(self, scope_name: Reference[Literal]):
-        if not scope_name.is_literal() or scope_name.get_dtype() != DataType.STRING:
+    def _call(self, scope: Reference[Literal]):
+        if not scope.is_literal() or scope.get_dtype() != DataType.STRING:
             report(
                 Errors.InvalidSyntax,
                 "跳转目标必须是字面量字符串"
             )
             return None
 
-        raw_scope_name = str(scope_name.value.value)
+        scope_name = str(scope.value.value)
 
         current_scope = self.symbol_resolver.scope_stack[-1]
 
-        if current_scope.resolve_scope(raw_scope_name) is None:
+        if current_scope.resolve_scope(scope_name) is None:
             self.error_reporter.report(
                 Errors.InvalidControlFlow,
-                f"跳转目标作用域 '{raw_scope_name}' 不存在"
+                f"待跳转目标作用域 '{scope_name}' 不存在"
             )
             return None
 
-        self.emitter.emit(IRJump(raw_scope_name))
+        self.emitter.emit(IRJump(scope_name))
 
         return None
 
