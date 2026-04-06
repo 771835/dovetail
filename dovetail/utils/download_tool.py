@@ -24,7 +24,7 @@ class _CacheManager:
         """延迟加载缓存表"""
         if self._cache_table is None:
             self._cache_table = self._load_cache_table()
-        return self._cache_table
+        return self._cache_table # NOQA
 
     def _load_cache_table(self) -> dict:
         """加载缓存表"""

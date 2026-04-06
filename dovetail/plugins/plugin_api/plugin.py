@@ -32,14 +32,6 @@ class Plugin(ABC):
         """插件初始化，在validate之后，load之前调用"""
         pass
 
-    def get_dependencies(self) -> list[str]:
-        """获取插件依赖列表"""
-        return []
-
-    def get_conflicts(self) -> list[str]:
-        """获取与此插件冲突的插件列表"""
-        return []
-
     def get_memory_usage(self) -> int:
         """获取插件内存占用（字节）"""
         return -1

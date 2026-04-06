@@ -3,7 +3,7 @@
 import time
 import uuid
 from enum import Enum
-from typing import Any, Dict, Union
+from typing import Any, Dict, Union, NoReturn
 
 from dovetail.core.config import PROJECT_VERSION
 from dovetail.core.enums import CompareOps, FunctionType, ClassType, BinaryOps, UnaryOps
@@ -43,20 +43,20 @@ class IRSymbolSerializer:
             builder (IRBuilder): 要被序列化的 IRBuilder 实例。
         """
         self.builder = builder
-        self.symbol_id_map: Dict[int, Union[Symbol, str, int, Enum]] = {}
+        self.symbol_id_map: Dict[int, Union[Symbol, str, int, Enum, list, dict]] = {}
 
     @staticmethod
     def _extract_metadata(symbol: Symbol | DataType | list | int | float | bool | str | Enum | dict | tuple | set) -> \
-            dict[str, Any] | None:
+            dict[str, Any] | NoReturn:
         """生成符号的序列化数据。
 
         Args:
             symbol (Any): 待提取元数据的符号对象。
 
         Returns:
-            dict[str, Any] | None: 包含符号类型、名称和值等信息的元数据字典。
+            dict[str, Any] | NoReturn: 包含符号类型、名称和值等信息的元数据字典。
         """
-        metadata: dict[str, ...] = {
+        metadata: dict[str, Any] = {
             'symbol_type': type(symbol).__name__,
             'symbol_name': symbol.get_name() if isinstance(symbol, Symbol) else None,
         }
@@ -94,6 +94,7 @@ class IRSymbolSerializer:
             metadata['type'] = id(symbol.type)
         else:
             print(symbol.__class__.__name__, type(symbol))
+            raise
 
         return metadata
 
