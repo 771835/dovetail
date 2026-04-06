@@ -96,7 +96,7 @@ class PluginLoader:
         # 获得插件的作用域
         plugin_locals = self.plugins_locals.get(plugin_name, {})
         try:
-            global_env: dict = dict(globals())
+            global_env: dict = dict()
             global_env.update(
                 {
                     "__path__": str(plugin_path.resolve()),
