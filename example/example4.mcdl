@@ -1,4 +1,4 @@
-fn boolean foo(int x) {
+fn foo(x: int) -> boolean{
     return false
 }
 

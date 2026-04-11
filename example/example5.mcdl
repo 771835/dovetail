@@ -1,6 +1,6 @@
 /* 这样的写法能达到比for loop更高的效率 */
 @init
-fn int main() {
+fn main() -> int {
     exec("say 123")
     _call("main")// 正常情况请勿使用
 

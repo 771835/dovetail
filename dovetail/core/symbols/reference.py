@@ -16,6 +16,14 @@ T = TypeVar('T', bound=Symbol)
 
 @define(slots=True, hash=True, repr=False)
 class Reference(Symbol, Generic[T]):
+    """
+    引用容器
+
+    引用其他符号对象并提供统一的使用接口
+
+    Attributes:
+        value (T): 被引用的对象
+    """
     value: T
 
     if not FAST_MODE:

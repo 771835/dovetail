@@ -1,6 +1,6 @@
 # Dovetail
 
-> This article was translated by AI and may contain errors.
+> 𝓣𝓱𝓲𝓼 𝓪𝓻𝓽𝓲𝓬𝓵𝓮 𝔀𝓪𝓼 𝓽𝓻𝓪𝓷𝓼𝓵𝓪𝓽𝓮𝓭 𝓫𝔂 𝓐𝓘 𝓪𝓷𝓭 𝓶𝓪𝔂 𝓬𝓸𝓷𝓽𝓪𝓲𝓷 𝓮𝓻𝓻𝓸𝓻𝓼.
 
 [English Version](README_EN.md) | [中文版本](README.md)
 

@@ -7,7 +7,7 @@ include: "include" literal               // 包含库文件，如：include "mat
 annotation: "@" ID | "@" ID "(" literal ("," literal)* ")"
 
 // 类(多继承)
-class: annotation* "class" ID ("(" identifier*")")? "{" (class_property | method)* "}"
+class: annotation* "class" ID (":" identifier ("," identifier)*)? "{" (class_property | method)* "}"
 
 class_property: "let" ID ":" type
 
@@ -25,12 +25,10 @@ enum_member : ID "=" literal
 type.2: ID array_dimension* QUESTION? // 仅对象应允许可空
 array_dimension: ("[" (ARRAY_SIZE | identifier) "]") | "[]"// 允许动态数组大小
 
-function: annotation* ("function"|"fn"|"def") ID params ["->" type] (block|pass_stmt)
-        | annotation* ("function"|"fn") type ID params (block|pass_stmt)
+function: annotation* ("function"|"fn"|"def") ID params [("->"|":") type] (block|pass_stmt)
 
 
-method: annotation* "method"? ID params ["->" type] (block|pass_stmt)
-      | annotation* "method"? type ID params (block|pass_stmt)
+method: annotation* "method" ID params [("->"|":") type] (block|pass_stmt)
 
 params : "(" (param ("," param)*)? ")"
 

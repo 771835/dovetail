@@ -145,7 +145,6 @@ class Compiler:
             int: 编译结果状态码，0表示成功，非0表示失败
         """
         source_path = source_path.resolve()
-        working_directory = working_directory or source_path.parent
 
         if not source_path.exists():
             self.logger.error(f"The path '{source_path}' is not valid.")
@@ -153,7 +152,7 @@ class Compiler:
 
         generator = ASTVisitor(self.config, source_path)
 
-        with chdir(working_directory):
+        with chdir(working_directory or source_path.parent):
             try:
                 ast_tree = parser_file(source_path)
 
@@ -162,7 +161,6 @@ class Compiler:
                 generator.visit(ast_tree)
 
                 builder = Optimizer(generator.builder, self.config).optimize()
-
 
                 builder.print()
 

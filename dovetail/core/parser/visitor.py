@@ -438,23 +438,15 @@ class ASTVisitor(Interpreter):
 
         # 解析函数签名
         params: list[Parameter]
-        return_type: DataTypeBase
-        name: str
 
-        if isinstance(children[0], Tree) and children[0].data == 'type':
-            # annotation* ("function"|"fn") type ID params (block|pass_stmt)
-            return_type = self.visit(children.pop(0))
-            name = _n(children.pop(0).value)
-            params = self.visit(children.pop(0))
+        # annotation* ("function"|"fn"|"def") ID params ["->" type] (block|pass_stmt)
+        name: str = _n(children.pop(0).value)
+        params = self.visit(children.pop(0))
+        if children[0] is not None:
+            return_type: DataTypeBase = self.visit(children.pop(0))
         else:
-            # annotation* ("function"|"fn"|"def") ID params ["->" type] (block|pass_stmt)
-            name = _n(children.pop(0).value)
-            params = self.visit(children.pop(0))
-            if children[0] is not None:
-                return_type = self.visit(children.pop(0))
-            else:
-                return_type = DataType.VOID
-                children.pop(0)
+            return_type: DataTypeBase = DataType.VOID
+            children.pop(0)
 
         # 跳过 pass 语句
         if children and children[0].data == 'pass_stmt':
@@ -539,14 +531,9 @@ class ASTVisitor(Interpreter):
         is_mutable: bool = children.pop(0) is not None
 
         # 解析参数类型和名称
-        if isinstance(children[0], Tree) and children[0].data == "type":
-            # [MUT] type ID ("=" expr)?
-            dtype = self.visit(children.pop(0))
-            name = _n(children.pop(0).value)
-        else:
-            # [MUT] ID ":" type ("=" expr)?
-            name = _n(children.pop(0).value)
-            dtype = self.visit(children.pop(0))
+        # [MUT] ID ":" type ("=" expr)?
+        name = _n(children.pop(0).value)
+        dtype = self.visit(children.pop(0))
 
         # 处理默认值
         default_value: Reference

@@ -1,22 +1,37 @@
 # coding=utf-8
+from typing import Final
 from dovetail.core.enums.types import AnnotationCategory
 from dovetail.core.symbols.annotation import Annotation
 
-_annotations: dict[str, Annotation] = {
+_annotations: Final[dict[str, Annotation]] = {
+    # 生命周期
     "init": Annotation("init", None, AnnotationCategory.LIFECYCLE),
     "tick": Annotation("tick", {"interval": 1}, AnnotationCategory.LIFECYCLE),
-    "export": Annotation("export", {"path": "", "abi": "dovetail"}, AnnotationCategory.VISIBILITY),
-    "extern": Annotation("extern", {"path": "", "abi": "dovetail"}, AnnotationCategory.VISIBILITY),
+
+    # 可见性
     "internal": Annotation("internal", None, AnnotationCategory.VISIBILITY),
     "noinline": Annotation("noinline", None, AnnotationCategory.VISIBILITY),
-    "target": Annotation("target", {"edition": "java"}, AnnotationCategory.CONDITION),
-    "version": Annotation("version", {"min": "1.20.4", "max": "1.21.4"}, AnnotationCategory.METADATA),
-    "deprecated": Annotation("deprecated", {"msg": "Please use newFunction instead"}, AnnotationCategory.METADATA),
-    "doc": Annotation("doc", {"doce": "why use @doc?"}, AnnotationCategory.METADATA),
-    "author": Annotation("author", {"author": ""}, AnnotationCategory.CONDITION),
-    "since": Annotation("author", {"version": ""}, AnnotationCategory.CONDITION)
-}
 
+    # 链接
+    "export": Annotation("export", {"path": "", "abi": "dovetail"}, AnnotationCategory.LINKAGE),
+    "extern": Annotation("extern", {"path": "", "abi": "dovetail"}, AnnotationCategory.LINKAGE),
+
+    # 条件编译（扩展）
+    "target": Annotation("target", {"edition": "java"}, AnnotationCategory.CONDITION),
+    "version": Annotation("version", {"min": "1.20.4", "max": "1.21.4"}, AnnotationCategory.CONDITION),
+    "if_exists": Annotation("if_exists", None, AnnotationCategory.CONDITION),
+    "if_symbol": Annotation("if_symbol", {"name": "", "type": "any"}, AnnotationCategory.CONDITION),
+    "if_feature": Annotation("if_feature", {"feature": ""}, AnnotationCategory.CONDITION),
+
+    # 后端提示
+    "recursive": Annotation("recursive", None, AnnotationCategory.BACKEND_HINT),
+
+    # 元数据
+    "deprecated": Annotation("deprecated", {"msg": ""}, AnnotationCategory.METADATA),
+    "doc": Annotation("doc", {"text": ""}, AnnotationCategory.METADATA),
+    "author": Annotation("author", {"name": ""}, AnnotationCategory.METADATA),
+    "since": Annotation("since", {"version": ""}, AnnotationCategory.METADATA),
+}
 
 def get_annotation(name: str) -> Annotation | None:
     """

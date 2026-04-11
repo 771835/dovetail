@@ -271,12 +271,13 @@ class AnnotationCategory(SafeEnum):
         METADATA: 元数据注解，不影响编译逻辑
     """
     # 核心语义注解 - 影响代码生成和执行
-    LIFECYCLE = "lifecycle"  # @init, @tick - 控制函数执行时机
-    VISIBILITY = "visibility"  # @internal, @noinline - 控制可见性和优化
-    LINKAGE = "linkage"  # @export, @extern - 控制后端链接接口指令的生成
+    LIFECYCLE = "lifecycle"  # 控制函数执行时机
+    VISIBILITY = "visibility"  # 控制可见性和优化
+    LINKAGE = "linkage"  # 控制后端链接接口指令的生成
+    BACKEND_HINT = "backend_hint" # 控制后端代码生成
 
     # 条件编译注解 - 在AST遍历阶段处理
-    CONDITION = "condition"  # @target, @version - 控制代码编译生成
+    CONDITION = "condition"  # 控制代码编译生成
 
     # 元数据注解 - 不影响编译逻辑
-    METADATA = "metadata"  # @doc, @author, @since, @deprecated
+    METADATA = "metadata"  # 元数据注解

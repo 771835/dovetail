@@ -166,7 +166,7 @@ fn reverse_number(n: int) -> int {
  * 返回值:
  *   返回 x 的整数平方根（即 floor(sqrt(x))）
  */
-fn isqrt(int x) -> int {
+fn isqrt(x: int) -> int {
     let res = 0
 
     if (0 <= x and x <= 19310) {
@@ -206,7 +206,7 @@ fn isqrt(int x) -> int {
  *   小于 2 的数不是质数
  *   对于 x >= 2，检查 2 到 sqrt(x) 之间是否存在因数
  */
-fn is_prime(int x) -> boolean {
+fn is_prime(x: int) -> boolean {
     if (x < 2) {
         return false
     }
