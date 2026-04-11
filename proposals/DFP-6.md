@@ -169,10 +169,10 @@ fn modernFeature() {
 - **格式**：语义版本号字符串
 - **处理时机**：AST遍历阶段处理
 
-##### `@if_exists`
+##### `@if_not_exists`
 
 ```dovetail
-@if_exists
+@if_not_exists
 fn setupScoreboard() {
     // 如果环境中已存在同名函数，跳过此声明
     // 用于提供默认实现
@@ -217,21 +217,6 @@ fn advancedScoreboard() {
     - 如果存在则**进行**当前声明
 - **处理时机**：AST遍历阶段处理
 
-##### `@if_feature`
-
-```dovetail
-@if_feature("scoreboard_macros")
-fn advancedScoreboard() {
-    // 仅当编译配置启用该特性时生成
-}
-```
-
-- **参数**：`feature` - 功能名称
-- **语义**
-    - 编译时检查编译器是否开启特定功能/配置
-    - 如果存在则**进行**当前声明
-- **处理时机**：AST遍历阶段处理
-
 #### 5. 元数据注解 (Metadata Annotations)
 
 提供额外信息的注解，不影响代码生成。
@@ -248,6 +233,7 @@ fn oldFunction() {
 - **参数**：废弃消息
 - **编译时警告**：使用时产生警告
 - **文档生成**：影响API文档
+- **特殊行为**：当开启 `--disable-deprecated-function` 时此类函数不会被声明和定义
 
 ##### `@doc`
 
@@ -288,7 +274,7 @@ fn newFeature() {
 - **文档**：API文档版本信息
 - **兼容性**：向后兼容性追踪
 
-#### 6. 后端处理提示注解
+#### 6. 后端处理提示注解 (Backend Hint)
 
 这些注解**不影响 IR 生成**，仅作为后端优化提示传递到后端。
 

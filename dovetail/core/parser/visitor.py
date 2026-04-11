@@ -279,16 +279,18 @@ class ASTVisitor(Interpreter):
 
         return annotations
 
-    def _should_skip_for_version(
+    def _should_skip_for_annotation(
             self,
             annotations: dict[Annotation, dict[str, Any]],
+            symbol_name: str,
             meta: Meta
     ) -> bool:
         """
-        根据版本注解判断是否跳过编译
+        根据注解判断是否跳过编译
 
         Args:
             annotations: 注解字典
+            symbol_name: 符号对象
             meta: 元数据
 
         Returns:
@@ -328,6 +330,38 @@ class ASTVisitor(Interpreter):
                 if target_edition != compiler_edition:
                     return True
 
+            # 处理 @if_not_exists 注解
+            elif annotation.name == "if_not_exists":
+                if self.symbol_resolver.current_scope.resolve_symbol(symbol_name) is not None:
+                    return True
+
+            # 处理 @if_symbol 注解
+            elif annotation.name == "if_symbol":
+                name: str = args.get("name", "")
+                type_: str = args.get("type", "any")
+
+                symbol = self.symbol_resolver.current_scope.resolve_symbol(name)
+
+                if symbol is None:
+                    return True
+
+                match type_:
+                    case "class":
+                        if isinstance(symbol, Class):
+                            return True
+                    case "function":
+                        if isinstance(symbol, Function):
+                            return True
+                    case "variable":
+                        if isinstance(symbol, Variable):
+                            return True
+                    case _:
+                        return True
+                return False
+
+            # 处理 @deprecated 注解
+            elif annotation.name == "deprecated":
+                return self.config.disable_deprecated_function
         return False
 
     def _process_call_arguments(
@@ -404,19 +438,20 @@ class ASTVisitor(Interpreter):
         # 处理注解
         annotations = self._process_annotations(children)
 
-        # 检查版本和目标平台
-        if self._should_skip_for_version(annotations, meta):
-            return
-
         # 解析结构体
         name = children.pop(0).value
+
+        # 检查版本和目标平台
+        if self._should_skip_for_annotation(annotations, name, meta):
+            return
+
         fields: dict[str, DataTypeBase] = {}
         for field in children:
             field_name, field_type = self.visit(field)
             fields[field_name] = field_type
+        symbol = Structure(_n(name), fields)
 
         # 添加符号
-        symbol = Structure(_n(name), fields)
         self.symbol_resolver.add_symbol(symbol, meta)
 
     def struct_field(self, tree: Tree) -> tuple[str, DataTypeBase]:
@@ -432,15 +467,16 @@ class ASTVisitor(Interpreter):
         """处理函数定义"""
         # 处理注解
         annotations = self._process_annotations(children)
-        # 检查版本和目标平台
-        if self._should_skip_for_version(annotations, meta):
-            return
 
         # 解析函数签名
-        params: list[Parameter]
-
         # annotation* ("function"|"fn"|"def") ID params ["->" type] (block|pass_stmt)
+        params: list[Parameter]
         name: str = _n(children.pop(0).value)
+
+        # 检查版本和目标平台
+        if self._should_skip_for_annotation(annotations, name, meta):
+            return
+
         params = self.visit(children.pop(0))
         if children[0] is not None:
             return_type: DataTypeBase = self.visit(children.pop(0))

@@ -37,16 +37,16 @@ class PassMetadata:
     优化 Pass 的元数据
 
     Attributes:
-        name: Pass 的唯一标识符
-        display_name: 显示名称
-        description: Pass 功能描述
-        level: 默认优化级别
-        phase: 所属阶段
-        depends_on: 依赖的其他 Pass 名称
-        incompatible_with: 不兼容的 Pass 名称
-        repeatable: 是否可重复执行
-        required_features: 运行所需的 IR 特性
-        provided_features: 执行后提供的 IR 特性
+        name (str): Pass 的唯一标识符
+        display_name (str): 显示名称
+        description (str): Pass 功能描述
+        level (OptimizationLevel): 默认优化级别
+        phase (PassPhase): 所属阶段
+        depends_on (tuple[str, ...]): 依赖的其他 Pass 名称
+        incompatible_with (tuple[str, ...]): 不兼容的 Pass 名称
+        repeatable (bool): 是否可重复执行
+        required_features (tuple[str, ...]): 运行所需的 IR 特性
+        provided_features (tuple[str, ...]): 执行后提供的 IR 特性
     """
     name: str
     display_name: str

@@ -5,7 +5,7 @@ IRJump 指令处理器
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext, Scope
 from dovetail.core.instructions import IRInstruction, IROpCode
 from ..backend import JE1214Backend
-from ..commands import FunctionBuilder, Execute
+from ..commands import FunctionBuilder, Execute, ReturnBuilder
 
 
 @ir_processor(JE1214Backend, IROpCode.JUMP)
@@ -29,6 +29,6 @@ class IRJumpProcessor(IRProcessor):
                     '1'
                 )
                 .run(
-                    "return 0"
+                    ReturnBuilder.return_value("0")
                 )
             )

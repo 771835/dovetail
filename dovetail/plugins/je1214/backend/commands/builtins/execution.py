@@ -16,6 +16,6 @@ class ExecCommand(TemplateCommandHandler):
     执行原始命令
 
     Attributes:
-        template_name: 永远为常量"exec"，不应被修改
+        template_name (str): 常量"exec"，不应被修改
     """
     template_name = "exec"

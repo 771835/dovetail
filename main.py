@@ -221,6 +221,7 @@ def main():
     args_parser.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
     args_parser.add_argument('--recursion', action='store_true', help='启用递归(需后端支持)')
     args_parser.add_argument('--same-name-function-nesting', action='store_true', help='启用同名函数嵌套')
+    args_parser.add_argument('--disable-deprecated-function', action='store_true', help='禁用已弃用函数编译')
     # args_parser.add_argument('--first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
     args_parser.add_argument('--experimental', action='store_true', help='启用扩展模式(测试性功能)')
     args_parser.add_argument('--disable-names-normalize', action='store_true', help='禁用命名规范化')
@@ -240,6 +241,7 @@ def main():
             parsed_args.recursion,
             parsed_args.same_name_function_nesting,
             False,
+            parsed_args.disable_deprecated_function,
             parsed_args.experimental,
             Path(parsed_args.lib_path).resolve() if parsed_args.lib_path else Path("lib").resolve(),
             "A datapack of Minecraft"
