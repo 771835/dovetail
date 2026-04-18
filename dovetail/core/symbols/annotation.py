@@ -4,7 +4,7 @@ from typing import Any, Optional
 from attrs import define
 
 from .base import Symbol
-from ..enums import DataType
+from ..enums import PrimitiveDataType
 from ..enums.types import AnnotationCategory, DataTypeBase
 
 
@@ -22,10 +22,10 @@ class Annotation(Symbol):
         类型注解不作为数据存储，因此不返回类型
 
         Returns:
-            DataType.UNDEFINED
+            PrimitiveDataType.UNDEFINED
         """
 
-        return DataType.UNDEFINED
+        return PrimitiveDataType.UNDEFINED
 
     def __repr__(self):
         return f"@{self.name}({','.join(self.params.keys())})"

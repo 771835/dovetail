@@ -13,7 +13,7 @@ from typing import Callable, Any
 from attrs import define, field
 
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.enums import OptimizationLevel, BinaryOps, CompareOps, UnaryOps, StructureType, DataType
+from dovetail.core.enums import OptimizationLevel, BinaryOps, CompareOps, UnaryOps, StructureType, PrimitiveDataType
 from dovetail.core.enums.types import ValueType
 from dovetail.core.instructions import IROpCode, IRCall, IRAssign, IRJump, IRInstruction
 from dovetail.core.ir_builder import IRBuilder, IRBuilderIterator
@@ -373,10 +373,10 @@ class ConstantFoldingPass(IROptimizationPass):
         right_dtype = right.get_dtype()
 
         # 两边有任意一方非基本类型跳过
-        if not isinstance(left_dtype, DataType) or not isinstance(right_dtype, DataType):
+        if not isinstance(left_dtype, PrimitiveDataType) or not isinstance(right_dtype, PrimitiveDataType):
             return False
 
-        if op == BinaryOps.ADD and (left_dtype == DataType.STRING or right_dtype == DataType.STRING):
+        if op == BinaryOps.ADD and (left_dtype == PrimitiveDataType.STRING or right_dtype == PrimitiveDataType.STRING):
             new_value = str(left.value.value) + str(right.value.value)
         else:
             new_value = int(self.BINARY_OP_HANDLERS[op](left.value.value, right.value.value))
@@ -410,7 +410,7 @@ class ConstantFoldingPass(IROptimizationPass):
         right_dtype = right.get_dtype()
 
         # 两边有任意一方非基本类型跳过
-        if not isinstance(left_dtype, DataType) or not isinstance(right_dtype, DataType):
+        if not isinstance(left_dtype, PrimitiveDataType) or not isinstance(right_dtype, PrimitiveDataType):
             return False
 
         new_value = self.COMPARE_OP_HANDLERS[op](left.value.value, right.value.value)
@@ -431,7 +431,7 @@ class ConstantFoldingPass(IROptimizationPass):
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
         operand = self._resolve_ref(operand_ref)
-        if not self._is_literal(operand) or not isinstance(operand.get_dtype(), DataType):
+        if not self._is_literal(operand) or not isinstance(operand.get_dtype(), PrimitiveDataType):
             return False
 
         try:
@@ -460,7 +460,7 @@ class ConstantFoldingPass(IROptimizationPass):
             value = self._find(cond_var)
 
             if not isinstance(value, ConstantFoldingPass.FoldingFlags):
-                if cond_var.dtype in (DataType.INT, DataType.BOOLEAN):
+                if cond_var.dtype in (PrimitiveDataType.INT, PrimitiveDataType.BOOLEAN):
                     if isinstance(value, Reference) and value.value_type == ValueType.LITERAL:
                         cond_val = bool(value.value.value)
                         jump_scope = true_scope if cond_val else false_scope
@@ -593,7 +593,7 @@ class ConstantFoldingPass(IROptimizationPass):
     def _cast(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
         """处理类型转换"""
         result: Variable = instr.get_operands()[0]
-        dtype: DataType | Class = instr.get_operands()[1]
+        dtype: PrimitiveDataType | Class = instr.get_operands()[1]
         value_ref: Reference[Variable | Literal] = instr.get_operands()[2]
 
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
@@ -609,7 +609,7 @@ class ConstantFoldingPass(IROptimizationPass):
                 self._assign(iterator, new_assign)
                 return True
 
-            if dtype == DataType.STRING and value.get_dtype() in (DataType.INT, DataType.BOOLEAN):
+            if dtype == PrimitiveDataType.STRING and value.get_dtype() in (PrimitiveDataType.INT, PrimitiveDataType.BOOLEAN):
                 str_val = str(int(value.value.value))
                 str_literal_ref = Reference.literal(str_val)
                 new_assign = IRAssign(result, str_literal_ref)

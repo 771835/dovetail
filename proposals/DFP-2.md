@@ -179,7 +179,7 @@ class Function(Symbol):
 ```python
 @define(slots=True, frozen=True)
 class Literal(Symbol):
-    dtype: DataType  # 数据类型
+    dtype: PrimitiveDataType  # 数据类型
     value: str | int | bool | None  # 字面量值
 
     def get_name(self) -> None: ...
@@ -219,7 +219,7 @@ class Reference(Symbol, Generic[T]):
     def literal(cls, value): ...
 
     @classmethod
-    def variable(cls, var_name, dtype: DataType, var_type: VariableType = VariableType.COMMON) -> Reference: ...
+    def variable(cls, var_name, dtype: PrimitiveDataType, var_type: VariableType = VariableType.COMMON) -> Reference: ...
 
 ```
 
@@ -232,13 +232,15 @@ class Reference(Symbol, Generic[T]):
 - `FUNCTION`: 函数值，可调用对象
 - `CLASS`: 类值，类型对象
 
-**DataType 枚举：**
+**PrimitiveDataType 枚举：**
 
 - `INT`: 整数类型，对应 Minecraft 计分板分数
 - `STRING`: 字符串类型，用于命名和文本处理
 - `BOOLEAN`: 布尔类型，内部表示为 0/1 整数
-- `NULL`: 空值类型，表示未初始化或无效值
-- `Function`: 函数类型(未使用)
+- `NULL`: 句柄null的独有类型，不可作为其他值的类型，表示未初始化或无效值
+- `VOID`: 表示空，不可定义
+- `UNDEFINED`: 特殊类型，仅编译发生错误时使用
+- `Function`: 函数类型，表示一个函数(未使用)
 - `Type`: 类型(未使用)
 
 **VariableType 枚举：**

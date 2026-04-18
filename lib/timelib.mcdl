@@ -1,4 +1,6 @@
 // timelib.mcdl - Minecraft 时间系统工具库
+include "mathlib.mcdl"
+include "constants/time.mcdl"
 
 /**
  * Minecraft 刻转秒
@@ -11,42 +13,28 @@
  *   对应的秒数（向下取整）
  */
 fn ticks_to_seconds(ticks: int) -> int {
-    return ticks / 20
+    return ticks / TICKS_PER_SECOND
 }
 
 /**
  * 秒转 Minecraft 刻
  */
 fn seconds_to_ticks(seconds: int) -> int {
-    return seconds * 20
+    return seconds * TICKS_PER_SECOND
 }
 
 /**
  * Minecraft 刻转分钟
  */
 fn ticks_to_minutes(ticks: int) -> int {
-    return ticks / 1200
+    return ticks / TICKS_PER_MINUTE
 }
 
 /**
  * 分钟转 Minecraft 刻
  */
 fn minutes_to_ticks(minutes: int) -> int {
-    return minutes * 1200
-}
-
-/**
- * 游戏时间转现实时间（秒）
- * Minecraft 一天 = 20 分钟现实时间 = 24000 刻
- *
- * 参数:
- *   game_ticks - 游戏内时间刻数
- *
- * 返回值:
- *   对应的现实秒数
- */
-fn game_time_to_real_seconds(game_ticks: int) -> int {
-    return (game_ticks * 1200) / 24000
+    return minutes * TICKS_PER_MINUTE
 }
 
 /**
@@ -68,8 +56,8 @@ fn daytime_to_hour(daytime: int) -> int {
  * 白天定义：0 <= daytime < 13000
  */
 fn is_daytime(daytime: int) -> boolean {
-    daytime = mod(daytime, 24000)
-    return daytime < 13000
+    daytime = mod(daytime, TICKS_PER_DAY)
+    return daytime < DAYTIME_END
 }
 
 /**
@@ -90,17 +78,17 @@ fn is_nighttime(daytime: int) -> boolean {
  *   日出时间 = 0，日落时间 = 13000
  */
 fn ticks_until_next_dawn(current_time: int) -> int {
-    let daytime = mod(current_time, 24000)
-    if (daytime < 13000) {
-        return 24000 - daytime
+    let daytime = mod(current_time, TICKS_PER_DAY)
+    if (daytime < DAYTIME_END) {
+        return TICKS_PER_DAY - daytime
     }
-    return 24000 - daytime
+    return TICKS_PER_DAY - daytime
 }
 
 fn ticks_until_next_dusk(current_time: int) -> int {
-    let daytime = mod(current_time, 24000)
-    if (daytime < 13000) {
-        return 13000 - daytime
+    let daytime = mod(current_time, TICKS_PER_DAY)
+    if (daytime < DAYTIME_END) {
+        return DAYTIME_END - daytime
     }
-    return 13000 + (24000 - daytime)
+    return DAYTIME_END + (TICKS_PER_DAY - daytime)
 }

@@ -43,7 +43,7 @@ class JE1214Backend(Backend):
     @staticmethod
     def is_support(config: CompileConfig) -> bool:
         version = config.version
-        if version.display_version != "1.21.4" or version.is_bedrock_edition():
+        if version.display_version != "1.21.5" or version.is_bedrock_edition():
             return False
         if config.recursion or config.experimental:
             return False
@@ -51,23 +51,23 @@ class JE1214Backend(Backend):
 
     @staticmethod
     def get_name() -> str:
-        return "je1214"
+        return "java1.21.5"
 
     @functools.lru_cache(maxsize=None)
     def get_dependency_files(self) -> list[DependencyFile]:
         return [
-            # # dnt 很好，但是不支持1.21.4
-            # DependencyFile(
-            #     "https://codeload.github.com/Dahesor/DNT-Dahesor-NBT-Transformer/zip/refs/heads/main",
-            #     "6872f86b49fd28dfdbb231b8108b2eca2620c6dfb418f1142557e25de2fabb67",
-            #     get_datapack_format('1.21.5'),
-            #     get_datapack_format('1.21.11')
-            # ),
+            DependencyFile(
+                "https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer/archive/refs/heads/pre-1.21.11.zip",
+                "c764372d2a244832ede13d7d8f09dfeae14c1aae021f8cc2681303fb84acb189",
+                71,  # 1.21.5
+                94.1  # 1.21.11
+            ),
             DependencyFile(
                 "https://cdn.modrinth.com/data/h94rwz9p/versions/vb7U4ITG/StringLib%20v0.1.0%20%281.21%29.zip",
                 "9604b264fda4de2107fea5b02cdc52de88527ee9ba65717a674506894ba5933b",
                 61,
                 94.1,
+                # 删除minecraft文件夹以避免子包的tick.json和load.json覆盖本数据包的对应文件
                 lambda path, minecraft_version: shutil.rmtree(path / "data" / "minecraft", ignore_errors=True)
             ),
 

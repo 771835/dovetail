@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Callable
 
-from dovetail.core.enums.types import FunctionType, DataType
+from dovetail.core.enums.types import FunctionType, PrimitiveDataType
 from dovetail.core.lib.library import Library
 from dovetail.core.parser.tools import SymbolResolver, IREmitter, ErrorReporter
 from dovetail.core.symbols import Reference, Function, Variable, Parameter, Literal
@@ -11,34 +11,34 @@ class Math(Library):
     def __init__(self, symbol_resolver: SymbolResolver, emitter: IREmitter,
                  error_reporter: ErrorReporter):
         self._variable: dict[Variable, Reference] = {
-            Variable("INT_MAX", DataType.INT, mutable=False): Reference.literal(2147483647),
-            Variable("INT_MIN", DataType.INT, mutable=False): Reference.literal(-2147483648),
+            Variable("INT_MAX", PrimitiveDataType.INT, mutable=False): Reference.literal(2147483647),
+            Variable("INT_MIN", PrimitiveDataType.INT, mutable=False): Reference.literal(-2147483648),
         }
         self._functions: dict[Function, Callable[..., Variable | Literal] | None] = {
             Function(
                 "abs",
                 [
-                    Parameter(Variable("value", DataType.INT)),
+                    Parameter(Variable("value", PrimitiveDataType.INT)),
                 ],
-                DataType.INT,
+                PrimitiveDataType.INT,
                 FunctionType.BUILTIN
             ): None,
             Function(
                 "min",
                 [
-                    Parameter(Variable("a", DataType.INT)),
-                    Parameter(Variable("b", DataType.INT))
+                    Parameter(Variable("a", PrimitiveDataType.INT)),
+                    Parameter(Variable("b", PrimitiveDataType.INT))
                 ],
-                DataType.INT,
+                PrimitiveDataType.INT,
                 FunctionType.BUILTIN
             ): None,
             Function(
                 "max",
                 [
-                    Parameter(Variable("a", DataType.INT)),
-                    Parameter(Variable("b", DataType.INT))
+                    Parameter(Variable("a", PrimitiveDataType.INT)),
+                    Parameter(Variable("b", PrimitiveDataType.INT))
                 ],
-                DataType.INT,
+                PrimitiveDataType.INT,
                 FunctionType.BUILTIN
             ): None,
         }

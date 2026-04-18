@@ -12,19 +12,25 @@ def strcat_literal(result: DataPath, a: str, b: str):
 
 def strcat_variable(result: DataPath, a: DataPath, b: DataPath):
     return [
-        DataBuilder.modify_storage_set_from_storage(
-            "stringlib:input",
-            "concat[0]",
+        DataBuilder.modify_storage_set_value(
+            "dnt:ram",
+            "in",
+            "[]"
+        ),
+        DataBuilder.modify_storage_append_from_storage(
+            "dnt:ram",
+            "in",
             *reversed(a)
-        ), DataBuilder.modify_storage_set_from_storage(
-            "stringlib:input",
-            "concat[1]",
+        ), DataBuilder.modify_storage_append_from_storage(
+            "dnt:ram",
+            "in",
             *reversed(b)
-        ), FunctionBuilder.run("stringlib:util/concat"), Copy.copy(
+        ), FunctionBuilder.run("dnt:concat")
+        , Copy.copy(
             result,
             DataPath(
-                "concat",
-                "stringlib:output",
+                "out",
+                "dnt:ram",
                 StorageLocation.STORAGE
             )
         )

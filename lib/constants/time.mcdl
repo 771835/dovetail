@@ -1,0 +1,12 @@
+// constants/time.mcdl - 时间相关常量定义
+
+let TICKS_PER_SECOND = 20           // 服务器默认 TPS
+let TICKS_PER_MINUTE = 1200
+let TICKS_PER_HOUR = 72000
+let TICKS_PER_DAY = 24000           // 游戏内一天
+let REAL_SECONDS_PER_DAY = 1200     // 现实时间 20 分钟
+
+let DAYTIME_START = 0               // 日出时间
+let DAYTIME_END = 13000             // 日落时间
+let NIGHTTIME_START = 13000
+let NIGHTTIME_END = 24000

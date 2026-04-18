@@ -26,6 +26,7 @@ class InitializerFunctionWriter(OutputWriter):
             f.write(FunctionBuilder.run(f"{context.namespace}:literal_pool_init") + "\n")
             f.write(FunctionBuilder.run("stringlib:zprivate/load") + "\n")
             f.write(DataBuilder.modify_storage_set_value("stringlib:input", "concat", "['','']") + "\n")
+            f.write(DataBuilder.modify_storage_set_value("dnt:ram", "in", "['','']") + "\n")
 
             # 执行初始化函数
             for init_function in self.init_functions:

@@ -14,7 +14,7 @@ if USED_FUTURE_INSTRUCTIONS:
     from dovetail.core.__future__.instructions import *
 else:
     from dovetail.core.enums.operations import UnaryOps, BinaryOps, CompareOps
-    from dovetail.core.enums.types import DataType, StructureType
+    from dovetail.core.enums.types import PrimitiveDataType, StructureType
     from dovetail.core.symbols import Literal, Class, Function, Reference, Variable, Symbol
     from dovetail.utils.safe_enum import SafeEnum
 
@@ -161,7 +161,7 @@ else:
                 true_scope: str | None,
                 false_scope: str | None = None
         ):
-            assert DataType.BOOLEAN.is_subclass_of(condition.dtype), condition.dtype
+            assert PrimitiveDataType.BOOLEAN.is_subclass_of(condition.dtype), condition.dtype
 
             operands = [
                 condition,
@@ -294,7 +294,7 @@ else:
 
         def __repr__(self):
             var = self.operands[0]
-            return f'{var.dtype.value if isinstance(var.dtype, DataType) else var.dtype.get_name()} {var.get_name()}'
+            return f'{var.dtype.value if isinstance(var.dtype, PrimitiveDataType) else var.dtype.get_name()} {var.get_name()}'
 
 
     class IRAssign(IRInstruction):
@@ -355,7 +355,7 @@ else:
 
 
     class IRCast(IRInstruction):
-        def __init__(self, result: Variable, dtype: DataType | Class,
+        def __init__(self, result: Variable, dtype: PrimitiveDataType | Class,
                      value: Reference[Variable | Literal]):
             operands = [
                 result,

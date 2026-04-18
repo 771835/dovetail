@@ -4,7 +4,7 @@ IROp 指令处理器
 """
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.config import get_project_logger
-from dovetail.core.enums import BinaryOps, DataType
+from dovetail.core.enums import BinaryOps, PrimitiveDataType
 from dovetail.core.enums.types import DataTypeBase
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Literal, Variable
@@ -29,9 +29,9 @@ class IROpProcessor(IRProcessor):  # 仅应支持基本类型运算
         right_path = self._get_symbol_path(right, context)
 
         # 当两者类型为int或boolean时
-        if left_dtype.is_subclass_of(DataType.INT) and right_dtype.is_subclass_of(DataType.INT):
+        if left_dtype.is_subclass_of(PrimitiveDataType.INT) and right_dtype.is_subclass_of(PrimitiveDataType.INT):
             context.add_commands(BinaryOp.op_all(result_path, op, left_path, right_path))
-        elif left_dtype == DataType.STRING == right_dtype:
+        elif left_dtype == PrimitiveDataType.STRING == right_dtype:
             context.add_commands(strcat(result_path, left_path, right_path))
         else:
             get_project_logger().error(f"unsupported operand type(s) for {op}: '{left_dtype}' and '{right_dtype}'")

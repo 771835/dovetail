@@ -334,6 +334,6 @@ def rate_limited(requests_per_minute: int = 60) -> Callable[[F], F]:
             request_times.append(current_time)
             return func(*args, **kwargs)
 
-        return cast(F, wrapper)
+        return wrapper
 
     return decorator

@@ -7,8 +7,6 @@
 """
 from __future__ import annotations
 
-from functools import reduce
-
 from dovetail.utils.safe_enum import SafeEnum
 
 
@@ -28,11 +26,11 @@ class FunctionType(SafeEnum):
         BUILTIN: 转译器内置函数
         METHOD: 类方法函数
     """
-    FUNCTION = "function"  # 用户定义的函数
-    FUNCTION_UNIMPLEMENTED = "function-unimplemented"  # 声明但未实现的函数
-    LIBRARY = "library"  # 从库加载的函数
-    BUILTIN = "built-in"  # 后端内建函数
-    METHOD = "method"  # 类方法函数
+    FUNCTION = "function"
+    FUNCTION_UNIMPLEMENTED = "function-unimplemented"
+    LIBRARY = "library"
+    BUILTIN = "built-in"
+    METHOD = "method"
 
 
 class DataTypeBase:
@@ -77,7 +75,7 @@ class DataTypeBase:
         return self.get_name()
 
 
-class DataType(DataTypeBase, SafeEnum):
+class PrimitiveDataType(DataTypeBase, SafeEnum):
     """
     表示变量存储类型的基础数据类型
 
@@ -115,65 +113,25 @@ class DataType(DataTypeBase, SafeEnum):
         """检查当前类型是否为另一类型的子类型"""
         if self is other:
             return True
-        if self == DataType.BOOLEAN and other == DataType.INT:
+        if self == PrimitiveDataType.BOOLEAN and other == PrimitiveDataType.INT:
             return True
         return False
 
     def is_definable(self) -> bool:
-        return self not in (DataType.UNDEFINED, DataType.NULL_TYPE)
+        return self not in (PrimitiveDataType.UNDEFINED, PrimitiveDataType.NULL_TYPE, PrimitiveDataType.VOID)
 
     @staticmethod
     def from_literal(value: int | str | bool | float | None):
         if isinstance(value, bool):
-            return DataType.BOOLEAN
+            return PrimitiveDataType.BOOLEAN
         elif isinstance(value, int):
-            return DataType.INT
+            return PrimitiveDataType.INT
         elif isinstance(value, str):
-            return DataType.STRING
+            return PrimitiveDataType.STRING
         elif value is None:
-            return DataType.NULL_TYPE
+            return PrimitiveDataType.NULL_TYPE
         else:
             raise TypeError(f"Unsupported literal type: {type(value)}")
-
-
-class Array(DataTypeBase):
-    """
-    表示数组存储类型的特殊数据类型
-
-    Attributes:
-        dtype: 所存储的数据的类型
-        size: 数组大小，当为-1时代表无限大
-    """
-
-    def __init__(self, dtype: DataType | DataTypeBase, size: list[int]):
-        self.dtype = dtype
-        self.size = size
-
-    def get_name(self) -> str:
-        return f"{repr(self.dtype)}{''.join(f'[{size}]' for size in self.size)}"
-
-    def get_all_of_size(self) -> int:
-        """
-        获取数组总大小
-
-        Returns:
-            int: 该数组所有维度的大小的总乘积
-        """
-        return reduce(lambda x, y: x * y, self.size)
-
-    def get_size(self) -> list[int]:
-        """
-        获得数组大小列表
-
-        Returns:
-            list[int]: 数组大小列表
-        """
-        return self.size
-
-    def is_subclass_of(self, other):
-        if self is other:
-            return True
-        return False
 
 
 class StructureType(SafeEnum):
@@ -235,7 +193,7 @@ class VariableType(SafeEnum):
     Attributes:
         PARAMETER: 函数参数变量
         COMMON: 普通局部变量
-        RETURN: 函数返回值变量(不被优化)
+        RETURN: 函数返回值变量(不被优化删除)
     """
     PARAMETER = "parameter"
     COMMON = "common"
@@ -274,7 +232,7 @@ class AnnotationCategory(SafeEnum):
     LIFECYCLE = "lifecycle"  # 控制函数执行时机
     VISIBILITY = "visibility"  # 控制可见性和优化
     LINKAGE = "linkage"  # 控制后端链接接口指令的生成
-    BACKEND_HINT = "backend_hint" # 控制后端代码生成
+    BACKEND_HINT = "backend_hint"  # 控制后端代码生成
 
     # 条件编译注解 - 在AST遍历阶段处理
     CONDITION = "condition"  # 控制代码编译生成

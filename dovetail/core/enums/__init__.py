@@ -18,7 +18,7 @@ from .operations import (
 from .optimization import OptimizationLevel
 # 类型系统枚举
 from .types import (
-    DataType,
+    PrimitiveDataType,
     StructureType,
     ValueType,
     VariableType,
@@ -31,7 +31,7 @@ __all__ = [
     'FunctionType',
 
     # 类型系统
-    'DataType',
+    'PrimitiveDataType',
     'StructureType',
     'ValueType',
     'VariableType',

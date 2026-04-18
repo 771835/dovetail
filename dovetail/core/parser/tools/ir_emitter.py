@@ -7,7 +7,7 @@ IR 发射器模块
 import itertools
 from contextlib import contextmanager
 
-from dovetail.core.enums import StructureType, BinaryOps, CompareOps, DataType
+from dovetail.core.enums import StructureType, BinaryOps, CompareOps, PrimitiveDataType
 from dovetail.core.enums.types import DataTypeBase
 from dovetail.core.instructions import (
     IRInstruction, IRDeclare, IRAssign, IRScopeBegin, IRScopeEnd,
@@ -191,6 +191,6 @@ class IREmitter:
         Returns:
             包含比较结果的布尔型临时变量
         """
-        result_var = self.create_temp_var_declared(DataType.BOOLEAN, result_prefix)
+        result_var = self.create_temp_var_declared(PrimitiveDataType.BOOLEAN, result_prefix)
         self.emit(IRCompare(result_var, op, left, right))
         return result_var

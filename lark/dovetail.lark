@@ -22,8 +22,7 @@ enums : annotation* "enum" ID "{" (enum_member ("," enum_member)* ","?)? "}"
 enum_member : ID "=" literal
 
 // 类型系统
-type.2: ID array_dimension* QUESTION? // 仅对象应允许可空
-array_dimension: ("[" (ARRAY_SIZE | identifier) "]") | "[]"// 允许动态数组大小
+type.2: ID ("<" type ("," type)* ">")? [QUESTION] // 仅对象应允许可空(指向null)
 
 function: annotation* ("function"|"fn"|"def") ID params [("->"|":") type] (block|pass_stmt)
 
@@ -95,7 +94,7 @@ let: "let" ID "=" expr // 自动推导类型
 
 ?unary_expr: post_expr
     | ADDSUB unary_expr -> unary_minus
-    | LOGICAL_NOT unary_expr -> logical_not
+    | _LOGICAL_NOT unary_expr -> logical_not
 
 ?post_expr: atom
     | post_expr "." ID arguments -> method_call
@@ -142,7 +141,7 @@ MULTIPLY: "*"|"/"|"%"
 ADDSUB: "-"|"+"
 _LOGICAL_AND.2: "and"|"&&"
 _LOGICAL_OR.2: "or"|"||"
-LOGICAL_NOT: "not"|"!"
+_LOGICAL_NOT: "not"|"!"
 TRUE: "true"
 FALSE: "false"
 

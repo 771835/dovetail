@@ -10,7 +10,6 @@ AST 转换器模块 - Dovetail 编译器前端
 - 处理导入和库加载
 
 主要组件：
-    - parser_code: 代码解析函数，将源代码转换为 AST
     - ASTVisitor: AST 访问器类，实现语义分析
 
 使用示例：
@@ -35,11 +34,11 @@ from lark.visitors import Interpreter
 from dovetail.core import builtin_annotation
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import (
-    StructureType, DataType, VariableType,
+    StructureType, PrimitiveDataType, VariableType,
     MinecraftVersion, MinecraftEdition, FunctionType, ValueType, BinaryOps, UnaryOps, CompareOps
 )
 from dovetail.core.enums.minecraft import UnknownMinecraftVersionError
-from dovetail.core.enums.types import Array, DataTypeBase, AnnotationCategory
+from dovetail.core.enums.types import DataTypeBase, AnnotationCategory
 from dovetail.core.errors import report, Errors
 from dovetail.core.include_manager import IncludeManager
 from dovetail.core.instructions import (
@@ -481,7 +480,7 @@ class ASTVisitor(Interpreter):
         if children[0] is not None:
             return_type: DataTypeBase = self.visit(children.pop(0))
         else:
-            return_type: DataTypeBase = DataType.VOID
+            return_type: DataTypeBase = PrimitiveDataType.VOID
             children.pop(0)
 
         # 跳过 pass 语句
@@ -620,7 +619,7 @@ class ASTVisitor(Interpreter):
                 if condition:
                     condition_value = self.visit(condition).value
                 else:
-                    condition_value = Literal(DataType.BOOLEAN, True)
+                    condition_value = Literal(PrimitiveDataType.BOOLEAN, True)
 
                 # 处理循环体
                 with self._push_scope(f"for_body_{loop_count}", StructureType.LOOP_BODY) as loop_body:  # NOQA
@@ -696,7 +695,7 @@ class ASTVisitor(Interpreter):
             )
             return Reference.literal(False)
 
-        if not value.get_dtype().is_subclass_of(DataType.INT):
+        if not value.get_dtype().is_subclass_of(PrimitiveDataType.INT):
             self.error_reporter.report(
                 Errors.TypeMismatch,
                 "boolean/int",
@@ -714,7 +713,6 @@ class ASTVisitor(Interpreter):
         value: Reference | None = None
         if children:
             value: Reference = self.visit(children.pop(0))
-
             # 标记返回值的变量类型
             if isinstance(value.value, Variable):
                 value.value.var_type = VariableType.RETURN
@@ -836,13 +834,13 @@ class ASTVisitor(Interpreter):
             self,
             children: list[Token | Tree | int],
             meta: Meta
-    ) -> DataType | Class | Array | DataTypeBase:
+    ) -> PrimitiveDataType | Class | DataTypeBase:
         """处理类型声明"""
         original_name: str = children.pop(0).value
 
         # 尝试解析内置类型
         try:
-            dtype = DataType.get_by_value(original_name)
+            dtype = PrimitiveDataType.get_by_value(original_name)
         except ValueError:
             # 解析自定义类型
             dtype = self.symbol_resolver.resolve_symbol(_n(original_name), meta)
@@ -857,16 +855,11 @@ class ASTVisitor(Interpreter):
                     original_name,
                     meta=meta
                 )
-                return DataType.UNDEFINED
+                return PrimitiveDataType.UNDEFINED
 
         # 检查类型是否可定义
         if dtype.is_definable():
-            # 处理数组类型
-            if children:
-                # 保留剩余子节点中的数字
-                return Array(dtype, [x for x in children if isinstance(x, int)])
-            else:
-                return dtype
+            return dtype
         else:
             self.error_reporter.report(
                 Errors.TypeMismatch,
@@ -875,7 +868,7 @@ class ASTVisitor(Interpreter):
                 meta=meta,
                 suggestion=f"{original_name} 不可被定义"
             )
-            return DataType.UNDEFINED
+            return PrimitiveDataType.UNDEFINED
 
     @v_args(meta=True)
     def typedef(self, children: list[Token | Tree], meta: Meta):
@@ -931,7 +924,7 @@ class ASTVisitor(Interpreter):
     def unary_minus(self, children: list[Token | Tree], meta: Meta) -> Reference:
         op: typing.Literal['+', '-'] = children.pop(0).value  # NOQA
         value: Reference = self.visit(children.pop(0))
-        if value.get_dtype() not in [DataType.BOOLEAN, DataType.INT]:
+        if value.get_dtype() not in [PrimitiveDataType.BOOLEAN, PrimitiveDataType.INT]:
             self.error_reporter.report(
                 Errors.InvalidOperator,
                 op,
@@ -949,7 +942,7 @@ class ASTVisitor(Interpreter):
                 value,
                 BinaryOps.MUL,
                 Reference.literal(-1),
-                DataType.INT
+                PrimitiveDataType.INT
             )
             return Reference(result_var)
 
@@ -957,7 +950,7 @@ class ASTVisitor(Interpreter):
     def logical_not(self, children: list[Token | Tree], meta: Meta):
         value: Reference = self.visit(children.pop(0))
 
-        if value.get_dtype() not in [DataType.BOOLEAN, DataType.INT]:
+        if value.get_dtype() not in [PrimitiveDataType.BOOLEAN, PrimitiveDataType.INT]:
             self.error_reporter.report(
                 Errors.InvalidOperator,
                 "not",
@@ -968,7 +961,7 @@ class ASTVisitor(Interpreter):
         if value.is_literal():
             return Reference.literal(not value.value.value)
         else:
-            result_var = self.ir_emitter.create_temp_var_declared(DataType.BOOLEAN, "boolean")
+            result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
             self.ir_emitter.emit(
                 IRUnaryOp(
                     result_var,
@@ -976,17 +969,17 @@ class ASTVisitor(Interpreter):
                     value
                 )
             )
-            return result_var
+            return Reference(result_var)
 
     @v_args(meta=True)
     def logical_and(self, children: list[Token | Tree], meta: Meta):
         # 生成唯一结果变量
-        result_var = self.ir_emitter.create_temp_var_declared(DataType.BOOLEAN, "boolean")
+        result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
         and_id = next(self.counter)
 
         # 计算左侧数据的值
         left: Reference = self.visit(children.pop(0))
-        if not DataType.BOOLEAN.is_subclass_of(left.get_dtype()):
+        if not PrimitiveDataType.BOOLEAN.is_subclass_of(left.get_dtype()):
             self.error_reporter.report(
                 Errors.TypeMismatch,
                 "boolean",
@@ -1002,7 +995,7 @@ class ASTVisitor(Interpreter):
         with self._push_scope(f"and_{and_id}_2", StructureType.CONDITIONAL):  # NOQA
             # 短路计算，仅第一个条件为真时调用此处
             right: Reference = self.visit(children.pop(0))
-            if not DataType.BOOLEAN.is_subclass_of(right.get_dtype()):
+            if not PrimitiveDataType.BOOLEAN.is_subclass_of(right.get_dtype()):
                 self.error_reporter.report(
                     Errors.TypeMismatch,
                     "boolean",
@@ -1018,14 +1011,14 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def logical_or(self, children: list[Token | Tree], meta: Meta):
         # 生成唯一结果变量
-        result_var = self.ir_emitter.create_temp_var_declared(DataType.BOOLEAN, "boolean")
+        result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
         or_id = next(self.counter)
 
         self.ir_emitter.emit(IRDeclare(result_var))
 
         # 计算左侧数据的值
         left: Reference = self.visit(children.pop(0))
-        if not DataType.BOOLEAN.is_subclass_of(left.get_dtype()):
+        if not PrimitiveDataType.BOOLEAN.is_subclass_of(left.get_dtype()):
             self.error_reporter.report(
                 Errors.TypeMismatch,
                 "boolean",
@@ -1041,7 +1034,7 @@ class ASTVisitor(Interpreter):
         with self._push_scope(f"or_{or_id}_2", StructureType.CONDITIONAL):  # NOQA
             # 短路计算，仅第一个条件不为真时调用此处
             right: Reference = self.visit(children.pop(0))
-            if not DataType.BOOLEAN.is_subclass_of(right.get_dtype()):
+            if not PrimitiveDataType.BOOLEAN.is_subclass_of(right.get_dtype()):
                 self.error_reporter.report(
                     Errors.TypeMismatch,
                     "boolean",
@@ -1119,7 +1112,7 @@ class ASTVisitor(Interpreter):
             else:
                 return Reference.void()
         else:
-            if function.return_type != DataType.VOID and function.return_type.is_definable():
+            if function.return_type != PrimitiveDataType.VOID and function.return_type.is_definable():
                 result_var = self.ir_emitter.create_temp_var_declared(function.return_type, "result")
                 self.ir_emitter.emit(IRCall(result_var, function, args_dict))
                 return Reference(result_var)
@@ -1162,7 +1155,7 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def fstring(self, children: list[Token | Tree], meta: Meta):
         """处理f-string"""
-        result = self.ir_emitter.create_temp_var_declared(DataType.STRING, "fstring")
+        result = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.STRING, "fstring")
         self.ir_emitter.emit(IRAssign(result, Reference.literal("")))
         for index, (data_type, data) in enumerate(parse_fstring_iter(children.pop().value)):
             if data_type == 'literal':
@@ -1197,11 +1190,11 @@ class ASTVisitor(Interpreter):
                     break
 
                 expr_str: Variable
-                if expr.get_dtype() == DataType.STRING:
+                if expr.get_dtype() == PrimitiveDataType.STRING:
                     expr_str = expr.value
-                elif expr.get_dtype().is_definable() and isinstance(expr.get_dtype(), DataType):
-                    expr_str = self.ir_emitter.create_temp_var_declared(DataType.STRING, "fstring")
-                    self.ir_emitter.emit(IRCast(expr_str, DataType.STRING, expr))
+                elif expr.get_dtype().is_definable() and isinstance(expr.get_dtype(), PrimitiveDataType):
+                    expr_str = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.STRING, "fstring")
+                    self.ir_emitter.emit(IRCast(expr_str, PrimitiveDataType.STRING, expr))
                 else:
                     self.error_reporter.report(
                         Errors.FStringExpressionError,

@@ -3,7 +3,7 @@ from enum import auto
 
 from attrs import define
 
-from dovetail.core.enums import DataType
+from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.enums.types import DataTypeBase
 from dovetail.utils.safe_enum import SafeEnum
 
@@ -14,7 +14,7 @@ class StorageLocation(SafeEnum):
 
     @staticmethod
     def get_storage(dtype: DataTypeBase) -> 'StorageLocation':
-        if dtype in (DataType.BOOLEAN, DataType.INT):
+        if dtype in (PrimitiveDataType.BOOLEAN, PrimitiveDataType.INT):
             return StorageLocation.SCORE
         else:
             return StorageLocation.STORAGE

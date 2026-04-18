@@ -6,7 +6,7 @@ from attrs import define, field
 from .annotation import Annotation
 from .base import Symbol
 from .parameter import Parameter
-from ..enums import DataType
+from ..enums import PrimitiveDataType
 from ..enums.types import FunctionType, DataTypeBase
 
 
@@ -28,7 +28,7 @@ class Function(Symbol):
         return self.name
 
     def get_dtype(self) -> DataTypeBase:
-        return DataType.FUNCTION
+        return PrimitiveDataType.FUNCTION
 
     def __repr__(self):
         return f"{self.name}({', '.join(map(repr, self.params))}): {self.return_type.get_name()}"

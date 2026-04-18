@@ -6,7 +6,7 @@
 """
 from lark.tree import Meta
 
-from dovetail.core.enums import DataType
+from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.enums.types import DataTypeBase
 from dovetail.core.errors import Errors
 from dovetail.core.parser.tools.error_reporter import ErrorReporter
@@ -135,7 +135,7 @@ class TypeChecker:
             return False
 
         # 检查字符串只能用于加法
-        if left == DataType.STRING and op != "+":
+        if left == PrimitiveDataType.STRING and op != "+":
             self.error_reporter.report(
                 Errors.InvalidOperator,
                 op,
@@ -162,8 +162,8 @@ class TypeChecker:
             运算结果类型
         """
         # 布尔类型参与运算时提升为 int
-        if left == DataType.BOOLEAN or right == DataType.BOOLEAN:
-            return DataType.INT
+        if left == PrimitiveDataType.BOOLEAN or right == PrimitiveDataType.BOOLEAN:
+            return PrimitiveDataType.INT
 
         # 其他情况返回左操作数类型
         return left

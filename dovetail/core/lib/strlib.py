@@ -1,4 +1,4 @@
-from dovetail.core.enums import DataType, BinaryOps, FunctionType
+from dovetail.core.enums import PrimitiveDataType, BinaryOps, FunctionType
 from dovetail.core.lib.library import Library
 from dovetail.core.parser.tools import SymbolResolver, ErrorReporter, IREmitter
 from dovetail.core.symbols import Reference, Function, Variable, Literal, Parameter
@@ -19,32 +19,32 @@ class Strlib(Library):
             Function(
                 "strcat",
                 [
-                    Parameter(Variable("dest", DataType.STRING)),
-                    Parameter(Variable("src", DataType.STRING))
+                    Parameter(Variable("dest", PrimitiveDataType.STRING)),
+                    Parameter(Variable("src", PrimitiveDataType.STRING))
                 ],
-                DataType.STRING,
+                PrimitiveDataType.STRING,
                 FunctionType.LIBRARY
             ): self._strcat,
             Function(
                 "strlen",
                 [
-                    Parameter(Variable("s", DataType.STRING))
+                    Parameter(Variable("s", PrimitiveDataType.STRING))
                 ],
-                DataType.INT,
+                PrimitiveDataType.INT,
                 FunctionType.BUILTIN
             ): None,
             Function(
                 "substring",
                 [
-                    Parameter(Variable("s", DataType.STRING)),
-                    Parameter(Variable("start", DataType.INT)),
-                    Parameter(Variable("end", DataType.INT))
+                    Parameter(Variable("s", PrimitiveDataType.STRING)),
+                    Parameter(Variable("start", PrimitiveDataType.INT)),
+                    Parameter(Variable("end", PrimitiveDataType.INT))
                 ],
-                DataType.STRING,
+                PrimitiveDataType.STRING,
                 FunctionType.BUILTIN
             ): None,
         }
 
     def _strcat(self, dest: Reference[Variable | Literal],
                 src: Reference[Variable | Literal]) -> Variable:
-        return self.emitter.emit_binary_calc(dest, BinaryOps.ADD, src, DataType.STRING, "strcat")
+        return self.emitter.emit_binary_calc(dest, BinaryOps.ADD, src, PrimitiveDataType.STRING, "strcat")

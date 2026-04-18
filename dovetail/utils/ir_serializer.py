@@ -7,13 +7,13 @@ from typing import Any, Dict, Union, NoReturn
 
 from dovetail.core.config import PROJECT_VERSION
 from dovetail.core.enums import CompareOps, FunctionType, ClassType, BinaryOps, UnaryOps
-from dovetail.core.enums.types import DataTypeBase, DataType, StructureType, AnnotationCategory
+from dovetail.core.enums.types import DataTypeBase, PrimitiveDataType, StructureType, AnnotationCategory
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.symbols import Symbol, Literal, Parameter, Reference, Class, Function, Variable
 from dovetail.utils.binary_serializer import BinarySerializer
 
 restore_enums_ref: dict[str, type[Enum]] = {
-    "DataType": DataType,
+    "PrimitiveDataType": PrimitiveDataType,
     "StructureType": StructureType,
     "FunctionType": FunctionType,
     "ClassType": ClassType,
@@ -46,7 +46,7 @@ class IRSymbolSerializer:
         self.symbol_id_map: Dict[int, Union[Symbol, str, int, Enum, list, dict]] = {}
 
     @staticmethod
-    def _extract_metadata(symbol: Symbol | DataType | list | int | float | bool | str | Enum | dict | tuple | set) -> \
+    def _extract_metadata(symbol: Symbol | PrimitiveDataType | list | int | float | bool | str | Enum | dict | tuple | set) -> \
             dict[str, Any] | NoReturn:
         """生成符号的序列化数据。
 
@@ -217,7 +217,7 @@ class IRSymbolSerializer:
         for symbol_id_str, metadata in serialized['symbol'].items():
             symbol_id = int(symbol_id_str)
             if metadata['symbol_type'] == 'Literal':
-                dtype = id_to_symbol.get(metadata['value'], DataType.UNDEFINED)
+                dtype = id_to_symbol.get(metadata['value'], PrimitiveDataType.UNDEFINED)
                 id_to_symbol[symbol_id] = Literal(
                     dtype=dtype,
                     value=metadata['value']
@@ -231,7 +231,7 @@ class IRSymbolSerializer:
                 var_type = id_to_symbol.get(metadata.get('var_type'))
                 id_to_symbol[symbol_id] = Variable(
                     name=metadata['symbol_name'],
-                    dtype=dtype or DataType.UNDEFINED,
+                    dtype=dtype or PrimitiveDataType.UNDEFINED,
                     var_type=var_type or None,
                     mutable=metadata.get('mutable', True)
                 )
@@ -266,7 +266,7 @@ class IRSymbolSerializer:
                 id_to_symbol[symbol_id] = Function(
                     name=metadata['symbol_name'],
                     params=params,
-                    return_type=id_to_symbol.get(return_type_id) if return_type_id else DataType.VOID,
+                    return_type=id_to_symbol.get(return_type_id) if return_type_id else PrimitiveDataType.VOID,
                     function_type=id_to_symbol.get(function_type_id) if function_type_id else None,
                     annotations={}  # 注解信息需要单独处理
                 )

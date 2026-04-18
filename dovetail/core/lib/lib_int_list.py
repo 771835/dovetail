@@ -5,7 +5,7 @@ int数组
 import uuid
 from typing import Callable
 
-from dovetail.core.enums.types import FunctionType, DataType, VariableType
+from dovetail.core.enums.types import FunctionType, PrimitiveDataType, VariableType
 from dovetail.core.instructions import IRInstruction, IRCall
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
@@ -30,37 +30,37 @@ class IntList(Library):
                 Function(
                     NameNormalizer.normalize("__setitem__"),
                     int_list_setitem_params,
-                    DataType.NULL_TYPE,
+                    PrimitiveDataType.NULL_TYPE,
                     FunctionType.LIBRARY
                 ),
                 Function(
                     NameNormalizer.normalize("__getitem__"),
                     int_list_setitem_params,
-                    DataType.INT,
+                    PrimitiveDataType.INT,
                     FunctionType.LIBRARY
                 ),
                 Function(
                     NameNormalizer.normalize("append"),
                     int_list_append_params,
-                    DataType.NULL_TYPE,
+                    PrimitiveDataType.NULL_TYPE,
                     FunctionType.LIBRARY
                 ),
                 Function(
                     NameNormalizer.normalize("__init__"),
                     int_list_init_params,
-                    DataType.NULL_TYPE,
+                    PrimitiveDataType.NULL_TYPE,
                     FunctionType.LIBRARY
                 ),
                 Function(
                     "clear",
                     int_list_init_params,
-                    DataType.NULL_TYPE,
+                    PrimitiveDataType.NULL_TYPE,
                     FunctionType.LIBRARY
                 ),
                 Function(
                     "pop",
                     int_list_pop_params,
-                    DataType.INT,
+                    PrimitiveDataType.INT,
                     FunctionType.LIBRARY
                 )
             },
@@ -80,14 +80,14 @@ class IntList(Library):
                 Parameter(
                     Variable(
                         "index",
-                        DataType.INT,
+                        PrimitiveDataType.INT,
                         VariableType.PARAMETER
                     )
                 ),
                 Parameter(
                     Variable(
                         "value",
-                        DataType.INT,
+                        PrimitiveDataType.INT,
                         VariableType.PARAMETER
                     )
                 )
@@ -105,7 +105,7 @@ class IntList(Library):
                 Parameter(
                     Variable(
                         "value",
-                        DataType.INT,
+                        PrimitiveDataType.INT,
                         VariableType.PARAMETER
                     )
                 )
@@ -123,7 +123,7 @@ class IntList(Library):
                 Parameter(
                     Variable(
                         "index",
-                        DataType.INT,
+                        PrimitiveDataType.INT,
                         VariableType.PARAMETER
                     )
                 )
@@ -164,7 +164,7 @@ class IntList(Library):
                 Parameter(
                     Variable(
                         "index",
-                        DataType.INT,
+                        PrimitiveDataType.INT,
                         VariableType.PARAMETER
                     ),
                     True,
@@ -192,12 +192,12 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL_TYPE,
+                                PrimitiveDataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         )
                     ],
-                    DataType.NULL_TYPE,
+                    PrimitiveDataType.NULL_TYPE,
                     FunctionType.BUILTIN
                 ),
                 {
@@ -218,26 +218,26 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL_TYPE,
+                                PrimitiveDataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         ),
                         Parameter(
                             Variable(
                                 "index",
-                                DataType.INT,
+                                PrimitiveDataType.INT,
                                 VariableType.PARAMETER
                             )
                         ),
                         Parameter(
                             Variable(
                                 "value",
-                                DataType.INT,
+                                PrimitiveDataType.INT,
                                 VariableType.PARAMETER
                             )
                         )
                     ],
-                    DataType.NULL_TYPE,
+                    PrimitiveDataType.NULL_TYPE,
                     FunctionType.BUILTIN
                 ),
                 {
@@ -259,19 +259,19 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL_TYPE,
+                                PrimitiveDataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         ),
                         Parameter(
                             Variable(
                                 "value",
-                                DataType.INT,
+                                PrimitiveDataType.INT,
                                 VariableType.PARAMETER
                             )
                         )
                     ],
-                    DataType.NULL_TYPE,
+                    PrimitiveDataType.NULL_TYPE,
                     FunctionType.BUILTIN
                 ),
                 {
@@ -285,7 +285,7 @@ class IntList(Library):
                  index: Reference[Variable | Literal]):
         result_var = Variable(
             "result_" + uuid.uuid4().hex[:8],
-            DataType.INT,
+            PrimitiveDataType.INT,
             VariableType.PARAMETER)
         _self.builder.insert(
             IRCall(
@@ -296,19 +296,19 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL_TYPE,
+                                PrimitiveDataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         ),
                         Parameter(
                             Variable(
                                 "index",
-                                DataType.INT,
+                                PrimitiveDataType.INT,
                                 VariableType.PARAMETER
                             )
                         )
                     ],
-                    DataType.INT,
+                    PrimitiveDataType.INT,
                     FunctionType.BUILTIN
                 ),
                 {
@@ -330,12 +330,12 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL_TYPE,
+                                PrimitiveDataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         )
                     ],
-                    DataType.NULL_TYPE,
+                    PrimitiveDataType.NULL_TYPE,
                     FunctionType.BUILTIN
                 ),
                 {
@@ -348,7 +348,7 @@ class IntList(Library):
     def _pop(_self, self: Reference[Variable], index: Reference[Variable | Literal]):
         result_var = Variable(
             "result_" + uuid.uuid4().hex[:8],
-            DataType.INT,
+            PrimitiveDataType.INT,
             VariableType.PARAMETER)
         _self.builder.insert(
             IRCall(
@@ -359,19 +359,19 @@ class IntList(Library):
                         Parameter(
                             Variable(
                                 "list",
-                                DataType.NULL_TYPE,
+                                PrimitiveDataType.NULL_TYPE,
                                 VariableType.PARAMETER
                             )
                         ),
                         Parameter(
                             Variable(
                                 "index",
-                                DataType.INT,
+                                PrimitiveDataType.INT,
                                 VariableType.PARAMETER
                             )
                         )
                     ],
-                    DataType.INT,
+                    PrimitiveDataType.INT,
                     FunctionType.BUILTIN
                 ),
                 {

@@ -9,7 +9,7 @@ from .base import Symbol
 from .literal import Literal
 from .variable import Variable
 from ..config import FAST_MODE
-from ..enums.types import DataTypeBase, DataType, ValueType, VariableType
+from ..enums.types import DataTypeBase, PrimitiveDataType, ValueType, VariableType
 
 T = TypeVar('T', bound=Symbol)
 
@@ -60,10 +60,10 @@ class Reference(Symbol, Generic[T]):
 
     @classmethod
     def literal(cls: type[Reference[Literal]], value: bool | int | str | None) -> Reference[Literal]:
-        return cls(Literal(DataType.from_literal(value), value))
+        return cls(Literal(PrimitiveDataType.from_literal(value), value))
 
     @classmethod
-    def variable(cls: type[Reference[Variable]], var_name: str, dtype: DataType,
+    def variable(cls: type[Reference[Variable]], var_name: str, dtype: PrimitiveDataType,
                  var_type: VariableType = VariableType.COMMON,
                  mutable: bool = True) -> Reference[Variable]:
         return cls(Variable(var_name, dtype, var_type, mutable))
@@ -82,12 +82,12 @@ class Reference(Symbol, Generic[T]):
     @classmethod
     def void(cls) -> Reference[Variable]:
         """
-        返回一个类型为 DataType.VOID 的不声明变量
+        返回一个类型为 PrimitiveDataType.VOID 的不声明变量
 
         Returns:
-            一个类型为 DataType.VOID 的不声明变量
+            一个类型为 PrimitiveDataType.VOID 的不声明变量
         """
-        return cls.variable("_", DataType.VOID, mutable=False)
+        return cls.variable("_", PrimitiveDataType.VOID, mutable=False)
 
     def __repr__(self):
         return self.get_display_value()

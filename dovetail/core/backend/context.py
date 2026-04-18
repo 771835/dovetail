@@ -105,20 +105,26 @@ class PackMcmeta:
         else:
             self._overlays.append((directory, formats))
 
+    def _pickle_format(self, datapack_format: int | float) -> int | list[int]:
+        if isinstance(datapack_format, int):
+            return datapack_format
+        else:
+            return list(map(int, str(datapack_format).split('.')))
+
     def _pickle(self, version: MinecraftVersion):
         if version >= MinecraftVersion.instance("1.21.9"):
             return {
                 'pack': {
                     'description': self.description,
-                    'min_format': self.min_format,
-                    'max_format': self.max_format
+                    'min_format': self._pickle_format(self.min_format),
+                    'max_format': self._pickle_format(self.max_format)
                 },
                 'overlays': {
                     'entries': [
                         {
                             'directory': overlay[0],
-                            'min_format': overlay[1][0],
-                            'max_format': overlay[1][1]
+                            'min_format': self._pickle_format(overlay[1][0]),
+                            'max_format': self._pickle_format(overlay[1][1])
                         } for overlay in self._overlays
                     ]
                 }

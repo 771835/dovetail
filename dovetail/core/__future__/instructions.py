@@ -12,23 +12,21 @@ import functools
 from typing import Any, Optional, Union, get_type_hints, Callable
 
 from dovetail.core.config import ENABLE_FUTURE_INSTRUCTION_VALIDATION, FAST_MODE
-from dovetail.core.enums import DataType, StructureType, BinaryOps, CompareOps, UnaryOps
-from dovetail.core.enums.types import Array
+from dovetail.core.enums import PrimitiveDataType, StructureType, BinaryOps, CompareOps, UnaryOps
 from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
 from dovetail.core.symbols.enumeration import Enumeration
 from dovetail.core.symbols.structure import Structure
 from dovetail.utils.safe_enum import SafeEnum
 
 _DefinableDataTypes = Union[
-    DataType,
+    PrimitiveDataType,
     Structure,
     Class,
-    Array,
     Enumeration
 ]
 
 _CastableDataTypes = Union[
-    DataType,
+    PrimitiveDataType,
     Class,
 ]
 
@@ -322,7 +320,7 @@ def IRCondJump(
     """
     # 类型验证
     if not FAST_MODE and ENABLE_FUTURE_INSTRUCTION_VALIDATION:
-        if not DataType.BOOLEAN.is_subclass_of(condition.dtype):
+        if not PrimitiveDataType.BOOLEAN.is_subclass_of(condition.dtype):
             raise ValidationError(
                 f"条件跳转要求布尔类型，实际得到 {condition.dtype}"
             )
@@ -635,7 +633,7 @@ def IRCompare(
     Raises:
         ValidationError: 如果结果变量不是布尔类型
     """
-    if not FAST_MODE and ENABLE_FUTURE_INSTRUCTION_VALIDATION and result.dtype != DataType.BOOLEAN:
+    if not FAST_MODE and ENABLE_FUTURE_INSTRUCTION_VALIDATION and result.dtype != PrimitiveDataType.BOOLEAN:
         raise ValidationError(f"比较结果必须是布尔类型，实际得到 {result.dtype}")
 
     return IRInstruction(IROpCode.COMPARE, result, op, left, right)
@@ -663,7 +661,7 @@ def IRCast(
     Args:
         result: 结果变量
         source: 源值
-        target_type: 目标类型（DataType 或其他类型对象）
+        target_type: 目标类型（PrimitiveDataType 或其他类型对象）
 
     Returns:
         类型转换指令
@@ -942,7 +940,7 @@ def IRArrayNew(
 
     Args:
         result: 结果变量（存储数组引用）
-        element_type: 元素类型（DataType 或其他类型对象）
+        element_type: 元素类型（PrimitiveDataType 或其他类型对象）
         size: 数组大小（可以是整数常量或 Reference 对象）
 
     Returns:

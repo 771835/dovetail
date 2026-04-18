@@ -3,7 +3,7 @@
 IRCall 指令处理器
 """
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
-from dovetail.core.enums import FunctionType, DataType
+from dovetail.core.enums import FunctionType, PrimitiveDataType
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable, Function, Literal, Reference
 from ..backend import JE1214Backend
@@ -65,7 +65,7 @@ class IRCallProcessor(IRProcessor):
             )
         )
         # 处理返回值
-        if func.return_type != DataType.NULL_TYPE and result is not None:
+        if func.return_type != PrimitiveDataType.NULL_TYPE and result is not None:
             context.current_scope.add_command(
                 Copy.copy(
                     DataPath(

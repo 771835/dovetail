@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Callable, Optional
 
-from dovetail.core.enums.types import FunctionType, DataType
+from dovetail.core.enums.types import FunctionType, PrimitiveDataType
 from dovetail.core.lib.library import Library
 from dovetail.core.symbols import Function, Variable, Literal, Parameter
 
@@ -12,10 +12,10 @@ class Random(Library):
             Function(
                 "randint",
                 [
-                    Parameter(Variable("min", DataType.INT)),
-                    Parameter(Variable("max", DataType.INT)),
+                    Parameter(Variable("min", PrimitiveDataType.INT)),
+                    Parameter(Variable("max", PrimitiveDataType.INT)),
                 ],
-                DataType.INT,
+                PrimitiveDataType.INT,
                 FunctionType.BUILTIN
             ): None,
         }

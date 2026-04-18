@@ -11,6 +11,7 @@ from dovetail.core.enums import OptimizationLevel
 from dovetail.core.instructions import *
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.base import IROptimizationPass
+from dovetail.core.optimize.context import OptimizationContext
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.symbols import Function

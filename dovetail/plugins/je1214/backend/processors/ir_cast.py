@@ -4,7 +4,7 @@ IRCast 指令处理器
 """
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.config import get_project_logger
-from dovetail.core.enums import DataType
+from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable, Class, Reference, Literal
 from ..backend import JE1214Backend
@@ -16,7 +16,7 @@ from ..commands.tools import DataPath, StorageLocation
 class IRCastProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         result: Variable = instruction.operands[0]
-        dtype: DataType | Class = instruction.operands[1]
+        dtype: PrimitiveDataType | Class = instruction.operands[1]
         value: Reference[Variable | Literal] = instruction.operands[2]
 
         result_path = DataPath(
@@ -31,9 +31,9 @@ class IRCastProcessor(IRProcessor):
         ) if not value.is_literal() else value.value.value
 
         # int -> str
-        if value.get_dtype().is_subclass_of(DataType.INT) and dtype == DataType.STRING:
+        if value.get_dtype().is_subclass_of(PrimitiveDataType.INT) and dtype == PrimitiveDataType.STRING:
             context.add_commands(to_str(result_path, value_path))
-        elif value == DataType.STRING and dtype.is_subclass_of(DataType.INT):
+        elif value == PrimitiveDataType.STRING and dtype.is_subclass_of(PrimitiveDataType.INT):
             # str -> int
             context.add_commands(to_int(result_path, value_path))
         else:

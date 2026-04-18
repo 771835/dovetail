@@ -5,7 +5,7 @@ from typing import Any
 from attrs import define, field, validators
 from typing_extensions import deprecated
 
-from dovetail.core.enums.types import DataType
+from dovetail.core.enums.types import PrimitiveDataType
 from dovetail.core.symbols.literal import Literal
 from dovetail.core.symbols.reference import Reference
 
@@ -20,6 +20,6 @@ class Result:
         return self.__repr__()
 
     @classmethod
-    def from_literal(cls, value: Any, dtype: DataType):
+    def from_literal(cls, value: Any, dtype: PrimitiveDataType):
         """创建字面量结果"""
         return cls(Reference(Literal(dtype, value)))

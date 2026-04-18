@@ -141,7 +141,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
                         # 回退到变量自身
                         if var_name in alias_maps[current_scope]:
                             # 创建一个指向自身的引用
-                            var = Variable(var_name, DataType.INT)  # 类型不重要，后续会被覆盖
+                            var = Variable(var_name, PrimitiveDataType.INT)  # 类型不重要，后续会被覆盖
                             alias_maps[current_scope][var_name] = Reference(var)
 
             elif isinstance(instr, (IRBinaryOp, IRCompare, IRUnaryOp, IRCall)):
@@ -192,7 +192,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 break
 
         # 循环或未找到，返回原始变量
-        return Reference(Variable(var_name, DataType.INT))
+        return Reference(Variable(var_name, PrimitiveDataType.INT))
 
     def _aliases_equal(self, alias1: Reference | None, alias2: Reference | None) -> bool:
         """判断两个别名是否相等"""

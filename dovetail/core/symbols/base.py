@@ -20,5 +20,5 @@ class Symbol(ABC):
         Returns:
             本符号的数据类型，如果符号不存在或不支持数据类型则返回DataType.UNDEFINED
         """
-        from dovetail.core.enums import DataType
-        return DataType.UNDEFINED
+        from dovetail.core.enums import PrimitiveDataType
+        return PrimitiveDataType.UNDEFINED

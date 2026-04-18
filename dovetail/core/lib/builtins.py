@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Callable, Optional
 
-from dovetail.core.enums.types import FunctionType, DataType
+from dovetail.core.enums.types import FunctionType, PrimitiveDataType
 from dovetail.core.errors import report, Errors
 from dovetail.core.instructions import IRCast, IRCall, IRJump
 from dovetail.core.lib.library import Library
@@ -24,75 +24,75 @@ class Builtins(Library):
             Function(
                 "int",
                 [
-                    Parameter(Variable("value", DataType.STRING))
+                    Parameter(Variable("value", PrimitiveDataType.STRING))
                 ],
-                DataType.INT,
+                PrimitiveDataType.INT,
                 FunctionType.LIBRARY
             ): self._int,
             Function(
                 "str",
                 [
-                    Parameter(Variable("value", DataType.INT))
+                    Parameter(Variable("value", PrimitiveDataType.INT))
                 ],
-                DataType.STRING,
+                PrimitiveDataType.STRING,
                 FunctionType.LIBRARY
             ): self._str,
             Function(
                 _n("str_i"),
                 [
-                    Parameter(Variable("value", DataType.INT))
+                    Parameter(Variable("value", PrimitiveDataType.INT))
                 ],
-                DataType.STRING,
+                PrimitiveDataType.STRING,
                 FunctionType.LIBRARY
             ): self._str,
             Function(
                 _n("str_b"),
                 [
-                    Parameter(Variable("value", DataType.BOOLEAN))
+                    Parameter(Variable("value", PrimitiveDataType.BOOLEAN))
                 ],
-                DataType.STRING,
+                PrimitiveDataType.STRING,
                 FunctionType.LIBRARY
             ): self._str,
             Function(
                 "print",
                 [
-                    Parameter(Variable("msg", DataType.STRING))
+                    Parameter(Variable("msg", PrimitiveDataType.STRING))
                 ],
-                DataType.VOID,
+                PrimitiveDataType.VOID,
                 FunctionType.LIBRARY
             ): self._print,
             Function(
                 _n("_call"),
                 [
-                    Parameter(Variable("scope", DataType.STRING)),
+                    Parameter(Variable("scope", PrimitiveDataType.STRING)),
                 ],
-                DataType.VOID,
+                PrimitiveDataType.VOID,
                 FunctionType.LIBRARY
             ): self._call,
             Function(
                 "exec",
                 [
-                    Parameter(Variable("command", DataType.STRING))
+                    Parameter(Variable("command", PrimitiveDataType.STRING))
                 ],
-                DataType.VOID,
+                PrimitiveDataType.VOID,
                 FunctionType.BUILTIN
             ): None,
             Function(
                 "tellraw_text",
                 [
-                    Parameter(Variable("target", DataType.STRING)),
-                    Parameter(Variable("msg", DataType.STRING)),
+                    Parameter(Variable("target", PrimitiveDataType.STRING)),
+                    Parameter(Variable("msg", PrimitiveDataType.STRING)),
                 ],
-                DataType.VOID,
+                PrimitiveDataType.VOID,
                 FunctionType.BUILTIN
             ): None,
             Function(
                 "tellraw_json",
                 [
-                    Parameter(Variable("target", DataType.STRING)),
-                    Parameter(Variable("json", DataType.STRING)),
+                    Parameter(Variable("target", PrimitiveDataType.STRING)),
+                    Parameter(Variable("json", PrimitiveDataType.STRING)),
                 ],
-                DataType.VOID,
+                PrimitiveDataType.VOID,
                 FunctionType.BUILTIN
             ): None,
         }
@@ -101,179 +101,179 @@ class Builtins(Library):
         Function(
             "setblock",
             [
-                Parameter(Variable("x", DataType.INT)),
-                Parameter(Variable("y", DataType.INT)),
-                Parameter(Variable("z", DataType.INT)),
-                Parameter(Variable("block_id", DataType.STRING)),
-                Parameter(Variable("mode", DataType.STRING), optional=True, default=Reference.literal("destroy")),
+                Parameter(Variable("x", PrimitiveDataType.INT)),
+                Parameter(Variable("y", PrimitiveDataType.INT)),
+                Parameter(Variable("z", PrimitiveDataType.INT)),
+                Parameter(Variable("block_id", PrimitiveDataType.STRING)),
+                Parameter(Variable("mode", PrimitiveDataType.STRING), optional=True, default=Reference.literal("destroy")),
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "item_spawn",
             [
-                Parameter(Variable("x", DataType.INT)),
-                Parameter(Variable("y", DataType.INT)),
-                Parameter(Variable("z", DataType.INT)),
-                Parameter(Variable("item_id", DataType.STRING)),
-                Parameter(Variable("count", DataType.INT), True)
+                Parameter(Variable("x", PrimitiveDataType.INT)),
+                Parameter(Variable("y", PrimitiveDataType.INT)),
+                Parameter(Variable("z", PrimitiveDataType.INT)),
+                Parameter(Variable("item_id", PrimitiveDataType.STRING)),
+                Parameter(Variable("count", PrimitiveDataType.INT), True)
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "tp",
             [
-                Parameter(Variable("player", DataType.STRING)),
-                Parameter(Variable("x", DataType.INT)),
-                Parameter(Variable("y", DataType.INT)),
-                Parameter(Variable("z", DataType.INT))
+                Parameter(Variable("player", PrimitiveDataType.STRING)),
+                Parameter(Variable("x", PrimitiveDataType.INT)),
+                Parameter(Variable("y", PrimitiveDataType.INT)),
+                Parameter(Variable("z", PrimitiveDataType.INT))
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "give",
             [
-                Parameter(Variable("player", DataType.STRING)),
-                Parameter(Variable("item_id", DataType.STRING)),
-                Parameter(Variable("count", DataType.INT), True)
+                Parameter(Variable("player", PrimitiveDataType.STRING)),
+                Parameter(Variable("item_id", PrimitiveDataType.STRING)),
+                Parameter(Variable("count", PrimitiveDataType.INT), True)
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "summon",
             [
-                Parameter(Variable("entity_id", DataType.STRING)),
-                Parameter(Variable("x", DataType.INT)),
-                Parameter(Variable("y", DataType.INT)),
-                Parameter(Variable("z", DataType.INT)),
-                Parameter(Variable("nbt", DataType.STRING), True)
+                Parameter(Variable("entity_id", PrimitiveDataType.STRING)),
+                Parameter(Variable("x", PrimitiveDataType.INT)),
+                Parameter(Variable("y", PrimitiveDataType.INT)),
+                Parameter(Variable("z", PrimitiveDataType.INT)),
+                Parameter(Variable("nbt", PrimitiveDataType.STRING), True)
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "kill",
-            [Parameter(Variable("target", DataType.STRING))],
-            DataType.INT,
+            [Parameter(Variable("target", PrimitiveDataType.STRING))],
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "time_set",
-            [Parameter(Variable("value", DataType.INT))],
-            DataType.INT,
+            [Parameter(Variable("value", PrimitiveDataType.INT))],
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "weather",
-            [Parameter(Variable("type", DataType.STRING))],
-            DataType.INT,
+            [Parameter(Variable("type", PrimitiveDataType.STRING))],
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "difficulty",
-            [Parameter(Variable("level", DataType.STRING))],
-            DataType.INT,
+            [Parameter(Variable("level", PrimitiveDataType.STRING))],
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "gamerule",
             [
-                Parameter(Variable("rule", DataType.STRING)),
-                Parameter(Variable("value", DataType.STRING))
+                Parameter(Variable("rule", PrimitiveDataType.STRING)),
+                Parameter(Variable("value", PrimitiveDataType.STRING))
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "fill",
             [
-                Parameter(Variable("x1", DataType.INT)),
-                Parameter(Variable("y1", DataType.INT)),
-                Parameter(Variable("z1", DataType.INT)),
-                Parameter(Variable("x2", DataType.INT)),
-                Parameter(Variable("y2", DataType.INT)),
-                Parameter(Variable("z2", DataType.INT)),
-                Parameter(Variable("block", DataType.STRING))
+                Parameter(Variable("x1", PrimitiveDataType.INT)),
+                Parameter(Variable("y1", PrimitiveDataType.INT)),
+                Parameter(Variable("z1", PrimitiveDataType.INT)),
+                Parameter(Variable("x2", PrimitiveDataType.INT)),
+                Parameter(Variable("y2", PrimitiveDataType.INT)),
+                Parameter(Variable("z2", PrimitiveDataType.INT)),
+                Parameter(Variable("block", PrimitiveDataType.STRING))
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "effect",
             [
-                Parameter(Variable("target", DataType.STRING)),
-                Parameter(Variable("effect", DataType.STRING)),
-                Parameter(Variable("duration", DataType.INT), True),
-                Parameter(Variable("amplifier", DataType.INT), True)
+                Parameter(Variable("target", PrimitiveDataType.STRING)),
+                Parameter(Variable("effect", PrimitiveDataType.STRING)),
+                Parameter(Variable("duration", PrimitiveDataType.INT), True),
+                Parameter(Variable("amplifier", PrimitiveDataType.INT), True)
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "attribute",
             [
-                Parameter(Variable("target", DataType.STRING)),
-                Parameter(Variable("attr", DataType.STRING)),
-                Parameter(Variable("value", DataType.STRING), True)
+                Parameter(Variable("target", PrimitiveDataType.STRING)),
+                Parameter(Variable("attr", PrimitiveDataType.STRING)),
+                Parameter(Variable("value", PrimitiveDataType.STRING), True)
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "tag",
             [
-                Parameter(Variable("target", DataType.STRING)),
-                Parameter(Variable("action", DataType.STRING)),
-                Parameter(Variable("tag", DataType.STRING))
+                Parameter(Variable("target", PrimitiveDataType.STRING)),
+                Parameter(Variable("action", PrimitiveDataType.STRING)),
+                Parameter(Variable("tag", PrimitiveDataType.STRING))
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "damage",
             [
-                Parameter(Variable("target", DataType.STRING)),
-                Parameter(Variable("amount", DataType.INT)),
-                Parameter(Variable("source", DataType.STRING), True)
+                Parameter(Variable("target", PrimitiveDataType.STRING)),
+                Parameter(Variable("amount", PrimitiveDataType.INT)),
+                Parameter(Variable("source", PrimitiveDataType.STRING), True)
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "scoreboard",
             [
-                Parameter(Variable("op", DataType.STRING)),
-                Parameter(Variable("target", DataType.STRING)),
-                Parameter(Variable("objective", DataType.STRING)),
-                Parameter(Variable("value", DataType.STRING), True)
+                Parameter(Variable("op", PrimitiveDataType.STRING)),
+                Parameter(Variable("target", PrimitiveDataType.STRING)),
+                Parameter(Variable("objective", PrimitiveDataType.STRING)),
+                Parameter(Variable("value", PrimitiveDataType.STRING), True)
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         Function(
             "bossbar",
             [
-                Parameter(Variable("op", DataType.STRING)),
-                Parameter(Variable("id", DataType.STRING)),
-                Parameter(Variable("value", DataType.STRING), True)
+                Parameter(Variable("op", PrimitiveDataType.STRING)),
+                Parameter(Variable("id", PrimitiveDataType.STRING)),
+                Parameter(Variable("value", PrimitiveDataType.STRING), True)
             ],
-            DataType.INT,
+            PrimitiveDataType.INT,
             FunctionType.BUILTIN
         ): None,
         """
 
     def _int(self, value: Reference[Variable | Literal]) -> Variable:
-        result: Variable = self.emitter.create_temp_var_declared(DataType.INT, "to_int")
-        self.emitter.emit(IRCast(result, DataType.INT, value))
+        result: Variable = self.emitter.create_temp_var_declared(PrimitiveDataType.INT, "to_int")
+        self.emitter.emit(IRCast(result, PrimitiveDataType.INT, value))
         return result
 
     def _str(self, value: Reference[Variable | Literal]) -> Variable:
-        result: Variable = self.emitter.create_temp_var_declared(DataType.STRING, "to_str")
-        self.emitter.emit(IRCast(result, DataType.STRING, value))
+        result: Variable = self.emitter.create_temp_var_declared(PrimitiveDataType.STRING, "to_str")
+        self.emitter.emit(IRCast(result, PrimitiveDataType.STRING, value))
         return result
 
     def _print(self, msg: Reference[Variable | Literal]) -> None:
@@ -299,7 +299,7 @@ class Builtins(Library):
         return None
 
     def _call(self, scope: Reference[Literal]):
-        if not scope.is_literal() or scope.get_dtype() != DataType.STRING:
+        if not scope.is_literal() or scope.get_dtype() != PrimitiveDataType.STRING:
             report(
                 Errors.InvalidSyntax,
                 "跳转目标必须是字面量字符串"
@@ -322,10 +322,10 @@ class Builtins(Library):
         return None
 
     def _type_of(self, value: Reference[Variable | Literal]):
-        return Literal(DataType.STRING, str(value.get_dtype().get_name()))
+        return Literal(PrimitiveDataType.STRING, str(value.get_dtype().get_name()))
 
     def _type_repr_of(self, value: Reference[Variable | Literal]):
-        return Literal(DataType.STRING, repr(value.get_dtype()))
+        return Literal(PrimitiveDataType.STRING, repr(value.get_dtype()))
 
     def __str__(self) -> str:
         return "built-in"
