@@ -757,7 +757,7 @@ class ASTVisitor(Interpreter):
             self.filepath = filepath
             self.error_reporter.set_filepath(filepath)
 
-            with self.include_manager.including(filepath):
+            with self.include_manager.including(filepath, meta):
                 ast_tree = parser_file(filepath, error_reporter=self.error_reporter)
                 if ast_tree is None:
                     #  parser_file 内部已经进行过错误报告，因此无需重复报告

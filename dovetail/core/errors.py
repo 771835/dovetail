@@ -44,7 +44,7 @@ class Errors(SafeEnum):
 
     # Include 错误
     IncludePathError = (0x100A, "包含路径错误", "include 路径 '%s' 格式错误或无效。", ErrorType.SyntaxError)
-    CircularInclude = (0x100B, "循环包含", "检测到循环包含: %s。", ErrorType.SyntaxError)
+    CircularInclude = (0x100B, "循环包含", "检测到循环包含: %s", ErrorType.SyntaxError)
 
     # 类/结构体/枚举错误
     EmptyStructDefinition = (0x100C, "空结构体定义", "结构体 '%s' 定义为空。", ErrorType.SyntaxError)

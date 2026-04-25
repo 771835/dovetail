@@ -3,6 +3,7 @@
 import argparse
 import json
 import logging
+import os
 import sys
 from contextlib import chdir
 from pathlib import Path
@@ -13,7 +14,7 @@ import fastjsonschema
 from dovetail.core.backend import BackendFactory
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, set_project_logger, PROJECT_NAME, \
-    get_project_logger
+    get_project_logger, PROJECT_VERSION
 from dovetail.core.enums.minecraft import MinecraftVersion
 from dovetail.core.enums.optimization import OptimizationLevel
 from dovetail.core.errors import CompilationError
@@ -73,7 +74,6 @@ class Compiler:
         Returns:
             int: 编译结果状态码，0表示成功，非0表示失败
         """
-        plugin_loader.load_plugin("plugin_loader")
         if source_path.exists():
             if source_path.is_file():
                 return self._compile_file(source_path, target_path)
@@ -225,13 +225,46 @@ def main():
     # args_parser.add_argument('--first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
     args_parser.add_argument('--experimental', action='store_true', help='启用扩展模式(测试性功能)')
     args_parser.add_argument('--disable-names-normalize', action='store_true', help='禁用命名规范化')
+    args_parser.add_argument('--disable-all-plugins', action='store_true', help='禁用所有插件加载')
     args_parser.add_argument('--debug', action='store_true', help='启用调试模式')
+    args_parser.add_argument('--version', action='store_true', help='显示版本')
 
     parsed_args = args_parser.parse_args()
-    source_path = Path(parsed_args.input)
-    target_path = Path(parsed_args.output or "target")
-    NameNormalizer.enable = not parsed_args.disable_names_normalize
+
+    # 设置日志输出器
     set_project_logger(get_logger(PROJECT_NAME, logging.DEBUG if parsed_args.debug else logging.INFO))
+
+    # 加载插件
+    if not parsed_args.disable_all_plugins:
+        plugin_loader.load_plugin("plugin_loader")
+
+    if parsed_args.version:
+        print(f"The version of {PROJECT_NAME} is {PROJECT_VERSION}")
+        if not BackendFactory.is_empty():
+            print("Backends:")
+            for backend in BackendFactory.get_available_backends():
+                print(f"\t{backend}")
+        return
+
+    # 解析路径
+    entry = Path(parsed_args.input)
+    target_path = Path(parsed_args.output or "target")
+
+    # 开启或关闭命名归一化
+    NameNormalizer.enable = not parsed_args.disable_names_normalize
+
+    # 处理标准库路径
+    if parsed_args.lib_path:
+        lib_path = Path(parsed_args.lib_path).resolve()
+    elif os.environ.get("DOVETAIL_LIB_PATH"):
+        lib_path = Path(os.environ["DOVETAIL_LIB_PATH"]).resolve()
+    else:
+        lib_path = Path("lib").resolve()
+
+    if not lib_path.exists():
+        get_project_logger().critical(f"The path '{lib_path}' is not valid.")
+        return
+
     compiler = Compiler(
         CompileConfig(
             parsed_args.namespace or "namespace",
@@ -243,7 +276,7 @@ def main():
             False,
             parsed_args.disable_deprecated_function,
             parsed_args.experimental,
-            Path(parsed_args.lib_path).resolve() if parsed_args.lib_path else Path("lib").resolve(),
+            lib_path,
             "A datapack of Minecraft"
         ),
         parsed_args.backend,
@@ -251,7 +284,7 @@ def main():
         output_temp_file=parsed_args.output_temp_file
     )
 
-    sys.exit(compiler.compile(source_path, target_path))
+    sys.exit(compiler.compile(entry, target_path))
 
 
 if __name__ == "__main__":

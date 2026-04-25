@@ -95,3 +95,8 @@ class BackendFactory:
     def get_available_backends(cls) -> list[str]:
         """获取所有可用后端名称"""
         return list(cls._backends.keys())
+
+    @classmethod
+    def is_empty(cls):
+        """判断是否有被注册后端"""
+        return len(cls._backends) == 0

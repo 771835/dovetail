@@ -10,8 +10,11 @@ from pathlib import Path
 from typing import Optional
 from contextlib import contextmanager
 
+from lark.tree import Meta
+
 from dovetail.core.errors import Errors
 from dovetail.core.parser.components import ErrorReporter
+
 
 class CircularIncludeException(Exception):
     """
@@ -20,6 +23,7 @@ class CircularIncludeException(Exception):
     当出现循环依赖时抛出
     """
     pass
+
 
 class IncludeManager:
     """
@@ -54,7 +58,7 @@ class IncludeManager:
             self._include_stack.append(str(self.entry_file))
 
     @contextmanager
-    def including(self, include_path: Path):
+    def including(self, include_path: Path, meta: Optional[Meta] = None):
         """
         上下文管理器：在包含文件时使用
 
@@ -62,6 +66,7 @@ class IncludeManager:
 
         Args:
             include_path (Path): 正在包含的文件路径
+            meta (Optional[Meta]): 包含元数据
 
         Raises:
             CircularIncludeException: 检测到循环依赖时抛出
@@ -77,7 +82,7 @@ class IncludeManager:
 
             # 检测循环依赖
             if resolved_path in self._include_stack:
-                self._report_circular_dependency(resolved_path)
+                self._report_circular_dependency(resolved_path, meta)
                 raise CircularIncludeException(f"Circular dependency detected: {resolved_path}")
 
             # 进入包含：将路径压入栈
@@ -90,12 +95,13 @@ class IncludeManager:
                 if self._include_stack and self._include_stack[-1] == resolved_path:
                     self._include_stack.pop()
 
-    def _report_circular_dependency(self, current_path: str) -> None:
+    def _report_circular_dependency(self, current_path: str, meta: Optional[Meta] = None) -> None:
         """
         报告循环依赖错误
 
         Args:
             current_path (str): 触发循环的文件路径
+            meta (Optional[Meta]): 包含元数据
         """
         # 找到循环开始的位置
         cycle_start_index = self._include_stack.index(current_path)
@@ -120,14 +126,12 @@ class IncludeManager:
             else:
                 error_msg += f"  {i + 1}. {file_name}\n"
 
-        # 添加简短的解释
-        error_msg += f"\n文件 '{Path(current_path).name}' 已被包含。"
-        error_msg += "移除循环包含文件以修复此错误。"
-
         self.error_reporter.report(
-                Errors.CircularInclude,
-                error_msg,
-            )
+            Errors.CircularInclude,
+            error_msg,
+            meta=meta,
+            suggestion=f"\n文件 '{Path(current_path).name}' 已被包含。移除循环包含文件以修复此错误"
+        )
 
     def add_include_path(self, include_path: Path) -> None:
         """
