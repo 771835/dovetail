@@ -40,7 +40,7 @@ from dovetail.core.enums import (
 from dovetail.core.enums.minecraft import UnknownMinecraftVersionError
 from dovetail.core.enums.types import DataTypeBase, AnnotationCategory
 from dovetail.core.errors import report, Errors
-from dovetail.core.include_manager import IncludeManager
+from dovetail.core.parser.components.include_manager import IncludeManager, CircularIncludeException
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp,
     IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRCast
@@ -50,11 +50,11 @@ from dovetail.core.lib.library import Library
 from dovetail.core.lib.library_mapping import LibraryMapping
 from dovetail.core.parser.parser import parser_file, parse_fstring_iter, parser_code
 from dovetail.core.parser.scope import Scope
-from dovetail.core.parser.tools.declaration_handler import DeclarationHandler
-from dovetail.core.parser.tools.error_reporter import ErrorReporter
-from dovetail.core.parser.tools.ir_emitter import IREmitter
-from dovetail.core.parser.tools.symbol_resolver import SymbolResolver
-from dovetail.core.parser.tools.type_checker import TypeChecker
+from dovetail.core.parser.components.declaration_handler import DeclarationHandler
+from dovetail.core.parser.components.error_reporter import ErrorReporter
+from dovetail.core.parser.components.ir_emitter import IREmitter
+from dovetail.core.parser.components.symbol_resolver import SymbolResolver
+from dovetail.core.parser.components.type_checker import TypeChecker
 from dovetail.core.scope.protocols import ScopeCore
 from dovetail.core.symbols import Variable, Reference, Literal, Function, Class, Parameter
 from dovetail.core.symbols.annotation import Annotation
@@ -78,16 +78,16 @@ class ASTVisitor(Interpreter):
         builder: IR 构建器
     """
 
-    def __init__(self, config: CompileConfig, source_path: Path):
+    def __init__(self, config: CompileConfig, entry_file: Path):
         super().__init__()
         self.config = config
-        self.filepath = source_path
+        self.filepath = entry_file
 
         # 初始化内建函数表
         self.builtin_function: dict[str, Callable[..., Variable | Literal | None]] = {}
 
         # 初始化组件
-        self.error_reporter = ErrorReporter(source_path)
+        self.error_reporter = ErrorReporter(entry_file)
         self.builder = IRBuilder()
         self.ir_emitter = IREmitter(self.builder)
 
@@ -106,7 +106,7 @@ class ASTVisitor(Interpreter):
             self.error_reporter
         )
 
-        self.include_manager = IncludeManager()
+        self.include_manager = IncludeManager(self.error_reporter, entry_file)
 
         self.counter = itertools.count()
 
@@ -206,60 +206,7 @@ class ASTVisitor(Interpreter):
             )
             return None
 
-    def _decl_variable(
-            self,
-            name: str,
-            dtype: DataTypeBase,
-            value: Optional[Reference] = None,
-            meta: Optional[Meta] = None,
-            mutable: bool = True
-    ) -> Optional[Reference]:
-        """
-        声明变量并进行类型检查
-
-        Args:
-            name: 变量名
-            dtype: 数据类型
-            value: 初始值（可选）
-            meta: 元数据（用于错误报告）
-            mutable: 是否可变
-
-        Returns:
-            变量引用，声明失败则返回 None
-        """
-        # 检查类型是否可定义
-        if not self.type_checker.check_definable(dtype, meta):
-            return None
-
-        # 检查初始值类型匹配
-        if value is not None and not self.type_checker.check_type_match(value.get_dtype(), dtype, "声明变量", meta):
-            return None
-
-        # 检查不可变常量是否有初始化量
-        if value is None and mutable:
-            self.error_reporter.report(
-                Errors.ConstantRequiresInitialization,
-                name,
-                meta=meta
-            )
-            return None
-
-        # 创建变量符号
-        variable = Variable(_n(name), dtype, mutable=mutable)
-        if not self.symbol_resolver.add_symbol(variable, meta):
-            return None
-
-        # 生成 IR
-        self.ir_emitter.emit(IRDeclare(variable))
-        if value:
-            self.ir_emitter.emit(IRAssign(variable, value))
-
-        return Reference(variable)
-
-    def _process_annotations(
-            self,
-            children: list[Tree | Token]
-    ) -> dict[Annotation, dict[str, Any]]:
+    def _process_annotations(self, children: list[Tree | Token]) -> dict[Annotation, dict[str, Any]]:
         """
         提取并处理注解列表
 
@@ -785,7 +732,7 @@ class ASTVisitor(Interpreter):
 
     @v_args(meta=True)
     def include(self, children: list, meta: Meta):
-        """处理导入语句"""
+        """处理包含语句"""
         original_filepath: str = self.visit(children.pop(0)).value.value
 
         # 检查是否为内置库
@@ -799,7 +746,7 @@ class ASTVisitor(Interpreter):
             meta
         )
 
-        if filepath is None or self.include_manager.has_path(filepath):
+        if filepath is None or filepath in self.include_manager:
             return
 
         self.include_manager.add_include_path(filepath)
@@ -810,17 +757,19 @@ class ASTVisitor(Interpreter):
             self.filepath = filepath
             self.error_reporter.set_filepath(filepath)
 
-            with self.error_reporter.context(f"解析文件 {filepath}"):
+            with self.include_manager.including(filepath):
                 ast_tree = parser_file(filepath, error_reporter=self.error_reporter)
                 if ast_tree is None:
                     #  parser_file 内部已经进行过错误报告，因此无需重复报告
                     return
-            self.visit(ast_tree)
+                self.visit(ast_tree)
 
             # 恢复原文件路径
             self.filepath = old_filepath
             self.error_reporter.set_filepath(old_filepath)
 
+        except CircularIncludeException:  # 存在循环依赖则跳过解析
+            pass
         except Exception as e:
             self.error_reporter.report(
                 Errors.CompilerInclude,
@@ -858,16 +807,9 @@ class ASTVisitor(Interpreter):
                 return PrimitiveDataType.UNDEFINED
 
         # 检查类型是否可定义
-        if dtype.is_definable():
+        if self.type_checker.check_definable(dtype, meta):
             return dtype
         else:
-            self.error_reporter.report(
-                Errors.TypeMismatch,
-                "可定义类型",
-                original_name,
-                meta=meta,
-                suggestion=f"{original_name} 不可被定义"
-            )
             return PrimitiveDataType.UNDEFINED
 
     @v_args(meta=True)

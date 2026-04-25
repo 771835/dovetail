@@ -3,7 +3,7 @@ from typing import Callable
 
 from dovetail.core.enums.types import FunctionType, PrimitiveDataType
 from dovetail.core.lib.library import Library
-from dovetail.core.parser.tools import SymbolResolver, IREmitter, ErrorReporter
+from dovetail.core.parser.components import SymbolResolver, IREmitter, ErrorReporter
 from dovetail.core.symbols import Reference, Function, Variable, Parameter, Literal
 
 

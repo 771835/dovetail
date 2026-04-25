@@ -1,6 +1,6 @@
 from dovetail.core.enums import PrimitiveDataType, BinaryOps, FunctionType
 from dovetail.core.lib.library import Library
-from dovetail.core.parser.tools import SymbolResolver, ErrorReporter, IREmitter
+from dovetail.core.parser.components import SymbolResolver, ErrorReporter, IREmitter
 from dovetail.core.symbols import Reference, Function, Variable, Literal, Parameter
 
 

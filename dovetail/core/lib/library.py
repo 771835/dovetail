@@ -2,7 +2,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import Callable
 
-from dovetail.core.parser.tools import SymbolResolver, IREmitter, ErrorReporter
+from dovetail.core.parser.components import SymbolResolver, IREmitter, ErrorReporter
 from dovetail.core.symbols import Class, Function, Reference, Variable, Literal
 
 

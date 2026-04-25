@@ -276,7 +276,7 @@ function modify_array(mut arr: int[]) {
 ```dovetail
 let x = 42                // 自动类型推导
 let y: int = 42           // 显式类型
-let z: int                // 延迟初始化（可能需要在使用前赋值）
+let z: int                // 延迟初始化（需要在使用前赋值，否则将出现未定义行为）
 ```
 
 #### 常量声明

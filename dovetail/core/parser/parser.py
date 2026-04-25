@@ -8,7 +8,7 @@ from lark import Lark, Tree
 
 from dovetail.core.config import MAX_FILE_SIZE, get_project_logger
 from dovetail.core.errors import report, Errors
-from dovetail.core.parser.tools import ErrorReporter
+from dovetail.core.parser.components import ErrorReporter
 from dovetail.utils.logger import get_logger
 
 # 初始化 Lark 解析器

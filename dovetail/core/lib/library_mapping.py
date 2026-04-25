@@ -12,9 +12,9 @@ from dovetail.core.lib.lib_math import Math
 from dovetail.core.lib.lib_random import Random
 from dovetail.core.lib.library import Library
 from dovetail.core.lib.strlib import Strlib
-from dovetail.core.parser.tools.error_reporter import ErrorReporter
-from dovetail.core.parser.tools.ir_emitter import IREmitter
-from dovetail.core.parser.tools.symbol_resolver import SymbolResolver
+from dovetail.core.parser.components.error_reporter import ErrorReporter
+from dovetail.core.parser.components.ir_emitter import IREmitter
+from dovetail.core.parser.components.symbol_resolver import SymbolResolver
 
 
 class LibraryMapping:

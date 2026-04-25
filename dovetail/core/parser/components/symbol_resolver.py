@@ -12,7 +12,7 @@ from lark.tree import Meta
 from dovetail.core.enums import StructureType
 from dovetail.core.errors import Errors
 from dovetail.core.parser.scope import Scope
-from dovetail.core.parser.tools.error_reporter import ErrorReporter
+from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.symbols import Symbol
 from dovetail.utils.string_similarity import suggest_similar
 

@@ -211,7 +211,7 @@ def main():
     args_parser = argparse.ArgumentParser(description="dovetail")
     args_parser.add_argument('input', type=str, help='输入文件路径')
     args_parser.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本',
-                             default="1.21.4")
+                             default="1.21.5")
     args_parser.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
     args_parser.add_argument('--lib-path', '-l', metavar='path', type=str, help='强制指定标准库路径')
     args_parser.add_argument('--backend', '-b', metavar='name', type=str, help='强制指定后端名称', default="")

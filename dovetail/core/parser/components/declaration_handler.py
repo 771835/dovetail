@@ -10,10 +10,11 @@ from lark.tree import Meta
 
 from dovetail.core.enums.types import DataTypeBase
 from dovetail.core.errors import Errors
-from dovetail.core.parser.tools.error_reporter import ErrorReporter
-from dovetail.core.parser.tools.ir_emitter import IREmitter
-from dovetail.core.parser.tools.symbol_resolver import SymbolResolver
-from dovetail.core.parser.tools.type_checker import TypeChecker
+from dovetail.core.instructions import IRDeclare, IRAssign
+from dovetail.core.parser.components.error_reporter import ErrorReporter
+from dovetail.core.parser.components.ir_emitter import IREmitter
+from dovetail.core.parser.components.symbol_resolver import SymbolResolver
+from dovetail.core.parser.components.type_checker import TypeChecker
 from dovetail.core.symbols import Variable, Reference
 from dovetail.utils.naming import NameNormalizer
 
@@ -84,12 +85,7 @@ class DeclarationHandler:
             return None
 
         # 生成 IR
+        self.ir_emitter.emit(IRDeclare(variable))
         if value:
-            self.ir_emitter.declare_and_assign(variable, value)
-            return None
-        else:
-            from dovetail.core.instructions import IRDeclare
-
-            self.ir_emitter.emit(IRDeclare(variable))
-
-            return Reference(variable)
+            self.ir_emitter.emit(IRAssign(variable, value))
+        return Reference(variable)
