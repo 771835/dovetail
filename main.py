@@ -14,7 +14,7 @@ import fastjsonschema
 from dovetail.core.backend import BackendFactory
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, set_project_logger, PROJECT_NAME, \
-    get_project_logger, PROJECT_VERSION
+    get_project_logger, PROJECT_VERSION, PROJECT_WEBSITE, PROJECT_LICENSE
 from dovetail.core.enums.minecraft import MinecraftVersion
 from dovetail.core.enums.optimization import OptimizationLevel
 from dovetail.core.errors import CompilationError
@@ -156,13 +156,20 @@ class Compiler:
             try:
                 ast_tree = parser_file(source_path)
 
-                print(ast_tree.pretty())
+                if self.config.debug:
+                    print("AST结构:")
+                    print(ast_tree.pretty())
 
-                generator.visit(ast_tree)
+                if ast_tree is not None:
+                    generator.visit(ast_tree)
+                else:
+                    return -1
 
                 builder = Optimizer(generator.builder, self.config).optimize()
 
-                builder.print()
+                if self.config.debug:
+                    print("最终IR:")
+                    builder.print()
 
                 if self.output_temp_file:
                     self._write_temp_file(builder, target_dir_path)
@@ -225,7 +232,7 @@ def main():
     # args_parser.add_argument('--first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
     args_parser.add_argument('--experimental', action='store_true', help='启用扩展模式(测试性功能)')
     args_parser.add_argument('--disable-names-normalize', action='store_true', help='禁用命名规范化')
-    args_parser.add_argument('--disable-all-plugins', action='store_true', help='禁用所有插件加载')
+    args_parser.add_argument('--disable-plugins', action='store_true', help='禁用插件加载')
     args_parser.add_argument('--debug', action='store_true', help='启用调试模式')
     args_parser.add_argument('--version', action='store_true', help='显示版本')
 
@@ -235,15 +242,18 @@ def main():
     set_project_logger(get_logger(PROJECT_NAME, logging.DEBUG if parsed_args.debug else logging.INFO))
 
     # 加载插件
-    if not parsed_args.disable_all_plugins:
+    if not parsed_args.disable_plugins:
         plugin_loader.load_plugin("plugin_loader")
 
     if parsed_args.version:
-        print(f"The version of {PROJECT_NAME} is {PROJECT_VERSION}")
+        print(f"The version of {PROJECT_NAME} is {PROJECT_VERSION}\n")
+        print(f"License: {PROJECT_LICENSE}")
+        print(f"Repository: {PROJECT_WEBSITE}")
         if not BackendFactory.is_empty():
-            print("Backends:")
+            print("\nBackends:")
             for backend in BackendFactory.get_available_backends():
                 print(f"\t{backend}")
+
         return
 
     # 解析路径

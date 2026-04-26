@@ -1,5 +1,6 @@
 # coding=utf-8
 import functools
+import os
 import shutil
 from pathlib import Path
 
@@ -55,9 +56,12 @@ class JE1214Backend(Backend):
 
     @functools.lru_cache(maxsize=None)
     def get_dependency_files(self) -> list[DependencyFile]:
+        dnt_url = "https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer/archive/refs/heads/pre-1.21.11.zip"
+        if os.environ.get("USED_MIRROR_GITHUB_CN"):
+            dnt_url = "https://gh-proxy.org/" +  dnt_url
         return [
             DependencyFile(
-                "https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer/archive/refs/heads/pre-1.21.11.zip",
+                dnt_url,
                 "c764372d2a244832ede13d7d8f09dfeae14c1aae021f8cc2681303fb84acb189",
                 71,  # 1.21.5
                 94.1  # 1.21.11

@@ -34,7 +34,8 @@ class PackMcmeta:
         self._path = path
         self._description: str | dict = data.get("pack", {}).get("description", "")
         self._format: tuple[int, int] = self._parser_format(data.get("pack", {}))
-        self._overlays: list[tuple[str, tuple[int, int]]] = self._parser_overlays(data.get("overlays", []))
+        self._overlays: list[tuple[str, tuple[int | float, int | float]]] = self._parser_overlays(
+            data.get("overlays", []))
 
     @staticmethod
     def _parser_format(pack: dict[str, int | list[int]]) -> tuple[int, int]:
@@ -98,7 +99,7 @@ class PackMcmeta:
     def max_format(self, max_format: int):
         self._format = (self._format[0], max_format)
 
-    def add_overlay(self, directory: str, formats: dict | tuple[int, int]) -> None:
+    def add_overlay(self, directory: str, formats: dict | tuple[int | float, int | float]) -> None:
         if isinstance(formats, dict):
             new_formats = self._parser_format(formats)
             self._overlays.append((directory, new_formats))

@@ -1,0 +1,36 @@
+// errorlib.mcdl - 错误处理核心库
+
+const ERRNO_OK = 0                    // 无错误
+const ERRNO_INVALID_ARG = 1           // 非法参数
+const ERRNO_OUT_OF_RANGE = 2          // 超出范围
+const ERRNO_OVERFLOW = 3              // 溢出
+const ERRNO_UNDERFLOW = 4             // 下溢
+const ERRNO_DIV_BY_ZERO = 5           // 除零错误
+const ERRNO_NOT_FOUND = 6             // 未找到
+const ERRNO_ALREADY_EXISTS = 7        // 已存在
+
+// 全局错误码（类似 C 的 errno）
+let g_errno = 0
+
+/**
+ * 设置全局错误码
+ */
+fn set_error(error_code: int) {
+    g_errno = error_code
+}
+
+/**
+ * 获取并清除错误码
+ */
+fn get_and_clear_error() -> int {
+    let err = g_errno
+    g_errno = ERRNO_OK
+    return err
+}
+
+/**
+ * 检查是否有错误
+ */
+fn has_error() -> boolean {
+    return g_errno != ERRNO_OK
+}

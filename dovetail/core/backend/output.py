@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, Callable, Optional
 
 from dovetail.core.backend.context import GenerationContext, Scope, DependencyFile
-from dovetail.core.config import PROJECT_NAME, PROJECT_WEBSITE, get_project_logger
+from dovetail.core.config import PROJECT_NAME, PROJECT_WEBSITE, get_project_logger, PROJECT_VERSION
 from dovetail.utils.datapack_format import get_datapack_format
 from dovetail.utils.download_tool import download_dependencies
 
@@ -60,10 +60,10 @@ class CommandWriter(OutputWriter):
                 f.write(f"# Scope: {scope.name} ({scope.scope_type.value})\n")
                 f.write(f"# Commands: {len(scope.commands)}\n")
                 f.write(f"# Time: {datetime.now()}\n")
-                f.write(f"# Maker: {PROJECT_NAME}({PROJECT_WEBSITE})\n\n")
+                f.write(f"# Maker: {PROJECT_NAME} {PROJECT_VERSION}({PROJECT_WEBSITE})\n")
+                f.write(f"# Minecraft Version: {context.config.version}\n\n")
 
-            for command in scope.commands:
-                f.write(command + '\n')
+            f.write('\n'.join(scope.commands))
         return len(scope.commands)
 
     def get_name(self) -> str:
@@ -303,6 +303,6 @@ class OutputManager:
                 if context.config.debug:
                     raise
 
-    def get_writer(self, name: str) -> OutputWriter:
+    def get_writer(self, name: str) -> OutputWriter | None:
         """获取指定写入器"""
         return self.writers.get(name)

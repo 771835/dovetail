@@ -2,7 +2,7 @@
 """
 内置注解
 
-本文件定义了全部内置注解及获取函数
+本文件根据DFP-6内置注解规范定义了全部内置注解及获取函数
 
 Examples:
     >>> get_annotation("init") # 获取init注解的注解对象
@@ -46,7 +46,7 @@ def get_annotation(name: str) -> Annotation | None:
     """
     获取内建注解的注解对象
 
-    如果插件要增加自己设置的注解可以注入这个函数，不推荐直接修改_annotations
+    若插件要增加注解应当注入这个函数，而非直接修改_annotations
 
     Args:
         name (str): 内建函数的函数名
