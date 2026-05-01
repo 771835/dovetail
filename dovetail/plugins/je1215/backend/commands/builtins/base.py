@@ -10,9 +10,37 @@ from .template.parameter import ParameterBuilder
 from .template.template import TemplateRegistry
 from .template.template_engine import TemplateEngine
 
-
 class CommandHandler(Protocol):
-    """命令处理器协议"""
+    """
+    命令处理器协议
+
+    Attributes:
+        no_size_effects(bool): 是否有副作用
+    """
+
+    no_size_effects: bool
+
+    def call(
+            self,
+            result: Variable | None,
+            context: GenerationContext,
+            args: dict[str, Reference]
+    ) -> None:
+        """
+        调用函数，当函数为无副作用函数且无返回变量时跳过调用
+
+        Args:
+            result: 返回值变量
+            context: 代码生成上下文
+            args: 参数字典
+
+        Notes:
+            通常该方法不应被覆盖
+        """
+        if hasattr(self, "no_size_effects") and self.no_size_effects and not result:
+            return
+        self.handle(result, context, args)
+
 
     @abstractmethod
     def handle(
@@ -22,12 +50,15 @@ class CommandHandler(Protocol):
             args: dict[str, Reference]
     ) -> None:
         """
-        处理命令执行
+        处理命令执行/调用
 
         Args:
             result: 返回值变量
             context: 代码生成上下文
             args: 参数字典
+
+        Notes:
+            通常子处理器应覆写该方法而非call方法
         """
         pass
 

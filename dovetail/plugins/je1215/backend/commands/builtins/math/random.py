@@ -8,6 +8,7 @@ from ... import Copy, DataPath, StorageLocation
 
 @CommandRegistry.register("randint")
 class RandintCommand(TemplateCommandHandler):
+    no_size_effects = True
 
     def _pre_process(
             self,
@@ -24,6 +25,7 @@ class RandintCommand(TemplateCommandHandler):
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:
+        assert result is not None
         context.current_scope.add_command(
             Copy.copy(
                 DataPath(

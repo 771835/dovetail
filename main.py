@@ -214,7 +214,9 @@ class Compiler:
 
 
 def main():
-    """主函数"""
+    """
+    主函数，负责解析参数并执行基本编译任务
+    """
     args_parser = argparse.ArgumentParser(description="dovetail")
     args_parser.add_argument('input', type=str, help='输入文件路径')
     args_parser.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本',

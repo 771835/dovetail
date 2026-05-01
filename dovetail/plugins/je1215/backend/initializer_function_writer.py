@@ -21,11 +21,9 @@ class InitializerFunctionWriter(OutputWriter):
         function_dir_path.mkdir(parents=True, exist_ok=True)
         initializer_path = function_dir_path / "initializer.mcfunction"
         with open(initializer_path, "w") as f:
-            # 初始化常量池和stringlib库
+            # 初始化常量池
             f.write(ScoreboardBuilder.add_objective(context.objective, "dummy", "Main objective") + "\n")
             f.write(FunctionBuilder.run(f"{context.namespace}:literal_pool_init") + "\n")
-            f.write(FunctionBuilder.run("stringlib:zprivate/load") + "\n")
-            # f.write(DataBuilder.modify_storage_set_value("stringlib:input", "concat", "['','']") + "\n")
             f.write(DataBuilder.modify_storage_set_value("dnt:ram", "in", "['','']") + "\n")
 
             # 执行初始化函数

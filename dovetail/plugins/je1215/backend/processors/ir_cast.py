@@ -15,9 +15,9 @@ from ..commands.tools import DataPath, StorageLocation
 @ir_processor(JE1214Backend, IROpCode.CAST)
 class IRCastProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
-        result: Variable = instruction.operands[0]
-        dtype: PrimitiveDataType | Class = instruction.operands[1]
-        value: Reference[Variable | Literal] = instruction.operands[2]
+        result: Variable = instruction.operands[0]  # NOQA
+        dtype: PrimitiveDataType | Class = instruction.operands[1]  # NOQA
+        value: Reference[Variable | Literal] = instruction.operands[2]  # NOQA
 
         result_path = DataPath(
             context.current_scope.get_symbol_path(result),
@@ -30,11 +30,13 @@ class IRCastProcessor(IRProcessor):
             StorageLocation.get_storage(value.get_dtype())
         ) if not value.is_literal() else value.value.value
 
-        # int -> str
         if value.get_dtype().is_subclass_of(PrimitiveDataType.INT) and dtype == PrimitiveDataType.STRING:
+            # int -> str
+            assert isinstance(value_path, (DataPath, int))
             context.add_commands(to_str(result_path, value_path))
-        elif value == PrimitiveDataType.STRING and dtype.is_subclass_of(PrimitiveDataType.INT):
+        elif value.dtype == PrimitiveDataType.STRING and dtype.is_subclass_of(PrimitiveDataType.INT):
             # str -> int
-            context.add_commands(to_int(result_path, value_path))
+            assert isinstance(value_path, (DataPath, str))
+            context.add_commands(to_int(result_path, value_path, context.namespace))
         else:
-            get_project_logger().error("Unsupported data type")
+            get_project_logger().error(f"Unsupported type conversion: Convert from {value.dtype} to {dtype}")

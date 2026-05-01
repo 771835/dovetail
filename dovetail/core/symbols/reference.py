@@ -46,6 +46,10 @@ class Reference(Symbol, Generic[T]):
         else:
             return ValueType.VARIABLE
 
+    @property
+    def dtype(self) -> DataTypeBase:
+        return self.get_dtype()
+
     def get_name(self) -> str:
         """
         返回所引用的符号的名称

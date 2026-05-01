@@ -44,7 +44,7 @@
 ### 环境要求
 
 - Python 3.11+(支持且推荐使用pypy)
-- Minecraft Java Edition 1.21.4-1.21.5
+- Minecraft Java Edition 1.21.5
 
 ### 安装
 
@@ -137,12 +137,7 @@ A: 安装对应后端插件
 - 项目[fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) 快速整数开方  
   _详见[mathlib](lib/mathlib.mcdl)中的isqrt函数_
 
-<!-- 项目[DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) 安全字符串拼接，NBT转JSON等SNBT与字符串操作-->
-<!-- 由于dnt不支持1.21.4故不展示和使用 -->
-
-- 项目[StringLib](https://github.com/CMDred/StringLib) 提供了大量不安全但还算快速的字符串操作手段
-
-<!-- 似乎这个库的东西我可以自己写哎，这样还能内联（ -->
+- 项目[DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) 安全字符串拼接，NBT转JSON等SNBT与字符串操作
 
 ### 数据使用
 

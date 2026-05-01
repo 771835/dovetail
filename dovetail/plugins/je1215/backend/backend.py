@@ -1,7 +1,6 @@
 # coding=utf-8
 import functools
 import os
-import shutil
 from pathlib import Path
 
 from dovetail.core.backend import Backend, TagWriter, CommandWriter, MetadataWriter, FunctionWriter
@@ -66,15 +65,6 @@ class JE1214Backend(Backend):
                 71,  # 1.21.5
                 94.1  # 1.21.11
             ),
-            DependencyFile(
-                "https://cdn.modrinth.com/data/h94rwz9p/versions/vb7U4ITG/StringLib%20v0.1.0%20%281.21%29.zip",
-                "9604b264fda4de2107fea5b02cdc52de88527ee9ba65717a674506894ba5933b",
-                61,
-                94.1,
-                # 删除minecraft文件夹以避免子包的tick.json和load.json覆盖本数据包的对应文件
-                lambda path, minecraft_version: shutil.rmtree(path / "data" / "minecraft", ignore_errors=True)
-            ),
-
         ]
 
     def _get_builtin_functions(self) -> dict[str, str]:

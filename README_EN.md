@@ -160,13 +160,8 @@ Thank you for your support!
 - Project [fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) - Fast integer square root  
   _See the isqrt function in [mathlib](lib/mathlib.mcdl) for specific usage_
 
-<!-- Project [DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) Safe string concatenation, NBT to JSON and other SNBT and string operations -->
-<!-- Not displayed or used because dnt does not support 1.21.4 -->
-
-- Project [StringLib](https://github.com/CMDred/StringLib) - Provides a large number of unsafe but fairly fast string
-  manipulation methods
-
-<!-- It seems I can write this library's stuff myself, and it can even be inlined ( -->
+- Project [DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) Safe string
+  concatenation, NBT to JSON and other SNBT and string operations
 
 ### Data Usage
 

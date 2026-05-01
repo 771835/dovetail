@@ -8,9 +8,10 @@ from ... import Copy, DataPath, Execute, ScoreboardBuilder, LiteralPoolTools, Bi
 
 @CommandRegistry.register('abs')
 class AbsCommand(CommandHandler):
+    no_size_effects = True
+
     def handle(self, result: Variable | None, context: GenerationContext, args: dict[str, Reference]):
-        if result is None:
-            return
+        assert result is not None
 
         value: Variable | Literal = args["value"].value
         result_path = DataPath(context.current_scope.get_symbol_path(result), context.objective)
@@ -47,9 +48,10 @@ class AbsCommand(CommandHandler):
 
 @CommandRegistry.register('min')
 class MinCommand(CommandHandler):
+    no_size_effects = True
+
     def handle(self, result: Variable | None, context: GenerationContext, args: dict[str, Reference]):
-        if result is None:
-            return
+        assert result is not None
         a = args["a"].value
         b = args["b"].value
         result_path = DataPath(context.current_scope.get_symbol_path(result), context.objective)
@@ -63,9 +65,10 @@ class MinCommand(CommandHandler):
 
 @CommandRegistry.register('max')
 class MaxCommand(CommandHandler):
+    no_size_effects = True
+
     def handle(self, result: Variable | None, context: GenerationContext, args: dict[str, Reference]):
-        if result is None:
-            return
+        assert result is not None
         a = args["a"].value
         b = args["b"].value
         result_path = DataPath(context.current_scope.get_symbol_path(result), context.objective)

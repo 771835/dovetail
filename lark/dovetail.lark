@@ -22,7 +22,7 @@ enums : annotation* "enum" ID "{" (enum_member ("," enum_member)* ","?)? "}"
 enum_member : ID "=" literal
 
 // 类型系统
-type.2: ID ("<" type ("," type)* ">")? [QUESTION] // 仅对象应允许可空(指向null)
+type.2: ID ("<" type ("," type)* ">")? [QUESTION] // 仅对象允许可空(指向null)
 
 function: annotation* ("function"|"fn"|"def") ID params [("->"|":") type] (block|pass_stmt)
 

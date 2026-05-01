@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-MCDL 转译器 Minecraft 兼容性枚举模块
+Minecraft 兼容性枚举模块
 
 此模块包含与 Minecraft 游戏版本和平台相关的
 枚举定义，用于确保生成的命令与目标环境兼容。
@@ -47,6 +47,15 @@ class MinecraftEdition(SafeEnum):
 
     @staticmethod
     def from_str(edition: str) -> MinecraftEdition:
+        """
+        从字符串构建版本对象
+
+        Args:
+            edition: 版本字符串
+
+        Returns:
+            (MinecraftEdition): Minecraft 版本对象
+        """
         if any(keyword in edition.lower() for keyword in ['be', 'bedrock', 'pe']):
             return MinecraftEdition.BEDROCK_EDITION
         return MinecraftEdition.JAVA_EDITION

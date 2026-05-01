@@ -19,7 +19,7 @@ class IRCallProcessor(IRProcessor):
         args: dict[str, Reference[Variable | Literal]] = instruction.get_operands()[2]
         if func.function_type == FunctionType.BUILTIN:
             # 搜索内置函数
-            CommandRegistry.get(func.name).handle(result, context, args)
+            CommandRegistry.get(func.name).call(result, context, args)
             return
 
         # 查找将要调用的函数的作用域路径

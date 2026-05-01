@@ -12,16 +12,17 @@ from ...builtins import CommandRegistry
 
 @CommandRegistry.register("strlen")
 class StrlenCommand(CommandHandler):
+    no_size_effects = True
+
     def handle(self, result: Variable | None, context: GenerationContext,
                args: dict[str, Reference]) -> None:
-        if result is None:
-            return
+        assert result is not None
         s: Variable | Literal = args["s"].value
         result_path = DataPath(context.current_scope.get_symbol_path(result), context.objective)
         s_path = DataPath(context.current_scope.get_symbol_path(s), context.objective, StorageLocation.STORAGE)
 
         if isinstance(s, Literal):
-            context.add_command(Copy.copy_literals(result_path, len(s.value)))
+            context.add_command(Copy.copy_literals(result_path, len(str(s.value))))
         else:
             context.add_command(
                 Execute.execute()
@@ -34,6 +35,7 @@ class StrlenCommand(CommandHandler):
 
 @CommandRegistry.register("substring")
 class SubstringCommand(TemplateCommandHandler):
+    no_size_effects = True
 
     def _pre_process(
             self,
@@ -42,6 +44,7 @@ class SubstringCommand(TemplateCommandHandler):
             args: dict[str, Reference]
     ) -> None:
         """处理模板前执行的处理程序"""
+        assert result is not None
         s = args["s"].value
 
         result_path = context.current_scope.get_symbol_path(result)
@@ -67,7 +70,8 @@ class SubstringCommand(TemplateCommandHandler):
                 )
             )
 
+    @staticmethod
     @lru_cache(maxsize=20)
-    def _get_template_name(self, target1: str, target2: str, path1: str, path2: str) -> str:
+    def _get_template_name(target1: str, target2: str, path1: str, path2: str) -> str:
         prefix = f"{target1}_{target2}_{hash(path1)}_{hash(path2)}"
         return f"substring_{prefix}_{hash(prefix)}"

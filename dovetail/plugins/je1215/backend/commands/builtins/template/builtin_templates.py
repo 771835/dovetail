@@ -16,14 +16,14 @@ def register_builtin_templates():
             tags=["basic", "core"]
         ),
 
-        CommandTemplate(
-            name="strcat",
-            template="data modify storage $(target) $(target_path) set value '$(dest)$(src)'",
-            function_path="builtins/strcat",
-            param_names=["target", "target_path", "dest", "src"],
-            description="字符串拼接",
-            tags=["data", "string"]
-        ),
+        # CommandTemplate(
+        #     name="strcat",
+        #     template="data modify storage $(target) $(target_path) set value '$(dest)$(src)'",
+        #     function_path="builtins/strcat",
+        #     param_names=["target", "target_path", "dest", "src"],
+        #     description="字符串拼接",
+        #     tags=["data", "string"]
+        # ),
 
         # ============ Tellraw 系列 ============
         CommandTemplate(
@@ -220,15 +220,25 @@ def register_builtin_templates():
             tags=["world", "weather"]
         ),
 
-        CommandTemplate(
-            name="substring",
-            template="data modify storage $(target1) $(path1) set string storage $(target2) $(path2) $(start) $(end)",
-            function_path="builtins/string/substring",
-            param_names=["target1", "target2", "path1", "path2"],
-            optional_params={"start": "", "end": ""},
-            description="截取字符串切片",
-            tags=["string", "data"]
-        ),
+        # CommandTemplate(
+        #     name="substring",
+        #     template="data modify storage $(target1) $(path1) set string storage $(target2) $(path2) $(start) $(end)",
+        #     function_path="builtins/string/substring",
+        #     param_names=["target1", "target2", "path1", "path2"],
+        #     optional_params={"start": "", "end": ""},
+        #     description="截取字符串切片",
+        #     tags=["string", "data"]
+        # ),
+
+        # CommandTemplate(
+        #     name="to_integer",
+        #     template=f"scoreboard players set $(path) $(objective) $(value)",
+        #     function_path=f"builtins/int/to_integer",
+        #     param_names=["objective", "path", "value"],
+        #     description="转换字符串为数字",
+        #     tags=["int", "data"]
+        # ),
+
     ]
 
     # 批量注册

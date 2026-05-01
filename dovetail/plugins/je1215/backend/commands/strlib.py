@@ -42,8 +42,10 @@ def strcat(result: DataPath, a: DataPath | str, b: DataPath | str):
         return [strcat_literal(result, a, b)]
     else:
         if isinstance(a, str):
+            assert isinstance(b, DataPath)
             a = LiteralPoolTools.get_literal_path(a, b.target)
         elif isinstance(b, str):
+            assert isinstance(a, DataPath)
             b = LiteralPoolTools.get_literal_path(b, a.target)
         return strcat_variable(result, a, b)
 
@@ -60,7 +62,7 @@ def to_str(result: DataPath, value: DataPath | int):
         return [DataBuilder.modify_storage_set_string_storage(*reversed(result), *reversed(value))]
 
 
-def to_int(result: DataPath, value: DataPath | str):
+def to_int(result: DataPath, value: DataPath | str, namespace: str):
     if isinstance(value, str):
         try:
             return [Copy.copy_literals(result, int(value))]
@@ -68,24 +70,20 @@ def to_int(result: DataPath, value: DataPath | str):
             get_project_logger().error(f"'{value}' is not a number")
             return []
 
+    # 注册模板
+    from .builtins.data.integer import ToIntegerCommand
+    template_name = ToIntegerCommand.register_template_auto(result.target, result.path)
+
     return [
         DataBuilder.modify_storage_set_from_storage(
-            "stringlib:input",
-            "to_number.Input",
-            *value
+            value.target,
+            "args.to_integer.value",
+            *reversed(value)
         ),
         FunctionBuilder.run_with_source(
-            "stringlib:util/to_number",
+            f"{namespace}:builtins/int/{template_name}",
             "storage",
-            "stringlib:input",
-            "to_number"
-        ),
-        Copy.copy(
-            result,
-            DataPath(
-                "to_number",
-                "stringlib:output",
-                StorageLocation.STORAGE
-            )
+            value.target,
+            "args.to_integer"
         )
     ]
