@@ -3,13 +3,11 @@ from typing import Callable
 
 from dovetail.core.enums.types import FunctionType, PrimitiveDataType
 from dovetail.core.lib.library import Library
-from dovetail.core.parser.components import SymbolResolver, IREmitter, ErrorReporter
 from dovetail.core.symbols import Reference, Function, Variable, Parameter, Literal
 
 
 class Math(Library):
-    def __init__(self, symbol_resolver: SymbolResolver, emitter: IREmitter,
-                 error_reporter: ErrorReporter):
+    def __init__(self, _):
         self._variable: dict[Variable, Reference] = {
             Variable("INT_MAX", PrimitiveDataType.INT, mutable=False): Reference.literal(2147483647),
             Variable("INT_MIN", PrimitiveDataType.INT, mutable=False): Reference.literal(-2147483648),

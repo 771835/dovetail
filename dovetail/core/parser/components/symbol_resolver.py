@@ -32,7 +32,7 @@ class SymbolResolver:
     def resolve_symbol(
             self,
             name: str,
-            meta: Meta,
+            meta: Optional[Meta] = None,
             expected_type: Optional[type] = None
     ) -> Optional[Symbol]:
         """

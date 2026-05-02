@@ -7,7 +7,7 @@ from dovetail.core.symbols import Function, Variable, Literal, Parameter
 
 
 class Random(Library):
-    def __init__(self, *_args, **_kwargs):
+    def __init__(self, _):
         self._functions: dict[Function, Optional[Callable[..., Variable | Literal | None]]] = {
             Function(
                 "randint",

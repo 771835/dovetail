@@ -84,7 +84,7 @@ class ASTVisitor(Interpreter):
         self.filepath = entry_file
 
         # 初始化内建函数表
-        self.builtin_function: dict[str, Callable[..., Variable | Literal | None]] = {}
+        self.builtin_function: dict[str, Optional[Callable[..., Variable | Literal | None]]] = {}
 
         # 初始化组件
         self.error_reporter = ErrorReporter(entry_file)
@@ -111,10 +111,25 @@ class ASTVisitor(Interpreter):
         self.counter = itertools.count()
 
         # 加载内置库
-        self._load_library(LibraryMapping.get("builtins", self.symbol_resolver, self.ir_emitter, self.error_reporter))
+        self._load_library(
+            LibraryMapping.get(
+                "builtins",
+                self.symbol_resolver,
+                self.ir_emitter,
+                self.error_reporter,
+                self.config
+            )
+        )
         if self.config.experimental:
             self._load_library(
-                LibraryMapping.get("experimental", self.symbol_resolver, self.ir_emitter, self.error_reporter))
+                LibraryMapping.get(
+                    "experimental",
+                    self.symbol_resolver,
+                    self.ir_emitter,
+                    self.error_reporter,
+                    self.config
+                )
+            )
 
     def __default__(self, tree: Tree) -> list[Any]:
         """默认访问处理 - 递归访问所有子节点"""
@@ -736,7 +751,7 @@ class ASTVisitor(Interpreter):
         original_filepath: str = self.visit(children.pop(0)).value.value
 
         # 检查是否为内置库
-        if library := LibraryMapping.get(original_filepath, self.symbol_resolver, self.ir_emitter, self.error_reporter):
+        if library := LibraryMapping.get(original_filepath, self.symbol_resolver, self.ir_emitter, self.error_reporter, self.config):
             self._load_library(library)
             return
 

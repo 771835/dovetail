@@ -4,7 +4,7 @@ from typing import Callable, Optional
 from dovetail.core.enums.types import FunctionType, PrimitiveDataType
 from dovetail.core.errors import report, Errors
 from dovetail.core.instructions import IRCast, IRCall, IRJump
-from dovetail.core.lib.library import Library
+from dovetail.core.lib.library import Library, LibraryContext
 from dovetail.core.parser.components import SymbolResolver, IREmitter, ErrorReporter
 from dovetail.core.symbols import Function, Reference, Variable, Literal, Parameter
 from dovetail.utils.naming import NameNormalizer
@@ -14,12 +14,11 @@ _n = NameNormalizer.normalize
 
 class Builtins(Library):
 
-    def __init__(self, symbol_resolver: SymbolResolver, emitter: IREmitter,
-                 error_reporter: ErrorReporter):
+    def __init__(self, context: LibraryContext):
 
-        self.error_reporter = error_reporter
-        self.emitter = emitter
-        self.symbol_resolver = symbol_resolver
+        self.error_reporter = context.error_reporter
+        self.emitter = context.emitter
+        self.symbol_resolver = context.symbol_resolver
         self._functions: dict[Function, Optional[Callable[..., Variable | Literal | None]]] = {
             Function(
                 "int",

@@ -170,7 +170,8 @@ class Errors(SafeEnum):
 
     # 输入输出错误
     DirectoryCreationFailed = (0x9101, "目录创建失败", "无法创建目录 '%s': %s。", ErrorType.SystemError)
-    FileSizeTooLarge = (0x9103, "文件体积过大", "无法解析文件 '%s': 文件体积 %s 超过最大允许体积 %s", ErrorType.SystemError)
+    FileSizeTooLarge = (0x9103, "文件体积过大", "无法解析文件 '%s': 文件体积 %s 超过最大允许体积 %s",
+                        ErrorType.SystemError)
     FileWriteFailed = (0x9102, "文件写入失败", "无法写入文件 '%s': %s。", ErrorType.SystemError)
     DiskSpaceInsufficient = (0x9104, "磁盘空间不足", "磁盘空间不足: 需要 %s，可用 %s。", ErrorType.SystemError)
 
@@ -186,6 +187,13 @@ class CompilationError(Exception):
     编译错误
     """
     pass
+
+def print_error_message(msg : str):
+    if not sys.stderr.closed:
+        sys.stderr.write(msg)
+    else:
+        open("error.log", "a+").write(msg)
+
 
 
 def read_lines_from_file(file_path, start_line, end_line) -> list[str]:
@@ -252,18 +260,18 @@ def report(
     if filepath.is_relative_to(Path.cwd()):
         filepath = os.path.relpath(filepath, Path.cwd())
 
-    sys.stderr.write(f"发生错误: {error_name}({error_type.name})\n")
-    sys.stderr.write(f"文件 '{filepath}', 行 {line}, 纵 {column}\n")
+    print_error_message(f"发生错误: {error_name}({error_type.name})\n")
+    print_error_message(f"文件 '{filepath}', 行 {line}, 纵 {column}\n")
 
     # 输出错误代码块
     if code:
-        sys.stderr.write(f"相关代码:\n")
+        print_error_message(f"相关代码:\n")
 
         for l, linecode in zip(range(max(line - 1, 1), line + 2), code):
             if len(linecode) > 0:
-                sys.stderr.write(f" {l} | {linecode}\n")
+                print_error_message(f" {l} | {linecode}\n")
 
     # 选择建议
     if suggestion is None:
         suggestion = random.choice(DEFAULT_SUGGESTIONS)
-    sys.stderr.write(f"{error_name}({original_error_name}): {error_details % tuple(args)}{suggestion}\n\n")
+    print_error_message(f"{error_name}({original_error_name}): {error_details % tuple(args)}{suggestion}\n\n")

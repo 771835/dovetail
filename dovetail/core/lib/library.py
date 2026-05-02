@@ -1,9 +1,19 @@
 # coding=utf-8
 from abc import ABCMeta, abstractmethod
-from typing import Callable
+from typing import Callable, Optional
+from attrs import define
 
+from dovetail.core.compile_config import CompileConfig
 from dovetail.core.parser.components import SymbolResolver, IREmitter, ErrorReporter
 from dovetail.core.symbols import Class, Function, Reference, Variable, Literal
+
+
+@define(slots=True)
+class LibraryContext:
+    symbol_resolver: SymbolResolver
+    emitter: IREmitter
+    error_reporter: ErrorReporter
+    config: CompileConfig
 
 
 class Library(metaclass=ABCMeta):
@@ -12,8 +22,7 @@ class Library(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def __init__(self, symbol_resolver: SymbolResolver, emitter: IREmitter,
-                 error_reporter: ErrorReporter):
+    def __init__(self, context: LibraryContext):
         pass
 
     @abstractmethod
@@ -25,7 +34,7 @@ class Library(metaclass=ABCMeta):
         """加载库资源（如初始化状态、加载依赖等）"""
         pass
 
-    def get_functions(self) -> dict[Function, Callable[..., Variable | Literal | None]]:
+    def get_functions(self) -> dict[Function, Optional[Callable[..., Variable | Literal | None]]]:
         """获取函数及其处理函数的映射"""
         return {}
 

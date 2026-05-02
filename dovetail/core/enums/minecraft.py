@@ -135,7 +135,7 @@ class MinecraftVersion(ABC):
         return self.edition == MinecraftEdition.BEDROCK_EDITION
 
 
-@define(frozen=True, slots=True, eq=False, repr=False)
+@define(frozen=True, slots=True, eq=False, repr=False, hash=True)
 @total_ordering
 class OldMinecraftVersion(MinecraftVersion):
     """
@@ -216,7 +216,7 @@ class OldMinecraftVersion(MinecraftVersion):
                 self.edition == other.edition)
 
 
-@define(frozen=True, slots=True, eq=False, repr=False)
+@define(frozen=True, slots=True, eq=False, repr=False, hash=True)
 @total_ordering
 class NewMinecraftVersion(MinecraftVersion):
     """

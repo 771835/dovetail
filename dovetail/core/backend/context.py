@@ -32,10 +32,10 @@ class PackMcmeta:
     ):
         data = data or {}
         self._path = path
-        self._description: str | dict = data.get("pack", {}).get("description", "")
-        self._format: tuple[int, int] = self._parser_format(data.get("pack", {}))
+        self._description: str | dict = data.get("pack", {}).get("description", "")  # NOQA
+        self._format: tuple[int, int] = self._parser_format(data.get("pack", {}))  # NOQA
         self._overlays: list[tuple[str, tuple[int | float, int | float]]] = self._parser_overlays(
-            data.get("overlays", []))
+            data.get("overlays", []))  # NOQA
 
     @staticmethod
     def _parser_format(pack: dict[str, int | list[int]]) -> tuple[int, int]:

@@ -12,7 +12,7 @@ from dovetail.core.enums.minecraft import MinecraftVersion
 from dovetail.core.enums.optimization import OptimizationLevel
 
 
-@define(slots=True)
+@define(slots=True, hash=True)
 class CompileConfig:
     """
     编译配置

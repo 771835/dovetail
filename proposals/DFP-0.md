@@ -30,11 +30,11 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 | [DFP 2](./DFP-2.md)       | IR 设计与规范                       | Active      | 核心语言         | -           |
 | DFP 5                     | 数组支持                           | Deferred    | 核心语言         | 未编写         |
 | [DFP 6](./DFP-6.md)       | 内置注解规范                         | Proposed    | 核心语言         | -           |
-| [DFP 7](./DFP-7.md)       | 错误恢复及报告机制                      | Accepted    | 核心语言         | -           |
+| [DFP 7](./DFP-7.md)       | 编译期错误恢复及报告机制                   | Accepted    | 核心语言         | -           |
 | [DFP 8](./DFP-8.md)       | 命名归一化策略                        | Draft       | 核心语言         | -           |
 | [DFP 300](./DFP-300.md)   | 内置函数系统                         | Active      | 标准库          | -           |
 | [DFP 301](./DFP-301.md)   | 标准库常量定义规范                      | Draft       | 标准库          | -           |
-| [DFP 302](./DFP-302.md)   | 标准库错误处理机制                      | Draft       | 标准库          | -           |
+| [DFP 302](./DFP-302.md)   | 运行时标准库错误处理机制规范建议               | Draft       | 标准库          | -           |
 | [DFP 305](./DFP-305.md)   | 调试工具库                          | Draft       | 标准库-开发工具     | -           |
 | [DFP 401](DFP-401.md)     | 文件包含机制与项目结构规范                  | Draft       | 核心语言-文件系统    | -           |
 | DFP 600                   | 语言服务器协议                        | Deferred    | 工具链          | 未编写         |
@@ -44,7 +44,6 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 | [DFP 901](./DFP-901.md)   | 发行版管理规则                        | Active      | 发行版          | -           |
 | [DFP 1501](./DFP-1501.md) | @extern 与 @export 的 ABI 互操作规范  | Ephemeral   | 临时草案-核心语言-扩展 | -           |
 | [DFP 1502](./DFP-1502.md) | 关于废止数组机制及重构内建类型系统，添加内建复合基本类型建议 | Ephemeral   | 临时草案-核心语言-类型 | -           |
-
 
 ---
 
