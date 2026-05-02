@@ -68,7 +68,6 @@ while_loop : "while" "(" [condition] ")" block            // while循环
 condition: expr
 
 const: "const" ID [":" type] "=" expr  // 常量声明
-     | "const" type ID "=" expr
 
 // 变量声明
 let: "let" ID "=" expr // 自动推导类型

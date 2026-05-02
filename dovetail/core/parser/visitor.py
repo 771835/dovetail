@@ -498,21 +498,15 @@ class ASTVisitor(Interpreter):
         symbol_name: str
         value: Reference
 
-        if isinstance(children[0], Tree) and children[0].data == "type":
-            # "const" type ID "=" expr
-            dtype = self.visit(children[0])
-            symbol_name = children[1].value
+        # "const" ID [":" type] "=" expr
+        symbol_name = children[0].value  # NOQA
+        if children[1] is None:
+            # 类型推导
             value = self.visit(children[2])
+            dtype = value.get_dtype()
         else:
-            # "const" ID [":" type] "=" expr
-            symbol_name = children[0].value
-            if children[1] is None:
-                # 类型推导
-                value = self.visit(children[2])
-                dtype = value.get_dtype()
-            else:
-                dtype = self.visit(children[1])
-                value = self.visit(children[2])
+            dtype = self.visit(children[1])
+            value = self.visit(children[2])
 
         return self.declaration_handler.declare_variable(symbol_name, dtype, value, meta, False)
 
@@ -751,7 +745,8 @@ class ASTVisitor(Interpreter):
         original_filepath: str = self.visit(children.pop(0)).value.value
 
         # 检查是否为内置库
-        if library := LibraryMapping.get(original_filepath, self.symbol_resolver, self.ir_emitter, self.error_reporter, self.config):
+        if library := LibraryMapping.get(original_filepath, self.symbol_resolver, self.ir_emitter, self.error_reporter,
+                                         self.config):
             self._load_library(library)
             return
 

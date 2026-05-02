@@ -55,17 +55,11 @@ else:
         GET_PROPERTY = (0x42, "获取属性", InstCategory.OOP)
         SET_PROPERTY = (0x43, "设置属性", InstCategory.OOP)
         CALL_METHOD = (0x44, "调用方法", InstCategory.OOP)
-        FREE_OBJ = (0xA0, "释放对象", InstCategory.OOP)
+        FREE_OBJ = (0x45, "释放对象", InstCategory.OOP)
 
         # OWNERSHIP (0x60-0x7F) - 所有权管理
         MOVE = (0x60, "所有权转移", InstCategory.OWNERSHIP)
         BORROW = (0x61, "借用", InstCategory.OWNERSHIP)
-
-        # ARRAY_OPS (0x80-0x9F) - 数组操作
-        ARRAY_NEW = (0x80, "数组创建", InstCategory.ARRAY)
-        ARRAY_LOAD = (0x81, "数组读取", InstCategory.ARRAY)
-        ARRAY_STORE = (0x82, "数组写入", InstCategory.ARRAY)
-        ARRAY_FREE = (0x83, "", InstCategory.ARRAY)
 
         def __init__(self, code: int, desc: str, category: InstCategory):
             self.code = code

@@ -69,17 +69,11 @@ class IROpCode(SafeEnum):
     GET_PROPERTY = (0x42, "获取属性", InstCategory.OOP)
     SET_PROPERTY = (0x43, "设置属性", InstCategory.OOP)
     CALL_METHOD = (0x44, "调用方法", InstCategory.OOP)
-    FREE_OBJ = (0xA0, "释放对象", InstCategory.OOP)
+    FREE_OBJ = (0x55, "释放对象", InstCategory.OOP)
 
     # OWNERSHIP (0x60-0x7F)
     MOVE = (0x60, "所有权转移", InstCategory.OWNERSHIP)
     BORROW = (0x61, "借用", InstCategory.OWNERSHIP)
-
-    # ARRAY_OPS (0x80-0x9F)
-    ARRAY_NEW = (0x80, "数组创建", InstCategory.ARRAY)
-    ARRAY_LOAD = (0x81, "数组读取", InstCategory.ARRAY)
-    ARRAY_STORE = (0x82, "数组写入", InstCategory.ARRAY)
-    ARRAY_FREE = (0x83, "数组释放", InstCategory.ARRAY)
 
     def __init__(self, code: int, desc: str, category: InstCategory):
         self.code = code
@@ -925,112 +919,3 @@ def _borrow_repr(instr: IRInstruction) -> str:
     borrow_type = "borrow_mut" if mutable else "borrow"
 
     return f"{target.get_name()} = {borrow_type}({source})"
-
-
-# ==================== 数组操作指令 ====================
-
-@validate_instruction
-def IRArrayNew(
-        result: Variable,
-        element_type: Any,
-        size: Union[Reference, int]
-) -> IRInstruction:
-    """
-    数组创建指令
-
-    Args:
-        result: 结果变量（存储数组引用）
-        element_type: 元素类型（PrimitiveDataType 或其他类型对象）
-        size: 数组大小（可以是整数常量或 Reference 对象）
-
-    Returns:
-        数组创建指令
-    """
-    return IRInstruction(IROpCode.ARRAY_NEW, result, element_type, size)
-
-
-@register_repr(IROpCode.ARRAY_NEW)
-def _array_new_repr(instr: IRInstruction) -> str:
-    result: Variable = instr.operands[0]
-    elem_type = instr.operands[1]
-    size = instr.operands[2]
-
-    return f"{result.get_name()} = new {elem_type}[{size}]"
-
-
-@validate_instruction
-def IRArrayLoad(
-        result: Variable,
-        array_ref: Reference,
-        index: Union[Reference, int]
-) -> IRInstruction:
-    """
-    数组读取指令
-
-    Args:
-        result: 结果变量（存储读取的值）
-        array_ref: 数组引用
-        index: 索引（可以是整数常量或 Reference 对象）
-
-    Returns:
-        数组读取指令
-    """
-    return IRInstruction(IROpCode.ARRAY_LOAD, result, array_ref, index)
-
-
-@register_repr(IROpCode.ARRAY_LOAD)
-def _array_load_repr(instr: IRInstruction) -> str:
-    result: Variable = instr.operands[0]
-    array_ref: Reference = instr.operands[1]
-    index = instr.operands[2]
-
-    return f"{result.get_name()} = {array_ref}[{index}]"
-
-
-@validate_instruction
-def IRArrayStore(
-        array_ref: Reference,
-        index: Union[Reference, int],
-        value: Reference
-) -> IRInstruction:
-    """
-    数组写入指令
-
-    Args:
-        array_ref: 数组引用
-        index: 索引（可以是整数常量或 Reference 对象）
-        value: 要写入的值
-
-    Returns:
-        数组写入指令
-    """
-    return IRInstruction(IROpCode.ARRAY_STORE, array_ref, index, value)
-
-
-@register_repr(IROpCode.ARRAY_STORE)
-def _array_store_repr(instr: IRInstruction) -> str:
-    array_ref: Reference = instr.operands[0]
-    index = instr.operands[1]
-    value: Reference = instr.operands[2]
-
-    return f"{array_ref}[{index}] = {value}"
-
-
-@validate_instruction
-def IRArrayFree(array_ref: Reference) -> IRInstruction:
-    """
-    数组释放指令
-
-    Args:
-        array_ref: 要释放的数组引用
-
-    Returns:
-        数组释放指令
-    """
-    return IRInstruction(IROpCode.ARRAY_FREE, array_ref)
-
-
-@register_repr(IROpCode.ARRAY_FREE)
-def _array_free_repr(instr: IRInstruction) -> str:
-    array_ref: Reference = instr.operands[0]
-    return f"free {array_ref}"
