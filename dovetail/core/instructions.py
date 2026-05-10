@@ -14,7 +14,8 @@ if USED_FUTURE_INSTRUCTIONS:
     from dovetail.core.__future__.instructions import *
 else:
     from dovetail.core.enums.operations import UnaryOps, BinaryOps, CompareOps
-    from dovetail.core.enums.types import PrimitiveDataType, StructureType
+    from dovetail.core.enums.types import StructureType
+    from dovetail.core.enums import PrimitiveDataType
     from dovetail.core.symbols import Literal, Class, Function, Reference, Variable, Symbol
     from dovetail.utils.safe_enum import SafeEnum
 

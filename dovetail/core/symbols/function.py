@@ -7,7 +7,8 @@ from .annotation import Annotation
 from .base import Symbol
 from .parameter import Parameter
 from ..enums import PrimitiveDataType
-from ..enums.types import FunctionType, DataTypeBase
+from ..enums.types import FunctionType
+from ..enums.datatypes import DataTypeBase
 
 
 @define(slots=True, repr=False)

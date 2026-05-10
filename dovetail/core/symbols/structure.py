@@ -5,7 +5,7 @@ import attrs
 
 from .annotation import Annotation
 from .base import Symbol
-from ..enums.types import DataTypeBase
+from ..enums.datatypes import DataTypeBase
 
 
 @attrs.define(slots=True, frozen=True)

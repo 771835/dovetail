@@ -134,7 +134,7 @@ A: 安装对应后端插件
 > 由于 `Minecraft` 版本以及实际使用等原因，使用时可能会对以下项目进行一定的必要修改。如果您是以下项目作者或贡献者，且不希望您的项目被使用或修改，请联系本项目作者讨论移除事宜。
 
 - 项目[fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) 快速整数开方  
-  _详见[mathlib](lib/mathlib.mcdl)中的isqrt函数_
+  _[mathlib](lib/mathlib.mcdl)中的isqrt函数_
 
 - 项目[DNT-Dahesor-NBT-Transformer](https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer) 安全字符串拼接，NBT转JSON等SNBT与字符串操作
 

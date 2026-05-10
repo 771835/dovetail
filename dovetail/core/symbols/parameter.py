@@ -9,7 +9,7 @@ from .base import Symbol
 from .literal import Literal
 from .reference import Reference
 from .variable import Variable
-from ..enums.types import DataTypeBase
+from ..enums.datatypes import DataTypeBase
 
 
 @define(slots=True, repr=False, frozen=True)

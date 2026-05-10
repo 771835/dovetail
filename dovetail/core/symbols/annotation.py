@@ -5,7 +5,8 @@ from attrs import define
 
 from .base import Symbol
 from ..enums import PrimitiveDataType
-from ..enums.types import AnnotationCategory, DataTypeBase
+from ..enums.types import AnnotationCategory
+from ..enums.datatypes import DataTypeBase
 
 
 @define(slots=True, hash=False, frozen=True, repr=False)

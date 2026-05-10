@@ -38,7 +38,8 @@ from dovetail.core.enums import (
     MinecraftVersion, MinecraftEdition, FunctionType, ValueType, BinaryOps, UnaryOps, CompareOps
 )
 from dovetail.core.enums.minecraft import UnknownMinecraftVersionError
-from dovetail.core.enums.types import DataTypeBase, AnnotationCategory
+from dovetail.core.enums.types import AnnotationCategory
+from dovetail.core.enums.datatypes import DataTypeBase, ListType, ArrayType, MapType
 from dovetail.core.errors import report, Errors
 from dovetail.core.parser.components.include_manager import IncludeManager, CircularIncludeException
 from dovetail.core.instructions import (
@@ -795,20 +796,52 @@ class ASTVisitor(Interpreter):
             meta: Meta
     ) -> PrimitiveDataType | Class | DataTypeBase:
         """处理类型声明"""
+        dtype: DataTypeBase = PrimitiveDataType.UNDEFINED
         original_name: str = children.pop(0).value
+        is_can_null: bool = bool(children.pop())  # NOQA
+
+        # 解析类型参数
+        types: list[DataTypeBase] = []
+        while children:
+            child: Token | Tree | int = children.pop(0)
+
+            if not isinstance(child, Tree):
+                self.error_reporter.report(
+                    Errors.InvalidSyntax,
+                    f"类型 {original_name} 的类型参数 '{child}' 不是合法的子类型参数",
+                    meta=child.meta if hasattr(child, "meta") and isinstance(child.meta, Meta) else meta
+                )
+                return PrimitiveDataType.UNDEFINED
+
+            types.append(self.visit(child))
 
         # 尝试解析内置类型
         try:
-            dtype = PrimitiveDataType.get_by_value(original_name)
+            match original_name:
+                case "list":
+                    dtype = ListType(types.pop(0))
+                case "array":
+                    dtype = ArrayType(types.pop(0))
+                case "map":
+                    dtype = MapType(types.pop(0), types.pop(0))
+                case _:
+                    dtype = PrimitiveDataType.get_by_value(original_name)
+        except IndexError:
+            self.error_reporter.report(
+                Errors.TypeArgumentNumberMismatch,
+                original_name,
+                meta=meta
+            )
         except ValueError:
             # 解析自定义类型
-            dtype = self.symbol_resolver.resolve_symbol(_n(original_name), meta)
+            symbol = self.symbol_resolver.resolve_symbol(_n(original_name), meta)
 
             # 展开类型别名
-            if isinstance(dtype, Typedef):
-                dtype = dtype.dtype
-
-            if not isinstance(dtype, DataTypeBase):
+            if isinstance(symbol, Typedef):
+                dtype = symbol.dtype
+            elif isinstance(symbol, DataTypeBase):
+                dtype = symbol
+            else:  # 既不是类型别名又不是直接类型
                 self.error_reporter.report(
                     Errors.UndefinedType,
                     original_name,

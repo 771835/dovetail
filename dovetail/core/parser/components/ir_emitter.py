@@ -8,7 +8,7 @@ import itertools
 from contextlib import contextmanager
 
 from dovetail.core.enums import StructureType, BinaryOps, CompareOps, PrimitiveDataType
-from dovetail.core.enums.types import DataTypeBase
+from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.core.instructions import (
     IRInstruction, IRDeclare, IRAssign, IRScopeBegin, IRScopeEnd,
     IRBinaryOp, IRCompare

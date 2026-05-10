@@ -4,7 +4,7 @@ from enum import auto
 from attrs import define
 
 from dovetail.core.enums import PrimitiveDataType
-from dovetail.core.enums.types import DataTypeBase
+from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.utils.safe_enum import SafeEnum
 
 

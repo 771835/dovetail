@@ -6,7 +6,8 @@ from typing import Any, Optional
 from attrs import define
 
 from dovetail.core.backend import Scope
-from dovetail.core.enums.types import ValueType, DataTypeBase
+from dovetail.core.enums.types import ValueType
+from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.core.symbols import Reference
 
 

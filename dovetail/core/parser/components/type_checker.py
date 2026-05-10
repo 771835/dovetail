@@ -7,7 +7,7 @@
 from lark.tree import Meta
 
 from dovetail.core.enums import PrimitiveDataType
-from dovetail.core.enums.types import DataTypeBase
+from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.core.errors import Errors
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.symbols import Class, Function

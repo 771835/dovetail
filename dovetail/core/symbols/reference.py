@@ -9,7 +9,9 @@ from .base import Symbol
 from .literal import Literal
 from .variable import Variable
 from ..config import FAST_MODE
-from ..enums.types import DataTypeBase, PrimitiveDataType, ValueType, VariableType
+from ..enums.types import ValueType, VariableType
+from ..enums import PrimitiveDataType
+from ..enums.datatypes import DataTypeBase
 
 T = TypeVar('T', bound=Symbol)
 

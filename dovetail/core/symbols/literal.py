@@ -3,7 +3,7 @@
 from attrs import define
 
 from .base import Symbol
-from ..enums.types import DataTypeBase
+from ..enums.datatypes import DataTypeBase
 
 
 @define(slots=True, frozen=True)

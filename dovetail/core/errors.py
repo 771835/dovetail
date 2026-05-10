@@ -25,7 +25,7 @@ class ErrorType(SafeEnum):
 class Errors(SafeEnum):
     """具体错误类型"""
 
-    # ==================== 语法错误 (ErrorType.SyntaxError) ====================
+    # ==================== 语法错误 ====================
     # 基础语法错误
     InvalidSyntax = (0x1001, "无效语法", "无效语法: %s", ErrorType.SyntaxError)
     MissingToken = (0x1002, "缺少符号", "语法错误: 缺少必要的 '%s'", ErrorType.SyntaxError)
@@ -61,7 +61,7 @@ class Errors(SafeEnum):
     # Typedef 错误
     TypedefRedefinition = (0x1013, "类型别名重定义", "类型别名 '%s' 已定义。", ErrorType.SyntaxError)
 
-    # ==================== 语义错误 (ErrorType.SemanticError) ====================
+    # ==================== 语义错误 ====================
     # 类型系统错误
     TypeMismatch = (0x2001, "类型不匹配", "类型不匹配: 期望 %s，实际为 %s。", ErrorType.SemanticError)
     UndefinedType = (0x2002, "未定义类型", "未定义的类型 '%s'。", ErrorType.SemanticError)
@@ -70,40 +70,46 @@ class Errors(SafeEnum):
     ArgumentNumberMismatch = (0x2004, "参数数量不匹配",
                               "调用函数 '%s' 参数数量不匹配: 期望 %s 个参数，实际为 %s 个参数。",
                               ErrorType.SemanticError)
+
     NotCallable = (0x2005, "不可调用", "符号 '%s' (类型 %s) 不可调用。", ErrorType.SemanticError)
+
     PrimitiveTypeOperation = (0x2006, "基本类型操作错误", "不支持的操作：'%s' 不能应用于基本类型 '%s'。",
                               ErrorType.SemanticError)
 
     CompareTypeMismatch = (0x2007, "比较对象类型不匹配", "比较对象类型不匹配 '%s' 和 '%s' 不可比较。",
                            ErrorType.SemanticError)
 
+    TypeArgumentNumberMismatch = (0x2008, "类型参数数量不匹配",
+                                  "实例化 '%s' 参数数量不匹配",
+                                  ErrorType.SemanticError)
+
     # 所有权与可变性错误
-    MutabilityViolation = (0x2007, "可变性冲突", "尝试修改不可变变量 '%s'。", ErrorType.SemanticError)
-    InvalidMutUsage = (0x2008, "无效 mut 使用", "'mut' 关键字不能应用于类型 '%s'。", ErrorType.SemanticError)
-    MutArgumentMismatch = (0x2009, "mut 参数不匹配", "参数 '%s' 需要 'mut' 修饰但未提供。", ErrorType.SemanticError)
+    MutabilityViolation = (0x2009, "可变性冲突", "尝试修改不可变变量 '%s'。", ErrorType.SemanticError)
+    InvalidMutUsage = (0x200A, "无效 mut 使用", "'mut' 关键字不能应用于类型 '%s'。", ErrorType.SemanticError)
+    MutArgumentMismatch = (0x200B, "mut 参数不匹配", "参数 '%s' 需要 'mut' 修饰但未提供。", ErrorType.SemanticError)
 
     # 数组相关错误
-    ArrayDimensionMismatch = (0x2010, "数组维度不匹配", "数组维度不匹配: 期望 %s 维，实际为 %s 维。",
+    ArrayDimensionMismatch = (0x200C, "数组维度不匹配", "数组维度不匹配: 期望 %s 维，实际为 %s 维。",
                               ErrorType.SemanticError)
-    ArraySizeUndefined = (0x2011, "数组大小未定义", "数组大小 '%s' 无法在编译期确定。", ErrorType.SemanticError)
-    InvalidArrayLiteral = (0x2012, "无效数组字面量", "数组字面量类型不一致: %s。", ErrorType.SemanticError)
+    ArraySizeUndefined = (0x200D, "数组大小未定义", "数组大小 '%s' 无法在编译期确定。", ErrorType.SemanticError)
+    InvalidArrayLiteral = (0x200E, "无效数组字面量", "数组字面量类型不一致: %s。", ErrorType.SemanticError)
 
     # 可空类型错误
-    NullableAccessError = (0x2013, "可空类型访问错误", "尝试访问可能为 null 的对象 '%s'，需要先进行 null 检查。",
+    NullableAccessError = (0x200F, "可空类型访问错误", "尝试访问可能为 null 的对象 '%s'，需要先进行 null 检查。",
                            ErrorType.SemanticError)
-    NullAssignmentError = (0x2014, "null 赋值错误", "不能将 null 赋值给非可空类型 '%s'。", ErrorType.SemanticError)
+    NullAssignmentError = (0x2010, "null 赋值错误", "不能将 null 赋值给非可空类型 '%s'。", ErrorType.SemanticError)
 
     # F-string 错误
-    FStringExpressionError = (0x2015, "F-string 表达式错误", "F-string 中的表达式 '%s' 无效: %s。",
+    FStringExpressionError = (0x2011, "F-string 表达式错误", "F-string 中的表达式 '%s' 无效: %s。",
                               ErrorType.SemanticError)
 
     # 成员访问错误
-    InvalidMemberAccess = (0x2016, "无效成员访问", "类型 '%s' 没有成员 '%s'。", ErrorType.SemanticError)
-    PrivateMemberAccess = (0x2017, "私有成员访问", "不能访问类 '%s' 的私有成员 '%s'。", ErrorType.SemanticError)
+    InvalidMemberAccess = (0x2012, "无效成员访问", "类型 '%s' 没有成员 '%s'。", ErrorType.SemanticError)
+    PrivateMemberAccess = (0x2013, "私有成员访问", "不能访问类 '%s' 的私有成员 '%s'。", ErrorType.SemanticError)
 
     # 数组/迭代器错误
-    NotIterable = (0x2018, "不可迭代", "类型 '%s' 不可迭代，不能用于增强 for 循环。", ErrorType.SemanticError)
-    InvalidArrayAccess = (0x2019, "无效数组访问", "索引类型必须为整数，实际为 '%s'。", ErrorType.SemanticError)
+    NotIterable = (0x2014, "不可迭代", "类型 '%s' 不可迭代，不能用于增强 for 循环。", ErrorType.SemanticError)
+    InvalidArrayAccess = (0x2015, "无效数组访问", "索引类型必须为整数，实际为 '%s'。", ErrorType.SemanticError)
 
     # 符号解析错误
     SymbolResolution = (0x3001, "符号解析失败", "%s '%s' 未找到。", ErrorType.SemanticError)
@@ -136,7 +142,7 @@ class Errors(SafeEnum):
     AnnotationNotApplicable = (0x5006, "注解不适用", "注解 '@%s' 不能应用于 %s。", ErrorType.SemanticError)
     ConflictingAnnotations = (0x5007, "注解冲突", "注解 '@%s' 与 '@%s' 冲突。", ErrorType.SemanticError)
 
-    # ==================== 内部错误 (ErrorType.InternalError) ====================
+    # ==================== 内部错误 ====================
     # 编译器内部错误
     UnexpectedError = (0x6001, "未预期错误", "[内部错误] %s。", ErrorType.InternalError)
     LibraryLoad = (0x6002, "库加载错误", "无法加载库 '%s': %s。", ErrorType.InternalError)
@@ -154,7 +160,7 @@ class Errors(SafeEnum):
     IROptimizationTooComplex = (0x7201, "IR优化过于复杂", "优化 '%s' 过于复杂，超出处理能力。", ErrorType.InternalError)
     IROptimizationTimeout = (0x7202, "IR优化超时", "优化 '%s' 超时。", ErrorType.InternalError)
 
-    # ==================== 运行时错误 (ErrorType.RuntimeError) ====================
+    # ==================== 运行时错误 ====================
     # 代码生成错误
     FunctionTranslationFailed = (0x8001, "函数翻译失败", "函数 '%s' 翻译失败: %s。", ErrorType.RuntimeError)
     VariableMappingFailed = (0x8002, "变量映射失败", "变量 '%s' 映射失败: %s。", ErrorType.RuntimeError)
@@ -163,16 +169,16 @@ class Errors(SafeEnum):
     NamespaceConflict = (0x8005, "命名空间冲突", "命名空间 '%s' 冲突: %s。", ErrorType.RuntimeError)
     ResourceExhaustion = (0x8006, "资源耗尽", "资源耗尽: %s。", ErrorType.RuntimeError)
 
-    # ==================== 系统错误 (ErrorType.SystemError) ====================
+    # ==================== 系统错误 ====================
     # 目标平台错误
     UnsupportedTargetVersion = (0x9001, "不支持的目标版本", "不支持的目标版本: %s。", ErrorType.SystemError)
     TargetFeatureNotSupported = (0x9002, "目标功能不支持", "目标平台不支持功能: %s。", ErrorType.SystemError)
 
     # 输入输出错误
     DirectoryCreationFailed = (0x9101, "目录创建失败", "无法创建目录 '%s': %s。", ErrorType.SystemError)
+    FileWriteFailed = (0x9102, "文件写入失败", "无法写入文件 '%s': %s。", ErrorType.SystemError)
     FileSizeTooLarge = (0x9103, "文件体积过大", "无法解析文件 '%s': 文件体积 %s 超过最大允许体积 %s",
                         ErrorType.SystemError)
-    FileWriteFailed = (0x9102, "文件写入失败", "无法写入文件 '%s': %s。", ErrorType.SystemError)
     DiskSpaceInsufficient = (0x9104, "磁盘空间不足", "磁盘空间不足: 需要 %s，可用 %s。", ErrorType.SystemError)
 
     # 其他系统错误
@@ -188,12 +194,25 @@ class CompilationError(Exception):
     """
     pass
 
-def print_error_message(msg : str):
-    if not sys.stderr.closed:
-        sys.stderr.write(msg)
-    else:
-        open("error.log", "a+").write(msg)
 
+def print_error_message(msg: str):
+    """
+    向终端输出错误信息，当stderr不可用时自动退回error.log
+
+    Args:
+        msg: 错误信息
+
+    Returns:
+        int: 当正常时返回0，错误时返回非0数
+    """
+    try:
+        if not sys.stderr.closed:
+            sys.stderr.write(msg)
+        else:
+            open("error.log", "a+").write(msg)
+    except Exception:  # NOQA
+        return -1
+    return 0
 
 
 def read_lines_from_file(file_path, start_line, end_line) -> list[str]:
@@ -220,9 +239,6 @@ def read_lines_from_file(file_path, start_line, end_line) -> list[str]:
     return lines
 
 
-count = 0
-
-
 def report(
         error: Errors,
         *args: str,
@@ -245,10 +261,6 @@ def report(
     Raises:
         CompilationError: 当错误类型为RuntimeError、SystemError、FatalError时引发（如果 should_raise 为 True）
     """
-    global count
-    count += 1
-    if count % 10 == 0:
-        sys.stderr.write(f"第 {count} 个报错了，再接再厉！")
     error_code, error_name, error_details, error_type = error.value
     original_error_name = error.name
     filepath = Path(filepath)

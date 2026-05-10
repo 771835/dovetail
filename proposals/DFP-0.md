@@ -34,7 +34,7 @@ Dovetail Enhancement Proposals (DFP) 是推动 Dovetail 语言发展的核心文
 | [DFP 8](./DFP-8.md)       | 命名归一化策略                        | Draft       | 核心语言         | -           |
 | [DFP 300](./DFP-300.md)   | 内置函数系统                         | Active      | 标准库          | -           |
 | [DFP 301](./DFP-301.md)   | 标准库常量定义规范                      | Draft       | 标准库          | -           |
-| [DFP 302](./DFP-302.md)   | 运行时标准库错误处理机制规范建议               | Draft       | 标准库          | -           |
+| [DFP 302](./DFP-302.md)   | 运行时标准库错误处理机制规范建议               | Draft       | 标准库-编写规范     | -           |
 | [DFP 305](./DFP-305.md)   | 调试工具库                          | Draft       | 标准库-开发工具     | -           |
 | [DFP 401](DFP-401.md)     | 文件包含机制与项目结构规范                  | Draft       | 核心语言-文件系统    | -           |
 | DFP 600                   | 语言服务器协议                        | Deferred    | 工具链          | 未编写         |

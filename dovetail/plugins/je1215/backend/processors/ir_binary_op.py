@@ -5,7 +5,7 @@ IROp 指令处理器
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.config import get_project_logger
 from dovetail.core.enums import BinaryOps, PrimitiveDataType
-from dovetail.core.enums.types import DataTypeBase
+from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Literal, Variable
 from ..backend import JE1214Backend

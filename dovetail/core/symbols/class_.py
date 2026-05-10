@@ -8,7 +8,8 @@ from attrs import define, field
 
 from .annotation import Annotation
 from .base import Symbol
-from ..enums.types import DataTypeBase, ClassType
+from ..enums.types import ClassType
+from ..enums.datatypes import DataTypeBase
 
 if TYPE_CHECKING:
     from . import Function, Variable

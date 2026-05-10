@@ -7,7 +7,7 @@ from attrs import define, field
 
 from .annotation import Annotation
 from .base import Symbol
-from ..enums.types import DataTypeBase
+from ..enums.datatypes import DataTypeBase
 
 if TYPE_CHECKING:
     from . import Literal

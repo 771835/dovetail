@@ -8,7 +8,7 @@ from typing import Optional
 
 from lark.tree import Meta
 
-from dovetail.core.enums.types import DataTypeBase
+from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.core.errors import Errors
 from dovetail.core.instructions import IRDeclare, IRAssign
 from dovetail.core.parser.components.error_reporter import ErrorReporter

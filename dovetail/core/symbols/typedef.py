@@ -4,7 +4,7 @@ from __future__ import annotations
 import attrs
 
 from .base import Symbol
-from ..enums.types import DataTypeBase
+from ..enums.datatypes import DataTypeBase
 
 
 @attrs.define(slots=True, frozen=True)

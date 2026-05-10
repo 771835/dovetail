@@ -1,7 +1,8 @@
 # coding=utf-8
 from typing import Callable, Optional
 
-from dovetail.core.enums.types import FunctionType, PrimitiveDataType
+from dovetail.core.enums.types import FunctionType
+from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.lib.library import Library
 from dovetail.core.symbols import Function, Variable, Literal, Parameter
 

@@ -18,12 +18,12 @@ from .operations import (
 from .optimization import OptimizationLevel
 # 类型系统枚举
 from .types import (
-    PrimitiveDataType,
     StructureType,
     ValueType,
     VariableType,
     ClassType, FunctionType
 )
+from .datatypes import PrimitiveDataType
 
 # 导出所有枚举
 __all__ = [

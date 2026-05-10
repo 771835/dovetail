@@ -1,7 +1,7 @@
 # coding=utf-8
 from abc import ABC, abstractmethod
 
-from dovetail.core.enums.types import DataTypeBase
+from dovetail.core.enums.datatypes import DataTypeBase
 
 
 class Symbol(ABC):
