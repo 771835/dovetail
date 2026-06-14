@@ -3,12 +3,14 @@
 import time
 import uuid
 from enum import Enum
-from typing import Any, Dict, Union, NoReturn
+from typing import Any, Dict, NoReturn
 
 from dovetail.core.config import PROJECT_VERSION
-from dovetail.core.enums import CompareOps, FunctionType, ClassType, BinaryOps, UnaryOps, PrimitiveDataType
+from dovetail.core.enums import CompareOps, FunctionType, ClassType, BinaryOps, UnaryOps, PrimitiveDataType, \
+    VariableType
 from dovetail.core.enums.types import StructureType, AnnotationCategory
 from dovetail.core.enums.datatypes import DataTypeBase
+from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.symbols import Symbol, Literal, Parameter, Reference, Class, Function, Variable
 from dovetail.utils.binary_serializer import BinarySerializer
@@ -44,10 +46,11 @@ class IRSymbolSerializer:
             builder (IRBuilder): 要被序列化的 IRBuilder 实例。
         """
         self.builder = builder
-        self.symbol_id_map: Dict[int, Union[Symbol, str, int, Enum, list, dict]] = {}
+        self.symbol_id_map: Dict[int, Any] = {}
 
     @staticmethod
-    def _extract_metadata(symbol: Symbol | PrimitiveDataType | list | int | float | bool | str | Enum | dict | tuple | set) -> \
+    def _extract_metadata(
+            symbol: Symbol | PrimitiveDataType | list | int | float | bool | str | Enum | dict | tuple | set) -> \
             dict[str, Any] | NoReturn:
         """生成符号的序列化数据。
 
@@ -99,7 +102,7 @@ class IRSymbolSerializer:
 
         return metadata
 
-    def _add_symbol_id_map(self, symbol: Symbol | Enum | list | dict | bool | set | DataTypeBase | tuple):
+    def _add_symbol_id_map(self, symbol: Symbol | Enum | list | dict | bool | set | DataTypeBase | tuple | None):
         """递归地将符号加入全局 ID 映射表中。
 
         若当前符号为容器类型（如list、dict），将遍历其子元素也将其载入映射表。
@@ -233,7 +236,7 @@ class IRSymbolSerializer:
                 id_to_symbol[symbol_id] = Variable(
                     name=metadata['symbol_name'],
                     dtype=dtype or PrimitiveDataType.UNDEFINED,
-                    var_type=var_type or None,
+                    var_type=var_type or VariableType.COMMON,
                     mutable=metadata.get('mutable', True)
                 )
 
@@ -267,8 +270,10 @@ class IRSymbolSerializer:
                 id_to_symbol[symbol_id] = Function(
                     name=metadata['symbol_name'],
                     params=params,
-                    return_type=id_to_symbol.get(return_type_id) if return_type_id else PrimitiveDataType.VOID,
-                    function_type=id_to_symbol.get(function_type_id) if function_type_id else None,
+                    return_type=(id_to_symbol.get(return_type_id) if return_type_id else None)
+                                or PrimitiveDataType.VOID,
+                    function_type=(id_to_symbol.get(function_type_id) if function_type_id else None)
+                                  or FunctionType.FUNCTION,
                     annotations={}  # 注解信息需要单独处理
                 )
 
@@ -288,7 +293,7 @@ class IRSymbolSerializer:
                     interface=id_to_symbol.get(interface_id) if interface_id else None,
                     parent=id_to_symbol.get(parent_id) if parent_id else None,
                     properties=properties,
-                    type=id_to_symbol.get(type_id) if type_id else None,
+                    type=(id_to_symbol.get(type_id) if type_id else None) or ClassType.CLASS,
                     annotations=[]
                 )
 
@@ -325,9 +330,6 @@ class IRSymbolSerializer:
             opcode_value = instr_data['opcode']
             operands = [id_to_symbol[op_id] for op_id in instr_data['operands']]
 
-            from dovetail.core.__future__.instructions import IRInstruction, IROpCode
-
-            # 如果 IROpcode 有 value 到枚举的映射
             opcode = IROpCode.find(opcode_value)
 
             instruction = IRInstruction(opcode, *operands)

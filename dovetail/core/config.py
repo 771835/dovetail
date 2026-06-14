@@ -19,8 +19,7 @@ CACHE_FILE_PREFIX = ".mcdc"
 # 杂项
 MAX_FILE_SIZE = 1024 * 1024 * 1024  # 最大允许单个文件1GB大小
 FAST_MODE = True  # 禁用一些编译器的类型检查以加速代码运行
-USED_FUTURE_INSTRUCTIONS = True  # 临时选项: 启用新版IR指令
-ENABLE_FUTURE_INSTRUCTION_VALIDATION = True  # 临时选项: 启用新版IR指令类型效验，当 FAST_MODE 开启时无效
+ENABLE_INSTRUCTION_VALIDATION = True  # 启用IR指令类型效验，当 FAST_MODE 开启时无效
 
 # 目录编译配置文件
 PACK_CONFIG_VALIDATOR = fastjsonschema.compile({
@@ -92,7 +91,6 @@ DEFAULT_SUGGESTIONS: list[str] = [
     "或许你更需要的是换一门语言而不是来这里受虐。",
     "Avada Kedavra",
     ":wq!",
-    "为 MCFPP 默哀一分钟，伟大的作品胎死腹中。"
 ]
 
 # 项目全局日志对象

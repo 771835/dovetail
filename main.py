@@ -7,7 +7,7 @@ import os
 import sys
 from contextlib import chdir
 from pathlib import Path
-from typing import NoReturn
+from typing import NoReturn, Optional
 
 import fastjsonschema
 
@@ -44,7 +44,7 @@ class Compiler:
     def __init__(
             self,
             config: CompileConfig,
-            backend_name: str = None,
+            backend_name: Optional[str] = None,
             generate: bool = True,
             output_temp_file: bool = False
     ):
@@ -53,7 +53,7 @@ class Compiler:
 
         Args:
             config (CompileConfig): 编译器配置对象
-            backend_name (str): 后端名(不填时自动选择)
+            backend_name (Optional[str]): 后端名(不填时自动选择)
             generate (bool): 是否生成指令
             output_temp_file (bool): 输出临时文件
         """

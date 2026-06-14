@@ -23,8 +23,8 @@ class IRCallProcessor(IRProcessor):
             return
 
         # 查找将要调用的函数的作用域路径
-        if func.function_type == FunctionType.FUNCTION_UNIMPLEMENTED:  # 如果函数为向前引用则推测作用域地址
-
+        if func.function_type == FunctionType.FUNCTION_UNIMPLEMENTED:
+            # 如果函数为向前引用则推测作用域地址
             func_path = f"{context.current_scope.resolve_symbol_scope(func.name).get_absolute_path()}.{func.name}"
         else:
             func_path = context.current_scope.resolve_scope(func.name).get_absolute_path()

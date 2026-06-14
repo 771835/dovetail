@@ -1,443 +1,924 @@
 # coding=utf-8
 """
-IR所有指令定义
+IR 指令系统
+
+核心原则：
+1. 所有指令使用统一的 IRInstruction 类
+2. 通过 opcode 区分指令类型
+3. 使用工厂函数提供类型提示和自动补全
+4. 可选的运行时验证（通过装饰器控制）
 
 See Also:
     判定单条IR指令类型的唯一金标准是比较 IROpCode 的ID编号是否相同
 """
-from abc import ABC, abstractmethod
-from typing import Any
+import functools
+from typing import Any, Optional, Union, get_type_hints, Callable
 
-from dovetail.core.config import USED_FUTURE_INSTRUCTIONS
+from dovetail.core.config import ENABLE_INSTRUCTION_VALIDATION, FAST_MODE
+from dovetail.core.enums import PrimitiveDataType, StructureType, BinaryOps, CompareOps, UnaryOps
+from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
+from dovetail.core.symbols.enumeration import Enumeration
+from dovetail.core.symbols.structure import Structure
+from dovetail.utils.safe_enum import SafeEnum
 
-if USED_FUTURE_INSTRUCTIONS:
-    from dovetail.core.__future__.instructions import *
-else:
-    from dovetail.core.enums.operations import UnaryOps, BinaryOps, CompareOps
-    from dovetail.core.enums.types import StructureType
-    from dovetail.core.enums import PrimitiveDataType
-    from dovetail.core.symbols import Literal, Class, Function, Reference, Variable, Symbol
-    from dovetail.utils.safe_enum import SafeEnum
+_DefinableDataTypes = Union[
+    PrimitiveDataType,
+    Structure,
+    Class,
+    Enumeration
+]
 
-
-    class InstCategory(SafeEnum):
-        CONTROL_FLOW = "控制流"
-        DATA_OP = "数据运算"
-        OOP = "面向对象"
-        OWNERSHIP = "所有权"
-        ARRAY = "数组操作"
-        SPECIAL = "特殊指令"
-
-
-    class IROpCode(SafeEnum):
-        # CONTROL_FLOW (0x00-0x1F) - 控制流
-        JUMP = (0x00, "跳转", InstCategory.CONTROL_FLOW)
-        COND_JUMP = (0x01, "条件跳转", InstCategory.CONTROL_FLOW)
-        FUNCTION = (0x02, "函数定义", InstCategory.CONTROL_FLOW)
-        CALL = (0x03, "函数调用", InstCategory.CONTROL_FLOW)
-        RETURN = (0x04, "返回", InstCategory.CONTROL_FLOW)
-        SCOPE_BEGIN = (0x05, "作用域开始", InstCategory.CONTROL_FLOW)
-        SCOPE_END = (0x06, "作用域结束", InstCategory.CONTROL_FLOW)
-        BREAK = (0x07, "中断", InstCategory.CONTROL_FLOW)
-        CONTINUE = (0x08, "继续", InstCategory.CONTROL_FLOW)
-
-        # DATA_OP (0x20-0x3F) - 数据运算
-        DECLARE = (0x20, "变量声明", InstCategory.DATA_OP)
-        ASSIGN = (0x21, "赋值", InstCategory.DATA_OP)
-        UNARY_OP = (0x22, "一元运算", InstCategory.DATA_OP)
-        BINARY_OP = (0x23, "二元运算", InstCategory.DATA_OP)
-        COMPARE = (0x24, "比较", InstCategory.DATA_OP)
-        CAST = (0x25, "类型转换", InstCategory.DATA_OP)
-        FREE = (0x26, "释放变量", InstCategory.DATA_OP)
-
-        # OOP (0x40-0x5F) - 面对对象
-        CLASS = (0x40, "类定义", InstCategory.OOP)
-        NEW_OBJ = (0x41, "新建对象", InstCategory.OOP)
-        GET_PROPERTY = (0x42, "获取属性", InstCategory.OOP)
-        SET_PROPERTY = (0x43, "设置属性", InstCategory.OOP)
-        CALL_METHOD = (0x44, "调用方法", InstCategory.OOP)
-        FREE_OBJ = (0x45, "释放对象", InstCategory.OOP)
-
-        # OWNERSHIP (0x60-0x7F) - 所有权管理
-        MOVE = (0x60, "所有权转移", InstCategory.OWNERSHIP)
-        BORROW = (0x61, "借用", InstCategory.OWNERSHIP)
-
-        def __init__(self, code: int, desc: str, category: InstCategory):
-            self.code = code
-            self.desc = desc
-            self.category = category
-
-        def __hash__(self):
-            return hash(self.value)
+_CastableDataTypes = Union[
+    PrimitiveDataType,
+    Class,
+]
 
 
-    class IRInstruction(ABC):
+# ==================== 操作码定义 ====================
+
+class InstCategory(SafeEnum):
+    CONTROL_FLOW = "控制流"
+    DATA_OP = "数据运算"
+    OOP = "面向对象"
+    OWNERSHIP = "所有权"
+    ARRAY = "数组操作"
+    SPECIAL = "特殊指令"
+
+
+class IROpCode(SafeEnum):
+    # CONTROL_FLOW (0x00-0x1F)
+    JUMP = (0x00, "跳转", InstCategory.CONTROL_FLOW)
+    COND_JUMP = (0x01, "条件跳转", InstCategory.CONTROL_FLOW)
+    FUNCTION = (0x02, "函数定义", InstCategory.CONTROL_FLOW)
+    CALL = (0x03, "函数调用", InstCategory.CONTROL_FLOW)
+    RETURN = (0x04, "返回", InstCategory.CONTROL_FLOW)
+    SCOPE_BEGIN = (0x05, "作用域开始", InstCategory.CONTROL_FLOW)
+    SCOPE_END = (0x06, "作用域结束", InstCategory.CONTROL_FLOW)
+    BREAK = (0x07, "中断", InstCategory.CONTROL_FLOW)
+    CONTINUE = (0x08, "继续", InstCategory.CONTROL_FLOW)
+
+    # DATA_OP (0x20-0x3F)
+    DECLARE = (0x20, "变量声明", InstCategory.DATA_OP)
+    ASSIGN = (0x21, "赋值", InstCategory.DATA_OP)
+    UNARY_OP = (0x22, "一元运算", InstCategory.DATA_OP)
+    BINARY_OP = (0x23, "二元运算", InstCategory.DATA_OP)
+    COMPARE = (0x24, "比较", InstCategory.DATA_OP)
+    CAST = (0x25, "类型转换", InstCategory.DATA_OP)
+    FREE = (0x26, "释放变量", InstCategory.DATA_OP)
+
+    # OOP (0x40-0x5F)
+    CLASS = (0x40, "类定义", InstCategory.OOP)
+    NEW_OBJ = (0x41, "新建对象", InstCategory.OOP)
+    GET_PROPERTY = (0x42, "获取属性", InstCategory.OOP)
+    SET_PROPERTY = (0x43, "设置属性", InstCategory.OOP)
+    CALL_METHOD = (0x44, "调用方法", InstCategory.OOP)
+    FREE_OBJ = (0x55, "释放对象", InstCategory.OOP)
+
+    # OWNERSHIP (0x60-0x7F)
+    MOVE = (0x60, "所有权转移", InstCategory.OWNERSHIP)
+    BORROW = (0x61, "借用", InstCategory.OWNERSHIP)
+
+    def __init__(self, code: int, desc: str, category: InstCategory):
+        self.code = code
+        self.desc = desc
+        self.category = category
+
+    @classmethod
+    def find(cls, code: int):
+        return next(cls(val) for name, val in zip(cls.names(), cls.values()) if val[0] == code)
+
+    def __hash__(self):
+        return hash(self.value)
+
+
+# ==================== 验证系统 ====================
+
+
+class ValidationError(Exception):
+    """IR 指令验证错误"""
+    pass
+
+
+def validate_instruction(func):
+    """
+    指令验证装饰器
+
+    根据函数签名的类型注解自动验证参数
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if FAST_MODE or not ENABLE_INSTRUCTION_VALIDATION:
+            return func(*args, **kwargs)
+
+        # 获取函数签名的类型注解
+        type_hints = get_type_hints(func)
+        sig = func.__annotations__
+
+        # 验证参数
+        for i, (param_name, arg) in enumerate(zip(sig.keys(), args)):
+            expected_type = type_hints.get(param_name)
+
+            # 检查参数类型
+            if expected_type is None:
+                continue  # 如果没有类型注解，跳过
+
+            # 处理 Optional 类型
+            if getattr(expected_type, '__origin__', None) is Union:
+                if arg is None:
+                    continue  # 允许 None 值
+                expected_types = expected_type.__args__
+                if not any(isinstance(arg, t) for t in expected_types):
+                    raise ValidationError(
+                        f"{func.__name__}: 参数 '{param_name}' 期望类型 {expected_type}，"
+                        f"实际得到 {type(arg)}"
+                    )
+            elif hasattr(expected_type, '__origin__'):
+                # 处理其他泛型类型（如 List, Dict 等）
+                if not isinstance(arg, expected_type.__origin__):
+                    raise ValidationError(
+                        f"{func.__name__}: 参数 '{param_name}' 期望类型 {expected_type}，"
+                        f"实际得到 {type(arg)}"
+                    )
+            else:
+                # 普通类型检查
+                if not isinstance(arg, expected_type):  # NOQA
+                    raise ValidationError(
+                        f"{func.__name__}: 参数 '{param_name}' 期望类型 {expected_type}，"
+                        f"实际得到 {type(arg)}"
+                    )
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+# ==================== 统一指令类 ====================
+
+class IRInstruction:
+    """
+    统一的 IR 指令类
+
+    所有指令都使用这个类，通过 opcode 区分类型
+    """
+
+    __slots__ = ('opcode', 'operands', '_hash_cache')
+
+    def __init__(
+            self,
+            opcode: IROpCode,
+            *operands: Any,
+            **named_operands: Any
+    ):
         """
-        中间表示指令基类
+        创建 IR 指令
 
         Args:
-            opcode: 指令操作码
-            operands: 操作数列表
+            opcode: 操作码
+            operands: 位置操作数
+            named_operands: 命名操作数（可选，用于复杂指令）
         """
+        self.opcode = opcode
 
-        def __init__(
-                self,
-                opcode: IROpCode,
-                operands: list[Reference | str | Symbol | SafeEnum | Any]
-        ):
-            self.opcode = opcode
-            self.operands = operands
+        # 合并位置参数和命名参数
+        if named_operands:
+            self.operands = list(operands) + [named_operands]
+        else:
+            self.operands = list(operands)
 
-        @abstractmethod
-        def __repr__(self):
-            return f"{self.opcode.name}(operands={self.operands})"
+        self._hash_cache = None
 
-        def __hash__(self):
-            # 处理操作数的哈希值计算
+    def __repr__(self) -> str:
+        """
+        默认的字符串表示
+
+        可以通过注册自定义 repr 函数来覆盖
+        """
+        # 查找是否有注册的自定义 repr
+        if self.opcode in _repr_registry:
+            return _repr_registry[self.opcode](self)
+
+        # 默认格式
+        operands_str = ", ".join(str(op) for op in self.operands)
+        return f"{self.opcode.name}({operands_str})"
+
+    def __hash__(self):
+        if self._hash_cache is None:
             operand_hashes = []
-
-            for op in self.get_operands():
+            for op in self.operands:
                 if isinstance(op, (list, tuple)):
-                    # 递归处理嵌套列表/元组
                     operand_hashes.append(tuple(self._flatten_nested(op)))
                 elif isinstance(op, dict):
-                    # 字典转换为排序后的元组
-                    operand_hashes.append(tuple(sorted((k, self._flatten_nested(v)) for k, v in op.items())))
+                    operand_hashes.append(
+                        tuple(sorted((k, self._flatten_nested(v)) for k, v in op.items()))
+                    )
                 elif hasattr(op, '__hash__') and callable(op.__hash__):
-                    # 可哈希对象直接使用
-                    operand_hashes.append(hash(op))
+                    try:
+                        operand_hashes.append(hash(op))
+                    except TypeError:
+                        operand_hashes.append(id(op))
                 else:
-                    # 最后手段：使用对象ID
                     operand_hashes.append(id(op))
 
-            return hash((self.opcode, tuple(operand_hashes)))
+            self._hash_cache = hash((self.opcode, tuple(operand_hashes)))
 
-        def __eq__(self, other):
-            return hash(self) == hash(other)
+        return self._hash_cache
 
-        def _flatten_nested(self, obj: list | tuple | dict | str):
-            """递归处理嵌套结构"""
-            if isinstance(obj, (list, tuple)):
-                return tuple(self._flatten_nested(item) for item in obj)
-            elif isinstance(obj, dict):
-                return tuple(sorted((k, self._flatten_nested(v)) for k, v in obj.items()))
-            elif hasattr(obj, '__hash__') and callable(obj.__hash__):
+    def __eq__(self, other):
+        if not isinstance(other, IRInstruction):
+            return False
+        return hash(self) == hash(other)
+
+    def _flatten_nested(self, obj) -> tuple | int:
+        """递归处理嵌套结构"""
+        if isinstance(obj, (list, tuple)):
+            return tuple(self._flatten_nested(item) for item in obj)
+        elif isinstance(obj, dict):
+            return tuple(sorted((k, self._flatten_nested(v)) for k, v in obj.items()))
+        elif hasattr(obj, '__hash__') and callable(obj.__hash__):
+            try:
                 return hash(obj)
-            elif hasattr(obj, 'unique_id') and callable(obj.unique_id):
-                return obj.unique_id()
-            return id(obj)
-
-        def get_operands(self):
-            return self.operands
-
-        def get_opcode(self):
-            return self.opcode
-
-
-    # 具体指令实现
-    class IRJump(IRInstruction):
-        def __init__(
-                self,
-                scope: str
-        ):
-            operands = [
-                scope
-            ]
-            super().__init__(IROpCode.JUMP, operands)
-
-        def __repr__(self):
-            return f"goto {self.operands[0]}"
-
-
-    class IRCondJump(IRInstruction):
-        def __init__(
-                self,
-                condition: Variable | Literal,
-                true_scope: str | None,
-                false_scope: str | None = None
-        ):
-            assert PrimitiveDataType.BOOLEAN.is_subclass_of(condition.dtype), condition.dtype
-
-            operands = [
-                condition,
-                true_scope,
-                false_scope
-            ]
-            super().__init__(IROpCode.COND_JUMP, operands)
-
-        def __repr__(self):
-            cond = self.operands[0].value if isinstance(self.operands[0], Literal) else self.operands[0].get_name()
-            true_label = self.operands[1]
-            false_label = self.operands[2]
-            return f"if {cond} goto {true_label} else goto {false_label}"
-
-
-    class IRFunction(IRInstruction):
-        def __init__(self, function: Function):
-            operands = [
-                function
-            ]
-            super().__init__(IROpCode.FUNCTION, operands)
-
-        def __repr__(self):
-            function: Function = self.operands[0]
-            annotations: list[str] = []
-            for annotation, args in function.annotations.items():
-                annotations.append(f"@{annotation.name}({','.join(f'{name}={val}' for name, val in args.items())})")
-
-            return '\n'.join(annotations) + f"\nfunc {self.operands[0]}"
-
-
-    class IRReturn(IRInstruction):
-        def __init__(
-                self,
-                value: Reference[Variable | Literal] | None = None
-        ):
-            operands = [
-                value,
-            ]
-            super().__init__(IROpCode.RETURN, operands)
-
-        def __repr__(self):
-            return f"return {self.operands[0].get_display_value()}"
-
-
-    class IRCall(IRInstruction):
-        def __init__(
-                self,
-                result: Variable | None,
-                func: Function,
-                args: dict[str, Reference[Variable | Literal]] = None
-        ):
-            if args is None:
-                args = []
-            operands = [
-                result,
-                func,
-                args
-            ]
-            super().__init__(IROpCode.CALL, operands)
-
-        def __repr__(self):
-            ops = self.operands
-            args = (f"{name}={repr(value)}" for name, value in ops[2].items())
-            if ops[0]:
-                return f"{ops[0].get_name()} = {ops[1].get_name()}({','.join(args)})"
-            return f"{ops[1].get_name()}({','.join(args)})"
-
-
-    class IRScopeBegin(IRInstruction):
-        def __init__(
-                self,
-                name: str,
-                stype: StructureType
-        ):
-            operands = [
-                name,
-                stype
-            ]
-            super().__init__(IROpCode.SCOPE_BEGIN, operands)
-
-        def __repr__(self):
-            return f'{self.operands[0]}:{self.operands[1].value}{{'
-
-
-    class IRScopeEnd(IRInstruction):
-        def __init__(
-                self,
-                name: str,
-                stype: StructureType
-        ):
-            operands = [
-                name,
-                stype
-            ]
-            super().__init__(IROpCode.SCOPE_END, operands)
-
-        def __repr__(self):
-            return '}'
-
-
-    class IRBreak(IRInstruction):
-        def __init__(self, scope_name: str):
-            operands = [
-                scope_name
-            ]
-            super().__init__(IROpCode.BREAK, operands)
-
-        def __repr__(self):
-            return f'break {self.operands[0]}'
-
-
-    class IRContinue(IRInstruction):
-        def __init__(self, scope_name: str):
-            operands = [
-                scope_name
-            ]
-            super().__init__(IROpCode.CONTINUE, operands)
-
-        def __repr__(self):
-            return f'continue {self.operands[0]}'
-
-
-    class IRDeclare(IRInstruction):
-        def __init__(self, var: Variable):
-            operands = [
-                var
-            ]
-            super().__init__(IROpCode.DECLARE, operands)
-
-        def __repr__(self):
-            var = self.operands[0]
-            return f'{var.dtype.value if isinstance(var.dtype, PrimitiveDataType) else var.dtype.get_name()} {var.get_name()}'
-
-
-    class IRAssign(IRInstruction):
-        def __init__(self, target: Variable, source: Reference):
-            operands = [
-                target,
-                source
-            ]
-            super().__init__(IROpCode.ASSIGN, operands)
-
-        def __repr__(self):
-            return f'{self.operands[0].get_name()} = {self.operands[1]}'
-
-
-    class IRUnaryOp(IRInstruction):
-        def __init__(self, result: Variable, op: UnaryOps, operand: Reference[Variable | Literal]):
-            operands = [
-                result,
-                op,
-                operand
-            ]
-            super().__init__(IROpCode.UNARY_OP, operands)
-
-        def __repr__(self):
-            return f'{self.operands[0].get_name()}={self.operands[1].value}{self.operands[2]}'
-
-
-    class IRBinaryOp(IRInstruction):
-        def __init__(self, result: Variable, op: BinaryOps, left: Reference[Variable | Literal],
-                     right: Reference[Variable | Literal]):
-            operands = [
-                result,
-                op,
-                left,
-                right
-            ]
-            super().__init__(IROpCode.BINARY_OP, operands)
-
-        def __repr__(self):
-            ops = self.operands
-            return f'{ops[0].get_name()} = {ops[2]} {ops[1].value} {ops[3]}'
-
-
-    class IRCompare(IRInstruction):
-        def __init__(self, result: Variable, op: CompareOps, left: Reference[Variable | Literal],
-                     right: Reference[Variable | Literal]):
-            operands = [
-                result,
-                op,
-                left,
-                right
-            ]
-            super().__init__(IROpCode.COMPARE, operands)
-
-        def __repr__(self):
-            ops = self.operands
-            return f'{ops[0].get_name()} = {ops[2]} {ops[1].value} {ops[3]}'
-
-
-    class IRCast(IRInstruction):
-        def __init__(self, result: Variable, dtype: PrimitiveDataType | Class,
-                     value: Reference[Variable | Literal]):
-            operands = [
-                result,
-                dtype,
-                value
-            ]
-            super().__init__(IROpCode.CAST, operands)
-
-        def __repr__(self):
-            ops = self.operands
-            return f'{ops[0].get_name()} = ({ops[1].get_name()}) {ops[2]}'
-
-
-    class IRClass(IRInstruction):
-        def __init__(self, class_: Class):
-            operands = [
-                class_
-            ]
-            super().__init__(IROpCode.CLASS, operands)
-
-        def __repr__(self):
-            class_ = self.operands[0]
-            return f'class {class_.get_name()}'
-
-
-    class IRNewObj(IRInstruction):
-        def __init__(self, result: Variable, class_: Class):
-            operands = [
-                result,
-                class_
-            ]
-            super().__init__(IROpCode.NEW_OBJ, operands)
-
-        def __repr__(self):
-            return f'{self.operands[0].get_name()}=new {self.operands[1].get_name()}()'
-
-
-    class IRGetProperty(IRInstruction):
-        def __init__(self, result: Variable, obj: Variable, property_name: str):
-            operands = [
-                result,
-                obj,
-                property_name
-            ]
-            super().__init__(IROpCode.GET_PROPERTY, operands)
-
-        def __repr__(self):
-            return f'{self.operands[0].get_name()}={self.operands[1].get_name()}.{self.operands[2]}'
-
-
-    class IRSetProperty(IRInstruction):
-        def __init__(
-                self,
-                obj: Variable,
-                property_name: str,
-                value: Reference[Variable | Literal]
-        ):
-            operands = [
-                obj,
-                property_name,
-                value
-            ]
-            super().__init__(IROpCode.SET_PROPERTY, operands)
-
-        def __repr__(self):
-            return f'{self.operands[0]}.{self.operands[1]} = {self.operands[2]}'
-
-
-    class IRCallMethod(IRInstruction):
-        def __init__(
-                self,
-                result: Variable | None,
-                class_: Class,
-                method: Function,
-                args: dict[str, Reference] = None
-        ):
-            operands = [
-                result,
-                class_,
-                method,
-                args
-            ]
-            super().__init__(IROpCode.CALL_METHOD, operands)
-
-        def __repr__(self):
-            ops = self.operands
-            args = (f"{name}={repr(value)}" for name, value in ops[3].items())
-            if ops[0]:
-                return f"{ops[0].get_name()} = {ops[1].get_name()}.{ops[2].get_name()}({','.join(args)})"
-            return f"{ops[1].get_name()}.{ops[2].get_name()}({','.join(args)})"
+            except TypeError:
+                return id(obj)
+        return id(obj)
+
+    def get_operands(self) -> list:
+        """获取操作数列表"""
+        return self.operands
+
+    def get_opcode(self) -> IROpCode:
+        """获取操作码"""
+        return self.opcode
+
+
+# ==================== Repr 注册系统 ====================
+
+_repr_registry: dict[IROpCode, Callable] = {}
+
+
+def register_repr(opcode: IROpCode):
+    """
+    注册自定义 repr 函数的装饰器
+
+    Args:
+        opcode: 要注册的操作码
+
+    Returns:
+        装饰器函数
+    """
+
+    def decorator(func):
+        _repr_registry[opcode] = func
+        return func
+
+    return decorator
+
+
+# ==================== 控制流指令 ====================
+
+@validate_instruction
+def IRJump(scope: str) -> IRInstruction:
+    """
+    跳转指令
+
+    Args:
+        scope: 目标作用域名称
+
+    Returns:
+        跳转指令
+    """
+    return IRInstruction(IROpCode.JUMP, scope)
+
+
+@register_repr(IROpCode.JUMP)
+def _jump_repr(instr: IRInstruction) -> str:
+    return f"goto {instr.operands[0]}"
+
+
+@validate_instruction
+def IRCondJump(
+        condition: Variable | Literal,
+        true_scope: Optional[str] = None,
+        false_scope: Optional[str] = None
+) -> IRInstruction:
+    """
+    条件跳转指令
+
+    Args:
+        condition: 条件变量或字面量（必须是布尔类型）
+        true_scope: 条件为真时的目标作用域
+        false_scope: 条件为假时的目标作用域
+
+    Returns:
+        条件跳转指令
+
+    Raises:
+        ValidationError: 如果条件不是布尔类型
+    """
+    # 类型验证
+    if not FAST_MODE and ENABLE_INSTRUCTION_VALIDATION:
+        if not PrimitiveDataType.BOOLEAN.is_subclass_of(condition.dtype):
+            raise ValidationError(
+                f"条件跳转要求布尔类型，实际得到 {condition.dtype}"
+            )
+
+    return IRInstruction(IROpCode.COND_JUMP, condition, true_scope, false_scope)
+
+
+@register_repr(IROpCode.COND_JUMP)
+def _cond_jump_repr(instr: IRInstruction) -> str:
+    cond = (instr.operands[0].value
+            if isinstance(instr.operands[0], Literal)
+            else instr.operands[0].get_name())
+    true_label = instr.operands[1]
+    false_label = instr.operands[2]
+
+    if false_label:
+        return f"if {cond} goto {true_label} else goto {false_label}"
+    else:
+        return f"if {cond} goto {true_label}"
+
+
+@validate_instruction
+def IRFunction(function: Function) -> IRInstruction:
+    """
+    函数定义指令
+
+    Args:
+        function: 函数符号对象
+
+    Returns:
+        函数定义指令
+    """
+    return IRInstruction(IROpCode.FUNCTION, function)
+
+
+@register_repr(IROpCode.FUNCTION)
+def _function_repr(instr: IRInstruction) -> str:
+    func: Function = instr.operands[0]
+    params_str = ", ".join(
+        f"{p.var.dtype.get_name()} {p.var.get_name()}"
+        for p in func.params
+    )
+    return f"function {func.return_type.get_name()} {func.get_name()}({params_str})"
+
+
+@validate_instruction
+def IRCall(
+        result: Optional[Variable],
+        function: Function,
+        arguments: dict[str, Reference]
+) -> IRInstruction:
+    """
+    函数调用指令
+
+    Args:
+        result: 返回值存储变量（如果函数返回 void 则为 None）
+        function: 被调用的函数对象
+        arguments: 参数字典，键为参数名，值为 Reference 对象
+
+    Returns:
+        函数调用指令
+    """
+    return IRInstruction(IROpCode.CALL, result, function, arguments)
+
+
+@register_repr(IROpCode.CALL)
+def _call_repr(instr: IRInstruction) -> str:
+    result = instr.operands[0]
+    func: Function = instr.operands[1]
+    args: dict[str, Reference] = instr.operands[2]
+
+    args_str = ", ".join(f"{name}={val}" for name, val in args.items())
+
+    if result:
+        return f"{result.get_name()} = {func.get_name()}({args_str})"
+    else:
+        return f"{func.get_name()}({args_str})"
+
+
+@validate_instruction
+def IRReturn(value: Optional[Reference] = None) -> IRInstruction:
+    """
+    返回指令
+
+    Args:
+        value: 返回值（可选，void 函数为 None）
+
+    Returns:
+        返回指令
+    """
+    return IRInstruction(IROpCode.RETURN, value)
+
+
+@register_repr(IROpCode.RETURN)
+def _return_repr(instr: IRInstruction) -> str:
+    if instr.operands[0] is None:
+        return "return"
+
+    value = instr.operands[0]
+
+    return f"return {value}"
+
+
+@validate_instruction
+def IRScopeBegin(name: str, scope_type: StructureType) -> IRInstruction:
+    """
+    作用域开始指令
+
+    Args:
+        name: 作用域名称
+        scope_type: 作用域类型（来自 StructureType 枚举）
+
+    Returns:
+        作用域开始指令
+    """
+    return IRInstruction(IROpCode.SCOPE_BEGIN, name, scope_type)
+
+
+@register_repr(IROpCode.SCOPE_BEGIN)
+def _scope_begin_repr(instr: IRInstruction) -> str:
+    return f"scope {instr.operands[0]} ({instr.operands[1].name}) {{"
+
+
+@validate_instruction
+def IRScopeEnd(name: str, scope_type: StructureType) -> IRInstruction:
+    """
+    作用域结束指令
+
+    Args:
+        name: 作用域名称
+        scope_type: 作用域类型（来自 StructureType 枚举）
+
+    Returns:
+        作用域结束指令
+    """
+    return IRInstruction(IROpCode.SCOPE_END, name, scope_type)
+
+
+@register_repr(IROpCode.SCOPE_END)
+def _scope_end_repr(instr: IRInstruction) -> str:
+    return f"}} // end scope {instr.operands[0]}"
+
+
+@validate_instruction
+def IRBreak(scope: str) -> IRInstruction:
+    """
+    中断指令（跳出循环）
+
+    Args:
+        scope: 目标循环作用域名称
+
+    Returns:
+        中断指令
+    """
+    return IRInstruction(IROpCode.BREAK, scope)
+
+
+@register_repr(IROpCode.BREAK)
+def _break_repr(instr: IRInstruction) -> str:
+    return f"break to {instr.operands[0]}"
+
+
+@validate_instruction
+def IRContinue(scope: str) -> IRInstruction:
+    """
+    继续指令（跳到循环开始）
+
+    Args:
+        scope: 目标循环作用域名称
+
+    Returns:
+        继续指令
+    """
+    return IRInstruction(IROpCode.CONTINUE, scope)
+
+
+@register_repr(IROpCode.CONTINUE)
+def _continue_repr(instr: IRInstruction) -> str:
+    return f"continue to {instr.operands[0]}"
+
+
+# ==================== 数据操作指令 ====================
+
+@validate_instruction
+def IRDeclare(variable: Variable) -> IRInstruction:
+    """
+    变量声明指令
+
+    Args:
+        variable: 要声明的变量对象
+
+    Returns:
+        声明指令
+    """
+    return IRInstruction(IROpCode.DECLARE, variable)
+
+
+@register_repr(IROpCode.DECLARE)
+def _declare_repr(instr: IRInstruction) -> str:
+    var: Variable = instr.operands[0]
+    return f"declare {var.dtype.get_name()} {var.get_name()}"
+
+
+@validate_instruction
+def IRAssign(
+        target: Variable,
+        source: Union[Reference, Variable, Literal]
+) -> IRInstruction:
+    """
+    赋值指令
+
+    Args:
+        target: 目标变量
+        source: 赋值来源（可以是 Reference、Variable 或 Literal）
+
+    Returns:
+        赋值指令
+    """
+    return IRInstruction(IROpCode.ASSIGN, target, source)
+
+
+@register_repr(IROpCode.ASSIGN)
+def _assign_repr(instr: IRInstruction) -> str:
+    target: Variable = instr.operands[0]
+    source = instr.operands[1]
+
+    return f"{target.get_name()} = {source}"
+
+
+@validate_instruction
+def IRUnaryOp(
+        result: Variable,
+        op: UnaryOps,
+        operand: Reference
+) -> IRInstruction:
+    """
+    一元运算指令
+
+    Args:
+        result: 结果变量
+        op: 一元运算符（来自 UnaryOps 枚举，如 NOT、NEG）
+        operand: 操作数
+
+    Returns:
+        一元运算指令
+    """
+    return IRInstruction(IROpCode.UNARY_OP, result, op, operand)
+
+
+@register_repr(IROpCode.UNARY_OP)
+def _unary_op_repr(instr: IRInstruction) -> str:
+    result: Variable = instr.operands[0]
+    op: UnaryOps = instr.operands[1]
+    operand: Reference = instr.operands[2]
+
+    return f"{result.get_name()} = {op.value}{operand}"
+
+
+@validate_instruction
+def IRBinaryOp(
+        result: Variable,
+        op: BinaryOps,
+        left: Reference,
+        right: Reference
+) -> IRInstruction:
+    """
+    二元运算指令
+
+    Args:
+        result: 结果变量
+        op: 二元运算符（来自 BinaryOps 枚举，如 ADD、SUB、MUL、DIV、MOD）
+        left: 左操作数
+        right: 右操作数
+
+    Returns:
+        二元运算指令
+    """
+    return IRInstruction(IROpCode.BINARY_OP, result, op, left, right)
+
+
+@register_repr(IROpCode.BINARY_OP)
+def _binary_op_repr(instr: IRInstruction) -> str:
+    result: Variable = instr.operands[0]
+    op: BinaryOps = instr.operands[1]
+    left: Reference = instr.operands[2]
+    right: Reference = instr.operands[3]
+
+    return f"{result.get_name()} = {left} {op.value} {right}"
+
+
+@validate_instruction
+def IRCompare(
+        result: Variable,
+        op: CompareOps,
+        left: Reference,
+        right: Reference
+) -> IRInstruction:
+    """
+    比较指令
+
+    Args:
+        result: 结果变量（必须是布尔类型）
+        op: 比较运算符（来自 CompareOps 枚举，如 EQ、NE、LT、GT、LE、GE）
+        left: 左操作数
+        right: 右操作数
+
+    Returns:
+        比较指令
+
+    Raises:
+        ValidationError: 如果结果变量不是布尔类型
+    """
+    if not FAST_MODE and ENABLE_INSTRUCTION_VALIDATION and result.dtype != PrimitiveDataType.BOOLEAN:
+        raise ValidationError(f"比较结果必须是布尔类型，实际得到 {result.dtype}")
+
+    return IRInstruction(IROpCode.COMPARE, result, op, left, right)
+
+
+@register_repr(IROpCode.COMPARE)
+def _compare_repr(instr: IRInstruction) -> str:
+    result: Variable = instr.operands[0]
+    op: CompareOps = instr.operands[1]
+    left: Reference = instr.operands[2]
+    right: Reference = instr.operands[3]
+
+    return f"{result.get_name()} = {left} {op.value} {right}"
+
+
+@validate_instruction
+def IRCast(
+        result: Variable,
+        target_type: _CastableDataTypes,
+        source: Reference
+) -> IRInstruction:
+    """
+    类型转换指令
+
+    Args:
+        result: 结果变量
+        source: 源值
+        target_type: 目标类型（PrimitiveDataType 或其他类型对象）
+
+    Returns:
+        类型转换指令
+    """
+    return IRInstruction(IROpCode.CAST, result, target_type, source)
+
+
+@register_repr(IROpCode.CAST)
+def _cast_repr(instr: IRInstruction) -> str:
+    result: Variable = instr.operands[0]
+    target_type = instr.operands[1]
+    source: Reference = instr.operands[2]
+
+    return f"{result.get_name()} = cast<{target_type}>({source})"
+
+
+@validate_instruction
+def IRFree(variable: Variable) -> IRInstruction:
+    """
+    释放变量指令
+
+    Args:
+        variable: 要释放的变量
+
+    Returns:
+        释放指令
+    """
+    return IRInstruction(IROpCode.FREE, variable)
+
+
+@register_repr(IROpCode.FREE)
+def _free_repr(instr: IRInstruction) -> str:
+    var: Variable = instr.operands[0]
+    return f"free {var.get_name()}"
+
+
+# ==================== 面向对象指令 ====================
+
+@validate_instruction
+def IRClass(class_symbol: Class) -> IRInstruction:
+    """
+    类定义指令
+
+    Args:
+        class_symbol: 类符号对象
+
+    Returns:
+        类定义指令
+    """
+    return IRInstruction(IROpCode.CLASS, class_symbol)
+
+
+@register_repr(IROpCode.CLASS)
+def _class_repr(instr: IRInstruction) -> str:
+    cls: Class = instr.operands[0]
+    return f"class {cls.get_name()}"
+
+
+@validate_instruction
+def IRNewObj(
+        result: Variable,
+        class_type: Class,
+        arguments: dict[str, Reference]
+) -> IRInstruction:
+    """
+    新建对象指令
+
+    Args:
+        result: 结果变量（存储对象引用）
+        class_type: 类类型对象
+        arguments: 构造函数参数字典，键为参数名，值为 Reference 对象
+
+    Returns:
+        新建对象指令
+    """
+    return IRInstruction(IROpCode.NEW_OBJ, result, class_type, arguments)
+
+
+@register_repr(IROpCode.NEW_OBJ)
+def _new_obj_repr(instr: IRInstruction) -> str:
+    result: Variable = instr.operands[0]
+    class_type: Class = instr.operands[1]
+    args: dict = instr.operands[2]
+
+    args_str = ", ".join(f"{name}={val}" for name, val in args.items())
+
+    return f"{result.get_name()} = new {class_type.get_name()}({args_str})"
+
+
+@validate_instruction
+def IRGetProperty(
+        result: Variable,
+        object_ref: Reference,
+        property_name: str
+) -> IRInstruction:
+    """
+    获取属性指令
+
+    Args:
+        result: 结果变量（存储属性值）
+        object_ref: 对象引用
+        property_name: 属性名称
+
+    Returns:
+        获取属性指令
+    """
+    return IRInstruction(IROpCode.GET_PROPERTY, result, object_ref, property_name)
+
+
+@register_repr(IROpCode.GET_PROPERTY)
+def _get_property_repr(instr: IRInstruction) -> str:
+    result: Variable = instr.operands[0]
+    obj_ref: Reference = instr.operands[1]
+    prop_name: str = instr.operands[2]
+
+    return f"{result.get_name()} = {obj_ref}.{prop_name}"
+
+
+@validate_instruction
+def IRSetProperty(
+        object_ref: Reference,
+        property_name: str,
+        value: Reference
+) -> IRInstruction:
+    """
+    设置属性指令
+
+    Args:
+        object_ref: 对象引用
+        property_name: 属性名称
+        value: 新值
+
+    Returns:
+        设置属性指令
+    """
+    return IRInstruction(IROpCode.SET_PROPERTY, object_ref, property_name, value)
+
+
+@register_repr(IROpCode.SET_PROPERTY)
+def _set_property_repr(instr: IRInstruction) -> str:
+    obj_ref: Reference = instr.operands[0]
+    prop_name: str = instr.operands[1]
+    value: Reference = instr.operands[2]
+
+    return f"{obj_ref}.{prop_name} = {value}"
+
+
+@validate_instruction
+def IRCallMethod(
+        result: Optional[Variable],
+        object_ref: Reference,
+        method_name: str,
+        arguments: dict[str, Reference]
+) -> IRInstruction:
+    """
+    调用方法指令
+
+    Args:
+        result: 返回值存储变量（void 方法为 None）
+        object_ref: 对象引用
+        method_name: 方法名称
+        arguments: 方法参数字典，键为参数名，值为 Reference 对象
+
+    Returns:
+        调用方法指令
+    """
+    return IRInstruction(IROpCode.CALL_METHOD, result, object_ref, method_name, arguments)
+
+
+@register_repr(IROpCode.CALL_METHOD)
+def _call_method_repr(instr: IRInstruction) -> str:
+    result: Optional[Variable] = instr.operands[0]
+    obj_ref: Reference = instr.operands[1]
+    method_name: str = instr.operands[2]
+    args: dict = instr.operands[3]
+
+    args_str = ", ".join(f"{name}={val}" for name, val in args.items())
+
+    call_str = f"{obj_ref}.{method_name}({args_str})"
+
+    if result:
+        return f"{result} = {call_str}"
+    else:
+        return call_str
+
+
+@validate_instruction
+def IRFreeObj(object_ref: Reference) -> IRInstruction:
+    """
+    释放对象指令
+
+    Args:
+        object_ref: 要释放的对象引用
+
+    Returns:
+        释放对象指令
+    """
+    return IRInstruction(IROpCode.FREE_OBJ, object_ref)
+
+
+@register_repr(IROpCode.FREE_OBJ)
+def _free_obj_repr(instr: IRInstruction) -> str:
+    obj_ref: Reference = instr.operands[0]
+    return f"free {obj_ref}"
+
+
+# ==================== 所有权管理指令 ====================
+
+@validate_instruction
+def IRMove(
+        target: Variable,
+        source: Reference
+) -> IRInstruction:
+    """
+    所有权转移指令
+
+    Args:
+        target: 目标变量（接收所有权）
+        source: 源引用（转移所有权）
+
+    Returns:
+        所有权转移指令
+    """
+    return IRInstruction(IROpCode.MOVE, target, source)
+
+
+@register_repr(IROpCode.MOVE)
+def _move_repr(instr: IRInstruction) -> str:
+    target: Variable = instr.operands[0]
+    source: Reference = instr.operands[1]
+
+    return f"{target} = move({source})"
+
+
+@validate_instruction
+def IRBorrow(
+        target: Variable,
+        source: Reference,
+        mutable: bool = False
+) -> IRInstruction:
+    """
+    借用指令
+
+    Args:
+        target: 目标变量（借用引用）
+        source: 源引用（被借用对象）
+        mutable: 是否可变借用
+
+    Returns:
+        借用指令
+    """
+    return IRInstruction(IROpCode.BORROW, target, source, mutable)
+
+
+@register_repr(IROpCode.BORROW)
+def _borrow_repr(instr: IRInstruction) -> str:
+    target: Variable = instr.operands[0]
+    source: Reference = instr.operands[1]
+    mutable: bool = instr.operands[2]
+
+    borrow_type = "borrow_mut" if mutable else "borrow"
+
+    return f"{target.get_name()} = {borrow_type}({source})"
