@@ -25,12 +25,14 @@ class FunctionType(SafeEnum):
         LIBRARY: 从库加载的函数
         BUILTIN: 转译器内置函数
         METHOD: 类方法函数
+        EXTERN: 从外部导入方法
     """
     FUNCTION = "function"
     FUNCTION_UNIMPLEMENTED = "function-unimplemented"
     LIBRARY = "library"
     BUILTIN = "built-in"
     METHOD = "method"
+    EXTERN = "extern"
 
 
 class StructureType(SafeEnum):
@@ -112,29 +114,3 @@ class ClassType(SafeEnum):
     """
     CLASS = "class"
     ENUM = "enum"
-
-
-class AnnotationCategory(SafeEnum):
-    """
-    注解系统声明类型
-
-    用于区分注解类型并根据注解类型在不同时机处理
-
-    Attributes:
-        LIFECYCLE: 控制函数执行时机
-        VISIBILITY: 控制可见性和优化
-        LINKAGE: 控制后端链接接口指令的生成
-        CONDITION: 条件编译
-        METADATA: 元数据注解，不影响编译逻辑
-    """
-    # 核心语义注解 - 影响代码生成和执行
-    LIFECYCLE = "lifecycle"  # 控制函数执行时机
-    VISIBILITY = "visibility"  # 控制可见性和优化
-    LINKAGE = "linkage"  # 控制后端链接接口指令的生成
-    BACKEND_HINT = "backend_hint"  # 控制后端代码生成
-
-    # 条件编译注解 - 在AST遍历阶段处理
-    CONDITION = "condition"  # 控制代码编译生成
-
-    # 元数据注解 - 不影响编译逻辑
-    METADATA = "metadata"  # 元数据注解

@@ -111,6 +111,9 @@ class Errors(SafeEnum):
     NotIterable = (0x2014, "不可迭代", "类型 '%s' 不可迭代，不能用于增强 for 循环。", ErrorType.SemanticError)
     InvalidArrayAccess = (0x2015, "无效数组访问", "索引类型必须为整数，实际为 '%s'。", ErrorType.SemanticError)
 
+    # FFI错误
+    NotFFISafeType = (0x2016, "不安全的类型", "类型 '%s' 不可用于FFI调用。", ErrorType.SemanticError)
+
     # 符号解析错误
     SymbolResolution = (0x3001, "符号解析失败", "%s '%s' 未找到。", ErrorType.SemanticError)
     UndefinedSymbol = (0x3002, "未定义符号", "符号 '%s' 未定义。", ErrorType.SemanticError)

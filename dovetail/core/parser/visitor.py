@@ -31,17 +31,17 @@ from lark import Tree, v_args, Token, LarkError
 from lark.tree import Meta
 from lark.visitors import Interpreter
 
-from dovetail.core import builtin_annotation
+from dovetail.core.annotations import get_registry, AnnotationContext
+from dovetail.core.annotations.base import AnnotationTarget, \
+    AnnotationCategory
+from dovetail.core.annotations.spec import get_annotation_spec, Annotation
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import (
-    StructureType, PrimitiveDataType, VariableType,
-    MinecraftVersion, MinecraftEdition, FunctionType, ValueType, BinaryOps, UnaryOps, CompareOps
+    StructureType, PrimitiveDataType, VariableType, FunctionType,
+    ValueType, BinaryOps, UnaryOps, CompareOps
 )
-from dovetail.core.enums.minecraft import UnknownMinecraftVersionError
-from dovetail.core.enums.types import AnnotationCategory
 from dovetail.core.enums.datatypes import DataTypeBase, ListType, ArrayType, MapType
 from dovetail.core.errors import report, Errors
-from dovetail.core.parser.components.include_manager import IncludeManager, CircularIncludeException
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp,
     IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRCast
@@ -49,23 +49,22 @@ from dovetail.core.instructions import (
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
 from dovetail.core.lib.library_mapping import LibraryMapping
-from dovetail.core.parser.parser import parser_file, parse_fstring_iter, parser_code
-from dovetail.core.parser.scope import Scope
 from dovetail.core.parser.components.declaration_handler import DeclarationHandler
 from dovetail.core.parser.components.error_reporter import ErrorReporter
+from dovetail.core.parser.components.include_manager import IncludeManager, CircularIncludeException
 from dovetail.core.parser.components.ir_emitter import IREmitter
 from dovetail.core.parser.components.symbol_resolver import SymbolResolver
 from dovetail.core.parser.components.type_checker import TypeChecker
+from dovetail.core.parser.parser import parser_file, parse_fstring_iter, parser_code
+from dovetail.core.parser.scope import Scope
 from dovetail.core.scope.protocols import ScopeCore
 from dovetail.core.symbols import Variable, Reference, Literal, Function, Class, Parameter
-from dovetail.core.symbols.annotation import Annotation
 from dovetail.core.symbols.structure import Structure
 from dovetail.core.symbols.typedef import Typedef
 from dovetail.utils.naming import NameNormalizer
 
 _n = NameNormalizer.normalize
 _dn = NameNormalizer.denormalize
-
 
 class ASTVisitor(Interpreter):
     """
@@ -131,10 +130,6 @@ class ASTVisitor(Interpreter):
                     self.config
                 )
             )
-
-    def __default__(self, tree: Tree) -> list[Any]:
-        """默认访问处理 - 递归访问所有子节点"""
-        return self.visit_children(tree)
 
     # ==================== 辅助方法 ====================
     @contextmanager
@@ -235,96 +230,11 @@ class ASTVisitor(Interpreter):
         annotations: dict[Annotation, dict[str, Any]] = {}
 
         while (isinstance(children[0], Tree) and
-               children[0].data == 'annotation'):
-            annotation, args = self.visit(children.pop(0))
+               children[0].data == 'annotation'):  # noqa
+            annotation, args = self.visit(children.pop(0))  # noqa
             annotations[annotation] = args
 
         return annotations
-
-    def _should_skip_for_annotation(
-            self,
-            annotations: dict[Annotation, dict[str, Any]],
-            symbol_name: str,
-            meta: Meta
-    ) -> bool:
-        """
-        根据注解判断是否跳过编译
-
-        Args:
-            annotations: 注解字典
-            symbol_name: 符号对象
-            meta: 元数据
-
-        Returns:
-            True 表示应该跳过，False 表示继续编译
-        """
-        for annotation, args in annotations.items():
-            # 处理 @version 注解
-            if annotation.name == "version":
-                try:
-                    min_version = MinecraftVersion.instance(args.get("min", "1.20.4"))
-                except UnknownMinecraftVersionError:
-                    self.error_reporter.report(
-                        Errors.UnsupportedTargetVersion,
-                        args.get("min", "1.20.4"),
-                        meta=meta
-                    )
-                    return True
-
-                try:
-                    max_version = MinecraftVersion.instance(args.get("max", "1.21.4"))
-                except UnknownMinecraftVersionError:
-                    self.error_reporter.report(
-                        Errors.UnsupportedTargetVersion,
-                        args.get("max", "1.21.4"),
-                        meta=meta
-                    )
-                    return True
-
-                if not (min_version <= self.config.version <= max_version):
-                    return True
-
-            # 处理 @target 注解
-            elif annotation.name == "target":
-                target_edition = MinecraftEdition.from_str(args.get("edition", "java"))
-                compiler_edition = self.config.version.edition
-
-                if target_edition != compiler_edition:
-                    return True
-
-            # 处理 @if_not_exists 注解
-            elif annotation.name == "if_not_exists":
-                if self.symbol_resolver.current_scope.resolve_symbol(symbol_name) is not None:
-                    return True
-
-            # 处理 @if_symbol 注解
-            elif annotation.name == "if_symbol":
-                name: str = args.get("name", "")
-                type_: str = args.get("type", "any")
-
-                symbol = self.symbol_resolver.current_scope.resolve_symbol(name)
-
-                if symbol is None:
-                    return True
-
-                match type_:
-                    case "class":
-                        if isinstance(symbol, Class):
-                            return True
-                    case "function":
-                        if isinstance(symbol, Function):
-                            return True
-                    case "variable":
-                        if isinstance(symbol, Variable):
-                            return True
-                    case _:
-                        return True
-                return False
-
-            # 处理 @deprecated 注解
-            elif annotation.name == "deprecated":
-                return self.config.disable_deprecated_function
-        return False
 
     def _process_call_arguments(
             self,
@@ -392,26 +302,59 @@ class ASTVisitor(Interpreter):
 
         return args_dict
 
+    def _make_annotation_ctx(self, name, symbol, target, meta) -> AnnotationContext:
+        return AnnotationContext(
+            config=self.config,
+            error_reporter=self.error_reporter,
+            meta=meta,
+            symbol_name=name,
+            symbol=symbol,
+            symbol_target=target,
+            symbol_resolver=self.symbol_resolver,
+        )
+
+    @staticmethod
+    def _undefined_annotation() -> tuple[Annotation, dict]:
+        """返回一个未定义的注解占位符"""
+        return Annotation("undefined", None, AnnotationCategory.METADATA), {}
+
     # ==================== 访问器方法 ====================
 
     @v_args(meta=True)
-    def struct(self, children: list[Tree | Token], meta: Meta):
+    def struct(self, meta: Meta, children: list[Tree | Token]):
         """处理结构体定义"""
         # 处理注解
-        annotations = self._process_annotations(children)
+        raw_annotations = self._process_annotations(children)
 
         # 解析结构体
-        name = children.pop(0).value
+        name = _n(children.pop(0).value)
 
-        # 检查版本和目标平台
-        if self._should_skip_for_annotation(annotations, name, meta):
+        # PRE_SYMBOL 阶段处理注解
+        ctx = self._make_annotation_ctx(
+            name=name,
+            symbol=None,  # 符号还不存在
+            target=AnnotationTarget.FUNCTION,
+            meta=meta,
+        )
+        pre = get_registry().process_pre(raw_annotations, ctx)
+        if pre.skip:
             return
+
+        # 处理结构体字段
 
         fields: dict[str, DataTypeBase] = {}
         for field in children:
+            assert isinstance(field, Tree)
             field_name, field_type = self.visit(field)
             fields[field_name] = field_type
         symbol = Structure(_n(name), fields)
+
+        # POST_SYMBOL阶段处理注解
+        ctx.symbol = symbol  # 补充符号引用
+        post = get_registry().process_post(raw_annotations, ctx)
+
+        # 写入 AnnotationAttachment
+        symbol.annotations.update(post.attachments)
 
         # 添加符号
         self.symbol_resolver.add_symbol(symbol, meta)
@@ -425,23 +368,29 @@ class ASTVisitor(Interpreter):
         return name, dtype
 
     @v_args(meta=True)
-    def function(self, children: list[Tree | Token], meta: Meta):
+    def function(self, meta: Meta, children: list[Tree | Token]):
         """处理函数定义"""
         # 处理注解
-        annotations = self._process_annotations(children)
+        raw_annotations = self._process_annotations(children)
 
         # 解析函数签名
         # annotation* ("function"|"fn"|"def") ID params ["->" type] (block|pass_stmt)
         params: list[Parameter]
         name: str = _n(children.pop(0).value)
 
-        # 检查版本和目标平台
-        if self._should_skip_for_annotation(annotations, name, meta):
+        # PRE_SYMBOL阶段处理注解
+        ctx = self._make_annotation_ctx(
+            name=name, symbol=None,
+            target=AnnotationTarget.FUNCTION, meta=meta,
+        )
+        pre = get_registry().process_pre(raw_annotations, ctx)
+        if pre.skip:
             return
 
-        params = self.visit(children.pop(0))
+        # 处理形参
+        params = self.visit(children.pop(0))  # noqa
         if children[0] is not None:
-            return_type: DataTypeBase = self.visit(children.pop(0))
+            return_type: DataTypeBase = self.visit(children.pop(0))  # noqa
         else:
             return_type: DataTypeBase = PrimitiveDataType.VOID
             children.pop(0)
@@ -453,11 +402,18 @@ class ASTVisitor(Interpreter):
         # 创建函数符号
         func_type = (FunctionType.FUNCTION if children
                      else FunctionType.FUNCTION_UNIMPLEMENTED)
-        function = Function(name, params, return_type, func_type, annotations)
+        function = Function(name, params, return_type, func_type)
         self.symbol_resolver.add_symbol(function, meta, True)
 
         # 生成 IR
         self.ir_emitter.emit(IRFunction(function))
+
+        # POST_SYMBOL 阶段处理注解
+        ctx.symbol = function
+        post = get_registry().process_post(raw_annotations, ctx)
+        if post.merged.type_override:
+            function.function_type = post.merged.type_override
+        function.annotations.update(post.attachments)
 
         # 处理函数体
         if children:
@@ -468,10 +424,10 @@ class ASTVisitor(Interpreter):
                         self.symbol_resolver.add_symbol(param.var, meta)
                         self.ir_emitter.emit(IRDeclare(param.var))
                     # 访问函数体
-                    self.visit(children.pop(0))
+                    self.visit(children.pop(0))  # noqa
 
     @v_args(meta=True)
-    def let(self, children: list[Tree | Token], meta: Meta) -> Optional[Reference]:
+    def let(self, meta: Meta, children: list[Tree | Token]) -> Optional[Reference]:
         """处理变量声明 (let)"""
         dtype: DataTypeBase
         symbol_name: str
@@ -481,33 +437,33 @@ class ASTVisitor(Interpreter):
 
         if isinstance(children[0], Tree) and children[0].data == 'type':
             # "let" ID ":" type ["=" expr]
-            dtype = self.visit(children.pop(0))
+            dtype = self.visit(children.pop(0))  # noqa
             if children and children[0] is not None:
-                default_value = self.visit(children.pop(0))
+                default_value = self.visit(children.pop(0))  # noqa
         else:
             # "let" ID "=" expr (类型推导)
-            default_value = self.visit(children.pop(0))
+            default_value = self.visit(children.pop(0))  # noqa
             assert isinstance(default_value, Reference)
             dtype = default_value.get_dtype()
 
         return self.declaration_handler.declare_variable(symbol_name, dtype, default_value, meta)
 
     @v_args(meta=True)
-    def const(self, children: list[Tree | Token], meta: Meta) -> Optional[Reference]:
+    def const(self, meta: Meta, children: list[Tree | Token]) -> Optional[Reference]:
         """处理常量声明 (const)"""
         dtype: DataTypeBase
         symbol_name: str
         value: Reference
 
         # "const" ID [":" type] "=" expr
-        symbol_name = children[0].value  # NOQA
+        symbol_name = children[0].value  # noqa
         if children[1] is None:
             # 类型推导
-            value = self.visit(children[2])
+            value = self.visit(children[2])  # noqa
             dtype = value.get_dtype()
         else:
-            dtype = self.visit(children[1])
-            value = self.visit(children[2])
+            dtype = self.visit(children[1])  # noqa
+            value = self.visit(children[2])  # noqa
 
         return self.declaration_handler.declare_variable(symbol_name, dtype, value, meta, False)
 
@@ -516,7 +472,7 @@ class ASTVisitor(Interpreter):
         return [self.visit(param) for param in tree.children if isinstance(param, Tree)]
 
     @v_args(meta=True)
-    def param(self, children: list[Tree | Token], meta: Meta) -> Parameter:
+    def param(self, meta: Meta, children: list[Tree | Token]) -> Parameter:
         """处理单个参数定义"""
         name: str
         dtype: DataTypeBase
@@ -524,13 +480,13 @@ class ASTVisitor(Interpreter):
 
         # 解析参数类型和名称
         # [MUT] ID ":" type ("=" expr)?
-        name = _n(children.pop(0).value)
-        dtype = self.visit(children.pop(0))
+        name = _n(children.pop(0).value)  # noqa
+        dtype = self.visit(children.pop(0))  # noqa
 
         # 处理默认值
         default_value: Reference
         if children:
-            default_value = self.visit(children.pop(0))
+            default_value = self.visit(children.pop(0))  # noqa
 
             if default_value.get_dtype() != dtype:
                 self.error_reporter.report(
@@ -550,11 +506,11 @@ class ASTVisitor(Interpreter):
         )
 
     @v_args(meta=True)
-    def for_loop(self, children: list[Tree | Token], meta: Meta):
+    def for_loop(self, meta: Meta, children: list[Tree | Token]):
         """处理 for 循环"""
         if isinstance(children[0], Tree) and children[0].data == "type":
             # "for" "(" type ID ":" expr ")" block // 增强for循环
-            dtype = self.visit(children.pop(0))
+            dtype = self.visit(children.pop(0))  # noqa
             self.error_reporter.report(
                 Errors.MissingImplementation,
                 "增强for循环",
@@ -566,7 +522,7 @@ class ASTVisitor(Interpreter):
             init, condition, expr, block = children
             if init is not None:
                 # 处理初始化表达式
-                self.visit(init)
+                self.visit(init)  # noqa
 
             loop_count = next(self.counter)
 
@@ -574,16 +530,16 @@ class ASTVisitor(Interpreter):
             with self._push_scope(f"for_check_{loop_count}", StructureType.LOOP_CHECK) as loop_check:  # NOQA
                 # 处理条件表达式
                 if condition:
-                    condition_value = self.visit(condition).value
+                    condition_value = self.visit(condition).value  # noqa
                 else:
                     condition_value = Literal(PrimitiveDataType.BOOLEAN, True)
 
                 # 处理循环体
                 with self._push_scope(f"for_body_{loop_count}", StructureType.LOOP_BODY) as loop_body:  # NOQA
-                    self.visit(block)
+                    self.visit(block)  # noqa
                     # 处理更新表达式
                     if expr:
-                        self.visit(expr)
+                        self.visit(expr)  # noqa
 
                 self.ir_emitter.emit(IRCondJump(condition_value, loop_body.name))
                 self.ir_emitter.emit(IRCondJump(condition_value, loop_check.name))
@@ -610,7 +566,7 @@ class ASTVisitor(Interpreter):
         self.ir_emitter.emit(IRJump(loop_check.name))
 
     @v_args(meta=True)
-    def if_stmt(self, children: list[Tree | Token], meta: Meta):
+    def if_stmt(self, _: Meta, children: list[Tree | Token]):
         # "if" "(" [condition] ")" block ("else" (if_stmt|block))?
         count = next(self.counter)
         # 计算条件表达式
@@ -628,7 +584,7 @@ class ASTVisitor(Interpreter):
             self.ir_emitter.emit(IRCondJump(condition.value, if_scope.name))
 
     @v_args(meta=True)
-    def free(self, _: list[Tree | Token], meta: Meta):
+    def free(self, meta: Meta, _: list[Tree | Token]):
         report(
             Errors.MissingImplementation,
             "free 命令较为危险，故暂不实现(此错误不会影响编译)",
@@ -638,7 +594,7 @@ class ASTVisitor(Interpreter):
         )
 
     @v_args(meta=True)
-    def condition(self, children: list[Tree | Token], meta: Meta):
+    def condition(self, meta: Meta, children: list[Tree | Token]):
         """条件语句"""
         value: Reference = self.visit(children.pop(0))
 
@@ -664,7 +620,7 @@ class ASTVisitor(Interpreter):
         return value
 
     @v_args(meta=True)
-    def return_stmt(self, children: list[Tree | Token], meta: Meta):
+    def return_stmt(self, meta: Meta, children: list[Tree | Token]):
         """处理 return 语句"""
         # 获取返回值
         value: Reference | None = None
@@ -713,7 +669,7 @@ class ASTVisitor(Interpreter):
         self.ir_emitter.emit(IRReturn(value))
 
     @v_args(meta=True)
-    def break_stmt(self, _: list[Tree | Token], meta: Meta):
+    def break_stmt(self, meta: Meta, _: list[Tree | Token]):
         """处理 break 语句"""
         loop_scope = self._get_loop_check_scope_type()
 
@@ -727,7 +683,7 @@ class ASTVisitor(Interpreter):
         self.ir_emitter.emit(IRBreak(loop_scope.name))
 
     @v_args(meta=True)
-    def continue_stmt(self, _: list[Tree | Token], meta: Meta):
+    def continue_stmt(self, meta: Meta, _: list[Tree | Token]):
         """处理 continue 语句"""
         loop_scope = self._get_loop_check_scope_type()
 
@@ -741,7 +697,7 @@ class ASTVisitor(Interpreter):
         self.ir_emitter.emit(IRContinue(loop_scope.name))
 
     @v_args(meta=True)
-    def include(self, children: list, meta: Meta):
+    def include(self, meta: Meta, children: list):
         """处理包含语句"""
         original_filepath: str = self.visit(children.pop(0)).value.value
 
@@ -792,8 +748,8 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def type(
             self,
-            children: list[Token | Tree | int],
-            meta: Meta
+            meta: Meta,
+            children: list[Token | Tree | int]
     ) -> PrimitiveDataType | Class | DataTypeBase:
         """处理类型声明"""
         dtype: DataTypeBase = PrimitiveDataType.UNDEFINED
@@ -856,7 +812,7 @@ class ASTVisitor(Interpreter):
             return PrimitiveDataType.UNDEFINED
 
     @v_args(meta=True)
-    def typedef(self, children: list[Token | Tree], meta: Meta):
+    def typedef(self, meta: Meta, children: list[Token | Tree]):
         """处理类型别名定义"""
         original_type: DataTypeBase = self.visit(children.pop(0))
         new_name: str = children.pop(0).value  # NOQA
@@ -870,7 +826,7 @@ class ASTVisitor(Interpreter):
             )
 
     @v_args(meta=True)
-    def factor(self, children: list[Token | Tree], meta: Meta):
+    def factor(self, meta: Meta, children: list[Token | Tree]):
         left: Reference = self.visit(children.pop(0))
         op: str = children.pop(0).value  # NOQA
         right: Reference = self.visit(children.pop(0))
@@ -886,7 +842,7 @@ class ASTVisitor(Interpreter):
     term = factor
 
     @v_args(meta=True)
-    def compare(self, children: list[Token | Tree], meta: Meta):
+    def compare(self, meta: Meta, children: list[Token | Tree]):
         left: Reference = self.visit(children.pop(0))
         op = children.pop(0).value  # NOQA
         right: Reference = self.visit(children.pop(0))
@@ -906,7 +862,7 @@ class ASTVisitor(Interpreter):
         return Reference(result_variable)
 
     @v_args(meta=True)
-    def unary_minus(self, children: list[Token | Tree], meta: Meta) -> Reference:
+    def unary_minus(self, meta: Meta, children: list[Token | Tree]) -> Reference:
         op: typing.Literal['+', '-'] = children.pop(0).value  # NOQA
         value: Reference = self.visit(children.pop(0))
         if value.get_dtype() not in [PrimitiveDataType.BOOLEAN, PrimitiveDataType.INT]:
@@ -932,7 +888,7 @@ class ASTVisitor(Interpreter):
             return Reference(result_var)
 
     @v_args(meta=True)
-    def logical_not(self, children: list[Token | Tree], meta: Meta):
+    def logical_not(self, meta: Meta, children: list[Token | Tree]):
         value: Reference = self.visit(children.pop(0))
 
         if value.get_dtype() not in [PrimitiveDataType.BOOLEAN, PrimitiveDataType.INT]:
@@ -957,7 +913,7 @@ class ASTVisitor(Interpreter):
             return Reference(result_var)
 
     @v_args(meta=True)
-    def logical_and(self, children: list[Token | Tree], meta: Meta):
+    def logical_and(self, meta: Meta, children: list[Token | Tree]):
         # 生成唯一结果变量
         result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
         and_id = next(self.counter)
@@ -994,7 +950,7 @@ class ASTVisitor(Interpreter):
         return Reference(result_var)
 
     @v_args(meta=True)
-    def logical_or(self, children: list[Token | Tree], meta: Meta):
+    def logical_or(self, meta: Meta, children: list[Token | Tree]):
         # 生成唯一结果变量
         result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
         or_id = next(self.counter)
@@ -1033,7 +989,7 @@ class ASTVisitor(Interpreter):
         return Reference(result_var)
 
     @v_args(meta=True)
-    def local_assignment(self, children: list[Token | Tree], meta: Meta):
+    def local_assignment(self, meta: Meta, children: list[Token | Tree]):
         variable_ref: Reference = self.visit(children.pop(0))
         if variable_ref.value_type != ValueType.VARIABLE:
             self.error_reporter.report(
@@ -1074,7 +1030,7 @@ class ASTVisitor(Interpreter):
         return variable_ref
 
     @v_args(meta=True)
-    def function_call(self, children: list[Token | Tree], meta: Meta):
+    def function_call(self, meta: Meta, children: list[Token | Tree]):
         function: Function = self.visit(children.pop(0)).value
         args: list[tuple[Reference, bool]] = self.visit(children.pop(0))
         if not isinstance(function, Function):
@@ -1106,11 +1062,11 @@ class ASTVisitor(Interpreter):
                 return Reference.void()
 
     @v_args(meta=True)
-    def arguments(self, children: list[Token | Tree], _: Meta) -> list[tuple[Reference, bool]]:
+    def arguments(self, _: Meta, children: list[Token | Tree]) -> list[tuple[Reference, bool]]:
         return [self.visit(child) for child in children]
 
     @v_args(meta=True)
-    def argument(self, children: list[Token | Tree], _: Meta) -> tuple[Reference, bool]:
+    def argument(self, _: Meta, children: list[Token | Tree]) -> tuple[Reference, bool]:
         is_mutable = bool(children.pop(0))
         value = self.visit(children.pop(0))
         return value, is_mutable
@@ -1138,7 +1094,7 @@ class ASTVisitor(Interpreter):
                 return Reference.literal(str(token))
 
     @v_args(meta=True)
-    def fstring(self, children: list[Token | Tree], meta: Meta):
+    def fstring(self, meta: Meta, children: list[Token | Tree]):
         """处理f-string"""
         result = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.STRING, "fstring")
         self.ir_emitter.emit(IRAssign(result, Reference.literal("")))
@@ -1201,9 +1157,9 @@ class ASTVisitor(Interpreter):
         return Reference(result)
 
     @v_args(meta=True)
-    def identifier(self, children: list[str] | str, meta: Meta) -> Reference:
+    def identifier(self, meta: Meta, children: list[str]) -> Reference:
         """处理标识符引用"""
-        symbol_name = children.pop() if isinstance(children, list) else children
+        symbol_name = children.pop()
         symbol = self.symbol_resolver.resolve_symbol(_n(symbol_name), meta)
 
         if symbol is None:
@@ -1214,8 +1170,8 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def annotation(
             self,
-            children: list[Tree | Token],
-            meta: Meta
+            meta: Meta,
+            children: list[Tree | Token]
     ) -> tuple[Annotation, dict[str, str]]:
         """
         处理注解声明
@@ -1228,7 +1184,7 @@ class ASTVisitor(Interpreter):
             (注解对象, 参数字典)，出错时返回未定义注解和空字典
         """
         name: str = children.pop(0).value
-        annotation = builtin_annotation.get_annotation(name)
+        annotation = get_annotation_spec(name)
 
         # 检查注解是否存在
         if annotation is None:
@@ -1263,10 +1219,5 @@ class ASTVisitor(Interpreter):
             return self._undefined_annotation()
 
         # 访问所有参数值并构建参数字典（参数名 -> 参数值）
-        param_values = [self.visit(child).value.value for child in children]
+        param_values = [self.visit(child).value.value for child in children] # noqa
         return annotation, dict(zip(annotation.params, param_values))
-
-    @staticmethod
-    def _undefined_annotation() -> tuple[Annotation, dict]:
-        """返回一个未定义的注解占位符"""
-        return Annotation("undefined", None, AnnotationCategory.METADATA), {}

@@ -10,7 +10,6 @@ from lark.tree import Meta
 
 from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.core.errors import Errors
-from dovetail.core.instructions import IRDeclare, IRAssign
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.parser.components.ir_emitter import IREmitter
 from dovetail.core.parser.components.symbol_resolver import SymbolResolver
@@ -57,6 +56,8 @@ class DeclarationHandler:
         Returns:
             变量引用，声明失败则返回 None
         """
+        from dovetail.core.instructions import IRDeclare, IRAssign
+
         # 检查类型可定义性
         if not self.type_checker.check_definable(dtype, meta):
             return None

@@ -1,18 +1,22 @@
 # coding=utf-8
 from __future__ import annotations
 
-import attrs
+from typing import TYPE_CHECKING
 
-from .annotation import Annotation
-from .base import Symbol
+from attrs import define, field
+
+from .base import Symbol, AnnotationMixin
 from ..enums.datatypes import DataTypeBase
 
+if TYPE_CHECKING:
+    from ..annotations.base import AnnotationAttachment
 
-@attrs.define(slots=True, frozen=True)
-class Structure(Symbol, DataTypeBase):
+
+@define(slots=True, frozen=True)
+class Structure(Symbol, DataTypeBase, AnnotationMixin):
     name: str
-    field: dict[str, DataTypeBase]
-    annotations: list[Annotation] = attrs.field(factory=list)
+    fields: dict[str, DataTypeBase]
+    annotations: dict[str, AnnotationAttachment] = field(factory=dict)
 
     def get_name(self) -> str:
         return self.name

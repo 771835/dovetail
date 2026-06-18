@@ -5,19 +5,19 @@ from typing import TYPE_CHECKING
 
 from attrs import define, field
 
-from .annotation import Annotation
-from .base import Symbol
+from .base import Symbol, AnnotationMixin
 from ..enums.datatypes import DataTypeBase
 
 if TYPE_CHECKING:
     from . import Literal
+    from dovetail.core.annotations.base import AnnotationAttachment
 
 
 @define(slots=True, frozen=True)
-class Enumeration(Symbol, DataTypeBase):
+class Enumeration(Symbol, DataTypeBase, AnnotationMixin):
     name: str
     member: dict[str, Literal]
-    annotations: list[Annotation] = field(factory=list)
+    annotations: dict[str, "AnnotationAttachment"] = field(factory=dict)
 
     def get_name(self) -> str:
         return self.name

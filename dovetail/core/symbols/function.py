@@ -1,31 +1,28 @@
 # coding=utf-8
-from typing import Any
+from __future__ import annotations
+from typing import TYPE_CHECKING
 
 from attrs import define, field
 
-from .annotation import Annotation
-from .base import Symbol
-from .parameter import Parameter
+from .base import Symbol, AnnotationMixin
 from ..enums import PrimitiveDataType
 from ..enums.types import FunctionType
-from ..enums.datatypes import DataTypeBase
+
+if TYPE_CHECKING:
+    from .parameter import Parameter
+    from ..annotations.base import AnnotationAttachment
+    from ..enums.datatypes import DataTypeBase
 
 
 @define(slots=True, repr=False)
-class Function(Symbol):
+class Function(Symbol, AnnotationMixin):
     name: str
     params: list[Parameter]
     return_type: DataTypeBase
     function_type: FunctionType = FunctionType.FUNCTION
-    annotations: dict[Annotation, dict[str, Any]] = field(factory=dict)
+    annotations: dict[str, AnnotationAttachment] = field(factory=dict)
 
     def get_name(self) -> str:
-        """
-        获得函数名称
-
-        Returns:
-            str: 函数的名称
-        """
         return self.name
 
     def get_dtype(self) -> DataTypeBase:

@@ -6,24 +6,24 @@ from typing import TYPE_CHECKING
 
 from attrs import define, field
 
-from .annotation import Annotation
-from .base import Symbol
+from .base import Symbol, AnnotationMixin
 from ..enums.types import ClassType
 from ..enums.datatypes import DataTypeBase
 
 if TYPE_CHECKING:
     from . import Function, Variable
+    from dovetail.core.annotations.base import AnnotationAttachment
 
 
 @define(slots=True)
-class Class(Symbol, DataTypeBase):
+class Class(Symbol, DataTypeBase, AnnotationMixin):
     name: str
     methods: set[Function]
     interface: Optional[Class]
     parent: Optional[Class]
     properties: set[Variable]
     type: ClassType = ClassType.CLASS
-    annotations: list[Annotation] = field(factory=list)
+    annotations: dict[str, "AnnotationAttachment"] = field(factory=dict)
 
     def get_name(self) -> str:
         return self.name

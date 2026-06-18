@@ -11,15 +11,17 @@ IR 指令系统
 See Also:
     判定单条IR指令类型的唯一金标准是比较 IROpCode 的ID编号是否相同
 """
+from __future__ import annotations
 import functools
-from typing import Any, Optional, Union, get_type_hints, Callable
+from typing import Any, Optional, Union, get_type_hints, Callable, TYPE_CHECKING
 
 from dovetail.core.config import ENABLE_INSTRUCTION_VALIDATION, FAST_MODE
-from dovetail.core.enums import PrimitiveDataType, StructureType, BinaryOps, CompareOps, UnaryOps
-from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
-from dovetail.core.symbols.enumeration import Enumeration
-from dovetail.core.symbols.structure import Structure
 from dovetail.utils.safe_enum import SafeEnum
+from dovetail.core.enums import PrimitiveDataType, StructureType, BinaryOps, CompareOps, UnaryOps
+from dovetail.core.symbols.structure import Structure
+from dovetail.core.symbols.enumeration import Enumeration
+from dovetail.core.symbols.class_ import Class
+from dovetail.core.symbols import Variable, Literal, Reference, Function
 
 _DefinableDataTypes = Union[
     PrimitiveDataType,
@@ -207,7 +209,7 @@ class IRInstruction:
             operand_hashes = []
             for op in self.operands:
                 if isinstance(op, (list, tuple)):
-                    operand_hashes.append(tuple(self._flatten_nested(op)))
+                    operand_hashes.append(tuple(self._flatten_nested(op)))  # noqa
                 elif isinstance(op, dict):
                     operand_hashes.append(
                         tuple(sorted((k, self._flatten_nested(v)) for k, v in op.items()))

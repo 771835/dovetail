@@ -69,7 +69,7 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
 
         for func_name, func in self.function_declarations.items():
             if func_name not in self.function_calls:
-                if not func.annotations:  # 保留带有注解的函数
+                if "no_dce" not in func.all_flags():  # 保留带有on_dce标签的函数
                     self._remove_function(func_name)
 
     def _remove_function(self, func_name):

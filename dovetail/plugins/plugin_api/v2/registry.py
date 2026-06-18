@@ -1,54 +1,37 @@
 # coding=utf-8
-from dovetail.core import builtin_annotation
+"""
+注册函数集合库
+供插件使用，用于注册后端、优化管道、内建库、注解等
+
+See Also:
+     _d 后缀为装饰器函数
+
+根据DFP-602《插件系统规范》定义
+"""
+import dovetail.core.optimize.pass_registry as pass_registry
+import dovetail.core.annotations.registry as annotation_registry
+
+from dovetail.core.annotations.spec import inject_annotation_spec
 from dovetail.core.backend import BackendFactory
 from dovetail.core.lib.library_mapping import LibraryMapping
-from dovetail.core.optimize.pass_registry import get_registry, register_pass
-from dovetail.core.symbols.annotation import Annotation
-from dovetail.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
+from dovetail.core.annotations.decorator import annotation_processor
 
-
-@Mixin(builtin_annotation, force=True)
-class AnnotationRegistry:
-    ANNOTATIONS: dict[str, Annotation] = {}
-
-    @staticmethod
-    def register_annotation(name: str, annotation: Annotation) -> bool:
-        """
-        注册内建注解的注解对象
-
-        Args:
-            name: 注解名
-            annotation: 注解对象
-
-        Returns:
-            bool: 当失败时返回False
-        """
-        annotations = getattr(AnnotationRegistry, "ANNOTATIONS")
-        if isinstance(annotations, dict):
-            annotations[name] = annotation
-            return True
-        return False
-
-    @staticmethod
-    @Inject("get_annotation", At(At.TAIL), cancellable=True)
-    def get_annotation(ci: CallbackInfoReturnable, name: str):
-        """
-        获取内建注解的注解对象
-
-        Args:
-            name: 内建函数的函数名
-
-        Returns:
-            注解对象，当不存在时返回None
-        """
-
-        annotations = getattr(AnnotationRegistry, "ANNOTATIONS", {})
-        if name in annotations:
-            ci.set_return_value(annotations[name])
-
+__all__ = [
+    "registry_backend",
+    "registry_optimize_pass",
+    "registry_optimize_pass_d",
+    "registry_library",
+    "registry_annotation",
+    "registry_annotation_spec",
+    "registry_annotation_processor",
+    "registry_annotation_processor_d"
+]
 
 registry_backend = BackendFactory.register
-registry_optimize_pass = get_registry().register
-registry_optimize_pass_s = register_pass
+registry_optimize_pass = pass_registry.get_registry().register
+registry_optimize_pass_d = pass_registry.register_pass
 registry_library = LibraryMapping.registry
-registry_annotation = getattr(AnnotationRegistry, "register_annotation", lambda name, annotation: False)
+registry_annotation = inject_annotation_spec  # 仅用于兼容
+registry_annotation_spec = inject_annotation_spec
+registry_annotation_processor = annotation_registry.get_registry().register
+registry_annotation_processor_d = annotation_processor
