@@ -13,7 +13,7 @@ See Also:
 """
 from __future__ import annotations
 import functools
-from typing import Any, Optional, Union, get_type_hints, Callable, TYPE_CHECKING
+from typing import Any, Optional, Union, get_type_hints, Callable
 
 from dovetail.core.config import ENABLE_INSTRUCTION_VALIDATION, FAST_MODE
 from dovetail.utils.safe_enum import SafeEnum
@@ -362,7 +362,8 @@ def _function_repr(instr: IRInstruction) -> str:
         f"{p.var.dtype.get_name()} {p.var.get_name()}"
         for p in func.params
     )
-    return f"function {func.return_type.get_name()} {func.get_name()}({params_str})"
+    annotations_str = "\n".join(f"@{name}{attachment}" for name,attachment  in func.annotations.items())
+    return f"{annotations_str}\nfunction {func.return_type.get_name()} {func.get_name()}({params_str})"
 
 
 @validate_instruction

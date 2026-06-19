@@ -45,7 +45,7 @@ class JE1214Backend(Backend):
         version = config.version
         if version.display_version != "1.21.5" or version.is_bedrock_edition():
             return False
-        if config.recursion or config.experimental:
+        if config.recursion:
             return False
         return True
 
@@ -73,7 +73,7 @@ class JE1214Backend(Backend):
             if self.config.debug:
                 templates[template_.function_path] = \
                     f'''# {template_.function_path}
-# {template_.name}({", ".join(template_.param_names)}, {", ".join(f"{name}={repr(value)}" for name, value in template_.optional_params.items())})
+# {template_.name}({", ".join(template_.param_names)}, {", ".join(f"{name}={value!r}" for name, value in template_.optional_params.items())})
 # {template_.description}
 '''
             else:

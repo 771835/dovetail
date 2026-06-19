@@ -77,7 +77,7 @@ class AnnotationResult:
         )
 
 
-@define(slots=True)
+@define(slots=True,repr=False)
 class AnnotationAttachment:
     """附着在符号上的单个注解实例（处理后的完整信息）"""
     name: str
@@ -92,6 +92,8 @@ class AnnotationAttachment:
     def metadata(self) -> dict[str, Any]:
         return self.result.metadata
 
+    def __repr__(self):
+        return f"({self.name!r}, {self.args!r})"
 
 @define(slots=True)
 class AnnotationContext:

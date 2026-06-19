@@ -1,6 +1,6 @@
 # coding=utf-8
 import re
-from typing import TYPE_CHECKING
+from typing import Final
 
 from dovetail.core.annotations.base import (
     AnnotationProcessor, AnnotationContext, AnnotationResult, AnnotationTarget, AnnotationTiming
@@ -9,18 +9,21 @@ from dovetail.core.annotations.decorator import annotation_processor
 from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.enums.types import FunctionType
 from dovetail.core.errors import Errors
-
-if TYPE_CHECKING:
-    from dovetail.core.symbols import Function
-
+from dovetail.core.symbols.function import Function
 
 _KNOWN_ABIS = {"dovetail", "clang-mc"}
+_DEFAULT_OBJECTIVE: Final[dict[str, str]] = {
+    "dovetail": "dovetail",
+    "clang-mc": "vm_regs",
+}
+
 _FFI_SAFE = {
     PrimitiveDataType.INT,
     PrimitiveDataType.BOOLEAN,
     PrimitiveDataType.VOID,
     PrimitiveDataType.STRING,
 }
+
 _NAMESPACE_PATTERN = re.compile(r'^[0-9a-z_.-]+$')
 _NAME_PATTERN = re.compile(r'^[0-9a-z_./-]+$')
 
@@ -85,21 +88,42 @@ def _check_ffi_types(func: "Function", abi: str, ctx: AnnotationContext) -> bool
     )
     return False
 
+
 def _check_path(s: str, ctx: AnnotationContext) -> bool:
     if ":" not in s:
         ctx.error_reporter.report(
             Errors.AnnotationArgumentError,
-
-            abi,
+            "extern/export",
+            f"字符串 '{s}' 不是一个正确的函数路径",
             meta=ctx.meta,
-            suggestion=f"未知的 ABI 标识符 '{abi}'，支持的值: dovetail, clang-mc"
         )
         return False
-    namespace,path = s.split(":", maxsplit=1)
+    namespace, path = s.split(":", maxsplit=1)
 
-    if ".." in namespace: return False
-    if not bool(_NAMESPACE_PATTERN.match(namespace)):return  False
-    if not bool(_NAME_PATTERN.match(path)):return  False
+    if ".." in namespace:
+        ctx.error_reporter.report(
+            Errors.AnnotationArgumentError,
+            "extern/export",
+            f"命名空间不应包含'..'",
+            meta=ctx.meta,
+        )
+        return False
+    if not bool(_NAMESPACE_PATTERN.match(namespace)):
+        ctx.error_reporter.report(
+            Errors.AnnotationArgumentError,
+            "extern/export",
+            f"命名空间 '{namespace}' 格式错误",
+            meta=ctx.meta,
+        )
+        return False
+    if not bool(_NAME_PATTERN.match(path)):
+        ctx.error_reporter.report(
+            Errors.AnnotationArgumentError,
+            "extern/export",
+            f"路径 '{path}' 格式错误",
+            meta=ctx.meta,
+        )
+        return False
     return True
 
 
@@ -113,13 +137,17 @@ class ExternProcessor(AnnotationProcessor):
     def validate(self, args, ctx):
         abi = args.get("abi", "dovetail")
         path = args.get("path", "")
-        return _check_abi(abi, ctx) and _check_ffi_types(ctx.symbol, abi, ctx) and _check_path(path)
+        if isinstance(ctx.symbol, Function) and not (_check_ffi_types(ctx.symbol, abi, ctx) and _check_path(path, ctx)):
+            return False
+        return _check_abi(abi, ctx)
 
     def process(self, args, ctx):
+        abi = args.get("abi", "dovetail")
+        default_objective = args.get("objective", None) or _DEFAULT_OBJECTIVE.get(abi) or "dovetail"
         return AnnotationResult(
             flags={"no_inline", "no_dce", "extern"},
             type_override=FunctionType.EXTERN,
-            metadata={"abi": args.get("abi", "dovetail"), "path": args.get("path", "")},
+            metadata={"abi": abi, "path": args.get("path", ""), "objective": default_objective}
         )
 
 
@@ -132,10 +160,14 @@ class ExportProcessor(AnnotationProcessor):
 
     def validate(self, args, ctx):
         abi = args.get("abi", "dovetail")
-        return _check_abi(abi, ctx) and _check_ffi_types(ctx.symbol, abi, ctx)
+        if isinstance(ctx.symbol, Function) and not _check_ffi_types(ctx.symbol, abi, ctx):
+            return False
+        return _check_abi(abi, ctx)
 
     def process(self, args, ctx):
+        abi = args.get("abi", "dovetail")
+        default_objective = args.get("objective", None) or _DEFAULT_OBJECTIVE.get(abi) or "dovetail"
         return AnnotationResult(
             flags={"no_dce", "preserve_name", "export"},
-            metadata={"abi": args.get("abi", "dovetail"), "path": args.get("path", "")},
+            metadata={"abi": abi, "path": args.get("path", ""), "objective": default_objective}
         )

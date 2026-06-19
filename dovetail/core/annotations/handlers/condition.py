@@ -83,6 +83,6 @@ class IfFeatureProcessor(AnnotationProcessor):
 
     def process(self, args: dict[str, Any], context: AnnotationContext) -> AnnotationResult:
         feature = args.get("feature", "")
-        if getattr(AnnotationContext.config, feature, None):
+        if getattr(context.config, feature, None):
             return AnnotationResult(skip=True)
         return AnnotationResult()

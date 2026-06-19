@@ -46,3 +46,10 @@ class AnnotationMixin:
         for a in self.annotations.values():
             result |= a.flags
         return result
+
+    def all_metadata(self) -> dict[str, Any]:
+        """汇总所有注解的 metadata"""
+        result: dict[str, Any] = {}
+        for a in self.annotations.values():
+            result |= a.metadata
+        return result

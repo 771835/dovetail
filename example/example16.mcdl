@@ -1,21 +1,10 @@
-class a {
-    int i
+typedef int i32
 
-    method __init__() -> a {
 
-    }
-}
+@extern("_ll_shared:add", "clang-mc", "")
+fn add(a: int,b: int) -> int;
 
 @init
-fn main() {
-    a obj
-    a obj2
-    for (let i = 0;i<=5;i=i+1) {
-        obj = a()
-        obj.i = i
-        if (i==3) {
-            obj2 = obj
-        }
-    }
-    print(str(obj2.i))
+fn main() -> int{
+    print(str(add(1,2)))
 }

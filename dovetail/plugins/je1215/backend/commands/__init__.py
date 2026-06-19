@@ -20,4 +20,4 @@ from .copy import Copy
 from .strlib import *
 from .unary_op import UnaryOp
 
-MINECRAFT_VERSION = "1.21.4"
+MINECRAFT_VERSION = "1.21.5"

@@ -1,5 +1,3 @@
-include "random"
-include "mathlib.mcdl"
 typedef int i32
 
 fn foo() -> i32;

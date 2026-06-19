@@ -224,10 +224,10 @@ def main():
     for text in test_cases:
         escaped = processor.escape(text)
         print(f'原文: {repr(text)}')
-        print(f'转义: {repr(escaped)}')
+        print(f'转义: {escaped!r}')
         print(f'转义: {escaped}')
 
-        print(f'还原: {repr(processor.unescape(escaped))}')
+        print(f'还原: {processor.unescape(escaped)!r}')
         print('-' * 40)
 
     print("\n=== 不同上下文的转义 ===")
@@ -241,11 +241,11 @@ def main():
     texts = ['Hello "World"', "It's great", "Line\nbreak"]
     escaped_texts = processor.batch_escape(texts)
     for original, escaped in zip(texts, escaped_texts):
-        print(f'{repr(original)} -> {repr(escaped)}')
+        print(f'{original!r} -> {escaped!r}')
 
     print("\n=== 便捷函数使用 ===")
     result = auto_escape('This is a "test" string with \'quotes\' and \\backslashes\\')
-    print(f'便捷转义结果: {repr(result)}')
+    print(f'便捷转义结果: {result!r}')
 
 
 # 使用示例
