@@ -3,8 +3,8 @@ from typing import Any
 
 from dovetail.core.annotations.base import AnnotationProcessor, AnnotationContext, AnnotationResult
 from dovetail.core.annotations.decorator import annotation_processor
-from dovetail.core.enums.minecraft import UnknownMinecraftVersionError
 from dovetail.core.enums import MinecraftVersion, MinecraftEdition
+from dovetail.core.enums.minecraft import UnknownMinecraftVersionError
 from dovetail.core.errors import Errors
 from dovetail.core.symbols import Function, Variable, Class
 
@@ -75,6 +75,7 @@ class IfSymbolProcessor(AnnotationProcessor):
         return AnnotationResult(
             skip=expected_cls is not None and not isinstance(symbol, expected_cls)
         )
+
 
 @annotation_processor
 class IfFeatureProcessor(AnnotationProcessor):

@@ -8,8 +8,8 @@ from attrs import define, field
 from dovetail.core.annotations.base import (
     AnnotationProcessor, AnnotationContext, AnnotationResult, AnnotationTiming, AnnotationAttachment
 )
-from dovetail.core.errors import Errors
 from dovetail.core.annotations.spec import Annotation
+from dovetail.core.errors import Errors
 
 
 @define(slots=True)
@@ -113,7 +113,6 @@ class AnnotationRegistry:
             return AnnotationResult()
 
         return processor.process(args, ctx)
-
 
     def validate_and_process_group(
             self,

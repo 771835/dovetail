@@ -11,15 +11,17 @@ from collections import deque
 from typing import TYPE_CHECKING
 
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.config import get_project_logger
 from dovetail.core.enums.optimization import OptimizationLevel
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.context import OptimizationContext
 from dovetail.core.optimize.pass_metadata import PassPhase
 from dovetail.core.optimize.pass_registry import get_registry
+from dovetail.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from dovetail.core.optimize.base import IROptimizationPass
+
+logger = get_logger(__name__)
 
 
 class OptimizationPipeline:
@@ -154,7 +156,7 @@ class OptimizationPipeline:
 
     def _debug_pipeline(self) -> None:
         """调试：打印管道信息"""
-        get_project_logger().info(f"Optimization Pipeline for level {self.config.optimization_level}:")
+        logger.info(f"Optimization Pipeline for level {self.config.optimization_level}:")
 
         current_phase = None
         for pass_class in self._pipeline:
@@ -191,11 +193,11 @@ class OptimizationPipeline:
             context = context.with_updates(iteration=iteration)
             changed = False
 
-            get_project_logger().debug(f"Optimization iteration {iteration}")
+            logger.debug(f"Optimization iteration {iteration}")
 
             for pass_class in self._pipeline:
                 if self.config.debug:
-                    get_project_logger().debug(f"Print builder")
+                    logger.debug(f"Print builder")
                     builder.print()
                 pass_instance = pass_class(builder, self.config)
 
@@ -227,7 +229,7 @@ class OptimizationPipeline:
 
             # 没有变化则提前结束
             if not changed:
-                get_project_logger().debug("No changes detected, optimization complete")
+                logger.debug("No changes detected, optimization complete")
                 break
 
         return builder

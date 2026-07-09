@@ -12,7 +12,7 @@ Minecraft 数据包。
 > - OOP 特性与数组借用机制尚未完整实现
 > - 语法迭代较快，**不保证向后兼容**
 >
-> 如需生产环境使用，建议考虑 [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 等成熟项目。
+> 如需生产环境使用，建议考虑 [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 等相对较为成熟的项目。
 
 ## 核心特性
 
@@ -66,7 +66,7 @@ IR 指令序列（IRInstruction）
 ## 已知永久限制
 
 - **不支持递归**：在 Minecraft 中维护运行时栈帧开销极大，建议改写为迭代实现
-- **泄漏式内存管理**：当前内存管理策略较为激进
+- **泄漏式内存管理**：当前内存管理策略较为激进，以性能为主要考虑项
 
 ## 下一步
 

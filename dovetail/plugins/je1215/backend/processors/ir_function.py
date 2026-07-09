@@ -12,7 +12,6 @@ from ..initializer_function_writer import InitializerFunctionWriter
 @ir_processor(JE1214Backend, IROpCode.FUNCTION)
 class IRFunctionProcessor(IRProcessor):
 
-
     def process(self, instruction: IRInstruction, context: GenerationContext):
         function: Function = instruction.operands[0]  # NOQA
 

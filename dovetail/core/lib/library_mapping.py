@@ -11,8 +11,8 @@ from dovetail.core.lib.experimental import Experimental
 from dovetail.core.lib.lib_assertion import Assertion
 from dovetail.core.lib.lib_math import Math
 from dovetail.core.lib.lib_random import Random
-from dovetail.core.lib.library import Library, LibraryContext
 from dovetail.core.lib.lib_string import Strlib
+from dovetail.core.lib.library import Library, LibraryContext
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.parser.components.ir_emitter import IREmitter
 from dovetail.core.parser.components.symbol_resolver import SymbolResolver

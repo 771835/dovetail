@@ -4,8 +4,8 @@ from __future__ import annotations
 from attrs import define
 
 from .base import Symbol
-from ..enums.types import VariableType
 from ..enums.datatypes import DataTypeBase
+from ..enums.types import VariableType
 
 
 @define(slots=True)

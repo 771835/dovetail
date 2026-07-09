@@ -16,6 +16,7 @@ from .commands import FunctionBuilder, DataBuilder, ScoreboardBuilder
 class InitializerFunctionWriter(OutputWriter):
     init_functions: list[str] = []
     tick_functions: list[str] = []
+
     def write(self, context: GenerationContext):
         function_dir_path = context.target / context.namespace / "data" / context.namespace / "function"
         function_dir_path.mkdir(parents=True, exist_ok=True)

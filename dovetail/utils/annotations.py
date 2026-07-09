@@ -13,8 +13,9 @@ from typing import (
     get_type_hints, get_origin, get_args
 )
 
-from dovetail.core.config import get_project_logger
 from dovetail.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # 类型变量
 T = TypeVar('T')
@@ -149,11 +150,11 @@ def timed(message: str = "用时{:.3f}s") -> Callable[[F], F]:
             result = func(*args, **kwargs)
             end_time = time.perf_counter()
             elapsed = end_time - start_time
-            logger = get_project_logger() or get_logger("time")
+
             logger.info(message.format(elapsed))
             return result
 
-        return cast(F, wrapper)
+        return wrapper
 
     return decorator
 

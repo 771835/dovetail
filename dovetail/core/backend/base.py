@@ -9,8 +9,10 @@ from dovetail.core.backend.context import GenerationContext
 from dovetail.core.backend.output import OutputManager
 from dovetail.core.backend.processor import ProcessorRegistry
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.config import get_project_logger
 from dovetail.core.ir_builder import IRBuilder
+from dovetail.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class BackendMeta(ABCMeta):
@@ -73,7 +75,7 @@ class Backend(ABC, metaclass=BackendMeta):
             try:
                 processor.process(instruction, context)
             except Exception as e:
-                get_project_logger().error(f"Failed to process {instruction.opcode.name}: {e.__repr__()}")
+                logger.error(f"Failed to process {instruction.opcode.name}: {e.__repr__()}")
                 if self.config.debug:
                     raise
 

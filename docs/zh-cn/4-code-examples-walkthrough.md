@@ -1,6 +1,7 @@
 # 代码示例解析
 
-`example/` 目录包含 17 个 `.mcdl` 示例文件，覆盖了从基础语法到复杂特性的完整语言功能。
+`example/` 目录包含 17 个 `.mcdl` 示例文件，覆盖了从基础语法到复杂特性的完整语言功能。  
+以下分析一些关键性代码。
 
 ## example1.mcdl — 条件编译与前向声明
 
@@ -95,26 +96,27 @@ fn main() {
 **要点：**
 
 - 构造函数固定名称为 `__init__`，不返回值
-- 方法调用语法：`obj.method(obj, args...)` — self 必须显式传入
+- 方法调用语法：`obj.method(args...)` — self 必须显式传入
 - f-string 插值可直接嵌入字段访问表达式
 
-## example4-17.mcdl — 语言特性覆盖
+## example16.mcdl — 对`clang-mc`的简单函数调用
 
-| 示例        | 主要特性                      |
-|-----------|---------------------------|
-| example4  | while 循环、break/continue   |
-| example5  | for 循环（传统与增强）             |
-| example6  | 结构体（struct）               |
-| example7  | 枚举（enum）                  |
-| example8  | 多继承类                      |
-| example9  | `@version` 版本条件编译         |
-| example10 | `@deprecated` 弃用标注        |
-| example11 | 常量折叠验证                    |
-| example12 | 嵌套函数与作用域                  |
-| example13 | 字符串操作                     |
-| example14 | `@internal` / `@noinline` |
-| example16 | 递归（需 `--recursion`）       |
-| example17 | 复杂类层次结构                   |
+
+```mcdl
+@extern("_ll_shared:add", "clang-mc", "")
+fn add(a: int,b: int) -> int;
+
+@init
+fn main() -> int{
+    print(str(add(1,2)))
+}
+```
+
+**要点：**
+
+- 通过`@extern`声明外部导入变量
+- `str()` 将整数转为字符串以供 `print` 使用
+
 
 ## 通用语法规律总结
 
@@ -122,5 +124,5 @@ fn main() {
 
 1. **无分号**：语句末尾不加分号，`;` 仅作空语句使用
 2. **注解先行**：注解紧贴函数/类定义，不可用于变量
-3. **显式 self**：方法定义和调用均需显式处理 self 参数
+3. **显式 self**：方法定义需显式处理 self 参数
 4. **类型前置**：变量声明中类型在名称之前，如 `Player steve = Player(...)`，或使用 `let` 自动推导

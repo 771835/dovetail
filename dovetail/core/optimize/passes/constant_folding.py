@@ -609,7 +609,8 @@ class ConstantFoldingPass(IROptimizationPass):
                 self._assign(iterator, new_assign)
                 return True
 
-            if dtype == PrimitiveDataType.STRING and value.get_dtype() in (PrimitiveDataType.INT, PrimitiveDataType.BOOLEAN):
+            if dtype == PrimitiveDataType.STRING and value.get_dtype() in (PrimitiveDataType.INT,
+                                                                           PrimitiveDataType.BOOLEAN):
                 str_val = str(int(value.value.value))
                 str_literal_ref = Reference.literal(str_val)
                 new_assign = IRAssign(result, str_literal_ref)

@@ -6,9 +6,9 @@
 以避免重复包含。主要功能包括记录包含历史、检查是否已包含某路径、检测循环依赖等。
 """
 
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
-from contextlib import contextmanager
 
 from lark.tree import Meta
 

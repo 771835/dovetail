@@ -2,7 +2,6 @@
 """主程序"""
 import argparse
 import json
-import logging
 import os
 import sys
 from contextlib import chdir
@@ -13,8 +12,8 @@ import fastjsonschema
 
 from dovetail.core.backend import BackendFactory
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, set_project_logger, PROJECT_NAME, \
-    get_project_logger, PROJECT_VERSION, PROJECT_WEBSITE, PROJECT_LICENSE
+from dovetail.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, PROJECT_NAME, PROJECT_VERSION, \
+    PROJECT_WEBSITE, PROJECT_LICENSE
 from dovetail.core.enums.minecraft import MinecraftVersion
 from dovetail.core.enums.optimization import OptimizationLevel
 from dovetail.core.errors import CompilationError
@@ -28,6 +27,8 @@ from dovetail.utils.annotations import timed
 from dovetail.utils.ir_serializer import IRSymbolSerializer
 from dovetail.utils.logger import get_logger
 from dovetail.utils.naming import NameNormalizer
+
+logger = get_logger(__name__)
 
 
 class Compiler:
@@ -61,7 +62,6 @@ class Compiler:
         self.backend_name = backend_name
         self.generate = generate
         self.output_temp_file = output_temp_file
-        self.logger = get_project_logger()
 
     def compile(self, source_path: Path, target_path: Path) -> int:
         """
@@ -147,7 +147,7 @@ class Compiler:
         source_path = source_path.resolve()
 
         if not source_path.exists():
-            self.logger.error(f"The path '{source_path}' is not valid.")
+            logger.error(f"The path '{source_path}' is not valid.")
             return -1
 
         generator = ASTVisitor(self.config, source_path)
@@ -178,7 +178,7 @@ class Compiler:
                     self._generate_backend_code(builder, target_dir_path)
             except CompilationError as e:
 
-                self.logger.critical(e.__repr__())
+                logger.critical(e.__repr__())
                 if self.config.debug:
                     # 重新抛出异常显示错误详情
                     raise
@@ -240,9 +240,6 @@ def main():
 
     parsed_args = args_parser.parse_args()
 
-    # 设置日志输出器
-    set_project_logger(get_logger(PROJECT_NAME, logging.DEBUG if parsed_args.debug else logging.INFO))
-
     # 加载插件
     if not parsed_args.disable_plugins:
         plugin_loader.load_plugin("plugin_loader")
@@ -274,7 +271,7 @@ def main():
         lib_path = Path("lib").resolve()
 
     if not lib_path.exists():
-        get_project_logger().critical(f"The path '{lib_path}' is not valid.")
+        logger.critical(f"The path '{lib_path}' is not valid.")
         return
 
     compiler = Compiler(

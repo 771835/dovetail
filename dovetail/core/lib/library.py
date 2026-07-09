@@ -1,6 +1,7 @@
 # coding=utf-8
 from abc import ABCMeta, abstractmethod
 from typing import Callable, Optional
+
 from attrs import define
 
 from dovetail.core.compile_config import CompileConfig

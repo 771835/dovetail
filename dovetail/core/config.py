@@ -97,10 +97,5 @@ DEFAULT_SUGGESTIONS: list[str] = [
 logger: ThreadSafeLogger | None = None
 
 
-def set_project_logger(new_logger: ThreadSafeLogger):
-    global logger
-    logger = new_logger
-
-
 def get_project_logger():
     return logger

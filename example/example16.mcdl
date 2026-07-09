@@ -1,6 +1,3 @@
-typedef int i32
-
-
 @extern("_ll_shared:add", "clang-mc", "")
 fn add(a: int,b: int) -> int;
 

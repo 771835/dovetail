@@ -6,6 +6,7 @@ MCDL 转译器枚举模块统一入口
 并提供统一的导入接口。
 """
 
+from .datatypes import PrimitiveDataType
 # Minecraft 兼容性枚举
 from .minecraft import MinecraftEdition, MinecraftVersion
 # 操作符枚举
@@ -23,7 +24,6 @@ from .types import (
     VariableType,
     ClassType, FunctionType
 )
-from .datatypes import PrimitiveDataType
 
 # 导出所有枚举
 __all__ = [

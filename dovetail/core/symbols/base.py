@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any, TYPE_CHECKING
 
 from dovetail.core.enums.datatypes import DataTypeBase
+
 if TYPE_CHECKING:
     from dovetail.core.annotations.base import AnnotationAttachment
 
@@ -25,6 +26,7 @@ class Symbol(ABC):
         """
         from dovetail.core.enums import PrimitiveDataType
         return PrimitiveDataType.UNDEFINED
+
 
 class AnnotationMixin:
     annotations: dict[str, "AnnotationAttachment"]

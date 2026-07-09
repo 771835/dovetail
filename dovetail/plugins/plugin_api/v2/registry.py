@@ -8,13 +8,12 @@ See Also:
 
 根据DFP-602《插件系统规范》定义
 """
-import dovetail.core.optimize.pass_registry as pass_registry
 import dovetail.core.annotations.registry as annotation_registry
-
+import dovetail.core.optimize.pass_registry as pass_registry
+from dovetail.core.annotations.decorator import annotation_processor
 from dovetail.core.annotations.spec import inject_annotation_spec
 from dovetail.core.backend import BackendFactory
 from dovetail.core.lib.library_mapping import LibraryMapping
-from dovetail.core.annotations.decorator import annotation_processor
 
 __all__ = [
     "registry_backend",

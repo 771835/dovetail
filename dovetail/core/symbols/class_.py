@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 from attrs import define, field
 
 from .base import Symbol, AnnotationMixin
-from ..enums.types import ClassType
 from ..enums.datatypes import DataTypeBase
+from ..enums.types import ClassType
 
 if TYPE_CHECKING:
     from . import Function, Variable

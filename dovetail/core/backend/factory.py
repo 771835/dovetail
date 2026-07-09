@@ -3,13 +3,15 @@
 后端工厂
 """
 from pathlib import Path
-from typing import Dict, Type
+from typing import Dict, Type, Optional
 
 from dovetail.core.backend.base import Backend
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.config import get_project_logger
 from dovetail.core.errors import report, Errors, CompilationError
 from dovetail.core.ir_builder import IRBuilder
+from dovetail.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class BackendNotFoundError(CompilationError):
@@ -27,7 +29,7 @@ class BackendFactory:
         """注册后端"""
         name = backend_class.get_name()
         cls._backends[name] = backend_class
-        get_project_logger().info(f"Registered backend: {name}")
+        logger.info(f"Registered backend: {name}")
 
     @classmethod
     def create(cls, name: str, ir_builder: IRBuilder, target: Path, config: CompileConfig) -> Backend | None:
@@ -56,7 +58,7 @@ class BackendFactory:
         return backend_class(ir_builder, target, config)
 
     @classmethod
-    def auto_select(cls, config: CompileConfig, backend_name: str = None) -> type[Backend] | None:
+    def auto_select(cls, config: CompileConfig, backend_name: Optional[str] = None) -> type[Backend] | None:
         """
         自动选择合适的后端
 
@@ -82,7 +84,7 @@ class BackendFactory:
         else:
             for name, backend in cls._backends.items():
                 if backend.is_support(config):
-                    get_project_logger().info(f"Selected backend '{name}' ({id(backend)}).")
+                    logger.info(f"Selected backend '{name}' ({id(backend)}).")
                     return backend
 
         report(

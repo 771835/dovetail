@@ -7,13 +7,14 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Dict, Type, TYPE_CHECKING, TypeVar
 
-from dovetail.core.config import get_project_logger
+from dovetail.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from dovetail.core.backend import Backend
 from dovetail.core.instructions import IROpCode, IRInstruction
 from dovetail.core.backend.context import GenerationContext
 
+logger = get_logger(__name__)
 _IRInstructionType = TypeVar("_IRInstructionType", bound="IRInstruction")
 
 
@@ -47,7 +48,7 @@ class DefaultProcessor(IRProcessor):
         opcode_name = instruction.opcode.name
         opcode_display_name = instruction.opcode.value[1]
         context.add_command(f"# WARNING: No processor for {opcode_name}({opcode_display_name})")
-        get_project_logger().warning(f"No processor registered for opcode: {opcode_name}({opcode_display_name})")
+        logger.warning(f"No processor registered for opcode: {opcode_name}({opcode_display_name})")
 
 
 class ProcessorRegistry:

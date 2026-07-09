@@ -1,12 +1,11 @@
 # coding=utf-8
 from typing import Callable, Optional
 
-from dovetail.core.enums.types import FunctionType
 from dovetail.core.enums import PrimitiveDataType
+from dovetail.core.enums.types import FunctionType
 from dovetail.core.errors import report, Errors
 from dovetail.core.instructions import IRCast, IRCall, IRJump
 from dovetail.core.lib.library import Library, LibraryContext
-from dovetail.core.parser.components import SymbolResolver, IREmitter, ErrorReporter
 from dovetail.core.symbols import Function, Reference, Variable, Literal, Parameter
 from dovetail.utils.naming import NameNormalizer
 

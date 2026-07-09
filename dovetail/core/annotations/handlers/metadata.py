@@ -8,7 +8,8 @@ from dovetail.core.annotations.decorator import annotation_processor
 @annotation_processor
 class DeprecatedProcessor(AnnotationProcessor):
     annotation_name = "deprecated"
-    timing = AnnotationTiming.PRE_SYMBOL #
+    timing = AnnotationTiming.PRE_SYMBOL  #
+
     def process(self, args, ctx):
         return AnnotationResult(
             skip=ctx.config.disable_deprecated_function,
@@ -20,6 +21,7 @@ class DeprecatedProcessor(AnnotationProcessor):
 class DocProcessor(AnnotationProcessor):
     annotation_name = "doc"
     timing = AnnotationTiming.POST_SYMBOL
+
     def process(self, args, ctx):
         return AnnotationResult(metadata={"doc": args.get("text", "")})
 
@@ -28,6 +30,7 @@ class DocProcessor(AnnotationProcessor):
 class AuthorProcessor(AnnotationProcessor):
     annotation_name = "author"
     timing = AnnotationTiming.POST_SYMBOL
+
     def process(self, args, ctx):
         return AnnotationResult(metadata={"author": args.get("name", "")})
 
@@ -36,5 +39,6 @@ class AuthorProcessor(AnnotationProcessor):
 class SinceProcessor(AnnotationProcessor):
     annotation_name = "since"
     timing = AnnotationTiming.POST_SYMBOL
+
     def process(self, args, ctx):
         return AnnotationResult(metadata={"since": args.get("version", "")})

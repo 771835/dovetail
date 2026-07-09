@@ -6,7 +6,7 @@ from typing import Optional
 
 from lark import Lark, Tree
 
-from dovetail.core.config import MAX_FILE_SIZE, get_project_logger
+from dovetail.core.config import MAX_FILE_SIZE
 from dovetail.core.errors import report, Errors
 from dovetail.core.parser.components import ErrorReporter
 from dovetail.utils.logger import get_logger
@@ -20,6 +20,7 @@ lark_parser = Lark(
     propagate_positions=True,
     maybe_placeholders=True
 )
+logger = get_logger(__name__)
 
 
 def parser_code(code: str, start: Optional[str] = None) -> Tree:
@@ -39,7 +40,8 @@ def parser_code(code: str, start: Optional[str] = None) -> Tree:
     return lark_parser.parse(code, start=parse_start)  # , on_error=lambda e: True)
 
 
-def parser_file(filepath: Path, start: Optional[str] = None, error_reporter: Optional[ErrorReporter] = None) -> Optional[Tree]:
+def parser_file(filepath: Path, start: Optional[str] = None, error_reporter: Optional[ErrorReporter] = None) -> \
+        Optional[Tree]:
     """
     解析代码文件生成 AST
 
@@ -78,7 +80,6 @@ def parser_file(filepath: Path, start: Optional[str] = None, error_reporter: Opt
     tree = parser_code(code, start=start)
 
     elapsed = time.perf_counter() - start_time
-    logger = get_project_logger() or get_logger("time")
     logger.info(f"解析文件 '{filepath.name}' 用时 {elapsed:.5f}.")
     return tree
 

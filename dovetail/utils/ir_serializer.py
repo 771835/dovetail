@@ -5,12 +5,12 @@ import uuid
 from enum import Enum
 from typing import Any, Dict, NoReturn
 
+from dovetail.core.annotations.base import AnnotationCategory
 from dovetail.core.config import PROJECT_VERSION
 from dovetail.core.enums import CompareOps, FunctionType, ClassType, BinaryOps, UnaryOps, PrimitiveDataType, \
     VariableType
-from dovetail.core.enums.types import StructureType
-from dovetail.core.annotations.base import AnnotationCategory
 from dovetail.core.enums.datatypes import DataTypeBase
+from dovetail.core.enums.types import StructureType
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.symbols import Symbol, Literal, Parameter, Reference, Class, Function, Variable

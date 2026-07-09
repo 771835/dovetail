@@ -1,5 +1,6 @@
 # coding=utf-8
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from enum import auto
 from typing import Any, TYPE_CHECKING
@@ -7,8 +8,8 @@ from typing import Any, TYPE_CHECKING
 from attrs import define, field
 
 from dovetail.core.symbols.class_ import Class
-from dovetail.core.symbols.function import Function
 from dovetail.core.symbols.enumeration import Enumeration
+from dovetail.core.symbols.function import Function
 from dovetail.core.symbols.structure import Structure
 from dovetail.utils.safe_enum import SafeEnum
 
@@ -77,7 +78,7 @@ class AnnotationResult:
         )
 
 
-@define(slots=True,repr=False)
+@define(slots=True, repr=False)
 class AnnotationAttachment:
     """附着在符号上的单个注解实例（处理后的完整信息）"""
     name: str
@@ -94,6 +95,7 @@ class AnnotationAttachment:
 
     def __repr__(self):
         return f"({self.name!r}, {self.args!r})"
+
 
 @define(slots=True)
 class AnnotationContext:

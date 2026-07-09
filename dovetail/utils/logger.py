@@ -7,6 +7,8 @@ import threading
 from logging.handlers import RotatingFileHandler
 from typing import Optional, Union
 
+LOG_FILE = "dovetail.log"
+
 
 class MessageTranslator:
     """消息翻译器，支持根据键翻译消息"""
@@ -87,25 +89,28 @@ class ThreadSafeLogger:
                 cls._instances[name] = super().__new__(cls)
             return cls._instances[name]
 
-    def __init__(self, name: str = 'default', level: Union[str, int] = logging.INFO):
+    def __init__(self, name: str = 'default', console_level: Union[str, int] = logging.INFO):
         if hasattr(self, '_initialized'):
             return
 
         self._initialized = True
         self.logger = logging.getLogger(name)
-        self.logger.setLevel(level)
-
         # 避免重复添加处理器
-        if not self.logger.handlers:
-            self._setup_handlers()
+        if self.logger.handlers:
+            return
+
+        # 设置logging.DEBUG便于其他处理器处理全部等级日志
+        self.logger.setLevel(logging.DEBUG)
+        self._setup_handlers(console_level)
 
     def setLevel(self, level) -> None:
         self.logger.setLevel(level)
 
-    def _setup_handlers(self):
+    def _setup_handlers(self, console_level: Union[str, int]):
         """设置日志处理器"""
         # 控制台处理器（彩色）
         console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(console_level)
         console_formatter = ColoredFormatter(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
@@ -174,13 +179,17 @@ class ThreadSafeLogger:
         with self._lock:
             self.logger.exception(message, *args, **kwargs)
 
+    @classmethod
+    def load_translations(cls, json_file: str):
+        """加载翻译文件"""
+        cls._translator.load_translations_from_json(json_file)
+
 
 class LoggerFactory:
     """日志工厂类"""
 
     _lock = threading.Lock()
     _loggers = {}
-    _translator = MessageTranslator()
 
     @classmethod
     def get_logger(cls, name: str = 'default',
@@ -251,50 +260,26 @@ class LoggerFactory:
         if not has_file_handler:
             logger_instance.logger.addHandler(file_handler)
 
-    @classmethod
-    def load_translations(cls, json_file: str):
-        """加载翻译文件"""
-        cls._translator.load_translations_from_json(json_file)
-
 
 # 便捷函数
 def get_logger(name: str = 'default',
-               level: Union[str, int] = logging.INFO,
-               log_file: Optional[str] = None) -> ThreadSafeLogger:
+               level: Union[str, int] = logging.INFO) -> ThreadSafeLogger:
     """
     获取日志记录器的便捷函数
 
     Args:
         name: 日志记录器名称
         level: 日志级别 ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
-        log_file: 日志文件路径（可选）
 
     Returns:
         ThreadSafeLogger实例
     """
-    return LoggerFactory.get_logger(name, level, log_file)
-
-
-def setup_logger(name: str = 'default',
-                 level: Union[str, int] = logging.INFO,
-                 log_file: Optional[str] = None) -> ThreadSafeLogger:
-    """
-    设置日志记录器的便捷函数
-
-    Args:
-        name: 日志记录器名称
-        level: 日志级别
-        log_file: 日志文件路径（可选）
-
-    Returns:
-        ThreadSafeLogger实例
-    """
-    return get_logger(name, level, log_file)
+    return LoggerFactory.get_logger(name, level, LOG_FILE)
 
 
 def load_translations(json_file: str):
     """加载翻译文件"""
-    LoggerFactory.load_translations(json_file)
+    ThreadSafeLogger.load_translations(json_file)
 
 
 # 使用示例和测试代码

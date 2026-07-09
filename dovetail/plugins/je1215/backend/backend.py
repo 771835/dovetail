@@ -57,7 +57,7 @@ class JE1214Backend(Backend):
     def get_dependency_files(self) -> list[DependencyFile]:
         dnt_url = "https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer/archive/refs/heads/pre-1.21.11.zip"
         if os.environ.get("USED_MIRROR_GITHUB_CN"):
-            dnt_url = "https://gh-proxy.org/" +  dnt_url
+            dnt_url = "https://gh-proxy.org/" + dnt_url
         return [
             DependencyFile(
                 dnt_url,

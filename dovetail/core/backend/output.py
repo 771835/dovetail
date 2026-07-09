@@ -10,9 +10,12 @@ from pathlib import Path
 from typing import Dict, Callable, Optional
 
 from dovetail.core.backend.context import GenerationContext, Scope, DependencyFile
-from dovetail.core.config import PROJECT_NAME, PROJECT_WEBSITE, get_project_logger, PROJECT_VERSION
+from dovetail.core.config import PROJECT_NAME, PROJECT_WEBSITE, PROJECT_VERSION
 from dovetail.utils.datapack_format import get_datapack_format
 from dovetail.utils.download_tool import download_dependencies
+from dovetail.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class OutputWriter(ABC):
@@ -48,7 +51,7 @@ class CommandWriter(OutputWriter):
         for scope in context.get_all_scopes():
             if scope.has_commands():
                 command_cnt += self._write_scope(scope, context)
-        get_project_logger().info(f"共写入 {command_cnt} 条指令")
+        logger.info(f"共写入 {command_cnt} 条指令")
 
     def _write_scope(self, scope: Scope, context: GenerationContext) -> int:
         """写入单个作用域的命令文件"""
@@ -141,7 +144,7 @@ class DependentDatapackWriter(OutputWriter):
             dst = context.target / context.namespace / name
 
             if pack_path is None:
-                get_project_logger().error(f"Download dependence failed for {url}")
+                logger.error(f"Download dependence failed for {url}")
                 continue
 
             context.pack_meta.add_overlay(
@@ -156,7 +159,7 @@ class DependentDatapackWriter(OutputWriter):
                 if zipfile.is_zipfile(pack_path):
                     self._extract_zipfile(pack_path, dst)
                 else:
-                    get_project_logger().warning(f"Unknown dependency file: {pack_path}")
+                    logger.warning(f"Unknown dependency file: {pack_path}")
             elif pack_path.is_dir():
                 shutil.copy(pack_path, dst)
 
@@ -299,7 +302,7 @@ class OutputManager:
             try:
                 writer.write(context)
             except Exception as e:
-                get_project_logger().error(f"Writer {name}: {e}")
+                logger.error(f"Writer {name}: {e}")
                 if context.config.debug:
                     raise
 

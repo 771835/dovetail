@@ -66,6 +66,7 @@ from dovetail.utils.naming import NameNormalizer
 _n = NameNormalizer.normalize
 _dn = NameNormalizer.denormalize
 
+
 class ASTVisitor(Interpreter):
     """
     AST 访问器 - 遍历语法树并生成中间表示（IR）
@@ -1219,5 +1220,5 @@ class ASTVisitor(Interpreter):
             return self._undefined_annotation()
 
         # 访问所有参数值并构建参数字典（参数名 -> 参数值）
-        param_values = [self.visit(child).value.value for child in children] # noqa
+        param_values = [self.visit(child).value.value for child in children]  # noqa
         return annotation, dict(zip(annotation.params, param_values))

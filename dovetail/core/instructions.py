@@ -12,16 +12,17 @@ See Also:
     判定单条IR指令类型的唯一金标准是比较 IROpCode 的ID编号是否相同
 """
 from __future__ import annotations
+
 import functools
 from typing import Any, Optional, Union, get_type_hints, Callable
 
 from dovetail.core.config import ENABLE_INSTRUCTION_VALIDATION, FAST_MODE
-from dovetail.utils.safe_enum import SafeEnum
 from dovetail.core.enums import PrimitiveDataType, StructureType, BinaryOps, CompareOps, UnaryOps
-from dovetail.core.symbols.structure import Structure
-from dovetail.core.symbols.enumeration import Enumeration
-from dovetail.core.symbols.class_ import Class
 from dovetail.core.symbols import Variable, Literal, Reference, Function
+from dovetail.core.symbols.class_ import Class
+from dovetail.core.symbols.enumeration import Enumeration
+from dovetail.core.symbols.structure import Structure
+from dovetail.utils.safe_enum import SafeEnum
 
 _DefinableDataTypes = Union[
     PrimitiveDataType,
@@ -362,7 +363,7 @@ def _function_repr(instr: IRInstruction) -> str:
         f"{p.var.dtype.get_name()} {p.var.get_name()}"
         for p in func.params
     )
-    annotations_str = "\n".join(f"@{name}{attachment}" for name,attachment  in func.annotations.items())
+    annotations_str = "\n".join(f"@{name}{attachment}" for name, attachment in func.annotations.items())
     return f"{annotations_str}\nfunction {func.return_type.get_name()} {func.get_name()}({params_str})"
 
 

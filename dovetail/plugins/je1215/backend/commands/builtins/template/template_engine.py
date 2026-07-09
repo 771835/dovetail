@@ -2,11 +2,13 @@
 import re
 import uuid
 
-from dovetail.core.config import get_project_logger
+from dovetail.utils.logger import get_logger
 from .parameter import TemplateParameter, ParamBindingType
 from .template import CommandTemplate, TemplateRegistry
 from ... import LiteralPoolTools, DataPath, Copy, StorageLocation
 from ....commands import FunctionBuilder
+
+logger = get_logger(__name__)
 
 
 class TemplateEngine:
@@ -135,7 +137,7 @@ class TemplateEngine:
         # 验证参数
         valid, error = template.validate_params(all_params)
         if not valid:
-            get_project_logger().error(f"Template '{template.name}' parameter validation failed: {error}")
+            logger.error(f"Template '{template.name}' parameter validation failed: {error}")
             return []
 
         # 智能选择渲染模式

@@ -1,14 +1,17 @@
 # coding=utf-8
 import itertools
 from abc import abstractmethod
-from typing import Protocol
+from typing import Protocol, Optional
 
 from dovetail.core.backend import GenerationContext
-from dovetail.core.config import get_project_logger
 from dovetail.core.symbols import Variable, Reference
+from dovetail.utils.logger import get_logger
 from .template.parameter import ParameterBuilder
 from .template.template import TemplateRegistry
 from .template.template_engine import TemplateEngine
+
+logger = get_logger(__name__)
+
 
 class CommandHandler(Protocol):
     """
@@ -40,7 +43,6 @@ class CommandHandler(Protocol):
         if hasattr(self, "no_size_effects") and self.no_size_effects and not result:
             return
         self.handle(result, context, args)
-
 
     @abstractmethod
     def handle(
@@ -128,7 +130,7 @@ class DefaultCommandHandler(CommandHandler):
         self.name = name
 
     def handle(self, result, context, args):
-        get_project_logger().error(f"Cannot find function '{self.name}'")
+        logger.error(f"Cannot find function '{self.name}'")
         context.current_scope.add_command(f"# Cannot find function '{self.name}'")
 
 
@@ -138,7 +140,7 @@ class CommandRegistry:
     _lock = __import__('threading').Lock()
 
     @classmethod
-    def register(cls, name: str, handler: CommandHandler = None):
+    def register(cls, name: str, handler: Optional[CommandHandler] = None):
         """
         注册命令处理器
 
