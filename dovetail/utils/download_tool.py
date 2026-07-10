@@ -191,7 +191,7 @@ def download_file(
         try:
             if attempt > 0:
                 delay = retry_delay * attempt  # 指数退避
-                logger.info(f"Retry attempt {attempt + 1}/{max_retries} after {delay}s")
+                logger.info(f"在{delay}s后尝试{attempt + 1}{max_retries}")
                 time.sleep(delay)
 
             # 获取文件大小（仅第一次尝试）
@@ -200,7 +200,7 @@ def download_file(
                 total_size = _get_file_size_from_head(url, default_headers, timeout, verify_ssl)
 
             # 发起GET请求下载文件
-            logger.info(f"Downloading {url}")
+            logger.info(f"下载 {url} 至 {filepath}")
             response = requests.get(
                 url,
                 stream=True,
@@ -308,13 +308,13 @@ def download_dependencies(
     # 检查文件是否已在缓存中且有效
     if filepath.exists():
         if cache_manager.is_file_valid(filepath, sha256):
-            logger.info(f"File already exists in cache and is valid: {filepath}")
+            logger.info(f"文件已经存在于缓存中且有效: {filepath}")
             # 确保缓存表中有记录
             if not cache_manager.get_cache_info(filepath):
                 cache_manager.update_cache_info(filepath, url, sha256)
             return filepath
         else:
-            logger.warning("Cached file is invalid, re-downloading")
+            logger.warning("缓存文件无效，重新下载")
             filepath.unlink(missing_ok=True)
             cache_manager.remove_cache_entry(filepath)
 

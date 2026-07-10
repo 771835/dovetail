@@ -24,15 +24,17 @@ class IRCallProcessor(IRProcessor):
             return
         elif func.function_type == FunctionType.EXTERN:
             self._handle_ffi(result, func, args, func.all_metadata(), context)
-
             return
 
         func_path = self._resolve_func_path(func, context)
 
+        # 填充参数
         self._fill_arguments(args, func.params, context.objective, func_path, context)
 
+        # 调用函数
         self._call_function(context.namespace, func_path, context)
 
+        # 设置返回值
         self._handle_return_value(result, func, context.objective, func_path, context)
 
     def _resolve_func_path(self, func: Function, context: GenerationContext) -> str:
@@ -85,11 +87,7 @@ class IRCallProcessor(IRProcessor):
         if func.return_type != PrimitiveDataType.VOID and result is not None:
             context.current_scope.add_command(
                 Copy.copy(
-                    DataPath(
-                        context.current_scope.get_symbol_path(result.name),
-                        objective,
-                        StorageLocation.get_storage(result.dtype),
-                    ),
+                    DataPath.from_symbol(context, result),
                     DataPath(
                         f"return_{hash(func_path)}",
                         objective,
@@ -113,7 +111,6 @@ class IRCallProcessor(IRProcessor):
         match abi:
             case "clang-mc":
                 # 根据clang-mc wiki 《调用约定》传入实参
-
                 # 由于dict不保证元素顺序，因此根据func的参数确定传参顺序
                 for i, param in enumerate(func.params):
                     if args[param.get_name()].is_literal():
@@ -134,11 +131,7 @@ class IRCallProcessor(IRProcessor):
                 if result is not None and func.return_type != PrimitiveDataType.VOID:
                     ctx.current_scope.add_command(
                         Copy.copy(
-                            DataPath(
-                                ctx.current_scope.get_symbol_path(result.name),
-                                ctx.objective,
-                                StorageLocation.get_storage(result.dtype),
-                            ),
+                            DataPath.from_symbol(ctx, result),
                             DataPath(
                                 f"rax",
                                 objective

@@ -1,0 +1,10 @@
+# 一个常量折叠的错误，会使最终输出超过int上线
+fn square(x: int) -> int {
+    return x * x
+}
+
+@init
+fn main() {
+    print(str(65536 * 65536))
+    print(str(square(65536)))
+}

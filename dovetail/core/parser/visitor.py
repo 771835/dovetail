@@ -40,11 +40,11 @@ from dovetail.core.enums import (
     StructureType, PrimitiveDataType, VariableType, FunctionType,
     ValueType, BinaryOps, UnaryOps, CompareOps
 )
-from dovetail.core.enums.datatypes import DataTypeBase, ListType, ArrayType, MapType
+from dovetail.core.enums.datatypes import DataTypeBase, ListType, ArrayType, DictType
 from dovetail.core.errors import report, Errors
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp,
-    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRCast
+    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRCast, IRArrayAccess
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
@@ -779,8 +779,8 @@ class ASTVisitor(Interpreter):
                     dtype = ListType(types.pop(0))
                 case "array":
                     dtype = ArrayType(types.pop(0))
-                case "map":
-                    dtype = MapType(types.pop(0), types.pop(0))
+                case "dict":
+                    dtype = DictType(types.pop(0), types.pop(0))
                 case _:
                     dtype = PrimitiveDataType.get_by_value(original_name)
         except IndexError:
@@ -1046,8 +1046,8 @@ class ASTVisitor(Interpreter):
         args_dict = self._process_call_arguments(function, args, meta)
         # 调用函数
         if function.function_type == FunctionType.LIBRARY:
+            # 由于对内建函数的调用过程中的错误无行列信息提示，极难调试，故在此记录上下文
             with self.error_reporter.context(f"调用内建函数 {function.name} 位于 {meta.line}:{meta.column}"):
-                # 由于对内置函数的调用过程中的错误无行列信息提示，极难调试，故在此记录上下文
                 result_var = self.builtin_function[function.get_name()](**args_dict)
             if result_var is not None:
                 return Reference(result_var)
@@ -1071,6 +1071,31 @@ class ASTVisitor(Interpreter):
         is_mutable = bool(children.pop(0))
         value = self.visit(children.pop(0))
         return value, is_mutable
+
+    @v_args(meta=True)
+    def array_access(self, meta: Meta, children: list):
+        """数组访问"""
+        arr: Reference[Variable] = self.visit(children.pop(0))
+        index: Reference[Variable | Literal] = self.visit(children.pop(0))
+
+        # 先检查内置类型
+        dtype = arr.get_dtype()
+        ret_dtype: DataTypeBase
+
+        if isinstance(dtype, (DictType, ListType, ArrayType)):
+            if isinstance(dtype, DictType):
+                ret_dtype = dtype.value_dtype
+            else:
+                ret_dtype = dtype.dtype
+
+            var = self.ir_emitter.create_temp_var_declared(ret_dtype)
+
+            self.ir_emitter.emit(IRArrayAccess(var, arr, index))
+            return Reference(var)
+
+        # 对于其他类型的数据，调用__getitem__方法
+        # TODO: 调用具体方法
+        return Reference.void()
 
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""

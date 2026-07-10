@@ -6,7 +6,7 @@ from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.instructions import IRInstruction, IROpCode
 from ..backend import JE1214Backend
 from ..commands.copy import Copy
-from ..commands.tools import DataPath, StorageLocation
+from ..commands.tools import DataPath
 
 
 @ir_processor(JE1214Backend, IROpCode.ASSIGN)
@@ -16,26 +16,14 @@ class IRAssignProcessor(IRProcessor):
         if source.is_literal():
             context.add_command(
                 Copy.copy_literals(
-                    DataPath(
-                        context.current_scope.get_symbol_path(target.get_name()),
-                        context.objective,
-                        StorageLocation.get_storage(target.dtype)
-                    ),
+                    DataPath.from_symbol(context, target),
                     source.value.value
                 )
             )
         else:
             context.add_command(
                 Copy.copy(
-                    DataPath(
-                        context.current_scope.get_symbol_path(target.get_name()),
-                        context.objective,
-                        StorageLocation.get_storage(target.dtype)
-                    ),
-                    DataPath(
-                        context.current_scope.get_symbol_path(source.get_name()),
-                        context.objective,
-                        StorageLocation.get_storage(source.get_dtype())
-                    )
+                    DataPath.from_symbol(context, target),
+                    DataPath.from_symbol(context, source)
                 )
             )

@@ -170,9 +170,10 @@ class Scope:
     symbols: dict[str, Symbol] = field(factory=dict)
     flags: dict[str, Any] = field(factory=dict)
 
-    def add_command(self, command: str):
+    def add_command(self, command: str | None):
         """添加命令"""
-        self.commands.append(command)
+        if command:
+            self.commands.append(command)
 
     def has_commands(self) -> bool:
         """是否有命令"""

@@ -9,7 +9,7 @@ from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable, Class, Reference, Literal
 from ..backend import JE1214Backend
 from ..commands.strlib import to_str, to_int
-from ..commands.tools import DataPath, StorageLocation
+from ..commands.tools import DataPath
 
 
 @ir_processor(JE1214Backend, IROpCode.CAST)
@@ -19,16 +19,9 @@ class IRCastProcessor(IRProcessor):
         dtype: PrimitiveDataType | Class = instruction.operands[1]  # NOQA
         value: Reference[Variable | Literal] = instruction.operands[2]  # NOQA
 
-        result_path = DataPath(
-            context.current_scope.get_symbol_path(result),
-            context.objective,
-            StorageLocation.get_storage(result.dtype)
-        )
-        value_path = DataPath(
-            context.current_scope.get_symbol_path(value),
-            context.objective,
-            StorageLocation.get_storage(value.get_dtype())
-        ) if not value.is_literal() else value.value.value
+        result_path = DataPath.from_symbol(context, result)
+        value_path = DataPath.from_symbol(context, value) \
+            if not value.is_literal() else value.value.value
 
         if value.get_dtype().is_subclass_of(PrimitiveDataType.INT) and dtype == PrimitiveDataType.STRING:
             # int -> str

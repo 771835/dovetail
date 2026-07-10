@@ -88,10 +88,12 @@ class Reference(Symbol, Generic[T]):
     @classmethod
     def void(cls) -> Reference[Variable]:
         """
-        返回一个类型为 PrimitiveDataType.VOID 的不声明变量
+        返回一个类型为 PrimitiveDataType.VOID 的不可声明变量
+
+        通常用于逻辑不可达路径
 
         Returns:
-            一个类型为 PrimitiveDataType.VOID 的不声明变量
+            一个类型为 PrimitiveDataType.VOID 的不可声明变量
         """
         return cls.variable("_", PrimitiveDataType.VOID, mutable=False)
 

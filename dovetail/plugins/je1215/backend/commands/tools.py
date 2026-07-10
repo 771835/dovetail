@@ -3,8 +3,10 @@ from enum import auto
 
 from attrs import define
 
+from dovetail.core.backend import GenerationContext
 from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.enums.datatypes import DataTypeBase
+from dovetail.core.symbols import Symbol
 from dovetail.utils.safe_enum import SafeEnum
 
 
@@ -31,6 +33,14 @@ class DataPath:
     path: str
     target: str
     location: StorageLocation = StorageLocation.SCORE
+
+    @classmethod
+    def from_symbol(cls, context: GenerationContext, symbol: Symbol) -> 'DataPath':
+        return cls(
+            context.current_scope.get_symbol_path(symbol.get_name()),
+            context.objective,
+            StorageLocation.get_storage(symbol.get_dtype())
+        )
 
     def __iter__(self):
         yield self.path

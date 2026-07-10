@@ -7,34 +7,22 @@ from dovetail.core.enums import ValueType
 from dovetail.core.instructions import IRInstruction, IROpCode
 from ..backend import JE1214Backend
 from ..commands.compare import Compare
-from ..commands.tools import DataPath, StorageLocation
+from ..commands.tools import DataPath
 
 
 @ir_processor(JE1214Backend, IROpCode.COMPARE)
 class IRCompareProcessor(IRProcessor):
     def process(self, instr: IRInstruction, context: GenerationContext):
         result, op, a, b = instr.operands
-        result_path = DataPath(
-            context.current_scope.get_symbol_path(result.get_name()),
-            context.objective,
-            StorageLocation.SCORE
-        )
+        result_path = DataPath.from_symbol(context, result)
         if a.value_type == ValueType.LITERAL:
             a_path = a.value.value
         else:
-            a_path = DataPath(
-                context.current_scope.get_symbol_path(a.get_name()),
-                context.objective,
-                StorageLocation.get_storage(a.get_dtype())
-            )
+            a_path = DataPath.from_symbol(context, a)
         if b.value_type == ValueType.LITERAL:
             b_path = b.value.value
         else:
-            b_path = DataPath(
-                context.current_scope.get_symbol_path(b.get_name()),
-                context.objective,
-                StorageLocation.get_storage(b.get_dtype())
-            )
+            b_path = DataPath.from_symbol(context, b)
         context.add_commands(
             Compare.compare(
                 result_path,

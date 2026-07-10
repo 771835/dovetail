@@ -13,7 +13,7 @@ from dovetail.utils.logger import get_logger
 from ..backend import JE1214Backend
 from ..commands.binary_op import BinaryOp
 from ..commands.strlib import strcat
-from ..commands.tools import DataPath, StorageLocation
+from ..commands.tools import DataPath
 
 logger = get_logger(__name__)
 
@@ -58,8 +58,4 @@ class IROpProcessor(IRProcessor):  # 仅应支持基本类型运算
         """
         if isinstance(data, Literal):
             return data.value
-        return DataPath(
-            context.current_scope.get_symbol_path(data),
-            context.objective,
-            StorageLocation.get_storage(data.dtype)
-        )
+        return DataPath.from_symbol(context, data)

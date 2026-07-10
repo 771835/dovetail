@@ -6,7 +6,7 @@ from dovetail.core.symbols import Variable, Reference, Literal
 from .. import TemplateRegistry
 from ..base import CommandHandler, TemplateCommandHandler
 from ..template import CommandTemplate
-from ... import Copy, DataPath, StorageLocation, Execute, DataBuilder, LiteralPoolTools
+from ... import Copy, DataPath, Execute, DataBuilder, LiteralPoolTools
 from ...builtins import CommandRegistry
 
 
@@ -18,8 +18,8 @@ class StrlenCommand(CommandHandler):
                args: dict[str, Reference]) -> None:
         assert result is not None
         s: Variable | Literal = args["s"].value
-        result_path = DataPath(context.current_scope.get_symbol_path(result), context.objective)
-        s_path = DataPath(context.current_scope.get_symbol_path(s), context.objective, StorageLocation.STORAGE)
+        result_path = DataPath.from_symbol(context, result)
+        s_path = DataPath.from_symbol(context, s)
 
         if isinstance(s, Literal):
             context.add_command(Copy.copy_literals(result_path, len(str(s.value))))

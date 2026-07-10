@@ -81,6 +81,9 @@ class IROpCode(SafeEnum):
     MOVE = (0x60, "所有权转移", InstCategory.OWNERSHIP)
     BORROW = (0x61, "借用", InstCategory.OWNERSHIP)
 
+    # ARRAY (0x80-0x9F)
+    ARRAY_ACCESS = (0x80, "数组读取", InstCategory.ARRAY)
+
     def __init__(self, code: int, desc: str, category: InstCategory):
         self.code = code
         self.desc = desc
@@ -178,7 +181,7 @@ class IRInstruction:
 
         Args:
             opcode: 操作码
-            operands: 位置操作数
+            operands(list[Any]: 位置操作数
             named_operands: 命名操作数（可选，用于复杂指令）
         """
         self.opcode = opcode
@@ -676,7 +679,7 @@ def _cast_repr(instr: IRInstruction) -> str:
     target_type = instr.operands[1]
     source: Reference = instr.operands[2]
 
-    return f"{result.get_name()} = cast<{target_type}>({source})"
+    return f"{result.get_name()} = cast<{target_type!r}>({source})"
 
 
 @validate_instruction
@@ -926,3 +929,28 @@ def _borrow_repr(instr: IRInstruction) -> str:
     borrow_type = "borrow_mut" if mutable else "borrow"
 
     return f"{target.get_name()} = {borrow_type}({source})"
+
+
+@validate_instruction
+def IRArrayAccess(result: Variable, array: Reference, index: Reference) -> IRInstruction:
+    """
+    数组读取指令
+
+    Args:
+        result: 返回变量
+        array: 数组变量
+        index: 源引用（被借用对象）
+
+    Returns:
+        数组读取指令
+    """
+    return IRInstruction(IROpCode.ARRAY_ACCESS, result, array, index)
+
+
+@register_repr(IROpCode.ARRAY_ACCESS)
+def _array_access_repr(instr: IRInstruction) -> str:
+    result: Variable = instr.operands[0]
+    array: Reference = instr.operands[1]
+    index: Reference = instr.operands[2]
+
+    return f"{result.get_name()} = {array}[{index!r}]"

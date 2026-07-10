@@ -132,24 +132,24 @@ def register_builtin_templates():
             tags=["world", "block"]
         ),
 
-        # ============ List 操作 ============
-        CommandTemplate(
-            name="list_setitem",
-            template="data modify storage $(target) object.$(id).value[$(index)] set value $(value)",
-            function_path="builtins/data/list_setitem_value",
-            param_names=["target", "id", "index", "value"],
-            description="设置列表元素",
-            tags=["data", "list"]
-        ),
-
-        CommandTemplate(
-            name="list_getitem",
-            template="data modify storage $(target) $(target_path) set from storage $(source) object.$(id).value[$(index)]",
-            function_path="builtins/data/list_getitem_storage",
-            param_names=["target", "target_path", "source", "id", "index"],
-            description="获取列表元素",
-            tags=["data", "list"]
-        ),
+        # # ============ List 操作 ============
+        # CommandTemplate(
+        #     name="list_setitem",
+        #     template="data modify storage $(target) object.$(id).value[$(index)] set value $(value)",
+        #     function_path="builtins/data/list_setitem_value",
+        #     param_names=["target", "id", "index", "value"],
+        #     description="设置列表元素",
+        #     tags=["data", "list"]
+        # ),
+        #
+        # CommandTemplate(
+        #     name="list_getitem",
+        #     template="data modify storage $(target) $(target_path) set from storage $(source) object.$(id).value[$(index)]",
+        #     function_path="builtins/data/list_getitem_storage",
+        #     param_names=["target", "target_path", "source", "id", "index"],
+        #     description="获取列表元素",
+        #     tags=["data", "list"]
+        # ),
 
         # ============ OOP 系列 ============
         CommandTemplate(
@@ -220,6 +220,8 @@ def register_builtin_templates():
             tags=["world", "weather"]
         ),
 
+        # ============ String 操作 ============
+
         # CommandTemplate(
         #     name="substring",
         #     template="data modify storage $(target1) $(path1) set string storage $(target2) $(path2) $(start) $(end)",
@@ -239,6 +241,25 @@ def register_builtin_templates():
         #     tags=["int", "data"]
         # ),
 
+        # ============ Array 操作 ============
+
+        CommandTemplate(
+            name="array_access_to_score",
+            template="execute store result score $(path) $(objective) run data get storage $(source) $(source_path)[$(index)]",
+            function_path="builtins/array_access_to_score",
+            param_names=["path", "objective", "index", "score", "source_path"],
+            description="访问数组路径并写入记分板",
+            tags=["data", "array", "score"]
+        ),
+
+        CommandTemplate(
+            name="array_access_to_storage",
+            template="data modify storage $(target) $(target_path) set from storage $(source) $(source_path)[$(index)]",
+            function_path="builtins/array_access_to_storage",
+            param_names=["target", "target_path", "index", "score", "source_path"],
+            description="访问数组路径并写入存储",
+            tags=["data", "array", "storage"]
+        ),
     ]
 
     # 批量注册

@@ -1,4 +1,6 @@
 # coding=utf-8
+from typing import cast
+
 from dovetail.core.backend import GenerationContext
 from dovetail.core.enums import BinaryOps
 from dovetail.core.symbols import Variable, Reference, Literal
@@ -13,22 +15,22 @@ class AbsCommand(CommandHandler):
     def handle(self, result: Variable | None, context: GenerationContext, args: dict[str, Reference]):
         assert result is not None
 
-        value: Variable | Literal = args["value"].value
-        result_path = DataPath(context.current_scope.get_symbol_path(result), context.objective)
-        if isinstance(value, Literal):
+        val: Variable | Literal = args["value"].value
+        result_path = DataPath.from_symbol(context, result)
+        if isinstance(val, Literal):
             context.current_scope.add_command(
                 Copy.copy_literals(
                     result_path,
-                    abs(value.value)
+                    abs(int(cast(int | bool | str, val.value)))
                 )
             )
 
         else:
-            if result.name != value.name:
+            if result.name != val.name:
                 context.current_scope.add_command(
                     Copy.copy(
                         result_path,
-                        DataPath(context.current_scope.get_symbol_path(value), context.objective)
+                        DataPath.from_symbol(context, val)
                     )
                 )
             context.current_scope.add_command(
@@ -54,13 +56,11 @@ class MinCommand(CommandHandler):
         assert result is not None
         a = args["a"].value
         b = args["b"].value
-        result_path = DataPath(context.current_scope.get_symbol_path(result), context.objective)
-        a_path = a.value if isinstance(a, Literal) else DataPath(context.current_scope.get_symbol_path(a),
-                                                                 context.objective)
-        b_path = b.value if isinstance(b, Literal) else DataPath(context.current_scope.get_symbol_path(b),
-                                                                 context.objective)
+        result_path = DataPath.from_symbol(context, result)
+        a_path = a.value if isinstance(a, Literal) else DataPath.from_symbol(context, a)
+        b_path = b.value if isinstance(b, Literal) else DataPath.from_symbol(context, b)
 
-        context.add_commands(BinaryOp.op_all(result_path, BinaryOps.MIN, a_path, b_path))
+        context.add_commands(BinaryOp.op_all(result_path, BinaryOps.MIN, a_path, b_path))  # noqa
 
 
 @CommandRegistry.register('max')
@@ -71,10 +71,8 @@ class MaxCommand(CommandHandler):
         assert result is not None
         a = args["a"].value
         b = args["b"].value
-        result_path = DataPath(context.current_scope.get_symbol_path(result), context.objective)
-        a_path = a.value if isinstance(a, Literal) else DataPath(context.current_scope.get_symbol_path(a),
-                                                                 context.objective)
-        b_path = b.value if isinstance(b, Literal) else DataPath(context.current_scope.get_symbol_path(b),
-                                                                 context.objective)
+        result_path = DataPath.from_symbol(context, result)
+        a_path = a.value if isinstance(a, Literal) else DataPath.from_symbol(context, a)
+        b_path = b.value if isinstance(b, Literal) else DataPath.from_symbol(context, b)
 
-        context.add_commands(BinaryOp.op_all(result_path, BinaryOps.MAX, a_path, b_path))
+        context.add_commands(BinaryOp.op_all(result_path, BinaryOps.MAX, a_path, b_path))  # noqa

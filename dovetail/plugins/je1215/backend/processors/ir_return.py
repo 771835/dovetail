@@ -45,11 +45,7 @@ class IRReturnProcessor(IRProcessor):
                 context.current_scope.add_command(
                     Copy.copy(
                         return_path,
-                        DataPath(
-                            context.current_scope.get_symbol_path(return_value.name),
-                            context.objective,
-                            StorageLocation.get_storage(return_value.dtype)
-                        )
+                        DataPath.from_symbol(context, return_value)
                     )
                 )
 

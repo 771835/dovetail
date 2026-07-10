@@ -18,7 +18,7 @@ CACHE_FILE_PREFIX = ".mcdc"
 
 # 杂项
 MAX_FILE_SIZE = 1024 * 1024 * 1024  # 最大允许单个文件1GB大小
-FAST_MODE = True  # 禁用一些编译器的类型检查以加速代码运行
+FAST_MODE = False  # 禁用一些编译器的类型检查以加速代码运行
 ENABLE_INSTRUCTION_VALIDATION = True  # 启用IR指令类型效验，当 FAST_MODE 开启时无效
 
 # 目录编译配置文件

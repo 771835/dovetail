@@ -4,10 +4,11 @@ import logging
 import os
 import sys
 import threading
+import time
 from logging.handlers import RotatingFileHandler
 from typing import Optional, Union
 
-LOG_FILE = "dovetail.log"
+LOG_FILE = f"logs/dovetail{time.time_ns()}.log"
 
 
 class MessageTranslator:

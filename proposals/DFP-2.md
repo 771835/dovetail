@@ -43,16 +43,24 @@
 | BINARY_OP | result op left right | 二元运算（如 `a+b`, `c*d`）  |
 | COMPARE   | result op left right | 比较运算（如 `a>b`, `c==d`） |
 | CAST      | result type value    | 显式类型转换                |
+| FREE      | variable             | 释放变量（暂不实现）            |
 
 #### 面向对象指令
 
-| 指令           | 参数                          | 备注      |
-|--------------|-----------------------------|---------|
-| CLASS        | class                       | 声明类结构   |
-| NEW_OBJ      | result class [args...]      | 创建对象实例  |
-| GET_PROPERTY | result obj property         | 获取对象属性值 |
-| SET_PROPERTY | obj property value          | 设置对象属性值 |
-| CALL_METHOD  | result obj method [args...] | 调用对象方法  |
+| 指令           | 参数                          | 备注         |
+|--------------|-----------------------------|------------|
+| CLASS        | class                       | 声明类结构      |
+| NEW_OBJ      | result class [args...]      | 创建对象实例     |
+| GET_PROPERTY | result obj property         | 获取对象属性值    |
+| SET_PROPERTY | obj property value          | 设置对象属性值    |
+| CALL_METHOD  | result obj method [args...] | 调用对象方法     |
+| FREE_OBJ     | obj                         | 释放对象（暂不实现） |
+
+#### 数组操作
+
+| 指令           | 参数                 | 备注             |
+|--------------|--------------------|----------------|
+| ARRAY_ACCESS | result array index | 数组读取（如 `a[1]`） |
 
 ### 关键实现细节
 
@@ -219,7 +227,8 @@ class Reference(Symbol, Generic[T]):
     def literal(cls, value): ...
 
     @classmethod
-    def variable(cls, var_name, dtype: PrimitiveDataType, var_type: VariableType = VariableType.COMMON) -> Reference: ...
+    def variable(cls, var_name, dtype: PrimitiveDataType,
+                 var_type: VariableType = VariableType.COMMON) -> Reference: ...
 
 ```
 

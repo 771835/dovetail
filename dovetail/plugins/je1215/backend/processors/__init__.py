@@ -18,5 +18,6 @@ from .ir_return import IRReturnProcessor
 from .ir_scope_begin import IRScopeBeginProcessor
 from .ir_scope_end import IRScopeEndProcessor
 from .ir_unary_op import IRUnaryOpProcessor
+from .ir_array_access import IRArrayAccessProcessor
 
 __all__ = []

@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import annotations
 
 from dovetail.utils.safe_enum import SafeEnum
@@ -103,6 +104,9 @@ class PrimitiveDataType(DataTypeBase, SafeEnum):
         else:
             raise TypeError(f"Unsupported literal type: {type(value)}")
 
+    def __repr__(self):
+        return self.get_name()
+
 
 class ListType(DataTypeBase):
 
@@ -116,7 +120,7 @@ class ListType(DataTypeBase):
         self.dtype = dtype
 
     def get_name(self) -> str:
-        return f"list<{self.dtype}>"
+        return f"list<{self.dtype!r}>"
 
 
 class ArrayType(DataTypeBase):
@@ -131,13 +135,13 @@ class ArrayType(DataTypeBase):
         self.dtype = dtype
 
     def get_name(self) -> str:
-        return f"array<{self.dtype}>"
+        return f"array<{self.dtype!r}>"
 
 
-class MapType(DataTypeBase):
+class DictType(DataTypeBase):
     def __init__(self, key_dtype: DataTypeBase, value_dtype: DataTypeBase):
         """
-        构造MapType
+        构造DictType
 
         Args:
             key_dtype: 键的类型
@@ -147,4 +151,7 @@ class MapType(DataTypeBase):
         self.value_dtype = value_dtype
 
     def get_name(self) -> str:
-        return f"map<{self.key_dtype}, {self.value_dtype}>"
+        return f"dict<{self.key_dtype!r}, {self.value_dtype!r}>"
+
+
+BUILT_IN_COMPOSITE_TYPES = ArrayType | DictType | ListType

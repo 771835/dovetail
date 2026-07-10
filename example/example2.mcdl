@@ -1,13 +1,14 @@
 #deprecated
 // 数组测试
-let arr1 : int[100]
+let arr1: array<int>
 let p = 0
-fn foo(arr : int[]) -> int {
-    arr1[p] = 1
+fn foo(val: int) -> int {
+    arr1[p] = val
+    return arr1[p]
 }
 
 @init
 fn main(){
-    let var = foo()
+    let var = foo(121)
     print(str(var))
 }

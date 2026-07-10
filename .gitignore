@@ -6,6 +6,7 @@
 *.tokens
 *.iml
 *.mcdc
+*.log
 .lark_cache
 main.build/
 main.dist/
@@ -23,3 +24,4 @@ build/
 .git/
 gen/
 .cache/
+logs/

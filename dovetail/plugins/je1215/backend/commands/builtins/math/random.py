@@ -3,7 +3,7 @@ from dovetail.core.symbols import Variable, Reference
 from .. import CommandRegistry, TemplateRegistry
 from ..base import TemplateCommandHandler
 from ..template import CommandTemplate
-from ... import Copy, DataPath, StorageLocation
+from ... import Copy, DataPath
 
 
 @CommandRegistry.register("randint")
@@ -28,11 +28,7 @@ class RandintCommand(TemplateCommandHandler):
         assert result is not None
         context.current_scope.add_command(
             Copy.copy(
-                DataPath(
-                    context.current_scope.get_symbol_path(result),
-                    context.objective,
-                    StorageLocation.get_storage(result.dtype)
-                ),
+                DataPath.from_symbol(context, result),
                 DataPath(
                     "output_randint",
                     context.objective

@@ -5,6 +5,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Callable, Any
 
+from dovetail.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 @dataclass
 class CommandTemplate:
@@ -117,7 +121,7 @@ class TemplateRegistry:
             try:
                 cls.register_from_file(json_file)
             except Exception as e:
-                print(f"Warning: Failed to load template from {json_file}: {e}")
+                logger.warning(f"Failed to load template from {json_file}: {e}")
 
     @classmethod
     @lru_cache(maxsize=256)
