@@ -1,6 +1,6 @@
 # coding=utf-8
-from backend.commands.builtins.base import TemplateCommandHandler, CommandRegistry
-from backend.commands.builtins.template import CommandTemplate, TemplateParameter, ParameterBuilder
+from ..base import TemplateCommandHandler, CommandRegistry
+from ..template import CommandTemplate, TemplateParameter, ParameterBuilder
 from dovetail.core.backend import GenerationContext
 from dovetail.core.symbols import Variable, Reference
 

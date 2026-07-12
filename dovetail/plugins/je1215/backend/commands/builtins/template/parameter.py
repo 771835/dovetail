@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 from attrs import define
 
-from backend.commands import LiteralPoolTools, DataPath, StorageLocation
+from ... import LiteralPoolTools, DataPath, StorageLocation
 from dovetail.core.backend import Scope
 from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.enums.datatypes import DataTypeBase

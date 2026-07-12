@@ -31,8 +31,6 @@ class IRArrayAccessProcessor(IRProcessor):
             ))
             return
         else: # 调用宏函数
-            for a,b in CommandRegistry.all().items():
-                print(a,b)
             if StorageLocation.get_storage(result.dtype) == StorageLocation.STORAGE: # (string等数据)
                 CommandRegistry.get("array_access_to_storage").call(
                     result,

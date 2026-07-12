@@ -98,7 +98,6 @@ class IRSymbolSerializer:
             metadata['properties'] = [id(var_symbol) for var_symbol in symbol.properties]
             metadata['type'] = id(symbol.type)
         else:
-            print(symbol.__class__.__name__, type(symbol))
             raise
 
         return metadata

@@ -110,7 +110,7 @@ class TemplateEngine:
         args_path = f"args.{uuid.uuid4().hex}"
 
         for name, param in variable_params.items():
-            if not param.is_literal():
+            if param.is_literal():
                 logger.error(f"模板 '{function_path}' 的参数 '{name}' 应该是一个变量")
                 continue
             source = param.get_data_path()

@@ -2,7 +2,7 @@ typedef int i32
 
 fn foo() -> i32;
 @init
-fn bar(){
+fn D(){
     if (foo()==350234) {
         exec("say 𝔀𝓪𝔀")
         print("1")
