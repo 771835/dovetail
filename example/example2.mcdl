@@ -1,14 +1,17 @@
 #deprecated
+include "stdlib"
 // 数组测试
 let arr1: array<int>
-let p = 0
+let p = -1
 fn foo(val: int) -> int {
+    p += 1
     arr1[p] = val
     return arr1[p]
 }
 
 @init
 fn main(){
+    malloc(arr1, 50)
     let var = foo(121)
     print(str(var))
 }

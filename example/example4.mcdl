@@ -1,10 +1,24 @@
-fn foo(x: int) -> boolean{
+# 测试int、str间类型转换
+typedef int i32
+typedef boolean bool
+// 数据处理函数：演示 int -> str -> int 的类型转换链路
+fn test(val: i32) -> bool {
+    let s1: string = str(val)
+    let s2: string = s1 + "5"
+    let v1: i32 = int(s2)
+    let v2: i32 = v1 * 2
+    let s3: string = str(v2)
+    let s4: string = s3 + "99"
+    let v3: i32 = int(s4)
+    if (v3 > 10000) {
+        return true
+    }
     return false
 }
 
 @init
-fn main() -> int{
-    let a = 1
-    foo(a)
-
+fn main() {
+    let initial: i32 = 123
+    let result: bool = test(initial)
+    print(str(result))
 }

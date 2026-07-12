@@ -48,31 +48,36 @@ class AbsCommand(CommandHandler):
             )
 
 
-@CommandRegistry.register('min')
-class MinCommand(CommandHandler):
+class BinaryOpCommand(CommandHandler):
+    """
+    通用二元运算命令基类。
+    子类只需声明 op，无需重写 handle。
+    """
     no_size_effects = True
+    op: BinaryOps = None  # 子类声明
 
-    def handle(self, result: Variable | None, context: GenerationContext, args: dict[str, Reference]):
+    def handle(self, result, context, args):
         assert result is not None
         a = args["a"].value
         b = args["b"].value
-        result_path = DataPath.from_symbol(context, result)
-        a_path = a.value if isinstance(a, Literal) else DataPath.from_symbol(context, a)
-        b_path = b.value if isinstance(b, Literal) else DataPath.from_symbol(context, b)
+        result_path = DataPath(
+            context.current_scope.get_symbol_path(result),
+            context.objective
+        )
+        a_path = a.value if isinstance(a, Literal) else DataPath(
+            context.current_scope.get_symbol_path(a), context.objective
+        )
+        b_path = b.value if isinstance(b, Literal) else DataPath(
+            context.current_scope.get_symbol_path(b), context.objective
+        )
+        context.add_commands(BinaryOp.op_all(result_path, self.op, a_path, b_path))  # noqa
 
-        context.add_commands(BinaryOp.op_all(result_path, BinaryOps.MIN, a_path, b_path))  # noqa
+
+@CommandRegistry.register('min')
+class MinCommand(BinaryOpCommand):
+    op = BinaryOps.MIN
 
 
 @CommandRegistry.register('max')
-class MaxCommand(CommandHandler):
-    no_size_effects = True
-
-    def handle(self, result: Variable | None, context: GenerationContext, args: dict[str, Reference]):
-        assert result is not None
-        a = args["a"].value
-        b = args["b"].value
-        result_path = DataPath.from_symbol(context, result)
-        a_path = a.value if isinstance(a, Literal) else DataPath.from_symbol(context, a)
-        b_path = b.value if isinstance(b, Literal) else DataPath.from_symbol(context, b)
-
-        context.add_commands(BinaryOp.op_all(result_path, BinaryOps.MAX, a_path, b_path))  # noqa
+class MaxCommand(BinaryOpCommand):
+    op = BinaryOps.MAX

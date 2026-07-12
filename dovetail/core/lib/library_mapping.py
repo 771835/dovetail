@@ -7,12 +7,13 @@ from functools import lru_cache
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.lib.builtins import Builtins
-from dovetail.core.lib.experimental import Experimental
+from dovetail.core.lib.lib_experimental import Experimental
 from dovetail.core.lib.lib_assertion import Assertion
 from dovetail.core.lib.lib_math import Math
 from dovetail.core.lib.lib_random import Random
 from dovetail.core.lib.lib_string import Strlib
 from dovetail.core.lib.library import Library, LibraryContext
+from dovetail.core.lib.stdlib import Stdlib
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.parser.components.ir_emitter import IREmitter
 from dovetail.core.parser.components.symbol_resolver import SymbolResolver
@@ -34,7 +35,9 @@ class LibraryMapping:
         "strlib": Strlib,
         "dovetail.strlib": Strlib,
         "assert": Assertion,
-        "dovetail.assertion": Assertion,
+        "dovetail.assert": Assertion,
+        "stdlib": Stdlib,
+        "dovetail.stdlib":Stdlib,
     }
 
     @classmethod

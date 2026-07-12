@@ -11,11 +11,11 @@ class PluginMain(Plugin):
 
     def load(self):
         self.logger = get_logger("Backend-1.21.5-JE")
-        self.logger.info("Loading plugin...")
+        self.logger.info("插件加载中")
         registry_backend(JE1214Backend)
 
     def unload(self) -> bool:
-        self.logger.info("Unloading plugin...")
+        self.logger.info("插件卸载中")
         return True
 
     def validate(self) -> tuple[bool, str | None]:

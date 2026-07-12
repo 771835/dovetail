@@ -59,6 +59,7 @@ from dovetail.core.parser.parser import parser_file, parse_fstring_iter, parser_
 from dovetail.core.parser.scope import Scope
 from dovetail.core.scope.protocols import ScopeCore
 from dovetail.core.symbols import Variable, Reference, Literal, Function, Class, Parameter
+from dovetail.core.symbols.enumeration import Enumeration
 from dovetail.core.symbols.structure import Structure
 from dovetail.core.symbols.typedef import Typedef
 from dovetail.utils.naming import NameNormalizer
@@ -285,14 +286,12 @@ class ASTVisitor(Interpreter):
                 is_mutable = param.mutable
             args_dict[param.get_name()] = arg_value
             # 类型检查
-            if not arg_value.get_dtype().is_subclass_of(param.get_dtype()):
-                self.error_reporter.report(
-                    Errors.ArgumentTypeMismatch,
-                    symbol.name,
-                    str(param.get_dtype()),
-                    str(arg_value.get_dtype()),
-                    meta=meta
-                )
+            self.type_checker.check_type_match(
+                param.get_dtype(),
+                arg_value.get_dtype(),
+                f"函数 {symbol.name} 的参数 '{param.var.name}' 类型不匹配",
+                meta
+            )
 
             if param.mutable != is_mutable:
                 self.error_reporter.report(
@@ -567,7 +566,7 @@ class ASTVisitor(Interpreter):
         self.ir_emitter.emit(IRJump(loop_check.name))
 
     @v_args(meta=True)
-    def if_stmt(self, _: Meta, children: list[Tree | Token]):
+    def if_stmt(self, _: Meta, children: list):
         # "if" "(" [condition] ")" block ("else" (if_stmt|block))?
         count = next(self.counter)
         # 计算条件表达式
@@ -595,7 +594,7 @@ class ASTVisitor(Interpreter):
         )
 
     @v_args(meta=True)
-    def condition(self, meta: Meta, children: list[Tree | Token]):
+    def condition(self, meta: Meta, children: list):
         """条件语句"""
         value: Reference = self.visit(children.pop(0))
 
@@ -621,7 +620,7 @@ class ASTVisitor(Interpreter):
         return value
 
     @v_args(meta=True)
-    def return_stmt(self, meta: Meta, children: list[Tree | Token]):
+    def return_stmt(self, meta: Meta, children: list):
         """处理 return 语句"""
         # 获取返回值
         value: Reference | None = None
@@ -813,7 +812,7 @@ class ASTVisitor(Interpreter):
             return PrimitiveDataType.UNDEFINED
 
     @v_args(meta=True)
-    def typedef(self, meta: Meta, children: list[Token | Tree]):
+    def typedef(self, meta: Meta, children: list[Tree]):
         """处理类型别名定义"""
         original_type: DataTypeBase = self.visit(children.pop(0))
         new_name: str = children.pop(0).value  # NOQA
@@ -827,7 +826,7 @@ class ASTVisitor(Interpreter):
             )
 
     @v_args(meta=True)
-    def factor(self, meta: Meta, children: list[Token | Tree]):
+    def factor(self, meta: Meta, children: list):
         left: Reference = self.visit(children.pop(0))
         op: str = children.pop(0).value  # NOQA
         right: Reference = self.visit(children.pop(0))
@@ -843,7 +842,7 @@ class ASTVisitor(Interpreter):
     term = factor
 
     @v_args(meta=True)
-    def compare(self, meta: Meta, children: list[Token | Tree]):
+    def compare(self, meta: Meta, children: list):
         left: Reference = self.visit(children.pop(0))
         op = children.pop(0).value  # NOQA
         right: Reference = self.visit(children.pop(0))
@@ -863,7 +862,7 @@ class ASTVisitor(Interpreter):
         return Reference(result_variable)
 
     @v_args(meta=True)
-    def unary_minus(self, meta: Meta, children: list[Token | Tree]) -> Reference:
+    def unary_minus(self, meta: Meta, children: list) -> Reference:
         op: typing.Literal['+', '-'] = children.pop(0).value  # NOQA
         value: Reference = self.visit(children.pop(0))
         if value.get_dtype() not in [PrimitiveDataType.BOOLEAN, PrimitiveDataType.INT]:
@@ -889,7 +888,7 @@ class ASTVisitor(Interpreter):
             return Reference(result_var)
 
     @v_args(meta=True)
-    def logical_not(self, meta: Meta, children: list[Token | Tree]):
+    def logical_not(self, meta: Meta, children: list):
         value: Reference = self.visit(children.pop(0))
 
         if value.get_dtype() not in [PrimitiveDataType.BOOLEAN, PrimitiveDataType.INT]:
@@ -914,7 +913,7 @@ class ASTVisitor(Interpreter):
             return Reference(result_var)
 
     @v_args(meta=True)
-    def logical_and(self, meta: Meta, children: list[Token | Tree]):
+    def logical_and(self, meta: Meta, children: list):
         # 生成唯一结果变量
         result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
         and_id = next(self.counter)
@@ -951,7 +950,7 @@ class ASTVisitor(Interpreter):
         return Reference(result_var)
 
     @v_args(meta=True)
-    def logical_or(self, meta: Meta, children: list[Token | Tree]):
+    def logical_or(self, meta: Meta, children: list):
         # 生成唯一结果变量
         result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
         or_id = next(self.counter)
@@ -990,7 +989,7 @@ class ASTVisitor(Interpreter):
         return Reference(result_var)
 
     @v_args(meta=True)
-    def local_assignment(self, meta: Meta, children: list[Token | Tree]):
+    def local_assignment(self, meta: Meta, children: list):
         variable_ref: Reference = self.visit(children.pop(0))
         if variable_ref.value_type != ValueType.VARIABLE:
             self.error_reporter.report(
@@ -1031,9 +1030,11 @@ class ASTVisitor(Interpreter):
         return variable_ref
 
     @v_args(meta=True)
-    def function_call(self, meta: Meta, children: list[Token | Tree]):
+    def function_call(self, meta: Meta, children: list):
         function: Function = self.visit(children.pop(0)).value
         args: list[tuple[Reference, bool]] = self.visit(children.pop(0))
+
+        # 检查符号类型
         if not isinstance(function, Function):
             self.error_reporter.report(
                 Errors.NotCallable,
@@ -1042,6 +1043,19 @@ class ASTVisitor(Interpreter):
                 meta=meta
             )
             return Reference.literal(None)
+
+        # 检查递归
+        if not self.config.recursion:
+            cs = self.symbol_resolver.current_scope
+            while cs:
+                if cs.name == function.name:
+                    self.error_reporter.report(
+                        Errors.RecursionError,
+                        f"递归调用是不被允许的",
+                        meta=meta
+                    )
+                    return Reference.literal(None)
+                cs = cs.parent
 
         args_dict = self._process_call_arguments(function, args, meta)
         # 调用函数
@@ -1063,11 +1077,11 @@ class ASTVisitor(Interpreter):
                 return Reference.void()
 
     @v_args(meta=True)
-    def arguments(self, _: Meta, children: list[Token | Tree]) -> list[tuple[Reference, bool]]:
+    def arguments(self, _: Meta, children: list[Tree]) -> list[tuple[Reference, bool]]:
         return [self.visit(child) for child in children]
 
     @v_args(meta=True)
-    def argument(self, _: Meta, children: list[Token | Tree]) -> tuple[Reference, bool]:
+    def argument(self, _: Meta, children: list) -> tuple[Reference, bool]:
         is_mutable = bool(children.pop(0))
         value = self.visit(children.pop(0))
         return value, is_mutable
@@ -1077,7 +1091,6 @@ class ASTVisitor(Interpreter):
         """数组访问"""
         arr: Reference[Variable] = self.visit(children.pop(0))
         index: Reference[Variable | Literal] = self.visit(children.pop(0))
-
         # 先检查内置类型
         dtype = arr.get_dtype()
         ret_dtype: DataTypeBase
@@ -1092,9 +1105,23 @@ class ASTVisitor(Interpreter):
 
             self.ir_emitter.emit(IRArrayAccess(var, arr, index))
             return Reference(var)
-
-        # 对于其他类型的数据，调用__getitem__方法
-        # TODO: 调用具体方法
+        elif isinstance(dtype, (Class, StructureType, Enumeration)):
+            # 对于可调用类型的数据，尝试调用__getitem__方法
+            # TODO: 调用具体方法
+            ...
+        elif isinstance(dtype, PrimitiveDataType):
+            self.error_reporter.report(
+                Errors.PrimitiveTypeOperation,
+                "数组访问",
+                dtype.get_name(),
+                meta=meta
+            )
+        else:
+            self.error_reporter.report(
+                Errors.InvalidOperator,
+                f"[{index!r}]",
+                meta=meta
+            )
         return Reference.void()
 
     def null(self, _: Tree) -> Reference:

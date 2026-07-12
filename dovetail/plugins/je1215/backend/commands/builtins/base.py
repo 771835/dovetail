@@ -86,7 +86,7 @@ class TemplateCommandHandler(CommandHandler):
         # 获取模板
         template = TemplateRegistry.get(self.template_name)
         if not template:
-            raise ValueError(f"Template not found: {self.template_name}")
+            raise ValueError(f"找不到宏命令模板: {self.template_name}")
 
         # 构建参数
         builder = ParameterBuilder(context.current_scope, context.objective)

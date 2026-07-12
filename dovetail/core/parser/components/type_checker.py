@@ -7,7 +7,7 @@
 from lark.tree import Meta
 
 from dovetail.core.enums import PrimitiveDataType
-from dovetail.core.enums.datatypes import DataTypeBase
+from dovetail.core.enums.datatypes import DataTypeBase, UnionType
 from dovetail.core.errors import Errors
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.symbols import Class, Function
@@ -39,16 +39,62 @@ class TypeChecker:
         Returns:
             True 表示类型匹配，False 表示不匹配
         """
-        if not actual.is_subclass_of(expected):
-            self.error_reporter.report(
-                Errors.TypeMismatch,
-                expected.get_name(),
-                actual.get_name(),
-                meta=meta,
-                suggestion=f"在 {context} 时发生类型不匹配"
-            )
-            return False
+        if isinstance(expected, UnionType):
+            if not any(self._check_a_type_match(i, actual) for i in expected.types):
+                self.error_reporter.report(
+                    Errors.TypeMismatch,
+                    repr(expected),
+                    actual.get_name(),
+                    meta=meta,
+                    suggestion=f"在 {context} 时发生类型不匹配"
+                )
+                return False
+            return True
+        else:
+            if not self._check_a_type_match(expected, actual):
+                self.error_reporter.report(
+                    Errors.TypeMismatch,
+                    expected.get_name(),
+                    actual.get_name(),
+                    meta=meta,
+                    suggestion=f"在 {context} 时发生类型不匹配"
+                )
+                return False
+            return True
+        for expected_type in expected_list:
+            if isinstance(expected_type, type) and isinstance(actual, expected_type):
+                return True
+            elif not actual.is_subclass_of(expected):
+                self.error_reporter.report(
+                    Errors.TypeMismatch,
+                    expected.get_name(),
+                    actual.get_name(),
+                    meta=meta,
+                    suggestion=f"在 {context} 时发生类型不匹配"
+                )
+                return False
         return True
+
+    def _check_a_type_match(
+            self,
+            expected: DataTypeBase | type,
+            actual: DataTypeBase
+    ):
+        """
+        检查单个类型是否匹配
+
+        Args:
+            expected: 期望类型
+            actual: 实际类型
+
+        Returns:
+            True 表示类型匹配，False 表示不匹配
+        """
+        if isinstance(expected, type) and isinstance(actual, expected):
+            return True
+        elif isinstance(expected, DataTypeBase) and actual.is_subclass_of(expected):
+            return True
+        return False
 
     def check_definable(
             self,

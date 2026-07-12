@@ -2,6 +2,7 @@
 from typing import Callable, Optional
 
 from dovetail.core.enums import PrimitiveDataType
+from dovetail.core.enums.datatypes import UnionType
 from dovetail.core.enums.types import FunctionType
 from dovetail.core.errors import report, Errors
 from dovetail.core.instructions import IRCast, IRCall, IRJump
@@ -23,7 +24,16 @@ class Builtins(Library):
             Function(
                 "int",
                 [
-                    Parameter(Variable("value", PrimitiveDataType.STRING))
+                    Parameter(
+                        Variable(
+                            "value",
+                            UnionType(
+                                PrimitiveDataType.STRING,
+                                PrimitiveDataType.INT,
+                                PrimitiveDataType.BOOLEAN
+                            )
+                        )
+                    )
                 ],
                 PrimitiveDataType.INT,
                 FunctionType.LIBRARY
@@ -31,23 +41,16 @@ class Builtins(Library):
             Function(
                 "str",
                 [
-                    Parameter(Variable("value", PrimitiveDataType.INT))
-                ],
-                PrimitiveDataType.STRING,
-                FunctionType.LIBRARY
-            ): self._str,
-            Function(
-                _n("str_i"),
-                [
-                    Parameter(Variable("value", PrimitiveDataType.INT))
-                ],
-                PrimitiveDataType.STRING,
-                FunctionType.LIBRARY
-            ): self._str,
-            Function(
-                _n("str_b"),
-                [
-                    Parameter(Variable("value", PrimitiveDataType.BOOLEAN))
+                    Parameter(
+                        Variable(
+                            "value",
+                            UnionType(
+                                PrimitiveDataType.STRING,
+                                PrimitiveDataType.INT,
+                                PrimitiveDataType.BOOLEAN
+                            )
+                        )
+                    )
                 ],
                 PrimitiveDataType.STRING,
                 FunctionType.LIBRARY
@@ -265,12 +268,16 @@ class Builtins(Library):
         ): None,
         """
 
-    def _int(self, value: Reference[Variable | Literal]) -> Variable:
+    def _int(self, value: Reference[Variable | Literal]) -> Variable | Literal:
+        if value.dtype == PrimitiveDataType.INT:
+            return value.value
         result: Variable = self.emitter.create_temp_var_declared(PrimitiveDataType.INT, "to_int")
         self.emitter.emit(IRCast(result, PrimitiveDataType.INT, value))
         return result
 
-    def _str(self, value: Reference[Variable | Literal]) -> Variable:
+    def _str(self, value: Reference[Variable | Literal]) -> Variable | Literal:
+        if value.dtype == PrimitiveDataType.STRING:
+            return value.value
         result: Variable = self.emitter.create_temp_var_declared(PrimitiveDataType.STRING, "to_str")
         self.emitter.emit(IRCast(result, PrimitiveDataType.STRING, value))
         return result

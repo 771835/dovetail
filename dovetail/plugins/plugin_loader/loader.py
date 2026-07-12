@@ -94,7 +94,7 @@ class PluginLoader:
         if not plugin_path or not metadata or not plugin_main or code is None:
             logger.error(f"Plugin '{plugin_path}' is invalid")
             return
-        logger.info(f"Loading plugin '{plugin_name}' from '{plugin_path}'")
+        logger.info(f"插件 '{plugin_name}' 被从 '{plugin_path}' 加载")
 
         # 获得插件的作用域
         plugin_locals = self.plugins_locals.get(plugin_name, {})

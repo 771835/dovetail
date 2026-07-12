@@ -154,4 +154,20 @@ class DictType(DataTypeBase):
         return f"dict<{self.key_dtype!r}, {self.value_dtype!r}>"
 
 
+class UnionType(DataTypeBase):
+    """
+    一种特殊类型，仅用于前端使用
+
+    可以同时包含多种类型和复合类型，不应该被声明或在最终代码中存在
+    """
+
+    def __init__(self, *types: DataTypeBase | type):
+        self.types = types
+
+    def is_definable(self) -> bool:
+        return False
+
+    def __repr__(self):
+        return " | ".join(map(str, self.types))
+
 BUILT_IN_COMPOSITE_TYPES = ArrayType | DictType | ListType

@@ -29,7 +29,7 @@ class BackendFactory:
         """注册后端"""
         name = backend_class.get_name()
         cls._backends[name] = backend_class
-        logger.info(f"Registered backend: {name}")
+        logger.info(f"后端 '{name}' 已注册")
 
     @classmethod
     def create(cls, name: str, ir_builder: IRBuilder, target: Path, config: CompileConfig) -> Backend | None:
@@ -84,7 +84,7 @@ class BackendFactory:
         else:
             for name, backend in cls._backends.items():
                 if backend.is_support(config):
-                    logger.info(f"Selected backend '{name}' ({id(backend)}).")
+                    logger.info(f"选择后端 '{name}' ({id(backend)}).")
                     return backend
 
         report(

@@ -1,3 +1,4 @@
+#experimental
 @extern("_ll_shared:add", "clang-mc", "")
 fn add(a: int,b: int) -> int;
 
@@ -5,3 +6,14 @@ fn add(a: int,b: int) -> int;
 fn main() -> int{
     print(str(add(1,2)))
 }
+
+/*
+// clang-mc 部分，编译选项需开启 -fdeclspec
+#include <stdio.h>
+int main() {
+}
+__declspec(dllexport)
+int add(int a, int b) {
+    return a+b;
+}
+*/
