@@ -6,8 +6,8 @@ from typing import Protocol, Optional
 from dovetail.core.backend import GenerationContext
 from dovetail.core.symbols import Variable, Reference
 from dovetail.utils.logger import get_logger
-from .template.parameter import ParameterBuilder
-from .template.template import TemplateRegistry
+from .template.parameter import ParameterBuilder, TemplateParameter
+from .template.template import CommandTemplate, TemplateRegistry
 from .template.template_engine import TemplateEngine
 
 logger = get_logger(__name__)
@@ -69,10 +69,15 @@ class TemplateCommandHandler(CommandHandler):
     """
     基于模板的命令处理器基类
 
-    子类只需指定模板名称即可自动处理
+    子类只需：
+      1. 指定 template_name
+      2. （可选）覆写 build_params 自定义参数映射
+      3. （可选）覆写 _post_process 做渲染后处理
+
+    引擎自动内联字面量，自动注册烘焙模板，子类不用管。
     """
 
-    template_name: str = None  # 子类需覆盖
+    template_name: str = None
 
     def handle(
             self,
@@ -80,40 +85,43 @@ class TemplateCommandHandler(CommandHandler):
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:
-        # 执行预处理程序
-        self._pre_process(result, context, args)
-
-        # 获取模板
         template = TemplateRegistry.get(self.template_name)
         if not template:
             raise ValueError(f"找不到宏命令模板: {self.template_name}")
 
-        # 构建参数
-        builder = ParameterBuilder(context.current_scope, context.objective)
-        for name, value in template.optional_params.items():
-            if name not in args:
-                args[name] = value
-        params = builder.build_all(args, itertools.chain(template.param_names, template.optional_params.keys()))
-
-        # 渲染命令
+        params = self.build_params(result, context, args, template)
         engine = TemplateEngine(context.namespace, context.objective)
         commands = engine.render_from_template(template, params)
 
-        # 添加到作用域
         for cmd in commands:
             context.current_scope.add_command(cmd)
 
-        # 执行清理程序
         self._post_process(result, context, args)
 
-    def _pre_process(
+    def build_params(
             self,
             result: Variable | None,
             context: GenerationContext,
-            args: dict[str, Reference]
-    ) -> None:
-        """处理模板前执行的处理程序"""
-        pass
+            args: dict[str, Reference],
+            template: CommandTemplate
+    ) -> dict[str, TemplateParameter]:
+        """
+        构建模板参数。子类可覆写以自定义参数映射。
+
+        默认实现：按模板定义的参数名从 args 中构建，
+        缺失的可选参数用默认值填充为字面量。
+        """
+        builder = ParameterBuilder(context.current_scope, context.objective)
+        all_param_names = list(itertools.chain(
+            template.param_names, template.optional_params.keys()
+        ))
+        params = builder.build_all(args, all_param_names)
+
+        for name, default_value in template.optional_params.items():
+            if name not in params and default_value is not None:
+                params[name] = TemplateParameter.literal(name, default_value)
+
+        return params
 
     def _post_process(
             self,
@@ -121,7 +129,7 @@ class TemplateCommandHandler(CommandHandler):
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:
-        """处理模板后执行的处理程序"""
+        """模板渲染后的钩子，子类可覆写"""
         pass
 
 

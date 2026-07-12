@@ -16,14 +16,14 @@ def register_builtin_templates():
             tags=["basic", "core"]
         ),
 
-        # CommandTemplate(
-        #     name="strcat",
-        #     template="data modify storage $(target) $(target_path) set value '$(dest)$(src)'",
-        #     function_path="builtins/strcat",
-        #     param_names=["target", "target_path", "dest", "src"],
-        #     description="字符串拼接",
-        #     tags=["data", "string"]
-        # ),
+        CommandTemplate(
+            name="strcat",
+            template="data modify storage $(target) $(target_path) set value '$(dest)$(src)'",
+            function_path="builtins/strcat",
+            param_names=["target", "target_path", "dest", "src"],
+            description="字符串拼接",
+            tags=["data", "string"]
+        ),
 
         # ============ Tellraw 系列 ============
         CommandTemplate(
@@ -43,60 +43,60 @@ def register_builtin_templates():
             description="向指定目标发送文本组件(1.21.5及以上)/json(1.21.5以下)",
             tags=["ui", "tellraw"]
         ),
-
-        CommandTemplate(
-            name="tellraw_json_all",
-            template="tellraw @a $(json)",
-            function_path="builtins/tellraw/tellraw_json_all",
-            param_names=["json"],
-            description="向所有玩家发送 JSON 消息",
-            tags=["ui", "tellraw", "shortcut"]
-        ),
-
-        CommandTemplate(
-            name="tellraw_json_self",
-            template="tellraw @s $(json)",
-            function_path="builtins/tellraw/tellraw_json_self",
-            param_names=["json"],
-            description="向目标执行者发送 JSON 消息",
-            tags=["ui", "tellraw", "shortcut"]
-        ),
-
-        CommandTemplate(
-            name="tellraw_json_entities",
-            template="tellraw @e $(json)",
-            function_path="builtins/tellraw/tellraw_json_entities",
-            param_names=["json"],
-            description="向所有实体发送 JSON 消息",
-            tags=["ui", "tellraw", "shortcut"]
-        ),
-
-        CommandTemplate(
-            name="tellraw_json_nearest",
-            template="tellraw @n $(json)",
-            function_path="builtins/tellraw/tellraw_json_nearest",
-            param_names=["json"],
-            description="向最近的实体发送 JSON 消息",
-            tags=["ui", "tellraw", "shortcut"]
-        ),
-
-        CommandTemplate(
-            name="tellraw_json_nearest_player",
-            template="tellraw @p $(json)",
-            function_path="builtins/tellraw/tellraw_json_nearest_player",
-            param_names=["json"],
-            description="向最近的玩家发送 JSON 消息",
-            tags=["ui", "tellraw", "shortcut"]
-        ),
-
-        CommandTemplate(
-            name="tellraw_json_random",
-            template="tellraw @r $(json)",
-            function_path="builtins/tellraw/tellraw_json_random",
-            param_names=["json"],
-            description="向随机玩家发送 JSON 消息",
-            tags=["ui", "tellraw", "shortcut"]
-        ),
+        #
+        # CommandTemplate(
+        #     name="tellraw_json_all",
+        #     template="tellraw @a $(json)",
+        #     function_path="builtins/tellraw/tellraw_json_all",
+        #     param_names=["json"],
+        #     description="向所有玩家发送 JSON 消息",
+        #     tags=["ui", "tellraw", "shortcut"]
+        # ),
+        #
+        # CommandTemplate(
+        #     name="tellraw_json_self",
+        #     template="tellraw @s $(json)",
+        #     function_path="builtins/tellraw/tellraw_json_self",
+        #     param_names=["json"],
+        #     description="向目标执行者发送 JSON 消息",
+        #     tags=["ui", "tellraw", "shortcut"]
+        # ),
+        #
+        # CommandTemplate(
+        #     name="tellraw_json_entities",
+        #     template="tellraw @e $(json)",
+        #     function_path="builtins/tellraw/tellraw_json_entities",
+        #     param_names=["json"],
+        #     description="向所有实体发送 JSON 消息",
+        #     tags=["ui", "tellraw", "shortcut"]
+        # ),
+        #
+        # CommandTemplate(
+        #     name="tellraw_json_nearest",
+        #     template="tellraw @n $(json)",
+        #     function_path="builtins/tellraw/tellraw_json_nearest",
+        #     param_names=["json"],
+        #     description="向最近的实体发送 JSON 消息",
+        #     tags=["ui", "tellraw", "shortcut"]
+        # ),
+        #
+        # CommandTemplate(
+        #     name="tellraw_json_nearest_player",
+        #     template="tellraw @p $(json)",
+        #     function_path="builtins/tellraw/tellraw_json_nearest_player",
+        #     param_names=["json"],
+        #     description="向最近的玩家发送 JSON 消息",
+        #     tags=["ui", "tellraw", "shortcut"]
+        # ),
+        #
+        # CommandTemplate(
+        #     name="tellraw_json_random",
+        #     template="tellraw @r $(json)",
+        #     function_path="builtins/tellraw/tellraw_json_random",
+        #     param_names=["json"],
+        #     description="向随机玩家发送 JSON 消息",
+        #     tags=["ui", "tellraw", "shortcut"]
+        # ),
 
         # ============ Random 系列 ============
         CommandTemplate(
@@ -105,6 +105,19 @@ def register_builtin_templates():
             function_path="builtins/random/randint",
             param_names=["objective", "min", "max"],
             description="生成随机数到指定位置",
+            tags=["random", "math"],
+            validator=lambda p: (
+                int(p['min']) <= int(p['max']),
+                "min must be less than or equal to max"
+            )
+        ),
+
+        CommandTemplate(
+            name="randint_fast",
+            template="execute store result score $(path) $(objective) run random value $(min)..$(max)",
+            function_path="builtins/random/randint",
+            param_names=["objective", "path", "min", "max"],
+            description="生成随机数到指定位置(较randint少一条指令)",
             tags=["random", "math"],
             validator=lambda p: (
                 int(p['min']) <= int(p['max']),
@@ -222,24 +235,24 @@ def register_builtin_templates():
 
         # ============ String 操作 ============
 
-        # CommandTemplate(
-        #     name="substring",
-        #     template="data modify storage $(target1) $(path1) set string storage $(target2) $(path2) $(start) $(end)",
-        #     function_path="builtins/string/substring",
-        #     param_names=["target1", "target2", "path1", "path2"],
-        #     optional_params={"start": "", "end": ""},
-        #     description="截取字符串切片",
-        #     tags=["string", "data"]
-        # ),
+        CommandTemplate(
+            name="substring",
+            template="data modify storage $(target1) $(path1) set string storage $(target2) $(path2) $(start) $(end)",
+            function_path="builtins/string/substring",
+            param_names=["target1", "target2", "path1", "path2"],
+            optional_params={"start": "", "end": ""},
+            description="截取字符串切片",
+            tags=["string", "data"]
+        ),
 
-        # CommandTemplate(
-        #     name="to_integer",
-        #     template=f"scoreboard players set $(path) $(objective) $(value)",
-        #     function_path=f"builtins/int/to_integer",
-        #     param_names=["objective", "path", "value"],
-        #     description="转换字符串为数字",
-        #     tags=["int", "data"]
-        # ),
+        CommandTemplate(
+            name="to_integer",
+            template=f"scoreboard players set $(path) $(objective) $(value)",
+            function_path=f"builtins/int/to_integer",
+            param_names=["objective", "path", "value"],
+            description="转换字符串为数字",
+            tags=["int", "data"]
+        ),
 
         # ============ Array 操作 ============
 

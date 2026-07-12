@@ -4,7 +4,7 @@
 """
 import fastjsonschema
 
-from dovetail.utils.logger import ThreadSafeLogger
+from dovetail.utils.logger import get_logger
 
 # 项目信息
 PROJECT_NAME = "Dovetail"
@@ -93,9 +93,5 @@ DEFAULT_SUGGESTIONS: list[str] = [
     ":wq!",
 ]
 
-# 项目全局日志对象
-logger: ThreadSafeLogger | None = None
-
-
 def get_project_logger():
-    return logger
+    return get_logger("_")

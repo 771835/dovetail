@@ -3,7 +3,6 @@
 import argparse
 import json
 import os
-import sys
 from contextlib import chdir
 from pathlib import Path
 from typing import NoReturn, Optional
@@ -29,6 +28,27 @@ from dovetail.utils.logger import get_logger
 from dovetail.utils.naming import NameNormalizer
 
 logger = get_logger(__name__)
+
+import sys
+import builtins
+
+_original_import = builtins.__import__
+_import_stack = []
+
+
+def _tracing_import(name, globals=None, locals=None, fromlist=(), level=0):
+    depth = len(_import_stack)
+    _import_stack.append(name)
+    caller = (globals or {}).get("__file__", "?")
+    print(f"{'  ' * depth}{'└─' if depth else ''} {name}  ({caller})")
+    try:
+        result = _original_import(name, globals, locals, fromlist, level)
+    finally:
+        _import_stack.pop()
+    return result
+
+
+builtins.__import__ = _tracing_import
 
 
 class Compiler:
@@ -295,6 +315,8 @@ def main():
 
     sys.exit(compiler.compile(entry, target_path))
 
+plugin_loader.load_plugin("plugin_loader")
 
 if __name__ == "__main__":
-    main()
+    ...
+    # main()

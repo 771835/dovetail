@@ -19,5 +19,7 @@ from .compare import Compare
 from .copy import Copy
 from .strlib import *
 from .unary_op import UnaryOp
+from .tools import LiteralPoolTools, DataPath, StorageLocation
+from .builtins import *
 
 MINECRAFT_VERSION = "1.21.5"

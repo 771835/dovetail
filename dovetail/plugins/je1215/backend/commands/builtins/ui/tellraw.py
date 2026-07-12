@@ -1,81 +1,36 @@
 # coding=utf-8
-from ..base import CommandRegistry, CommandHandler
-from ..template import TemplateEngine, ParameterBuilder, TemplateParameter, CommandTemplate
-from ..template import TemplateRegistry
+from ..base import CommandRegistry, TemplateCommandHandler
+from ..template import TemplateParameter, ParameterBuilder
 from ...tools import LiteralPoolTools
 
 
 @CommandRegistry.register('tellraw_text')
-class TellrawTextCommand(CommandHandler):
+class TellrawTextCommand(TemplateCommandHandler):
     """Tellraw 文本命令"""
 
-    def handle(self, result, context, args):
-        engine = TemplateEngine(context.namespace, context.objective)
+    template_name = "tellraw_nbt"
+
+    def build_params(self, result, context, args, template):
         builder = ParameterBuilder(context.current_scope, context.objective)
+        params = builder.build_all(args, ["target"])
 
-        # 尝试注册简化模板
-        self.register_template_auto(context.objective)
-        params = builder.build_all(args, ["target", "msg"])
-        msg = params.pop("msg")
-        if msg.is_literal():
-            params["path"] = TemplateParameter.literal(
-                "path",
-                LiteralPoolTools.get_literal_path_str(
-                    msg.value
-                )
-            )
+        msg_param = builder.build("msg", args["msg"])
+        if msg_param.is_literal():
+            path = LiteralPoolTools.get_literal_path_str(msg_param.value)
         else:
-            params["path"] = TemplateParameter.literal("path", msg.storage_path)
+            path = msg_param.storage_path
 
-        commands = engine.render_by_name(f"tellraw_nbt_{context.objective}", params)
-
-        for cmd in commands:
-            context.current_scope.add_command(cmd)
-
-    def register_template_auto(self, objective: str):
-        if not TemplateRegistry.has(f"tellraw_nbt_{objective}"):
-            TemplateRegistry.register(
-                CommandTemplate(
-                    name=f"tellraw_nbt_{objective}",
-                    template=f'tellraw $(target) {{"storage":"{objective}","nbt":"$(path)"}}',
-                    function_path=f"builtins/tellraw/tellraw_nbt_{objective}",
-                    param_names=["target", "path"],
-                    description="向指定目标发送指定nbt路径中的文本消息(自动生成模板，提前填写objective)",
-                    tags=["ui", "tellraw", "shortcut"]
-                )
-            )
+        params["path"] = TemplateParameter.literal("path", path)
+        params["objective"] = TemplateParameter.literal("objective", context.objective)
+        return params
 
 
 @CommandRegistry.register('tellraw_json')
-class TellrawJsonCommand(CommandHandler):
-    """Tellraw JSON - 展示快捷方式优化"""
+class TellrawJsonCommand(TemplateCommandHandler):
+    """Tellraw JSON 命令"""
 
-    SHORTCUTS = {
-        "@a": "tellraw_json_all",
-        "@s": "tellraw_json_self",
-        "@e": "tellraw_json_entities",
-        "@n": "tellraw_json_nearest",
-        "@p": "tellraw_json_nearest_player",
-        "@r": "tellraw_json_random",
-    }
+    template_name = "tellraw"
 
-    def handle(self, result, context, args):
-        engine = TemplateEngine(context.namespace, context.objective)
+    def build_params(self, result, context, args, template):
         builder = ParameterBuilder(context.current_scope, context.objective)
-
-        target_param = builder.build("target", args["target"])
-        json_param = builder.build("json", args["json"])
-
-        # 优化：target 是快捷选择器
-        if target_param.is_literal() and target_param.value in self.SHORTCUTS:
-            template_name = self.SHORTCUTS[target_param.value]
-            commands = engine.render_by_name(template_name, {"json": json_param})
-        else:
-            # 通用路径
-            commands = engine.render_by_name("tellraw_json", {
-                "target": target_param,
-                "json": json_param
-            })
-
-        for cmd in commands:
-            context.current_scope.add_command(cmd)
+        return builder.build_all(args, ["target", "json"])

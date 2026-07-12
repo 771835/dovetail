@@ -1,4 +1,5 @@
 # coding=utf-8
+from dovetail.utils.logger import get_logger
 from .base import CommandRegistry
 from .template import TemplateRegistry
 from .template.builtin_templates import register_builtin_templates
@@ -14,5 +15,8 @@ def initialize_command_system():
     from . import data, math, ui, execution, world, player
 
 
+
 # 在插件加载时调用
 initialize_command_system()
+
+get_logger(__name__).warning("w")

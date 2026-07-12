@@ -5,7 +5,9 @@ from typing import Any, Optional
 
 from attrs import define
 
+from backend.commands import LiteralPoolTools, DataPath, StorageLocation
 from dovetail.core.backend import Scope
+from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.core.enums.types import ValueType
 from dovetail.core.symbols import Reference
@@ -35,6 +37,8 @@ class TemplateParameter:
                 name=name,
                 value=ref.value.value,
                 binding_type=ParamBindingType.LITERAL,
+                storage_path=LiteralPoolTools.get_literal_path_str(ref.value.value),
+                objective=objective,
                 dtype=ref.get_dtype()
             )
         else:
@@ -64,8 +68,26 @@ class TemplateParameter:
         )
 
     def is_literal(self) -> bool:
+        """
+        判断参数是否是常量
+
+        Returns:
+            布尔值，当参数是常量时返回True
+        """
         return self.binding_type == ParamBindingType.LITERAL
 
+    def get_data_path(self) -> DataPath:
+        """
+        根据参数生成 DataPath
+
+        Returns:
+            当缺少必要参数时返回 DataPath(path="null", target="dovetail", location=StorageLocation.SCORE)
+        """
+        return DataPath(
+            self.storage_path or "null",
+            self.objective or "dovetail",
+            StorageLocation.get_storage(self.dtype or PrimitiveDataType.INT)
+        )
 
 class ParameterBuilder:
     """参数构建器 - 简化参数创建流程"""

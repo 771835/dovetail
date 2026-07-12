@@ -1,18 +1,26 @@
 # coding=utf-8
+"""
+模板命令引擎
+"""
+import hashlib
 import re
 import uuid
 
 from dovetail.utils.logger import get_logger
-from .parameter import TemplateParameter, ParamBindingType
+from .parameter import TemplateParameter
 from .template import CommandTemplate, TemplateRegistry
 from ... import LiteralPoolTools, DataPath, Copy, StorageLocation
 from ....commands import FunctionBuilder
 
 logger = get_logger(__name__)
 
-
 class TemplateEngine:
-    """模板命令引擎 - 统一处理模板渲染和宏调用"""
+    """
+    模板命令引擎
+
+    核心逻辑：渲染时自动内联所有字面量参数，仅变量参数走宏调用。
+    handler 不再需要关心渲染模式选择和动态模板注册。
+    """
 
     VAR_PATTERN = re.compile(r'\$\((\w+)\)')
 
@@ -20,168 +28,134 @@ class TemplateEngine:
         self.namespace = namespace
         self.objective = objective
 
-    def render_inline(self, template: str, params: dict[str, TemplateParameter]) -> str:
+    # ==================== 公开接口 ====================
+
+    def render(self, template_str: str, function_path: str,
+               params: dict[str, TemplateParameter]) -> list[str]:
         """
-        内联渲染 - 所有参数都是字面量时使用
+        核心渲染方法
 
-        Args:
-            template: 模板字符串，如 "$setblock $(x) $(y) $(z) $(block)"
-            params: 参数字典
-
-        Returns:
-            渲染后的命令字符串
+        1. 把所有字面量参数内联进模板字符串
+        2. 如果没有残留 $(var) → 返回一行纯命令
+        3. 如果有残留 $(var) → 自动注册烘焙模板，走宏调用
         """
+        # 第一步：内联所有字面量
+        baked_str = template_str
+        variable_params = {}
 
-        def replacer(match):
-            param_name = match.group(1)
-            if param_name not in params:
-                raise ValueError(f"Missing parameter: {param_name}")
+        for name, param in params.items():
+            if param.is_literal():
+                baked_str = baked_str.replace(f"$({name})", str(param.value))
+            else:
+                variable_params[name] = param
 
-            param = params[param_name]
-            if param.binding_type != ParamBindingType.LITERAL:
-                raise ValueError(f"Cannot inline non-literal parameter: {param_name}")
+        # 第二步：检查残留的宏变量
+        if not self.VAR_PATTERN.search(baked_str):
+            return [baked_str]
 
-            return str(param.value)
+        # 第三步：自动注册烘焙模板（供 .mcfunction 文件生成使用）
+        baked_id = self._baked_id(function_path, baked_str)
+        if not TemplateRegistry.has(baked_id):
+            TemplateRegistry.register(CommandTemplate(
+                name=baked_id,
+                template=baked_str,
+                function_path=baked_id,
+                param_names=list(variable_params.keys()),
+            ))
+            TemplateRegistry.get.cache_clear()
 
-        return self.VAR_PATTERN.sub(replacer, template)
+        # 第四步：仅变量参数走宏调用
+        return self._macro_call(baked_id, variable_params)
 
-    def render_macro(self, template_path: str, params: dict[str, TemplateParameter]) -> list[str]:
+    def render_from_template(self, template: CommandTemplate,
+                             params: dict[str, TemplateParameter]) -> list[str]:
+        """使用 CommandTemplate 对象渲染"""
+        param_values = {name: p.value for name, p in params.items()}
+        all_params = template.get_all_params(param_values)
+        valid, error = template.validate_params(all_params)
+        if not valid:
+            logger.error(
+                f"Template '{template.name}' parameter validation failed: {error}")
+            return []
+        return self.render(template.template, template.function_path, params)
+
+    def render_by_name(self, template_name: str,
+                       params: dict[str, TemplateParameter]) -> list[str]:
+        """通过模板名称渲染"""
+        template = TemplateRegistry.get(template_name)
+        if not template:
+            raise ValueError(f"Template not found: {template_name}")
+        return self.render_from_template(template, params)
+
+    def render_by_path(self, function_path: str,
+                       params: dict[str, TemplateParameter]) -> list[str]:
+        """通过函数路径渲染（无模板时回退为原始宏调用）"""
+        template = TemplateRegistry.get_by_path(function_path)
+        if not template:
+            return self._raw_macro_call(function_path, params)
+        return self.render_from_template(template, params)
+
+    # ==================== 私有方法 ====================
+
+    @staticmethod
+    def _baked_id(function_path: str, baked_str: str) -> str:
+        """根据烘焙后的模板字符串计算唯一标识"""
+        h = hashlib.sha256(baked_str.encode()).hexdigest()[:8]
+        return f"{function_path}_{h}"
+
+    def _macro_call(self, function_path: str,
+                    variable_params: dict[str, TemplateParameter]) -> list[str]:
+        """生成宏调用命令（仅传入变量参数）"""
+        commands = []
+        args_path = f"args.{uuid.uuid4().hex}"
+
+        for name, param in variable_params.items():
+            if not param.is_literal():
+                logger.error(f"模板 '{function_path}' 的参数 '{name}' 应该是一个变量")
+                continue
+            source = param.get_data_path()
+            target = DataPath(
+                f"{args_path}.{name}",
+                self.objective,
+                StorageLocation.STORAGE
+            )
+            commands.append(Copy.copy(target, source))
+
+        commands.append(
+            FunctionBuilder.run_with_source(
+                f"{self.namespace}:{function_path.replace('.', '/')}",
+                "storage",
+                f"{self.objective} {args_path}"
+            )
+        )
+        return commands
+
+    def _raw_macro_call(self, function_path: str,
+                        params: dict[str, TemplateParameter]) -> list[str]:
         """
-        宏渲染 - 有引用参数时使用，生成 data modify + function 调用
-
-        Args:
-            template_path: 模板函数路径，如 "builtins/tellraw/tellraw_text"
-            params: 参数字典
-
-        Returns:
-            命令列表
+        原始宏调用（无模板时的回退方案）
+        字面量从 literal pool 拷贝，变量从存储路径拷贝
         """
         commands = []
         args_path = f"args.{uuid.uuid4().hex}"
 
         for name, param in params.items():
-            if param.binding_type == ParamBindingType.LITERAL:
-                source_path = LiteralPoolTools.get_literal_path(param.value, self.objective)
+            if param.is_literal():
+                source = LiteralPoolTools.get_literal_path(param.value, self.objective)
             else:
-                source_path = DataPath(
-                    param.storage_path,
-                    param.objective,
-                    StorageLocation.get_storage(param.dtype)
-                )
-            commands.append(
-                Copy.copy(
-                    DataPath(
-                        f"{args_path}.{name}",
-                        self.objective,
-                        StorageLocation.STORAGE
-                    ),
-                    source_path
-                )
+                source = param.get_data_path()
+            target = DataPath(
+                f"{args_path}.{name}",
+                self.objective,
+                StorageLocation.STORAGE
             )
+            commands.append(Copy.copy(target, source))
 
-        # 调用宏函数
         commands.append(
             FunctionBuilder.run_with_source(
-                f"{self.namespace}:{template_path}",
+                f"{self.namespace}:{function_path.replace('.', '/')}",
                 "storage",
                 f"{self.objective} {args_path}"
             )
         )
-
         return commands
-
-    def render(
-            self,
-            template_str: str,
-            function_path: str,
-            params: dict[str, TemplateParameter]
-    ) -> list[str]:
-        """
-        智能渲染 - 自动选择内联或宏模式
-
-        Args:
-            template_str: 模板字符串
-            function_path: 函数路径
-            params: 参数字典
-
-        Returns:
-            命令列表
-        """
-        # 检查是否所有参数都是字面量
-        all_literal = all(p.is_literal() for p in params.values())
-
-        if all_literal:
-            return [self.render_inline(template_str, params)]
-        else:
-            return self.render_macro(function_path, params)
-
-    def render_from_template(
-            self,
-            template: CommandTemplate,
-            params: dict[str, TemplateParameter]
-    ) -> list[str]:
-        """
-        使用 CommandTemplate 对象渲染
-
-        Args:
-            template: 命令模板对象
-            params: 参数字典
-
-        Returns:
-            命令列表
-        """
-        # 合并默认参数
-        param_values = {name: p.value for name, p in params.items()}
-        all_params = template.get_all_params(param_values)
-
-        # 验证参数
-        valid, error = template.validate_params(all_params)
-        if not valid:
-            logger.error(f"Template '{template.name}' parameter validation failed: {error}")
-            return []
-
-        # 智能选择渲染模式
-        return self.render(template.template, template.function_path, params)
-
-    def render_by_name(
-            self,
-            template_name: str,
-            params: dict[str, TemplateParameter]
-    ) -> list[str]:
-        """
-        通过模板名称渲染（自动从注册表获取）
-
-        Args:
-            template_name: 模板名称
-            params: 参数字典
-
-        Returns:
-            命令列表
-        """
-        template = TemplateRegistry.get(template_name)
-        if not template:
-            raise ValueError(f"Template not found: {template_name}")
-
-        return self.render_from_template(template, params)
-
-    def render_by_path(
-            self,
-            function_path: str,
-            params: dict[str, TemplateParameter]
-    ) -> list[str]:
-        """
-        通过函数路径渲染（自动从注册表获取）
-
-        Args:
-            function_path: 函数路径
-            params: 参数字典
-
-        Returns:
-            命令列表
-        """
-        template = TemplateRegistry.get_by_path(function_path)
-        if not template:
-            # 回退到直接宏调用
-            return self.render_macro(function_path, params)
-
-        return self.render_from_template(template, params)

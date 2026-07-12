@@ -8,7 +8,8 @@ from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable, Class, Reference, Literal
 from ..backend import JE1214Backend
-from ..commands.strlib import to_str, to_int
+from ..commands import CommandRegistry
+from ..commands.strlib import to_str
 from ..commands.tools import DataPath
 
 
@@ -30,6 +31,6 @@ class IRCastProcessor(IRProcessor):
         elif value.dtype == PrimitiveDataType.STRING and dtype.is_subclass_of(PrimitiveDataType.INT):
             # str -> int
             assert isinstance(value_path, (DataPath, str))
-            context.add_commands(to_int(result_path, value_path, context.namespace))
+            CommandRegistry.get("to_integer").call(result,context, {"value":value} )
         else:
             get_project_logger().error(f"Unsupported type conversion: Convert from {value.dtype} to {dtype}")

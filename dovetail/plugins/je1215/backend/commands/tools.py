@@ -62,7 +62,7 @@ class LiteralPoolTools:
             raise TypeError(f"literal type {type(literal)} is not supported")
 
     @staticmethod
-    def get_literal_path(literal: int | bool | str, target: str) -> DataPath:
+    def get_literal_path(literal: int | bool | str | None, target: str) -> DataPath:
         assert isinstance(literal, (int, bool, str)), f"literal type {type(literal)} is not supported"
         if isinstance(literal, str):
             return DataPath(f"literal_pool.str.{hash(literal)}", target, StorageLocation.STORAGE)

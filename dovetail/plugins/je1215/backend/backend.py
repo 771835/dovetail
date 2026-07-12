@@ -12,7 +12,6 @@ from .commands.builtins import TemplateRegistry
 from .initializer_function_writer import InitializerFunctionWriter
 from .literal_pool_writer import LiteralPoolWriter
 
-
 class JE1214Backend(Backend):
     def __init__(self, ir_builder: IRBuilder, target: Path, config: CompileConfig):
         super().__init__(ir_builder, target, config)
