@@ -8,13 +8,16 @@ class UnaryOp:
     @staticmethod
     def not_(result: DataPath, value: DataPath):
         # result = 1-x
-        return [
-            ScoreboardBuilder.set_score(*result, 1),
-            ScoreboardBuilder.sub_op(
-                *result,
-                *value
-            )
-        ]
+        if result != value:
+            return [
+                ScoreboardBuilder.set_score(*result, 1),
+                ScoreboardBuilder.sub_op(
+                    *result,
+                    *value
+                )
+            ]
+        else:
+            return UnaryOp.not_self(result)
 
     @staticmethod
     def not_self(value: DataPath):

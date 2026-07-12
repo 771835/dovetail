@@ -117,7 +117,7 @@ class TypeChecker:
                 "可定义类型",
                 dtype.get_name(),
                 meta=meta,
-                suggestion=f"{dtype.get_name()} 不可被定义"
+                suggestion=f"{dtype.get_name()} 不可作为变量类型定义"
             )
             return False
         return True

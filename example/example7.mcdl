@@ -1,8 +1,52 @@
-fn greet(name: string) {
-    print(f"Hello, {name}")
+include "strlib"
+
+// 查找 needle 在 haystack 中第一次出现的位置
+// 返回索引，如果未找到返回 -1
+fn strstr(haystack: string, needle: string) -> int {
+    let h_len = strlen(haystack)
+    let n_len = strlen(needle)
+
+    // 1. 边界检查
+    if (n_len == 0) {
+        return 0
+    }
+    if (h_len < n_len) {
+        return -1
+    }
+
+    // 2. 遍历
+    let i: int = 0
+    // 最多遍历到 h_len - n_len
+    while (i <= h_len - n_len) {
+        // 使用新的 start, end 签名
+        // 截取区间 [i, i + n_len)
+        // 长度正好是 (i + n_len) - i = n_len
+        if (substring(haystack, i, i + n_len) == needle) {
+            return i
+        }
+        i += 1
+    }
+
+    return -1
 }
+
 @init
 fn main() {
-    greet("World")
-    greet("Bob")
+    print("mcfunction string performance test")
+    let s: string = "Hello, "
+    s+="World!"
+    print(f"strcat: \"Hello, \" + \"World!\" = {s}")
+
+    if (s == "Hello, World!") {
+        print("strcmp: \"Hello, World!\" == \"Hello, World!\"")
+    } else {
+        print("strcmp: \"Hello, World!\" != \"Hello, World!\"")
+    }
+
+    if (strstr(s, "lo, W") != -1) {
+        print("strstr: \"lo, W\" in \"Hello, World!\"")
+    } else {
+        print("strstr: \"lo, W\" not in \"Hello, World!\"")
+    }
+
 }

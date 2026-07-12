@@ -1,16 +1,16 @@
 # coding=utf-8
 import json
-from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable, Any
 
+from attrs import field,define
 from dovetail.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-@dataclass
+@define(repr=False, )
 class CommandTemplate:
     """
     命令模板定义
@@ -19,10 +19,10 @@ class CommandTemplate:
     template: str  # Minecraft 命令模板字符串
     function_path: str  # 宏函数路径
     param_names: list[str]  # 必需参数列表
-    optional_params: dict[str, Any] = field(default_factory=dict)  # 可选参数及默认值
+    optional_params: dict[str, Any] = field(factory=dict)  # 可选参数及默认值
     validator: Callable | None = None  # 参数验证器
     description: str = ""  # 模板描述
-    tags: list[str] = field(default_factory=list)  # 命令分类标签
+    tags: list[str] = field(factory=list)  # 命令分类标签
 
     def validate_params(self, params: dict[str, Any]) -> tuple[bool, str]:
         """

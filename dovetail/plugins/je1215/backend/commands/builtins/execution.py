@@ -13,9 +13,6 @@ from .base import CommandRegistry, TemplateCommandHandler
 @CommandRegistry.register('exec')
 class ExecCommand(TemplateCommandHandler):
     """
-    执行原始命令
-
-    Attributes:
-        template_name (str): 常量"exec"，不应被修改
+    执行原始命令，不进行任何检查
     """
     template_name = "exec"

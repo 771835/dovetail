@@ -1,7 +1,7 @@
-fn greet(name: string = "World") {
-    print(f"Hello, {name}")
+fn set_health(target: string, health: int = 42) {
+    exec(f"data modify entity {target} Health set value {health}")
 }
 @init
 fn main() {
-    greet()
+    set_health("@p", 114)
 }

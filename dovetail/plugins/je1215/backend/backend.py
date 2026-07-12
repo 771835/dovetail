@@ -71,9 +71,11 @@ class JE1214Backend(Backend):
         for template_ in TemplateRegistry.all().values():
             if self.config.debug:
                 templates[template_.function_path] = \
-                    f'''# {template_.function_path}
-# {template_.name}({", ".join(template_.param_names)}, {", ".join(f"{name}={value!r}" for name, value in template_.optional_params.items())})
-# {template_.description}
+                    f'''# 函数路径: {template_.function_path}
+# 函数签名: {template_.name}({", ".join(template_.param_names)}, {", ".join(f"{name}={value!r}" for name, value in template_.optional_params.items())})
+# 函数介绍: {template_.description}
+# 函数标签: {", ".join(template_.tags)}
+
 '''
             else:
                 templates[template_.function_path] = ''

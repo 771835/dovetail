@@ -39,7 +39,7 @@ class Strlib(Library):
                 ],
                 PrimitiveDataType.STRING,
                 FunctionType.BUILTIN
-            ): None,
+            ): None
         }
 
     def _strcat(self, dest: Reference[Variable | Literal],

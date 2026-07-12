@@ -1,4 +1,5 @@
 # coding=utf-8
+import ast
 import time
 from collections.abc import Generator
 from pathlib import Path
@@ -80,7 +81,7 @@ def parser_file(filepath: Path, start: Optional[str] = None, error_reporter: Opt
     tree = parser_code(code, start=start)
 
     elapsed = time.perf_counter() - start_time
-    logger.info(f"解析文件 '{filepath.name}' 用时 {elapsed:.5f}.")
+    logger.info(f"解析文件 '{filepath.name}' 用时 {elapsed:.3f}s.")
     return tree
 
 
@@ -90,9 +91,9 @@ def parse_fstring_iter(fstring: str) -> Generator[tuple[str, str], None, None]:
     type: 'literal' 或 'expr'
     """
     if fstring.startswith(('f"', "f'")):
-        content = fstring[2:-1]
+        content = ast.literal_eval((fstring[1:]))
     else:
-        content = fstring
+        content = ast.literal_eval(fstring)
 
     i = 0
     n = len(content)

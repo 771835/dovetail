@@ -237,9 +237,9 @@ def register_builtin_templates():
 
         CommandTemplate(
             name="substring",
-            template="data modify storage $(target1) $(path1) set string storage $(target2) $(path2) $(start) $(end)",
+            template="data modify storage $(target) $(path) set string storage $(source) $(source_path) $(start) $(end)",
             function_path="builtins/string/substring",
-            param_names=["target1", "target2", "path1", "path2"],
+            param_names=["target", "source", "path", "source_path"],
             optional_params={"start": "", "end": ""},
             description="截取字符串切片",
             tags=["string", "data"]
@@ -272,7 +272,7 @@ def register_builtin_templates():
             param_names=["target", "target_path", "index", "score", "source_path"],
             description="访问数组路径并写入存储",
             tags=["data", "array", "storage"]
-        ),
+        )
     ]
 
     # 批量注册

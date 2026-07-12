@@ -16,7 +16,7 @@ class Compare:
         return ConstantFoldingPass.COMPARE_OP_HANDLERS[op](a, b)
 
     @staticmethod
-    def compare_literals(result: DataPath, op: CompareOps, a: int | bool, b: int | bool) -> str | None:
+    def compare_literals(result: DataPath, op: CompareOps, a: int | bool, b: int | bool) -> str:
         return Copy.copy_literals(result, Compare._compare_literals(op, a, b))
 
     @staticmethod
@@ -26,16 +26,16 @@ class Compare:
             a: DataPath,
             b: DataPath,
     ):
-        temp = DataPath(uuid.uuid4().hex, result.target, StorageLocation.STORAGE)
+        temp = DataPath(f"temp.{uuid.uuid4().hex}", result.target, StorageLocation.STORAGE)
         commands = [
             # 将左侧的值复制到临时变量
             Copy.copy(temp, a),
-            # 将右侧值复制到左侧，成功即为不同，不成功即为相同
+            # 将右侧值复制到左侧，成功(1)即为不同，不成功(0)即为相同
             Execute.execute().store_success_score(*result).run(Copy.copy(temp, b))
         ]
 
         if op == CompareOps.EQ:
-            commands.extend(UnaryOp.not_(result, result))
+            commands.extend(UnaryOp.not_self(result))
         return commands
 
     @staticmethod

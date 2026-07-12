@@ -5,6 +5,7 @@
 import hashlib
 import re
 import uuid
+from typing import Optional
 
 from dovetail.utils.logger import get_logger
 from .parameter import TemplateParameter
@@ -13,6 +14,7 @@ from ... import LiteralPoolTools, DataPath, Copy, StorageLocation
 from ....commands import FunctionBuilder
 
 logger = get_logger(__name__)
+
 
 class TemplateEngine:
     """
@@ -31,7 +33,8 @@ class TemplateEngine:
     # ==================== 公开接口 ====================
 
     def render(self, template_str: str, function_path: str,
-               params: dict[str, TemplateParameter]) -> list[str]:
+               params: dict[str, TemplateParameter], description: Optional[str] = None,
+               tags: Optional[list[str]] = None) -> list[str]:
         """
         核心渲染方法
 
@@ -61,6 +64,8 @@ class TemplateEngine:
                 template=baked_str,
                 function_path=baked_id,
                 param_names=list(variable_params.keys()),
+                description=description or "",
+                tags=tags or []
             ))
             TemplateRegistry.get.cache_clear()
 
@@ -77,7 +82,7 @@ class TemplateEngine:
             logger.error(
                 f"Template '{template.name}' parameter validation failed: {error}")
             return []
-        return self.render(template.template, template.function_path, params)
+        return self.render(template.template, template.function_path, params, template.description, template.tags)
 
     def render_by_name(self, template_name: str,
                        params: dict[str, TemplateParameter]) -> list[str]:
