@@ -153,6 +153,7 @@ fn reverse_number(n: int) -> int {
 
     return result
 }
+
 /**
  * 计算给定整数 x 的整数平方根（向下取整）
  * 使用分段双曲近似 + 牛顿迭代法优化，适用于 32 位整数范围内的输入
@@ -192,6 +193,7 @@ fn isqrt(x: int) -> int {
     }
     return res
 }
+
 /**
  * 判断一个整数是否为质数（素数）
  * 使用试除法，优化至 sqrt(x)

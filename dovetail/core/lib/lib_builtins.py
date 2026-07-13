@@ -80,7 +80,7 @@ class Builtins(Library):
                 FunctionType.BUILTIN
             ): None,
             Function(
-                "tellraw_text",
+                _n("tellraw_text"),
                 [
                     Parameter(Variable("target", PrimitiveDataType.STRING)),
                     Parameter(Variable("msg", PrimitiveDataType.STRING)),
@@ -89,7 +89,7 @@ class Builtins(Library):
                 FunctionType.BUILTIN
             ): None,
             Function(
-                "tellraw_json",
+                _n("tellraw_json"),
                 [
                     Parameter(Variable("target", PrimitiveDataType.STRING)),
                     Parameter(Variable("json", PrimitiveDataType.STRING)),
@@ -283,7 +283,7 @@ class Builtins(Library):
         return result
 
     def _print(self, msg: Reference[Variable | Literal]) -> None:
-        tellraw_text = next((function for function in self._functions if function.name == "tellraw_text"), None)
+        tellraw_text = next((function for function in self._functions if function.name == _n("tellraw_text")), None)
         if tellraw_text is None:
             self.error_reporter.report(
                 Errors.SymbolResolution,

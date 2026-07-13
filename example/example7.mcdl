@@ -4,7 +4,7 @@ include "strlib.mcdl"
 fn main() {
     print("mcfunction string performance test")
     let s: string = "Hello, "
-    s+="World!"
+    s=strcat_fast(s, "World!")
     print(f"strcat: \"Hello, \" + \"World!\" = {s}")
 
     if (s == "Hello, World!") {

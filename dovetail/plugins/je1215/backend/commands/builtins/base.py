@@ -6,6 +6,7 @@ from typing import Protocol, Optional
 from dovetail.core.backend import GenerationContext
 from dovetail.core.symbols import Variable, Reference
 from dovetail.utils.logger import get_logger
+from dovetail.utils.naming import NameNormalizer
 from .template.parameter import ParameterBuilder, TemplateParameter
 from .template.template import CommandTemplate, TemplateRegistry
 from .template.template_engine import TemplateEngine
@@ -182,6 +183,7 @@ class CommandRegistry:
     @classmethod
     def get(cls, name: str) -> CommandHandler:
         """根据名称获得对应命令处理器"""
+        name = NameNormalizer.denormalize(name)
         command_handler = cls._handlers.get(name)
         if command_handler is None:
             return DefaultCommandHandler(name)

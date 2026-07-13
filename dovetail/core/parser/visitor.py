@@ -1124,6 +1124,10 @@ class ASTVisitor(Interpreter):
             )
         return Reference.void()
 
+    @v_args(meta=True)
+    def array_assignment(self, meta: Meta, children: list[Tree | Token]):
+        pass # TODO: 实现数组赋值
+
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""
         return Reference.literal(None)

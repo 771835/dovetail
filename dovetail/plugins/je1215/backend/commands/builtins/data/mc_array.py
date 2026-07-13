@@ -26,7 +26,7 @@ class ArrayAccessToScoreCommand(TemplateCommandHandler):
                   .build_all(args, ["index"]))
         params["path"] = TemplateParameter.literal("path", context.current_scope.get_symbol_path(result))
         params["objective"] = TemplateParameter.literal("objective", context.objective)
-        params["score"] = TemplateParameter.literal("score", context.current_scope.get_symbol_path(result))
+        params["source"] = TemplateParameter.literal("source", context.objective)
         params["source_path"] = TemplateParameter.literal("source_path", context.current_scope.get_symbol_path(array))
         return params
 
@@ -49,7 +49,7 @@ class ArrayAccessToStorageCommand(TemplateCommandHandler):
                   .build_all(args, ["index"]))
         params["target_path"] = TemplateParameter.literal("target_path", context.current_scope.get_symbol_path(result))
         params["target"] = TemplateParameter.literal("target", context.objective)
-        params["score"] = TemplateParameter.literal("score", context.current_scope.get_symbol_path(result))
+        params["source"] = TemplateParameter.literal("source", context.objective)
         params["source_path"] = TemplateParameter.literal("source_path", context.current_scope.get_symbol_path(array))
         return params
 
@@ -80,4 +80,4 @@ class MallocCommand(CommandHandler):
                 )
             )
         else:
-            pass
+            pass # TODO: 实现对编译期未知的情况下的数组槽位分配

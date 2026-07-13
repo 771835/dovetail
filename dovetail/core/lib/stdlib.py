@@ -2,7 +2,7 @@
 from typing import Optional, Callable
 
 from dovetail.core.enums import PrimitiveDataType, FunctionType
-from dovetail.core.enums.datatypes import UnionType, ArrayType, DictType, ListType
+from dovetail.core.enums.datatypes import UnionType, ArrayType, ListType
 from dovetail.core.lib.library import Library
 from dovetail.core.symbols import Function, Variable, Literal, Parameter
 
@@ -19,7 +19,7 @@ class Stdlib(Library):
                     Parameter(
                         Variable(
                             "array",
-                            UnionType(ArrayType, DictType, ListType)
+                            UnionType(ArrayType, ListType)
                         )
                     ),
                     Parameter(

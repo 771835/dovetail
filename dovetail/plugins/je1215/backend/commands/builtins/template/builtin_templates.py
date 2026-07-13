@@ -17,12 +17,12 @@ def register_builtin_templates():
         ),
 
         CommandTemplate(
-            name="strcat",
-            template="data modify storage $(target) $(target_path) set value '$(dest)$(src)'",
-            function_path="builtins/strcat",
-            param_names=["target", "target_path", "dest", "src"],
-            description="字符串拼接",
-            tags=["data", "string"]
+            name="strcat_fast",
+            template="data modify storage $(target) $(path) set value '$(dest)$(src)'",
+            function_path="builtins/strcat_fast",
+            param_names=["target", "path", "dest", "src"],
+            description="快速字符串拼接(不支持特殊字符的拼接，面对特殊字符容易出现未知的错误)",
+            tags=["data", "string", "fast", "storage"]
         ),
 
         # ============ Tellraw 系列 ============
@@ -43,60 +43,6 @@ def register_builtin_templates():
             description="向指定目标发送文本组件(1.21.5及以上)/json(1.21.5以下)",
             tags=["ui", "tellraw"]
         ),
-        #
-        # CommandTemplate(
-        #     name="tellraw_json_all",
-        #     template="tellraw @a $(json)",
-        #     function_path="builtins/tellraw/tellraw_json_all",
-        #     param_names=["json"],
-        #     description="向所有玩家发送 JSON 消息",
-        #     tags=["ui", "tellraw", "shortcut"]
-        # ),
-        #
-        # CommandTemplate(
-        #     name="tellraw_json_self",
-        #     template="tellraw @s $(json)",
-        #     function_path="builtins/tellraw/tellraw_json_self",
-        #     param_names=["json"],
-        #     description="向目标执行者发送 JSON 消息",
-        #     tags=["ui", "tellraw", "shortcut"]
-        # ),
-        #
-        # CommandTemplate(
-        #     name="tellraw_json_entities",
-        #     template="tellraw @e $(json)",
-        #     function_path="builtins/tellraw/tellraw_json_entities",
-        #     param_names=["json"],
-        #     description="向所有实体发送 JSON 消息",
-        #     tags=["ui", "tellraw", "shortcut"]
-        # ),
-        #
-        # CommandTemplate(
-        #     name="tellraw_json_nearest",
-        #     template="tellraw @n $(json)",
-        #     function_path="builtins/tellraw/tellraw_json_nearest",
-        #     param_names=["json"],
-        #     description="向最近的实体发送 JSON 消息",
-        #     tags=["ui", "tellraw", "shortcut"]
-        # ),
-        #
-        # CommandTemplate(
-        #     name="tellraw_json_nearest_player",
-        #     template="tellraw @p $(json)",
-        #     function_path="builtins/tellraw/tellraw_json_nearest_player",
-        #     param_names=["json"],
-        #     description="向最近的玩家发送 JSON 消息",
-        #     tags=["ui", "tellraw", "shortcut"]
-        # ),
-        #
-        # CommandTemplate(
-        #     name="tellraw_json_random",
-        #     template="tellraw @r $(json)",
-        #     function_path="builtins/tellraw/tellraw_json_random",
-        #     param_names=["json"],
-        #     description="向随机玩家发送 JSON 消息",
-        #     tags=["ui", "tellraw", "shortcut"]
-        # ),
 
         # ============ Random 系列 ============
         CommandTemplate(
@@ -186,10 +132,10 @@ def register_builtin_templates():
         # ============ 实体操作 ============
         CommandTemplate(
             name="tp",
-            template="tp $(target) $(x) $(y) $(z)",
+            template="tp $(target) $(x) $(y) $(z) $(rotation)",
             function_path="builtins/tp",
             param_names=["target", "x", "y", "z"],
-            optional_params={"rotation": None},
+            optional_params={"rotation": ""},
             description="传送实体",
             tags=["entity", "world"]
         ),
@@ -260,7 +206,7 @@ def register_builtin_templates():
             name="array_access_to_score",
             template="execute store result score $(path) $(objective) run data get storage $(source) $(source_path)[$(index)]",
             function_path="builtins/array_access_to_score",
-            param_names=["path", "objective", "index", "score", "source_path"],
+            param_names=["path", "objective", "index", "source", "source_path"],
             description="访问数组路径并写入记分板",
             tags=["data", "array", "score"]
         ),
@@ -269,7 +215,7 @@ def register_builtin_templates():
             name="array_access_to_storage",
             template="data modify storage $(target) $(target_path) set from storage $(source) $(source_path)[$(index)]",
             function_path="builtins/array_access_to_storage",
-            param_names=["target", "target_path", "index", "score", "source_path"],
+            param_names=["target", "target_path", "index", "source", "source_path"],
             description="访问数组路径并写入存储",
             tags=["data", "array", "storage"]
         )

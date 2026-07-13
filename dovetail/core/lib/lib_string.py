@@ -1,6 +1,8 @@
+# coding=utf-8
 from dovetail.core.enums import PrimitiveDataType, BinaryOps, FunctionType
 from dovetail.core.lib.library import Library
 from dovetail.core.symbols import Reference, Function, Variable, Literal, Parameter
+from dovetail.utils.naming import NameNormalizer
 
 
 class Strlib(Library):
@@ -22,6 +24,15 @@ class Strlib(Library):
                 PrimitiveDataType.STRING,
                 FunctionType.LIBRARY
             ): self._strcat,
+            Function(
+                NameNormalizer.normalize("strcat_fast"),
+                [
+                    Parameter(Variable("dest", PrimitiveDataType.STRING)),
+                    Parameter(Variable("src", PrimitiveDataType.STRING))
+                ],
+                PrimitiveDataType.STRING,
+                FunctionType.BUILTIN
+            ): None,
             Function(
                 "strlen",
                 [

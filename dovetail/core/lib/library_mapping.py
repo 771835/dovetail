@@ -6,7 +6,7 @@ import threading
 from functools import lru_cache
 
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.lib.builtins import Builtins
+from dovetail.core.lib.lib_builtins import Builtins
 from dovetail.core.lib.lib_experimental import Experimental
 from dovetail.core.lib.lib_assertion import Assertion
 from dovetail.core.lib.lib_math import Math

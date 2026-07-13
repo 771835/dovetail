@@ -1,13 +1,18 @@
 # coding=utf-8
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable, Any
 
 from attrs import field,define
+
+from dovetail.core.config import FAST_MODE
 from dovetail.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+pattern = re.compile(r'\$\((.*?)\)')
 
 
 @define(repr=False, )
@@ -23,6 +28,12 @@ class CommandTemplate:
     validator: Callable | None = None  # 参数验证器
     description: str = ""  # 模板描述
     tags: list[str] = field(factory=list)  # 命令分类标签
+
+    def __attrs_post_init__(self):
+        if not FAST_MODE:
+            params = re.findall(pattern, self.template)
+            if set(params) != set(self.param_names) | set(self.optional_params.keys()):
+                 logger.error(f"宏命令模板 '{self.name}' 的实际参数与标示参数不符: 应为 {params}，实际为 {self.param_names +list (self.optional_params.keys())}")
 
     def validate_params(self, params: dict[str, Any]) -> tuple[bool, str]:
         """

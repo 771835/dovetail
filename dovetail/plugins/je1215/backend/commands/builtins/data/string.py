@@ -5,6 +5,18 @@ from ..base import CommandRegistry, CommandHandler, TemplateCommandHandler
 from ..template import TemplateParameter, ParameterBuilder
 from ... import Copy, DataPath, Execute, DataBuilder, LiteralPoolTools
 
+@CommandRegistry.register("strcat_fast")
+class StrcatFastCommand(TemplateCommandHandler):
+    no_size_effects = True
+    template_name = "strcat_fast"
+    def build_params(self, result, context, args, template):
+        assert result is not None
+        builder = ParameterBuilder(context.current_scope, context.objective)
+        params = builder.build_all(args, ["dest", "src"])
+        params["target"] = TemplateParameter.literal("target", context.objective)
+        params["path"] = TemplateParameter.literal("path", context.current_scope.get_symbol_path(result))
+        return params
+
 
 @CommandRegistry.register("strlen")
 class StrlenCommand(CommandHandler):
