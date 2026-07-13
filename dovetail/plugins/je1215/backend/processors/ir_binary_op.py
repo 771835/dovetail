@@ -10,7 +10,7 @@ from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Literal, Variable
 from dovetail.utils.logger import get_logger
-from ..backend import JE1214Backend
+from ..backend import JE1215Backend
 from ..commands.binary_op import BinaryOp
 from ..commands.strlib import strcat
 from ..commands.tools import DataPath
@@ -18,7 +18,7 @@ from ..commands.tools import DataPath
 logger = get_logger(__name__)
 
 
-@ir_processor(JE1214Backend, IROpCode.BINARY_OP)
+@ir_processor(JE1215Backend, IROpCode.BINARY_OP)
 class IROpProcessor(IRProcessor):  # 仅应支持基本类型运算
     def process(self, instruction: IRInstruction, context: GenerationContext):
         result_path = cast(DataPath, self._get_symbol_path(instruction.operands[0], context))

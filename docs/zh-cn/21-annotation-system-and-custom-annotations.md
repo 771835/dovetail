@@ -8,7 +8,7 @@
 
 ```mcdl
 @annotation_name
-@annotation_name("key1" = "value1", "key2" = "value2")
+@annotation_name("value1","value2")
 ```
 
 注解由 `AnnotationRegistry` 统一管理，在 AST 遍历阶段的两个时机处理：
@@ -52,7 +52,7 @@ fn gameLoop() {
     exec("scoreboard players add timer global 1")
 }
 
-@tick("interval" = 5)      // 每 5 tick 执行，interval 必须为正整数
+@tick(5)      // 每 5 tick 执行，interval 必须为正整数
 fn slowLoop() { ... }
 ```
 
@@ -105,7 +105,7 @@ fn factorial(n: int) -> int {
 根据目标 Minecraft **版本范围**条件编译。
 
 ```mcdl
-@version("min" = "1.20.4", "max" = "1.21.5")
+@version("1.20.4", "1.21.5")
 fn newFeature() { ... }
 ```
 
@@ -114,12 +114,12 @@ fn newFeature() { ... }
 根据目标 Minecraft **平台版本**（Java / 基岩版）条件编译。
 
 ```mcdl
-@target("edition" = "java")
+@target("java")
 fn javaOnly() -> int {
     return 350234
 }
 
-@target("edition" = "be")
+@target("be")
 fn beOnly() -> int {
     return 0
 }
@@ -149,10 +149,11 @@ fn useMyClass() { ... }
 
 ### `@if_feature`
 
-当 `CompileConfig` 上指定特性标志为真时才编译。
+当编译器未启用指定 feature 时，跳过当前声明。
+feature flag 系统的具体定义另行规范，当前版本此注解**恒不产生**跳过效果。
 
 ```mcdl
-@if_feature("feature" = "experimental")
+@if_feature("experimental")
 fn expFunc() { ... }
 ```
 
@@ -165,7 +166,7 @@ fn expFunc() { ... }
 声明从**外部数据包**导入的函数（类似 C 的 `extern`）。
 
 ```mcdl
-@extern("abi" = "clang-mc", "path" = "myns:my_func")
+@extern("myns:my_func", "clang-mc", "")
 fn external_func() -> int;
 ```
 
@@ -176,7 +177,7 @@ fn external_func() -> int;
 将函数**导出**供外部数据包调用。
 
 ```mcdl
-@export("abi" = "dovetail")
+@export("namespace:path", "dovetail", '')
 fn my_export() -> int { ... }
 ```
 
@@ -184,10 +185,10 @@ fn my_export() -> int { ... }
 
 **支持的 ABI：**
 
-| ABI        | 说明           | 类型限制                              |
-|------------|--------------|-----------------------------------|
-| `dovetail` | 原生 ABI       | 无限制                               |
-| `clang-mc` | clang-mc 互操作 | 仅 `int`/`boolean`/`void`/`string` |
+| ABI        | 说明           | 类型限制                     |
+|------------|--------------|--------------------------|
+| `dovetail` | 原生 ABI       | 无限制                      |
+| `clang-mc` | clang-mc 互操作 | 仅 `int`/`boolean`/`void` |
 
 ## 元数据注解（METADATA）
 
@@ -198,7 +199,7 @@ fn my_export() -> int { ... }
 标记符号为**已弃用**。配合 `--disable-deprecated-function` 可在编译时完全跳过。
 
 ```mcdl
-@deprecated("msg" = "请使用 newFunc 代替")
+@deprecated("请使用 newFunc 代替")
 fn oldFunc() { ... }
 ```
 
@@ -207,15 +208,15 @@ fn oldFunc() { ... }
 为符号附加**文档字符串**。
 
 ```mcdl
-@doc("text" = "此函数计算两数之和")
+@doc("此函数计算两数之和")
 fn add(a: int, b: int) -> int { ... }
 ```
 
 ### `@author` / `@since`
 
 ```mcdl
-@author("name" = "developer")
-@since("version" = "1.0.0")
+@author("developer")
+@since("1.0.0")
 fn myFunc() { ... }
 ```
 

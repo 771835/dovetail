@@ -92,6 +92,3 @@ DEFAULT_SUGGESTIONS: list[str] = [
     "Avada Kedavra",
     ":wq!",
 ]
-
-def get_project_logger():
-    return get_logger("_")

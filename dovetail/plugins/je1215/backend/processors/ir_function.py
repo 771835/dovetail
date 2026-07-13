@@ -5,11 +5,11 @@ IRFunction 指令处理器
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Function
-from ..backend import JE1214Backend
+from ..backend import JE1215Backend
 from ..initializer_function_writer import InitializerFunctionWriter
 
 
-@ir_processor(JE1214Backend, IROpCode.FUNCTION)
+@ir_processor(JE1215Backend, IROpCode.FUNCTION)
 class IRFunctionProcessor(IRProcessor):
 
     def process(self, instruction: IRInstruction, context: GenerationContext):

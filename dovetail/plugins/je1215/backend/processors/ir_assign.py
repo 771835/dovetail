@@ -4,12 +4,12 @@ IRAssign 指令处理器
 """
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.instructions import IRInstruction, IROpCode
-from ..backend import JE1214Backend
+from ..backend import JE1215Backend
 from ..commands.copy import Copy
 from ..commands.tools import DataPath
 
 
-@ir_processor(JE1214Backend, IROpCode.ASSIGN)
+@ir_processor(JE1215Backend, IROpCode.ASSIGN)
 class IRAssignProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         target, source = instruction.operands

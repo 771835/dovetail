@@ -8,12 +8,12 @@ from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable, Reference
 from dovetail.utils.naming import NameNormalizer
-from ..backend import JE1214Backend
+from ..backend import JE1215Backend
 from ..commands import Copy, DataPath, StorageLocation
 from ..commands.builtins import CommandRegistry
 
 
-@ir_processor(JE1214Backend, IROpCode.ARRAY_ACCESS)
+@ir_processor(JE1215Backend, IROpCode.ARRAY_ACCESS)
 class IRArrayAccessProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         result, array, index = cast("tuple[Variable, Reference, Reference]", instruction.operands)

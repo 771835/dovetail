@@ -7,12 +7,12 @@ from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.enums import FunctionType, PrimitiveDataType
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable, Function, Literal, Reference
-from ..backend import JE1214Backend
+from ..backend import JE1215Backend
 from ..commands import FunctionBuilder, Copy, DataPath, StorageLocation, LiteralPoolTools
 from ..commands.builtins import CommandRegistry
 
 
-@ir_processor(JE1214Backend, IROpCode.CALL)
+@ir_processor(JE1215Backend, IROpCode.CALL)
 class IRCallProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         result: Variable = instruction.get_operands()[0]

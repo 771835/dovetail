@@ -7,11 +7,13 @@
 
 from __future__ import annotations
 
-import warnings
 from enum import Enum
 from typing import Any, Callable, Self
 
 from dovetail.core.config import FAST_MODE
+from dovetail.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class SafeEnum(Enum):
@@ -94,11 +96,7 @@ class SafeEnum(Enum):
             Returns:
                 None: 无返回值
             """
-            err_msg = (
-                f"Enum type mismatch: Comparing {self.__class__.__name__} "
-                f"with {other.__class__.__name__}"
-            )
-            warnings.warn(err_msg, UserWarning, stacklevel=3)
+            logger.warning(f"Enum type mismatch: Comparing {self.__class__.__name__} with {other.__class__.__name__}")
 
     @classmethod
     def is_valid_value(cls, value: Any) -> bool:

@@ -3,18 +3,19 @@
 IRCast 指令处理器
 """
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
-from dovetail.core.config import get_project_logger
 from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable, Class, Reference, Literal
+from dovetail.utils.logger import get_logger
 from dovetail.utils.naming import NameNormalizer
-from ..backend import JE1214Backend
+from ..backend import JE1215Backend
 from ..commands import CommandRegistry
 from ..commands.strlib import to_str
 from ..commands.tools import DataPath
 
+logger = get_logger(__name__)
 
-@ir_processor(JE1214Backend, IROpCode.CAST)
+@ir_processor(JE1215Backend, IROpCode.CAST)
 class IRCastProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         result: Variable = instruction.operands[0]  # NOQA
@@ -34,4 +35,4 @@ class IRCastProcessor(IRProcessor):
             assert isinstance(value_path, (DataPath, str))
             CommandRegistry.get(NameNormalizer.normalize("to_integer")).call(result,context, {"value":value} )
         else:
-            get_project_logger().error(f"Unsupported type conversion: Convert from {value.dtype} to {dtype}")
+            logger.error(f"未知的类型转换: 从 '{value.dtype}' 转换为 '{dtype}'")

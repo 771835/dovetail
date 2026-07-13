@@ -6,11 +6,11 @@ from dovetail.core.backend import ir_processor, GenerationContext
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable, Literal
 from .ir_jump import IRJumpProcessor
-from ..backend import JE1214Backend
+from ..backend import JE1215Backend
 from ..commands import FunctionBuilder, Execute
 
 
-@ir_processor(JE1214Backend, IROpCode.COND_JUMP)
+@ir_processor(JE1215Backend, IROpCode.COND_JUMP)
 class IRCondJumpProcessor(IRJumpProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         cond_var: Variable | Literal = instruction.get_operands()[0]

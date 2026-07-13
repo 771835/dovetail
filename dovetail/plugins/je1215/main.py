@@ -1,6 +1,6 @@
 # coding=utf-8
 from dovetail.utils.logger import get_logger
-from .backend.backend import JE1214Backend
+from .backend.backend import JE1215Backend
 from .backend.processors import *  # NOQA
 from ..plugin_api import Plugin
 from ..plugin_api.v2.registry import registry_backend
@@ -12,7 +12,7 @@ class PluginMain(Plugin):
     def load(self):
         self.logger = get_logger("Backend-1.21.5-JE")
         self.logger.info("插件加载中")
-        registry_backend(JE1214Backend)
+        registry_backend(JE1215Backend)
 
     def unload(self) -> bool:
         self.logger.info("插件卸载中")

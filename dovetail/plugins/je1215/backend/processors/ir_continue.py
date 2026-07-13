@@ -3,13 +3,14 @@
 IRContinue 指令处理器
 """
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
-from dovetail.core.config import get_project_logger
 from dovetail.core.instructions import IRInstruction, IROpCode
-from ..backend import JE1214Backend
+from dovetail.utils.logger import get_logger
+from ..backend import JE1215Backend
 from ..commands import ReturnBuilder, ScoreboardBuilder
 
+logger = get_logger(__name__)
 
-@ir_processor(JE1214Backend, IROpCode.CONTINUE)
+@ir_processor(JE1215Backend, IROpCode.CONTINUE)
 class IRContinueProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         loop_check_name = instruction.get_operands()[0]
@@ -21,8 +22,8 @@ class IRContinueProcessor(IRProcessor):
                 loop_check_path = loop_check_scope.get_absolute_path()
                 break
         else:
-            get_project_logger().error("No loop scope found")
-            context.add_command("# No loop scope found")
+            logger.error("找不到需要被跳出的循环作用域")
+            context.add_command("# Can't find a loop scope to break out of")
             return
         # 标记循环继续
         context.current_scope.flags[f"continue:{loop_check_path}"] = current_path.count(".") - loop_check_path.count(

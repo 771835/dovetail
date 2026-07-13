@@ -5,12 +5,12 @@ IRCompare 指令处理器
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.enums import ValueType
 from dovetail.core.instructions import IRInstruction, IROpCode
-from ..backend import JE1214Backend
+from ..backend import JE1215Backend
 from ..commands.compare import Compare
 from ..commands.tools import DataPath
 
 
-@ir_processor(JE1214Backend, IROpCode.COMPARE)
+@ir_processor(JE1215Backend, IROpCode.COMPARE)
 class IRCompareProcessor(IRProcessor):
     def process(self, instr: IRInstruction, context: GenerationContext):
         result, op, a, b = instr.operands

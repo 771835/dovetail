@@ -7,13 +7,13 @@ from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.enums import UnaryOps
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.utils.logger import get_logger
-from ..backend import JE1214Backend
+from ..backend import JE1215Backend
 from ..commands import UnaryOp, DataPath
 
 logger = get_logger(__name__)
 
 
-@ir_processor(JE1214Backend, IROpCode.UNARY_OP)
+@ir_processor(JE1215Backend, IROpCode.UNARY_OP)
 class IRUnaryOpProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         result = instruction.operands[0]

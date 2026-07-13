@@ -3,17 +3,18 @@
 IRReturn 指令处理器
 """
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
-from dovetail.core.config import get_project_logger
 from dovetail.core.enums import StructureType
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable, Literal
-from ..backend import JE1214Backend
+from dovetail.utils.logger import get_logger
+from ..backend import JE1215Backend
 from ..commands import ScoreboardBuilder, ReturnBuilder
 from ..commands.copy import Copy
 from ..commands.tools import DataPath, StorageLocation
 
+logger = get_logger(__name__)
 
-@ir_processor(JE1214Backend, IROpCode.RETURN)
+@ir_processor(JE1215Backend, IROpCode.RETURN)
 class IRReturnProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         return_value: Variable | Literal = instruction.get_operands()[0].value
@@ -25,8 +26,8 @@ class IRReturnProcessor(IRProcessor):
                 func_path = function_scope.get_absolute_path()
                 break
         else:
-            get_project_logger().error("No function scope found")
-            context.add_command("# No function scope found")
+            logger.error("找不到需要函数作用域")
+            context.add_command("# Can't find a function scope to return")
             return
         if return_value:  # 如果存在返回值
             return_path = DataPath(

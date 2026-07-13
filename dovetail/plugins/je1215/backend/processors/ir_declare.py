@@ -7,11 +7,11 @@ from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.enums.datatypes import ArrayType,  DictType, ListType
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable
-from ..backend import JE1214Backend
+from ..backend import JE1215Backend
 from ..commands import DataBuilder
 
 
-@ir_processor(JE1214Backend, IROpCode.DECLARE)
+@ir_processor(JE1215Backend, IROpCode.DECLARE)
 class IRDeclareProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         var: Variable = instruction.operands[0]

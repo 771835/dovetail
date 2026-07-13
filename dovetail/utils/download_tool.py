@@ -100,7 +100,7 @@ class _CacheManager:
 
 def _get_system_proxies() -> dict:
     """
-    自动读取系统代理环境变量（兼容 Stream++/Clash 等工具）
+    自动读取系统代理环境变量
     支持 HTTP_PROXY / HTTPS_PROXY / ALL_PROXY
     """
     proxies = {}
