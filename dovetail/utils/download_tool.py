@@ -1,6 +1,7 @@
 # coding=utf-8
 import hashlib
 import json
+import os
 import time
 from pathlib import Path
 from typing import Optional, Callable
@@ -9,6 +10,15 @@ from dovetail.utils.logger import get_logger
 
 # 设置日志
 logger = get_logger(__name__)
+
+# GitHub 镜像站列表，按优先级排序
+GITHUB_MIRRORS = [
+    "",  # 原始地址优先
+    "https://gh-proxy.org/",
+    "https://ghproxy.net/",
+    "https://gh.llkk.cc/",
+    "https://gh.ddlc.top/",
+]
 
 
 class _CacheManager:
@@ -88,174 +98,217 @@ class _CacheManager:
         # 文件存在但没有缓存记录，假定有效
         return True
 
+def _get_system_proxies() -> dict:
+    """
+    自动读取系统代理环境变量（兼容 Stream++/Clash 等工具）
+    支持 HTTP_PROXY / HTTPS_PROXY / ALL_PROXY
+    """
+    proxies = {}
+    for key in ("HTTP_PROXY", "http_proxy"):
+        val = os.environ.get(key)
+        if val:
+            proxies["http"] = val
+            break
+    for key in ("HTTPS_PROXY", "https_proxy"):
+        val = os.environ.get(key)
+        if val:
+            proxies["https"] = val
+            break
+    for key in ("ALL_PROXY", "all_proxy"):
+        val = os.environ.get(key)
+        if val:
+            proxies.setdefault("http", val)
+            proxies.setdefault("https", val)
+            break
+    return proxies
 
-def verify_file_hash(filepath: Path, expected_hash: str) -> bool:
-    """验证文件的SHA256哈希值"""
-    sha256_hash = hashlib.sha256()
 
-    try:
-        with open(filepath, 'rb') as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(byte_block)
-
-        actual_hash = sha256_hash.hexdigest()
-        logger.debug(f"Expected hash: {expected_hash}")
-        logger.debug(f"Actual hash: {actual_hash}")
-
-        return actual_hash == expected_hash.lower()
-
-    except Exception as e:
-        logger.error(f"Hash verification failed: {e}")
-        return False
+def _is_github_url(url: str) -> bool:
+    return "github.com" in url or "githubusercontent.com" in url
 
 
-def _get_file_size_from_head(url: str, headers: dict, timeout: float, verify_ssl: bool) -> int:
-    """通过 HEAD 请求获取文件大小"""
+def _build_mirror_urls(url: str) -> list[str]:
+    """为 GitHub URL 生成带镜像前缀的候选列表"""
+    if not _is_github_url(url):
+        return [url]
+
+    use_cn_mirror = os.environ.get("USED_MIRROR_GITHUB_CN", "").strip() == "1"
+
+    if use_cn_mirror:
+        logger.info("USED_MIRROR_GITHUB_CN=1 detected, using CN mirror directly.")
+        return [GITHUB_MIRRORS[1] + url]  # 直接返回，不做回退
+
+    return [
+        (mirror + url if mirror else url)
+        for mirror in GITHUB_MIRRORS
+    ]
+
+
+def _get_file_size_from_head(url: str, headers: dict, timeout: tuple, proxies: dict, verify_ssl: bool) -> int:
     import requests
-
     try:
-        head_response = requests.head(
-            url,
-            headers=headers,
-            timeout=timeout / 2,
-            verify=verify_ssl
-        )
-        head_response.raise_for_status()
-        return int(head_response.headers.get('content-length', 0))
+        r = requests.head(url, headers=headers, timeout=timeout, proxies=proxies, verify=verify_ssl)
+        r.raise_for_status()
+        return int(r.headers.get("content-length", 0))
     except Exception:
         return 0
 
 
 def _should_retry_on_error(status_code: Optional[int]) -> bool:
-    """判断是否应该重试"""
     if status_code is None:
         return True
-    # 4xx 客户端错误通常无法通过重试解决
     return status_code not in [400, 401, 403, 404, 410]
+
+
+def verify_file_hash(filepath: Path, expected_hash: str) -> bool:
+    sha256 = hashlib.sha256()
+    try:
+        with open(filepath, "rb") as f:
+            for block in iter(lambda: f.read(65536), b""):
+                sha256.update(block)
+        return sha256.hexdigest() == expected_hash.lower()
+    except Exception as e:
+        logger.error(f"Hash verification failed: {e}")
+        return False
 
 
 def download_file(
         url: str,
         filepath: Path,
-        timeout: float = 30.0,
+        timeout: tuple[float, float] = (10.0, 60.0),  # (connect_timeout, read_timeout)
         max_retries: int = 3,
         retry_delay: float = 2.0,
-        chunk_size: int = 8192,
+        chunk_size: int = 65536,
         expected_sha256: Optional[str] = None,
-        headers: Optional[dict[str, str]] = None,
+        headers: Optional[dict] = None,
         verify_ssl: bool = True,
         progress_callback: Optional[Callable[[int, int], None]] = None,
-        user_agent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        proxies: Optional[dict] = None,
+        user_agent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        enable_resume: bool = True,
+        try_mirrors: bool = True,
 ) -> bool:
     """
-    安全下载文件的函数，支持重试机制和完整性验证
+    健壮的文件下载函数。
 
-    Args:
-        url: 要下载的文件URL
-        filepath: 保存文件的路径
-        timeout: 请求超时时间（秒）
-        max_retries: 最大重试次数
-        retry_delay: 重试延迟时间（秒）
-        chunk_size: 分块下载大小
-        expected_sha256: 预期的SHA256哈希值（可选，用于验证文件完整性）
-        headers: 自定义请求头
-        verify_ssl: 是否验证SSL证书
-        progress_callback: 进度回调函数，参数为(已下载字节数, 总字节数)
-        user_agent: 用户代理字符串
-
-    Returns:
-        bool: 下载是否成功
-
-    Raises:
-        ValueError: 当文件哈希验证失败时
-        RequestException: 当所有重试都失败时
+    新增特性：
+    - 自动读取系统代理（兼容 Stream++/Clash）
+    - 分离连接超时与读取超时
+    - 断点续传（Range 请求）
+    - GitHub 镜像自动回退
+    - 真指数退避重试
     """
     import requests
     from requests.exceptions import RequestException, Timeout, HTTPError, ConnectionError
 
-    # 确保目录存在
     filepath.parent.mkdir(parents=True, exist_ok=True)
 
-    # 设置默认请求头
+    # 代理：优先使用调用方传入的，否则读取系统环境变量
+    effective_proxies = proxies if proxies is not None else _get_system_proxies()
+    if effective_proxies:
+        logger.info(f"Using proxy: {effective_proxies}")
+
     default_headers = {
-        'User-Agent': user_agent,
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive'
+        "User-Agent": user_agent,
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate",
+        "Connection": "keep-alive",
     }
     if headers:
         default_headers.update(headers)
 
-    # 重试机制
-    for attempt in range(max_retries):
-        try:
+    # 构建候选 URL 列表（支持镜像回退）
+    candidate_urls = _build_mirror_urls(url) if try_mirrors else [url]
+
+    for url_candidate in candidate_urls:
+        should_try_next_mirror = False
+        logger.info(f"Trying URL: {url_candidate or url}")
+
+        for attempt in range(max_retries):
             if attempt > 0:
-                delay = retry_delay * attempt  # 指数退避
-                logger.info(f"在{delay}s后尝试{attempt + 1}{max_retries}")
+                delay = retry_delay * (2 ** (attempt - 1))  # 真指数退避
+                logger.info(f"Retry {attempt + 1}/{max_retries}, waiting {delay:.1f}s...")
                 time.sleep(delay)
 
-            # 获取文件大小（仅第一次尝试）
-            total_size = 0
-            if progress_callback and attempt == 0:
-                total_size = _get_file_size_from_head(url, default_headers, timeout, verify_ssl)
+            try:
+                # 断点续传：检查已下载的字节数
+                resume_pos = 0
+                req_headers = dict(default_headers)
+                if enable_resume and filepath.exists():
+                    resume_pos = filepath.stat().st_size
+                    if resume_pos > 0:
+                        req_headers["Range"] = f"bytes={resume_pos}-"
+                        logger.info(f"Resuming from byte {resume_pos}")
 
-            # 发起GET请求下载文件
-            logger.info(f"下载 {url} 至 {filepath}")
-            response = requests.get(
-                url,
-                stream=True,
-                headers=default_headers,
-                timeout=timeout,
-                verify=verify_ssl
-            )
-            response.raise_for_status()
+                # 获取文件总大小
+                total_size = _get_file_size_from_head(
+                    url_candidate, req_headers, timeout, effective_proxies, verify_ssl
+                )
 
-            # 从响应头获取文件大小（如果HEAD请求失败）
-            if progress_callback and total_size == 0:
-                total_size = int(response.headers.get('content-length', 0))
+                response = requests.get(
+                    url_candidate,
+                    stream=True,
+                    headers=req_headers,
+                    timeout=timeout,
+                    verify=verify_ssl,
+                    proxies=effective_proxies,
+                )
+                response.raise_for_status()
 
-            # 分块下载文件
-            downloaded = 0
-            with open(filepath, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=chunk_size):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
+                if total_size == 0:
+                    total_size = int(response.headers.get("content-length", 0))
 
-                        # 调用进度回调
-                        if progress_callback and total_size > 0:
-                            actual_total = max(total_size, downloaded)
-                            progress_callback(downloaded, actual_total)
+                # 支持 206 Partial Content（断点续传成功）
+                write_mode = "ab" if response.status_code == 206 else "wb"
+                if write_mode == "wb":
+                    resume_pos = 0  # 服务器不支持 Range，从头写
 
-            logger.info(f"File downloaded successfully to {filepath}")
+                downloaded = resume_pos
+                with open(filepath, write_mode) as f:
+                    for chunk in response.iter_content(chunk_size=chunk_size):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            if progress_callback and total_size > 0:
+                                progress_callback(downloaded, max(total_size + resume_pos, downloaded))
 
-            # 验证文件完整性
-            if expected_sha256:
-                if not verify_file_hash(filepath, expected_sha256):
-                    raise ValueError("SHA256 hash verification failed! File may be corrupted or tampered with.")
+                logger.info(f"Downloaded successfully -> {filepath}")
 
-            return True
+                if expected_sha256:
+                    if not verify_file_hash(filepath, expected_sha256):
+                        raise ValueError("SHA256 mismatch! File corrupted or tampered.")
 
-        except Timeout:
-            logger.warning(f"Timeout occurred on attempt {attempt + 1}")
-        except ConnectionError as e:
-            logger.warning(f"Connection error on attempt {attempt + 1}: {e}")
-        except HTTPError as e:
-            status_code = e.response.status_code
-            logger.warning(f"HTTP error {status_code} on attempt {attempt + 1}")
-            if not _should_retry_on_error(status_code):
+                return True
+
+            except Timeout:
+                logger.warning(f"Timeout on attempt {attempt + 1} ({url_candidate})")
+            except ConnectionError as e:
+                logger.warning(f"Connection error on attempt {attempt + 1}: {e}")
+                # SSL / 连接失败：重试无意义，直接换镜像
+                should_try_next_mirror = True
+                break  # ← 跳出重试循环
+            except HTTPError as e:
+                code = e.response.status_code
+                logger.warning(f"HTTP {code} on attempt {attempt + 1}")
+                if not _should_retry_on_error(code):
+                    break  # 跳过当前 URL 的剩余重试
+            except ValueError as e:
+                logger.error(str(e))
+                raise
+            except RequestException as e:
+                logger.warning(f"Request failed on attempt {attempt + 1}: {e}")
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}")
                 break
-        except ValueError as e:
-            # 哈希验证失败，不重试
-            logger.error(str(e))
-            raise
-        except RequestException as e:
-            logger.warning(f"Request failed on attempt {attempt + 1}: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error on attempt {attempt + 1}: {e}")
-            break
 
-    logger.error(f"Failed to download file after {max_retries} attempts")
+        if should_try_next_mirror:
+            logger.info(f"Switching to next mirror due to connection error...")
+            continue  # ← 外层循环换下一个镜像
+
+        logger.warning(f"All retries failed for {url_candidate}, trying next mirror...")
+        break
+
+    logger.error(f"All URLs exhausted. Download failed: {url}")
     return False
 
 

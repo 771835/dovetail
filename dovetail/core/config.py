@@ -9,7 +9,7 @@ from dovetail.utils.logger import get_logger
 # 项目信息
 PROJECT_NAME = "Dovetail"
 PROJECT_WEBSITE = "https://github.com/771835/dovetail"
-PROJECT_VERSION = "1.0.2-rc.6"
+PROJECT_VERSION = "1.0.2-rc.7"
 PROJECT_LICENSE = "Apache 2.0"
 
 # 文件后缀

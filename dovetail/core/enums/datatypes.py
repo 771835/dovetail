@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import annotations
 
+
 from dovetail.utils.safe_enum import SafeEnum
 
 
@@ -11,6 +12,7 @@ class DataTypeBase:
     See Also:
         此类不应该被实例化
     """
+
 
     def get_name(self) -> str:
         """
@@ -78,7 +80,7 @@ class PrimitiveDataType(DataTypeBase, SafeEnum):
 
     def get_name(self) -> str:
         """获取类型的显示名称"""
-        return self.value
+        return str(self.value)
 
     def is_subclass_of(self, other):
         """检查当前类型是否为另一类型的子类型"""

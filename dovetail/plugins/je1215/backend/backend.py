@@ -1,6 +1,5 @@
 # coding=utf-8
 import functools
-import os
 from pathlib import Path
 
 from dovetail.core.backend import Backend, TagWriter, CommandWriter, MetadataWriter, FunctionWriter
@@ -55,8 +54,6 @@ class JE1214Backend(Backend):
     @functools.lru_cache(maxsize=None)
     def get_dependency_files(self) -> list[DependencyFile]:
         dnt_url = "https://github.com/Dahesor/DNT-Dahesor-NBT-Transformer/archive/refs/heads/pre-1.21.11.zip"
-        if os.environ.get("USED_MIRROR_GITHUB_CN"):
-            dnt_url = "https://gh-proxy.org/" + dnt_url
         return [
             DependencyFile(
                 dnt_url,

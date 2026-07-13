@@ -218,7 +218,17 @@ def register_builtin_templates():
             param_names=["target", "target_path", "index", "source", "source_path"],
             description="访问数组路径并写入存储",
             tags=["data", "array", "storage"]
-        )
+        ),
+
+
+        CommandTemplate(
+            name="array_assign",
+            template="data modify storage $(target) $(path)[$(index)] set value $(value)",
+            function_path="builtins/data/list_setitem_value",
+            param_names=["target", "path", "index", "value"],
+            description="给数组赋值",
+            tags=["data", "array"]
+        ),
     ]
 
     # 批量注册

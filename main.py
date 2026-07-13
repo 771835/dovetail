@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import NoReturn, Optional
 
 import fastjsonschema
-
 from dovetail.core.backend import BackendFactory
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, PROJECT_NAME, PROJECT_VERSION, \
@@ -29,27 +28,6 @@ from dovetail.utils.logger import get_logger
 from dovetail.utils.naming import NameNormalizer
 
 logger = get_logger(__name__)
-#
-# import sys
-# import builtins
-#
-# _original_import = builtins.__import__
-# _import_stack = []
-#
-#
-# def _tracing_import(name, globals=None, locals=None, fromlist=(), level=0):
-#     depth = len(_import_stack)
-#     _import_stack.append(name)
-#     caller = (globals or {}).get("__file__", "?")
-#     print(f"{'  ' * depth}{'└─' if depth else ''} {name}  ({caller})")
-#     try:
-#         result = _original_import(name, globals, locals, fromlist, level)
-#     finally:
-#         _import_stack.pop()
-#     return result
-#
-#
-# builtins.__import__ = _tracing_import
 
 
 class Compiler:
@@ -238,6 +216,18 @@ def main():
     """
     主函数，负责解析参数并执行基本编译任务
     """
+
+    if "--version" in sys.argv:
+        print(f"The version of {PROJECT_NAME} is {PROJECT_VERSION}\n")
+        print(f"License: {PROJECT_LICENSE}")
+        print(f"Repository: {PROJECT_WEBSITE}")
+        if not BackendFactory.is_empty():
+            print("Backends:")
+            for backend in BackendFactory.get_available_backends():
+                print(f"\t{backend}")
+
+        return
+
     args_parser = argparse.ArgumentParser(description="dovetail")
     args_parser.add_argument('input', type=str, help='输入文件路径')
     args_parser.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本',
@@ -257,24 +247,13 @@ def main():
     args_parser.add_argument('--disable-names-normalize', action='store_true', help='禁用命名规范化')
     args_parser.add_argument('--disable-plugins', action='store_true', help='禁用插件加载')
     args_parser.add_argument('--debug', action='store_true', help='启用调试模式')
-    args_parser.add_argument('--version', action='store_true', help='显示版本')
+    args_parser.add_argument('--version', action='store_true', help='显示版本后退出')
 
     parsed_args = args_parser.parse_args()
 
     # 加载插件
     if not parsed_args.disable_plugins:
         plugin_loader.load_plugin("plugin_loader")
-
-    if parsed_args.version:
-        print(f"The version of {PROJECT_NAME} is {PROJECT_VERSION}\n")
-        print(f"License: {PROJECT_LICENSE}")
-        print(f"Repository: {PROJECT_WEBSITE}")
-        if not BackendFactory.is_empty():
-            print("\nBackends:")
-            for backend in BackendFactory.get_available_backends():
-                print(f"\t{backend}")
-
-        return
 
     # 解析路径
     entry = Path(parsed_args.input)
@@ -315,6 +294,7 @@ def main():
     )
 
     sys.exit(compiler.compile(entry, target_path))
+
 
 plugin_loader.load_plugin("plugin_loader")
 

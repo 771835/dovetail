@@ -78,7 +78,7 @@ class FunctionWriter(OutputWriter):
 
     def __init__(
             self,
-            builtin_functions: dict[str, str] = None,
+            builtin_functions: Optional[dict[str, str]] = None,
             callback: Optional[Callable[[], dict[str, str]]] = None
     ):
         """
@@ -126,7 +126,7 @@ class MetadataWriter(OutputWriter):
 class DependentDatapackWriter(OutputWriter):
     """依赖数据包写入器"""
 
-    def __init__(self, dependency_files: list[DependencyFile] = None):
+    def __init__(self, dependency_files: Optional[list[DependencyFile]] = None):
         """
         Args:
             dependency_files: 依赖数据包
@@ -170,7 +170,7 @@ class DependentDatapackWriter(OutputWriter):
         context.pack_meta.save_file(context.config.version)
 
     @staticmethod
-    def _extract_zipfile(zip_path, extract_to) -> bool:
+    def _extract_zipfile(zip_path: Path, extract_to: Path) -> bool:
         with zipfile.ZipFile(zip_path) as zip_ref:
             namelist = zip_ref.namelist()
 
@@ -241,7 +241,7 @@ class DependentDatapackWriter(OutputWriter):
 class TagWriter(OutputWriter):
     """标签写入器（用于minecraft:load和minecraft:tick）"""
 
-    def __init__(self, load_functions: list[str] = None, tick_functions: list[str] = None):
+    def __init__(self, load_functions: Optional[list[str]] = None, tick_functions: Optional[list[str]] = None):
         """
         Args:
             load_functions: 需要在load时执行的函数列表
