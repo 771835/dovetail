@@ -14,7 +14,7 @@ from dovetail.utils.logger import get_logger
 
 # 初始化 Lark 解析器
 lark_parser = Lark(
-    open(r".\lark\dovetail.lark", encoding='utf-8').read(),
+    open(r"lark/dovetail.lark", encoding='utf-8').read(),
     start=["program", "expr"],
     parser='lalr',
     cache=".lark_cache",

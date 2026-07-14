@@ -4,8 +4,6 @@
 """
 import fastjsonschema
 
-from dovetail.utils.logger import get_logger
-
 # 项目信息
 PROJECT_NAME = "Dovetail"
 PROJECT_WEBSITE = "https://github.com/771835/dovetail"

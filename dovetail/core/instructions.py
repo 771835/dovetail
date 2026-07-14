@@ -233,7 +233,11 @@ class IRInstruction:
     def __eq__(self, other):
         if not isinstance(other, IRInstruction):
             return False
-        return hash(self) == hash(other)
+        if self.opcode != other.opcode:
+            return False
+        if len(self.operands) != len(other.operands):
+            return False
+        return all(a == b for a, b in zip(self.operands, other.operands))
 
     def _flatten_nested(self, obj) -> tuple | int:
         """递归处理嵌套结构"""

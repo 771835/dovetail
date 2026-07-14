@@ -194,9 +194,69 @@ class Errors(SafeEnum):
 class CompilationError(Exception):
     """
     编译错误
-    """
-    pass
 
+    携带结构化错误信息，用于在编译流水线中传递预期失败信号。
+    可通过 from_error() 工厂方法从 Errors 枚举构造，
+    也可直接传入字符串用于非枚举场景（如配置文件解析失败）。
+    """
+
+    def __init__(
+            self,
+            message: str,
+            error: Optional["Errors"] = None,
+            *,
+            filepath: Optional[Path] = None,
+            line: int = -1,
+            column: int = -1
+    ):
+        """
+        Args:
+            message:  人类可读的错误描述
+            error:    对应的 Errors 枚举成员（可选）
+            filepath: 错误发生的源文件路径（可选）
+            line:     错误发生的行号，-1 表示未知（可选）
+            column:   错误发生的列号，-1 表示未知（可选）
+        """
+        super().__init__(message)
+        self.error = error
+        self.filepath = filepath
+        self.line = line
+        self.column = column
+
+    @classmethod
+    def from_error(
+            cls,
+            error: "Errors",
+            *args: str,
+            filepath: Optional[Path] = None,
+            line: int = -1,
+            column: int = -1
+    ) -> "CompilationError":
+        """
+        从 Errors 枚举构造 CompilationError，自动格式化错误消息。
+
+        Args:
+            error:    Errors 枚举成员
+            *args:    错误消息的格式化参数
+            filepath: 错误发生的源文件路径（可选）
+            line:     错误发生的行号（可选）
+            column:   错误发生的列号（可选）
+
+        Returns:
+            CompilationError 实例
+        """
+        _, _, error_details, _ = error.value
+        message = error_details % tuple(args) if args else error_details
+        return cls(message, error, filepath=filepath, line=line, column=column)
+
+    def __repr__(self) -> str:
+        if self.error:
+            _, error_name, _, error_type = self.error.value
+            return (
+                f"CompilationError({error_name}[{error_type.name}]): "
+                f"{self} @ {self.filepath}:{self.line}"
+            )
+        return f"CompilationError: {self}"
 
 def print_error_message(msg: str):
     """
@@ -212,7 +272,8 @@ def print_error_message(msg: str):
         if not sys.stderr.closed:
             sys.stderr.write(msg)
         else:
-            open("error.log", "a+").write(msg)
+            with open("error.log", "a+", encoding='utf-8') as f:
+                f.write(msg)
     except Exception:  # NOQA
         return -1
     return 0
@@ -260,9 +321,6 @@ def report(
         line: 错误发生具体行数
         column: 错误发生具体列数
         suggestion: 错误修复建议
-
-    Raises:
-        CompilationError: 当错误类型为RuntimeError、SystemError、FatalError时引发（如果 should_raise 为 True）
     """
     error_code, error_name, error_details, error_type = error.value
     original_error_name = error.name

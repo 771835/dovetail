@@ -105,7 +105,11 @@ class Compiler:
                 "文件 pack.config 不存在或不是一个文件",
                 filepath=pack_config_path
             )
-            raise CompilationError("文件 pack.config 不存在或不是一个文件")
+            raise CompilationError.from_error(
+                Errors.ConfigurationError,
+                "文件 pack.config 不存在或不是一个文件",
+                filepath=pack_config_path
+            )
         # 尝试解析配置文件
         try:
             with open(pack_config_path, encoding='utf-8') as config_file:
@@ -119,7 +123,11 @@ class Compiler:
                 filepath=pack_config_path,
                 suggestion="确认编译配置正确吗?"
             )
-            raise CompilationError("文件 pack.config 格式无效")
+            raise CompilationError.from_error(
+                Errors.ConfigurationError,
+                "文件 pack.config 格式无效",
+                filepath=pack_config_path
+            )
 
         if pack_config_data.get("description"):
             self.config.description = pack_config_data["description"]
@@ -174,16 +182,21 @@ class Compiler:
 
                 if self.generate:
                     self._generate_backend_code(builder, target_dir_path)
-            except CompilationError as e:
 
-                logger.critical(e.__repr__())
+            except CompilationError as e:
+                # 预期的编译失败，记录结构化信息后返回错误码
+                logger.critical(repr(e))
                 if self.config.debug:
-                    # 重新抛出异常显示错误详情
                     raise
                 return -1
+
             except Exception as e:
-                # 重新抛出异常显示错误详情
-                raise CompilationError("意外的错误") from e
+                # 未预期的异常，包装后重新抛出
+                raise CompilationError(
+                    f"意外的错误: {e}",
+                    filepath=source_path
+                ) from e
+
         return 0
 
     @timed("写入临时文件用时{:.3f}s")

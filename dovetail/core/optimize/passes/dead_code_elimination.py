@@ -170,7 +170,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
     def _has_side_effect(self, instr):
         """判断指令是否有副作用"""
         return instr.opcode in (
-            IROpCode.ASSIGN, IROpCode.CAST, IROpCode.RETURN, IROpCode.RETURN,
+            IROpCode.ASSIGN, IROpCode.CAST, IROpCode.RETURN,
             IROpCode.CALL, IROpCode.CALL_METHOD, IROpCode.NEW_OBJ, IROpCode.GET_PROPERTY, IROpCode.SET_PROPERTY,
             IROpCode.BINARY_OP, IROpCode.UNARY_OP, IROpCode.COMPARE
         )

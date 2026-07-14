@@ -69,7 +69,7 @@ class ProcessorRegistry:
             raise ValueError(f"Processor {processor.__class__.__name__} must specify opcode")
 
         if processor.opcode in self._processors:
-            print(f"[WARNING] Overwriting processor for {processor.opcode.name}")
+            logger.warning(f"Overwriting processor for {processor.opcode.name}")
 
         self._processors[processor.opcode] = processor
 
