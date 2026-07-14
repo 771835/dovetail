@@ -1,0 +1,136 @@
+// chain_assign_test.mcdl
+// 链式赋值消除 Pass 测试样例
+// 本文件刻意制造链式赋值模式，用于验证 ChainAssignEliminationPass 的效果
+
+// ========== 场景 1：基本链式赋值 ==========
+// 优化前: x = 10, y = x, z = y
+// 优化后: x = 10, y = 10, z = 10 (最终x、y会被优化掉)
+fn test_basic_chain() -> int {
+    let x: int = 10
+    let y: int = x
+    let z: int = y
+    return z
+}
+
+// ========== 场景 2：多层接力赋值 ==========
+// 优化前: a = 42, b = a, c = b, d = c
+// 优化后: a = 42, b = 42, c = 42, d = 42 (最终d会被优化掉)
+fn test_multi_hop() -> int {
+    let a: int = 42
+    let b: int = a
+    let c: int = b
+    let d: int = c
+    return d
+}
+
+// ========== 场景 3：条件分支中的链式赋值 ==========
+// if 分支: x = 1, y = x  →  y = 1
+// else 分支: x = 2, y = x  →  y = 2
+// 分支汇合后，y 的别名不一致（1 vs 2），保守策略不清除
+fn test_conditional_chain(flag: int) -> int {
+    let x: int
+    let y: int
+    if (flag == 1) {
+        x = 100
+        y = x
+    } else {
+        x = 200
+        y = x
+    }
+    return y
+}
+
+// ========== 场景 4：分支内独立链，汇合后一致 ==========
+// 两个分支都让 result 指向同一个变量 src
+fn test_merge_same_alias(src: int) -> int {
+    let result: int
+    if (src > 0) {
+        let tmp: int = src
+        result = tmp
+    } else {
+        let tmp2: int = src
+        result = tmp2
+    }
+    return result
+}
+
+// ========== 场景 5：链式赋值参与运算 ==========
+// 优化前: a = 5, b = a, c = b + 3
+// 优化后: a = 5, b = 5, c = 5 + 3
+fn test_chain_in_expression() -> int {
+    let a: int = 5
+    let b: int = a
+    let c: int = b + 3
+    return c
+}
+
+// ========== 场景 6：嵌套作用域中的链式赋值 ==========
+// 内层作用域继承外层别名
+fn test_nested_scope_chain() -> int {
+    let base: int = 7
+    let mid: int = base
+    let result: int
+    if (1 == 1) {
+        let inner: int = mid
+        result = inner
+    }
+    return result
+}
+
+// ========== 场景 7：函数调用打破别名 ==========
+// call 指令产生新值，结果变量不再被视为别名
+fn test_call_breaks_alias(val: int) -> int {
+    let a: int = val
+    let b: int = a
+    let c: int = some_func(b)
+    let d: int = c
+    return d
+}
+
+fn some_func(n: int) -> int {
+    return n * 2
+}
+
+// ========== 场景 8：混合链式赋值与死代码 ==========
+// 配合 DeadCodeEliminationPass，消除后中间变量如不再被使用可被清理
+fn test_chain_with_dead_code() -> int {
+    let a: int = 99
+    let b: int = a
+    let c: int = b
+    let d: int = c
+    return d
+    // 优化后: a=99 赋值仍存在(声明赋值)
+    //         b=99, c=99, d=99 (链式消除)
+    //         如果后续 DeadCodeEliminationPass 运行，
+    //         a/b/c 若无其他使用者可被清除
+}
+
+@init
+fn main() {
+    let r1 = test_basic_chain()
+    print(f"basic_chain: {r1}")
+
+    let r2 = test_multi_hop()
+    print(f"multi_hop: {r2}")
+
+    let r3 = test_conditional_chain(1)
+    print(f"conditional_chain(1): {r3}")
+
+    let r3b = test_conditional_chain(0)
+    print(f"conditional_chain(0): {r3b}")
+
+    let r4 = test_merge_same_alias(42)
+    print(f"merge_same_alias: {r4}")
+
+    let r5 = test_chain_in_expression()
+    print(f"chain_in_expression: {r5}")
+
+    let r6 = test_nested_scope_chain()
+    print(f"nested_scope_chain: {r6}")
+
+    let r7 = test_call_breaks_alias(10)
+    print(f"call_breaks_alias: {r7}")
+
+    let r8 = test_chain_with_dead_code()
+    print(f"chain_with_dead_code: {r8}")
+}

@@ -111,8 +111,9 @@ class DeadCodeEliminationPass(IROptimizationPass):
                             work_list.append(var_id)
             elif instr.opcode == IROpCode.COND_JUMP:
                 cond_var = instr.get_operands()[0]
-                if isinstance(cond_var, Reference) and cond_var.value_type == ValueType.VARIABLE:
-                    var_id = id(cond_var.value)
+                # cond_var 是 Variable，不是 Reference
+                if isinstance(cond_var, Variable):
+                    var_id = id(cond_var)
                     if var_id not in self.live_vars:
                         self.live_vars.add(var_id)
                         work_list.append(var_id)
@@ -170,7 +171,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
     def _has_side_effect(self, instr):
         """判断指令是否有副作用"""
         return instr.opcode in (
-            IROpCode.ASSIGN, IROpCode.CAST, IROpCode.RETURN,
+            IROpCode.CAST, IROpCode.RETURN,
             IROpCode.CALL, IROpCode.CALL_METHOD, IROpCode.NEW_OBJ, IROpCode.GET_PROPERTY, IROpCode.SET_PROPERTY,
             IROpCode.BINARY_OP, IROpCode.UNARY_OP, IROpCode.COMPARE
         )

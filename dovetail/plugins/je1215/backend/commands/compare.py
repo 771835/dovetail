@@ -2,7 +2,7 @@
 import uuid
 
 from dovetail.core.enums import CompareOps
-from dovetail.core.optimize.passes import ConstantFoldingPass
+from dovetail.utils.constants_operator import COMPARE_OP_HANDLERS
 from ._execute import Execute
 from ._scoreboard import ScoreboardBuilder
 from .copy import Copy
@@ -13,7 +13,7 @@ from .unary_op import UnaryOp
 class Compare:
     @staticmethod
     def _compare_literals(op: CompareOps, a: int | bool, b: int | bool) -> bool:
-        return ConstantFoldingPass.COMPARE_OP_HANDLERS[op](a, b)
+        return COMPARE_OP_HANDLERS[op](a, b)
 
     @staticmethod
     def compare_literals(result: DataPath, op: CompareOps, a: int | bool, b: int | bool) -> str:

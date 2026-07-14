@@ -6,7 +6,7 @@
 """
 from __future__ import annotations
 
-from typing import Dict, Set, Optional
+from typing import Dict, Set
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel
@@ -32,20 +32,14 @@ class DeclareCleanupPass(IROptimizationPass):
 
     Attributes:
         scope_tree (Dict[str, Optional[str]]): 作用域树结构，键为作用域名称，值为父作用域
-        var_scopes (Dict[str, str]): 变量到其声明作用域的映射
-        var_references (Dict[str, int]): 变量引用计数映射
-        root_vars (Set[str]): 根变量集合
+        var_scopes (Dict[str, str]): 变量到其声明作用域的映射，key 格式为 "scope::var"
+        var_references (Dict[str, int]): 变量引用计数映射，key 格式为 "scope::var"
+        root_vars (Set[str]): 根变量集合，格式为 "scope::var"
         scope_instructions (Dict[str, list]): 每个作用域中的指令列表
         _changed (bool): 标记优化过程中是否发生了变化
     """
 
     def __init__(self, builder: IRBuilder, config: CompileConfig):
-        """初始化 DeclareCleanupPass 实例
-
-        Args:
-            builder (IRBuilder): IR构建器实例
-            config (CompileConfig): 编译配置
-        """
         super().__init__(builder, config)
         self.scope_tree: Dict[str, Optional[str]] = {}
         self.var_scopes: Dict[str, str] = {}
@@ -54,12 +48,31 @@ class DeclareCleanupPass(IROptimizationPass):
         self.scope_instructions: Dict[str, list] = {}
         self._changed: bool = False
 
-    def execute(self) -> bool:
-        """执行声明清理优化
+    # ------------------------------------------------------------------ #
+    #  内部工具：统一 key 格式                                              #
+    # ------------------------------------------------------------------ #
 
-        Returns:
-            bool: 如果优化过程中发生了变化则返回True，否则返回False
-        """
+    @staticmethod
+    def _key(scope: str, var_name: str) -> str:
+        """生成带作用域前缀的变量 key，避免不同作用域同名变量互相污染"""
+        return f"{scope}::{var_name}"
+
+    def _ref_add(self, scope: str, var_name: str, delta: int = 1) -> None:
+        k = self._key(scope, var_name)
+        self.var_references[k] = self.var_references.get(k, 0) + delta
+
+    def _ref_init(self, scope: str, var_name: str) -> None:
+        """确保变量存在于引用表中，但不增加计数（用于 target 侧）"""
+        k = self._key(scope, var_name)
+        if k not in self.var_references:
+            self.var_references[k] = 0
+
+    def _ref_get(self, scope: str, var_name: str) -> int:
+        return self.var_references.get(self._key(scope, var_name), 0)
+
+    # ------------------------------------------------------------------ #
+
+    def execute(self) -> bool:
         self._changed = False
         self._build_scope_tree()
         self._analyze_variable_usage()
@@ -88,14 +101,7 @@ class DeclareCleanupPass(IROptimizationPass):
                     scope_stack.pop()
 
     def _analyze_variable_usage(self) -> None:
-        """分析变量使用
-
-        该方法通过遍历所有指令来统计变量的使用情况，包括：
-        - 变量声明位置
-        - 变量引用次数
-        - 作用域信息
-        - 根变量识别
-        """
+        """分析变量使用，以 scope::var 为 key 隔离不同作用域的同名变量"""
         iterator = self.builder.__iter__()
         scope_stack = []
         current_scope = "global"
@@ -106,73 +112,73 @@ class DeclareCleanupPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            # 处理作用域开始和结束
             if instr.opcode == IROpCode.SCOPE_BEGIN:
                 scope_name = instr.get_operands()[0]
                 scope_stack.append(scope_name)
                 current_scope = scope_name
                 self.scope_instructions[scope_name] = []
+
             elif instr.opcode == IROpCode.SCOPE_END:
                 if scope_stack:
                     scope_stack.pop()
                     current_scope = scope_stack[-1] if scope_stack else "global"
 
-            # 记录作用域中的指令
             if current_scope in self.scope_instructions:
                 self.scope_instructions[current_scope].append(instr)
 
-            # 分析不同类型的指令
             if instr.opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
-                self.var_scopes[var.name] = current_scope
+                # var_scopes 也用带 scope 前缀的 key 存，保持一致
+                self.var_scopes[self._key(current_scope, var.name)] = current_scope
+                self._ref_init(current_scope, var.name)
 
             elif instr.opcode == IROpCode.FUNCTION:
                 func = instr.get_operands()[0]
                 for param in func.params:
-                    self.root_vars.add(param.get_name())
-                    self.var_references[param.get_name()] = self.var_references.get(param.get_name(), 0) + 1
+                    self.root_vars.add(self._key(current_scope, param.get_name()))
+                    self._ref_add(current_scope, param.get_name())
 
             elif instr.opcode == IROpCode.CALL_METHOD:
-                if isinstance(instr, IRCall):
+                if instr.opcode == IROpCode.CALL:
                     result_var, func, args = instr.get_operands()
                 else:
                     result_var, _, func, args = instr.get_operands()
 
                 if result_var:
-                    self.var_references[result_var.name] = self.var_references.get(result_var.name, 0) + 1
+                    self._ref_add(current_scope, result_var.name)
 
                 for param_name, arg_ref in args.items():
                     if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
-                        self.var_references[arg_ref.get_name()] = self.var_references.get(arg_ref.get_name(), 0) + 1
+                        self._ref_add(current_scope, arg_ref.get_name())
 
             elif instr.opcode == IROpCode.RETURN:
                 value = instr.get_operands()[0]
                 if isinstance(value, Reference) and value.value_type == ValueType.VARIABLE:
-                    self.var_references[value.get_name()] = self.var_references.get(value.get_name(), 0) + 1
+                    self._ref_add(current_scope, value.get_name())
 
             elif instr.opcode == IROpCode.COND_JUMP:
                 cond_var = instr.get_operands()[0]
-                self.var_references[cond_var.name] = self.var_references.get(cond_var.name, 0) + 1
+                self._ref_add(current_scope, cond_var.name)
 
             elif instr.opcode == IROpCode.ASSIGN:
                 target, source = instr.get_operands()
                 if source.value_type == ValueType.VARIABLE:
-                    self.var_references[source.get_name()] = self.var_references.get(source.get_name(), 0) + 1
-                self.var_references[target.name] = self.var_references.get(target.name, 0)
+                    self._ref_add(current_scope, source.get_name())
+                self._ref_init(current_scope, target.name)
 
             elif instr.opcode in (IROpCode.BINARY_OP, IROpCode.UNARY_OP, IROpCode.COMPARE):
                 operands = instr.get_operands()
                 result = operands[0]
-                self.var_references[result.name] = self.var_references.get(result.name, 0)
+                self._ref_init(current_scope, result.name)
 
                 for op in operands[2:]:
                     if isinstance(op, Reference) and op.value_type == ValueType.VARIABLE:
-                        self.var_references[op.get_name()] = self.var_references.get(op.get_name(), 0) + 1
+                        self._ref_add(current_scope, op.get_name())
 
             elif instr.opcode == IROpCode.CAST:
                 target, dtype, source = instr.get_operands()
                 if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
-                    self.var_references[source.get_name()] = self.var_references.get(source.get_name(), 0) + 1
+                    self._ref_add(current_scope, source.get_name())
 
     def _remove_dead_declarations(self) -> None:
         """删除无效的变量声明"""
@@ -191,9 +197,10 @@ class DeclareCleanupPass(IROptimizationPass):
             elif instr.opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
                 var_name = var.name
+                scoped_key = self._key(current_scope, var_name)
 
-                if (var_name in self.root_vars or
-                        self.var_references.get(var_name, 0) > 0 or
+                if (scoped_key in self.root_vars or
+                        self._ref_get(current_scope, var_name) > 0 or
                         self._is_scope_root(var_name, current_scope) or
                         self._is_used_in_nested_scope(var_name, current_scope)):
                     continue
@@ -202,30 +209,14 @@ class DeclareCleanupPass(IROptimizationPass):
                 self._changed = True
 
     def _is_scope_root(self, var_name: str, scope: str) -> bool:
-        """判断变量是否是作用域根变量
-
-        Args:
-            var_name (str): 变量名称
-            scope (str): 当前作用域名称
-
-        Returns:
-            bool: 如果变量是作用域根变量则返回True，否则返回False
-        """
+        """判断变量是否是作用域根变量"""
         parent = self.scope_tree.get(scope)
         if not parent:
             return False
-        return self.var_scopes.get(var_name) == parent
+        return self.var_scopes.get(self._key(scope, var_name)) == parent
 
     def _is_used_in_nested_scope(self, var_name: str, scope: str) -> bool:
-        """判断变量是否在嵌套作用域中被使用
-
-        Args:
-            var_name (str): 变量名称
-            scope (str): 当前作用域名称
-
-        Returns:
-            bool: 如果变量在嵌套作用域中被使用则返回True，否则返回False
-        """
+        """判断变量是否在嵌套作用域中被使用"""
         for nested_scope, parent in self.scope_tree.items():
             if parent == scope:
                 if self._is_var_used_in_scope(var_name, nested_scope):
@@ -233,15 +224,7 @@ class DeclareCleanupPass(IROptimizationPass):
         return False
 
     def _is_var_used_in_scope(self, var_name: str, scope: str) -> bool:
-        """判断变量是否在特定作用域中被使用
-
-        Args:
-            var_name (str): 变量名称
-            scope (str): 要检查的作用域名称
-
-        Returns:
-            bool: 如果变量在指定作用域中被使用则返回True，否则返回False
-        """
+        """判断变量是否在特定作用域中被使用"""
         if scope not in self.scope_instructions:
             return False
 

@@ -1,0 +1,99 @@
+// 常量折叠优化测试
+// 测试覆盖：二元运算、比较运算、一元运算、常量传播、条件分支折叠、不可折叠场景
+include "math"
+
+// ========== 1. 二元运算折叠 ==========
+@init
+fn test_binary_ops() {
+    // 纯常量算术 —— 应全部在编译时折叠
+    let a = 3 + 5          // 折叠为 8
+    let b = 10 - 4         // 折叠为 6
+    let c = 7 * 6          // 折叠为 42
+    let d = 100 / 4        // 折叠为 25
+    let e = 17 % 5         // 折叠为 2
+
+    print("3+5=" + str(a))
+    print("10-4=" + str(b))
+    print("7*6=" + str(c))
+    print("100/4=" + str(d))
+    print("17%5=" + str(e))
+
+    // min/max 折叠
+    let k = min(10, 20)    // 折叠为 10
+    let l = max(10, 20)    // 折叠为 20
+
+    print("min(10,20)=" + str(k))
+    print("max(10,20)=" + str(l))
+}
+
+// ========== 2. 一元运算折叠 ==========
+@init
+fn test_unary_ops() {
+    let a = -42            // 折叠为 -42
+    let b = ! true       // 折叠为 false
+
+    print("-42=" + str(a))
+    print("! true=" + str(b))
+}
+
+// ========== 3. 比较运算折叠 ==========
+@init
+fn test_compare_ops() {
+    let a = 5 == 5         // 折叠为 true
+    let b = 5 != 3         // 折叠为 true
+    let c = 10 >= 10       // 折叠为 true
+    let d = 7 > 3          // 折叠为 true
+    let e = 2 <= 5         // 折叠为 true
+    let f = 1 < 0          // 折叠为 false
+
+    print("5==5: " + str(a))
+    print("5!=3: " + str(b))
+    print("10>=10: " + str(c))
+    print("7>3: " + str(d))
+    print("2<=5: " + str(e))
+    print("1<0: " + str(f))
+}
+
+// ========== 4. 常量传播链 ==========
+// 变量被赋常量值后，后续使用该变量也应能被折叠
+@init
+fn test_propagation() {
+    let x = 10             // x -> 10
+    let y = 20             // y -> 20
+    let z = x + y          // 折叠为 30（x, y 都是已知常量）
+    let w = z * 2          // 折叠为 60（z 已被折叠为 30）
+
+    print("10+20=" + str(z))
+    print("30*2=" + str(w))
+}
+
+// ========== 5. 常量条件分支折叠 ==========
+// 条件为常量时，优化器应消除不可达分支
+@init
+fn test_const_condition() {
+    if (true) {
+        print("这条分支必然执行")
+    } else {
+        print("这条分支应被死代码消除移除")
+    }
+
+    if (1 > 2) {
+        print("不应到达这里")
+    } else {
+        print("1>2 为 false，走这里")
+    }
+}
+
+// ========== 6. 非常量场景（不应折叠） ==========
+fn get_value() -> int {
+    return 42
+}
+
+@init
+fn test_non_foldable() {
+    // 函数返回值在编译时不可知，不应折叠
+    let x = get_value()
+    let y = x + 1          // x 非常量，y 不应被折叠
+
+    print("get_value()+1=" + str(y))
+}

@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import SupportsIndex
+from typing import SupportsIndex, Optional
 
 from dovetail.core.instructions import IRInstruction, IROpCode
 
@@ -153,7 +153,7 @@ class IRBuilderIterator:
 class IRBuilderReversibleIterator:
     """反向迭代器类"""
 
-    def __init__(self, instructions: list[IRInstruction], index: int = None):
+    def __init__(self, instructions: list[IRInstruction], index: Optional[int] = None):
         self.instructions = instructions
         if index is None:
             self.index = len(instructions) - 1  # 默认从末尾开始

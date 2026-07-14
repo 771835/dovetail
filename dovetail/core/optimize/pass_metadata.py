@@ -14,7 +14,7 @@ from dovetail.utils.safe_enum import SafeEnum
 
 
 class PassPhase(SafeEnum):
-    """优化 Pass 执行阶段常量"""
+    """优化 Pass 执行阶段"""
 
     ANALYZE = "analyze"
     """分析阶段：收集 IR 信息，不修改 IR"""
@@ -34,19 +34,19 @@ class PassPhase(SafeEnum):
 @define(frozen=True, slots=True)
 class PassMetadata:
     """
-    优化 Pass 的元数据
+    优化 Pass 的元数据描述符
 
     Attributes:
-        name (str): Pass 的唯一标识符
-        display_name (str): 显示名称
-        description (str): Pass 功能描述
-        level (OptimizationLevel): 默认优化级别
-        phase (PassPhase): 所属阶段
-        depends_on (tuple[str, ...]): 依赖的其他 Pass 名称
-        incompatible_with (tuple[str, ...]): 不兼容的 Pass 名称
-        repeatable (bool): 是否可重复执行
-        required_features (tuple[str, ...]): 运行所需的 IR 特性
-        provided_features (tuple[str, ...]): 执行后提供的 IR 特性
+        name:               Pass 的全局唯一标识符（用于依赖声明）
+        display_name:       人类可读的显示名称
+        description:        Pass 功能描述
+        level:              启用此 Pass 所需的最低优化级别
+        phase:              所属执行阶段（影响调度顺序）
+        depends_on:         依赖的其他 Pass 名称（保证在其之后执行）
+        incompatible_with:  不兼容的 Pass 名称（不能与其共同执行）
+        repeatable:         是否可在多轮迭代中重复执行（保留字段）
+        required_features:  运行前 IR 必须具备的特性集合
+        provided_features:  执行后向 IR 提供的特性集合
     """
     name: str
     display_name: str

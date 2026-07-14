@@ -8,14 +8,22 @@
 from __future__ import annotations
 
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.enums import OptimizationLevel
+from dovetail.core.enums import OptimizationLevel, StructureType
 from dovetail.core.enums.types import ValueType
-from dovetail.core.instructions import *
+from dovetail.core.instructions import (
+    IRAssign, IRBinaryOp, IRCompare, IRUnaryOp, IRCall,
+    IRCondJump,
+    IRCallMethod, IROpCode, IRInstruction, PrimitiveDataType
+)
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.symbols import Variable, Reference
+
+# ---- 类型别名 ----
+_AliasMap = dict[str, Reference]  # {var_name: canonical_ref}
+_ScopeTree = dict[str, str | None]  # {scope_name: parent_scope_name}
 
 
 @register_pass(PassMetadata(
@@ -32,14 +40,22 @@ class ChainAssignEliminationPass(IROptimizationPass):
 
     功能：
     1. 识别链式赋值: a = b, c = a → c = b
-    2. 支持作用域嵌套
-    3. 支持控制流分支
-    4. 保守策略：条件分支后清除不确定的别名
+    2. 支持作用域嵌套与继承
+    3. 支持控制流分支（保守合并策略）
+    4. 条件分支两侧别名不一致时，清除对应别名
+
+    算法：两遍扫描
+      第一遍: 构建每个作用域的别名映射表
+      第二遍: 替换所有指令中的可替换操作数
     """
 
     def __init__(self, builder: IRBuilder, config: CompileConfig):
         super().__init__(builder, config)
         self._changed = False
+
+    # ------------------------------------------------------------------ #
+    #  公开接口                                                            #
+    # ------------------------------------------------------------------ #
 
     def execute(self) -> bool:
         """执行链式赋值消除优化"""
@@ -49,341 +65,291 @@ class ChainAssignEliminationPass(IROptimizationPass):
         scope_tree, alias_maps = self._build_alias_maps()
 
         # 应用别名替换
-        self._apply_alias_substitution(alias_maps, scope_tree)
-
+        self._apply_alias_substitution(alias_maps)
         return self._changed
 
-    def _build_alias_maps(self) -> tuple[dict, dict]:
+    # ------------------------------------------------------------------ #
+    #  第一遍：构建别名映射                                                  #
+    # ------------------------------------------------------------------ #
+
+    def _build_alias_maps(self) -> tuple[_ScopeTree, dict[str, _AliasMap]]:
         """
-        构建作用域树和别名映射
+        遍历 IR，为每个作用域建立变量别名映射。
 
         Returns:
             (scope_tree, alias_maps)
-            - scope_tree: {scope_name: parent_scope_name}
-            - alias_maps: {scope_name: {var_name: alias_ref}}
         """
-        scope_tree = {}
-        alias_maps = {"global": {}}
-
-        scope_stack = ["global"]
-        current_scope = "global"
-
-        # 跟踪条件分支
-        conditional_scopes = set()
-        pending_conditionals = {}  # {parent: [child_scopes]}
+        scope_tree: _ScopeTree = {}
+        alias_maps: dict[str, _AliasMap] = {"global": {}}
+        scope_stack: list[str] = ["global"]
 
         for instr in self.builder.get_instructions():
-            if isinstance(instr, IRScopeBegin):
-                scope_name = instr.get_operands()[0]
-                scope_type = instr.get_operands()[1]
-                parent_scope = current_scope
 
-                scope_tree[scope_name] = parent_scope
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
+                scope_name, scope_type = instr.get_operands()[0], instr.get_operands()[1]
+                parent = scope_stack[-1]
+
+                scope_tree[scope_name] = parent
                 scope_stack.append(scope_name)
-                current_scope = scope_name
 
-                # 继承父作用域的别名（深拷贝）
-                alias_maps[current_scope] = alias_maps[parent_scope].copy()
+                # 子作用域继承父作用域别名（独立拷贝，互不污染）
+                alias_maps[scope_name] = dict(alias_maps[parent])
 
-                # 标记条件分支
                 if scope_type == StructureType.CONDITIONAL:
-                    conditional_scopes.add(scope_name)
-                    if parent_scope not in pending_conditionals:
-                        pending_conditionals[parent_scope] = []
-                    pending_conditionals[parent_scope].append(scope_name)
+                    pass  # branch_children 此版本不需要，保留注释备查
 
-            elif isinstance(instr, IRScopeEnd):
-                if scope_stack:
+            elif instr.opcode == IROpCode.SCOPE_END:
+                if len(scope_stack) > 1:
                     scope_stack.pop()
-                    current_scope = scope_stack[-1] if scope_stack else "global"
 
-            elif isinstance(instr, IRDeclare):
+            elif instr.opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
-                var_name = var.get_name()
-                # 变量声明时指向自己
-                alias_maps[current_scope][var_name] = Reference(var)
+                current = scope_stack[-1]
+                alias_maps[current][var.get_name()] = Reference(var)
 
-            elif isinstance(instr, IRAssign):
-                target, source = instr.get_operands()
-                target_name = target.get_name()
+            elif instr.opcode == IROpCode.ASSIGN:
+                self._process_assign(instr, scope_stack[-1], alias_maps)
 
-                if isinstance(source, Reference):
-                    if source.value_type == ValueType.VARIABLE:
-                        source_name = source.get_name()
-                        # 查找源变量的最终别名
-                        final_alias = self._resolve_alias(source_name, current_scope, alias_maps)
-                        alias_maps[current_scope][target_name] = final_alias
-                    elif source.value_type == ValueType.LITERAL:
-                        # 字面量直接作为别名
-                        alias_maps[current_scope][target_name] = source
-                    else:
-                        # 其他类型（函数调用结果等）清除别名
-                        alias_maps[current_scope][target_name] = Reference(target)
+            elif instr.opcode == IROpCode.COND_JUMP:
+                self._merge_branch_aliases(instr, scope_stack[-1], alias_maps)
 
-            elif isinstance(instr, IRCondJump):
-                # 条件跳转后，合并分支的别名状态
-                true_scope = instr.get_operands()[1]
-                false_scope = instr.get_operands()[2]
-
-                # 获取两个分支的别名映射
-                true_aliases = alias_maps.get(true_scope, {})
-                false_aliases = alias_maps.get(false_scope, {})
-
-                # 找出所有被修改的变量
-                all_vars = set(true_aliases.keys()) | set(false_aliases.keys())
-
-                for var_name in all_vars:
-                    true_val = true_aliases.get(var_name)
-                    false_val = false_aliases.get(var_name)
-
-                    # 如果两个分支的别名不同，清除该变量的别名
-                    if not self._aliases_equal(true_val, false_val):
-                        # 回退到变量自身
-                        if var_name in alias_maps[current_scope]:
-                            # 创建一个指向自身的引用
-                            var = Variable(var_name, PrimitiveDataType.INT)  # 类型不重要，后续会被覆盖
-                            alias_maps[current_scope][var_name] = Reference(var)
-
-            elif isinstance(instr, (IRBinaryOp, IRCompare, IRUnaryOp, IRCall)):
-                # 这些指令产生新值，结果变量不是别名
+            elif instr.opcode in (
+                    IROpCode.BINARY_OP, IROpCode.COMPARE,
+                    IROpCode.UNARY_OP, IROpCode.CALL, IROpCode.CALL_METHOD
+            ):
+                # 这些指令产生新值，结果变量不是别名，指向自身
                 result = instr.get_operands()[0]
                 if isinstance(result, Variable):
-                    alias_maps[current_scope][result.name] = Reference(result)
+                    alias_maps[scope_stack[-1]][result.get_name()] = Reference(result)
 
         return scope_tree, alias_maps
 
-    def _resolve_alias(self, var_name: str, scope: str, alias_maps: dict) -> Reference:
-        """
-        解析变量的最终别名
+    def _process_assign(
+            self,
+            instr: IRInstruction,
+            current_scope: str,
+            alias_maps: dict[str, _AliasMap]
+    ) -> None:
+        """处理赋值指令，更新当前作用域的别名映射。"""
+        target, source = instr.get_operands()
+        target_name = target.get_name()
+        current_aliases = alias_maps[current_scope]
 
-        Args:
-            var_name: 变量名
-            scope: 当前作用域
-            alias_maps: 别名映射表
+        if isinstance(source, Reference):
+            if source.value_type == ValueType.VARIABLE:
+                final = self._resolve_alias(source.get_name(), current_scope, alias_maps)
+                current_aliases[target_name] = final
 
-        Returns:
-            最终的别名引用
+            elif source.value_type == ValueType.LITERAL:
+                current_aliases[target_name] = source
+
+            else:
+                current_aliases[target_name] = Reference(target)
+        else:
+            current_aliases[target_name] = Reference(target)
+
+    def _merge_branch_aliases(
+            self,
+            instr: IRInstruction,
+            current_scope: str,
+            alias_maps: dict[str, _AliasMap]
+    ) -> None:
         """
-        seen = set()
+        IRCondJump 出现后，将两个分支的别名保守合并回当前作用域。
+
+        策略：两侧别名一致则保留，否则清除（回退到指向自身）。
+        """
+        _, true_scope, false_scope = instr.get_operands()
+
+        true_aliases = alias_maps.get(true_scope, {})
+        false_aliases = alias_maps.get(false_scope, {})
+        current_aliases = alias_maps[current_scope]
+
+        all_vars = set(true_aliases) | set(false_aliases)
+
+        for var_name in all_vars:
+            true_ref = true_aliases.get(var_name)
+            false_ref = false_aliases.get(var_name)
+
+            if self._refs_equal(true_ref, false_ref):
+                if true_ref is not None:
+                    current_aliases[var_name] = true_ref
+            else:
+                if var_name in current_aliases:
+                    original_ref = current_aliases[var_name]
+                    if original_ref.value_type != ValueType.VARIABLE:
+                        var = Variable(var_name, original_ref.value.dtype)
+                        current_aliases[var_name] = Reference(var)
+
+    # ------------------------------------------------------------------ #
+    #  别名解析                                                             #
+    # ------------------------------------------------------------------ #
+
+    def _resolve_alias(
+            self,
+            var_name: str,
+            scope: str,
+            alias_maps: dict[str, _AliasMap]
+    ) -> Reference:
+        """沿别名链追踪，返回变量的最终规范引用。"""
+        seen: set[str] = set()
         current_name = var_name
-        current_scope = scope
+        current_aliases = alias_maps.get(scope, {})
 
         while current_name not in seen:
             seen.add(current_name)
 
-            if current_scope in alias_maps and current_name in alias_maps[current_scope]:
-                alias = alias_maps[current_scope][current_name]
-
-                # 如果别名是字面量，直接返回
-                if alias.value_type == ValueType.LITERAL:
-                    return alias
-
-                # 如果别名是变量，继续解析
-                if alias.value_type == ValueType.VARIABLE:
-                    next_name = alias.get_name()
-                    if next_name == current_name:
-                        # 指向自己，终止
-                        return alias
-                    current_name = next_name
-                else:
-                    return alias
-            else:
-                # 没有别名，返回变量自身
+            ref = current_aliases.get(current_name)
+            if ref is None:
                 break
 
-        # 循环或未找到，返回原始变量
-        return Reference(Variable(var_name, PrimitiveDataType.INT))
+            if ref.value_type == ValueType.LITERAL:
+                return ref
 
-    def _aliases_equal(self, alias1: Reference | None, alias2: Reference | None) -> bool:
-        """判断两个别名是否相等"""
-        if alias1 is None or alias2 is None:
-            return alias1 == alias2
+            if ref.value_type == ValueType.VARIABLE:
+                next_name = ref.get_name()
+                if next_name == current_name:
+                    return ref
+                current_name = next_name
+            else:
+                return ref
 
-        if alias1.value_type != alias2.value_type:
+        ref = current_aliases.get(current_name)
+        if ref is not None:
+            return ref
+
+        original = current_aliases.get(var_name)
+        return original if original is not None else Reference(Variable(var_name, _UNKNOWN_DTYPE))
+
+    # ------------------------------------------------------------------ #
+    #  别名比较                                                             #
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _refs_equal(r1: Reference | None, r2: Reference | None) -> bool:
+        """判断两个引用是否语义等价（同时比较名称和 dtype）。"""
+        if r1 is None and r2 is None:
+            return True
+        if r1 is None or r2 is None:
             return False
-
-        if alias1.value_type == ValueType.LITERAL:
-            return alias1.value.value == alias2.value.value
-
-        if alias1.value_type == ValueType.VARIABLE:
-            return alias1.get_name() == alias2.get_name()
-
+        if r1.value_type != r2.value_type:
+            return False
+        if r1.value_type == ValueType.LITERAL:
+            return r1.value.value == r2.value.value and r1.value.dtype == r2.value.dtype
+        if r1.value_type == ValueType.VARIABLE:
+            return r1.get_name() == r2.get_name() and r1.value.dtype == r2.value.dtype
         return False
 
-    def _apply_alias_substitution(self, alias_maps: dict, scope_tree: dict) -> None:
-        """应用别名替换"""
+    # ------------------------------------------------------------------ #
+    #  第二遍：替换操作数                                                    #
+    # ------------------------------------------------------------------ #
+
+    def _apply_alias_substitution(self, alias_maps: dict[str, _AliasMap]) -> None:
+        """遍历 IR，将所有可替换的操作数替换为其规范形式。"""
         iterator = self.builder.__iter__()
-        scope_stack = ["global"]
-        current_scope = "global"
+        scope_stack: list[str] = ["global"]
 
-        while True:
-            try:
-                instr = next(iterator)
-            except StopIteration:
-                break
+        for instr in iterator:
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
+                scope_stack.append(instr.get_operands()[0])
+                continue
 
-            if isinstance(instr, IRScopeBegin):
-                scope_name = instr.get_operands()[0]
-                scope_stack.append(scope_name)
-                current_scope = scope_name
-
-            elif isinstance(instr, IRScopeEnd):
-                if scope_stack:
+            if instr.opcode == IROpCode.SCOPE_END:
+                if len(scope_stack) > 1:
                     scope_stack.pop()
-                    current_scope = scope_stack[-1] if scope_stack else "global"
+                continue
 
-            else:
-                # 获取当前作用域的别名映射
-                aliases = alias_maps.get(current_scope, {})
+            aliases = alias_maps.get(scope_stack[-1], {})
+            new_instr = self._substitute(instr, aliases)
 
-                # 根据指令类型进行替换
-                if isinstance(instr, IRAssign):
-                    if self._replace_assign(iterator, instr, aliases):
-                        self._changed = True
+            if new_instr is not instr:
+                iterator.set_current(new_instr)
+                self._changed = True
 
-                elif isinstance(instr, IRBinaryOp):
-                    if self._replace_binary_op(iterator, instr, aliases):
-                        self._changed = True
+    def _substitute(self, instr: IRInstruction, aliases: _AliasMap) -> IRInstruction:
+        """
+        对单条指令应用别名替换，返回新指令（无变化则返回原指令）。
+        """
+        if instr.opcode == IROpCode.ASSIGN:
+            target, source = instr.get_operands()
+            new_source = self._resolve_ref(source, aliases)
+            if new_source is not source:
+                return IRAssign(target, new_source)
 
-                elif isinstance(instr, IRCompare):
-                    if self._replace_compare(iterator, instr, aliases):
-                        self._changed = True
+        elif instr.opcode == IROpCode.BINARY_OP:
+            result, op, left, right = instr.get_operands()
+            new_left = self._resolve_ref(left, aliases)
+            new_right = self._resolve_ref(right, aliases)
+            if new_left is not left or new_right is not right:
+                return IRBinaryOp(result, op, new_left, new_right)
 
-                elif isinstance(instr, IRUnaryOp):
-                    if self._replace_unary_op(iterator, instr, aliases):
-                        self._changed = True
+        elif instr.opcode == IROpCode.COMPARE:
+            result, op, left, right = instr.get_operands()
+            new_left = self._resolve_ref(left, aliases)
+            new_right = self._resolve_ref(right, aliases)
+            if new_left is not left or new_right is not right:
+                return IRCompare(result, op, new_left, new_right)
 
-                elif isinstance(instr, IRCall):
-                    if self._replace_call(iterator, instr, aliases):
-                        self._changed = True
+        elif instr.opcode == IROpCode.UNARY_OP:
+            result, op, operand = instr.get_operands()
+            new_operand = self._resolve_ref(operand, aliases)
+            if new_operand is not operand:
+                return IRUnaryOp(result, op, new_operand)
 
-                elif isinstance(instr, IRCondJump):
-                    if self._replace_cond_jump(iterator, instr, aliases):
-                        self._changed = True
+        elif instr.opcode == IROpCode.COND_JUMP:
+            cond, true_scope, false_scope = instr.get_operands()
+            new_cond = self._resolve_ref(cond, aliases)
+            if new_cond is not cond:
+                return IRCondJump(new_cond.value, true_scope, false_scope)
 
-    def _replace_assign(self, iterator, instr: IRAssign, aliases: dict) -> bool:
-        """替换赋值指令中的别名"""
-        target, source = instr.get_operands()
+        elif instr.opcode == IROpCode.CALL:
+            result, func, args = instr.get_operands()
+            new_args, changed = self._resolve_args(args, aliases)
+            if changed:
+                return IRCall(result, func, new_args)
 
-        if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
-            source_name = source.get_name()
-            if source_name in aliases:
-                alias = aliases[source_name]
-                # 避免自赋值
-                if alias.value_type != ValueType.VARIABLE or alias.get_name() != source_name:
-                    iterator.set_current(IRAssign(target, alias))
-                    return True
+        elif instr.opcode == IROpCode.CALL_METHOD:
+            result, obj, func, args = instr.get_operands()
+            new_args, changed = self._resolve_args(args, aliases)
+            if changed:
+                return IRCallMethod(result, obj, func, new_args)
 
-        return False
+        return instr
 
-    def _replace_binary_op(self, iterator, instr: IRBinaryOp, aliases: dict) -> bool:
-        """替换二元运算中的别名"""
-        result, op, left, right = instr.get_operands()
-        changed = False
-        new_left = left
-        new_right = right
+    def _resolve_ref(self, ref: Reference, aliases: _AliasMap) -> Reference:
+        """若 ref 是变量且别名表中有更优目标，返回替换后的引用；否则返回原引用。"""
+        if not isinstance(ref, Reference):
+            return ref
+        if ref.value_type != ValueType.VARIABLE:
+            return ref
 
-        if isinstance(left, Reference) and left.value_type == ValueType.VARIABLE:
-            left_name = left.get_name()
-            if left_name in aliases:
-                alias = aliases[left_name]
-                if alias.value_type != ValueType.VARIABLE or alias.get_name() != left_name:
-                    new_left = alias
-                    changed = True
+        alias = aliases.get(ref.get_name())
+        if alias is None or self._refs_equal(alias, ref):
+            return ref
 
-        if isinstance(right, Reference) and right.value_type == ValueType.VARIABLE:
-            right_name = right.get_name()
-            if right_name in aliases:
-                alias = aliases[right_name]
-                if alias.value_type != ValueType.VARIABLE or alias.get_name() != right_name:
-                    new_right = alias
-                    changed = True
+        return alias
 
-        if changed:
-            iterator.set_current(IRBinaryOp(result, op, new_left, new_right))
-
-        return changed
-
-    def _replace_compare(self, iterator, instr: IRCompare, aliases: dict) -> bool:
-        """替换比较运算中的别名"""
-        result, op, left, right = instr.get_operands()
-        changed = False
-        new_left = left
-        new_right = right
-
-        if isinstance(left, Reference) and left.value_type == ValueType.VARIABLE:
-            left_name = left.get_name()
-            if left_name in aliases:
-                alias = aliases[left_name]
-                if alias.value_type != ValueType.VARIABLE or alias.get_name() != left_name:
-                    new_left = alias
-                    changed = True
-
-        if isinstance(right, Reference) and right.value_type == ValueType.VARIABLE:
-            right_name = right.get_name()
-            if right_name in aliases:
-                alias = aliases[right_name]
-                if alias.value_type != ValueType.VARIABLE or alias.get_name() != right_name:
-                    new_right = alias
-                    changed = True
-
-        if changed:
-            iterator.set_current(IRCompare(result, op, new_left, new_right))
-
-        return changed
-
-    def _replace_unary_op(self, iterator, instr: IRUnaryOp, aliases: dict) -> bool:
-        """替换一元运算中的别名"""
-        result, op, operand = instr.get_operands()
-
-        if isinstance(operand, Reference) and operand.value_type == ValueType.VARIABLE:
-            operand_name = operand.get_name()
-            if operand_name in aliases:
-                alias = aliases[operand_name]
-                if alias.value_type != ValueType.VARIABLE or alias.get_name() != operand_name:
-                    iterator.set_current(IRUnaryOp(result, op, alias))
-                    return True
-
-        return False
-
-    def _replace_call(self, iterator, instr: IRCall, aliases: dict) -> bool:
-        """替换函数调用参数中的别名"""
-        result, func, args = instr.get_operands()
-        new_args = {}
+    @staticmethod
+    def _resolve_args(
+            args: dict[str, Reference],
+            aliases: _AliasMap
+    ) -> tuple[dict[str, Reference], bool]:
+        """替换参数字典中所有可替换的引用，返回新字典和是否发生变化。"""
+        new_args: dict[str, Reference] = {}
         changed = False
 
         for param_name, arg_ref in args.items():
             if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
-                arg_name = arg_ref.get_name()
-                if arg_name in aliases:
-                    alias = aliases[arg_name]
-                    if alias.value_type != ValueType.VARIABLE or alias.get_name() != arg_name:
-                        new_args[param_name] = alias
-                        changed = True
-                    else:
-                        new_args[param_name] = arg_ref
-                else:
-                    new_args[param_name] = arg_ref
-            else:
-                new_args[param_name] = arg_ref
+                alias = aliases.get(arg_ref.get_name())
+                if alias is not None and alias is not arg_ref:
+                    assert alias is not None
+                    new_args[param_name] = alias
+                    changed = True
+                    continue
+            new_args[param_name] = arg_ref
 
-        if changed:
-            iterator.set_current(IRCall(result, func, new_args))
+        return new_args, changed
 
-        return changed
 
-    def _replace_cond_jump(self, iterator, instr: IRCondJump, aliases: dict) -> bool:
-        """替换条件跳转中的别名"""
-        cond_var, true_scope, false_scope = instr.get_operands()
-
-        if isinstance(cond_var, Variable):
-            cond_name = cond_var.name
-            if cond_name in aliases:
-                alias = aliases[cond_name]
-                if alias.value_type == ValueType.VARIABLE:
-                    alias_var = alias.value
-                    if alias_var.name != cond_name:
-                        iterator.set_current(IRCondJump(alias_var, true_scope, false_scope))
-                        return True
-
-        return False
+# 兜底占位类型，仅在别名表完全无信息时使用
+_UNKNOWN_DTYPE = PrimitiveDataType.INT

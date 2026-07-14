@@ -25,7 +25,6 @@ class CommandTemplate:
     function_path: str  # 宏函数路径
     param_names: list[str]  # 必需参数列表
     optional_params: dict[str, Any] = field(factory=dict)  # 可选参数及默认值
-    validator: Callable | None = None  # 参数验证器
     description: str = ""  # 模板描述
     tags: list[str] = field(factory=list)  # 命令分类标签
 
@@ -46,10 +45,6 @@ class CommandTemplate:
         missing = set(self.param_names) - set(params.keys())
         if missing:
             return False, f"Missing required parameters: {missing}"
-
-        # 自定义验证器
-        if self.validator:
-            return self.validator(params)
 
         return True, ""
 

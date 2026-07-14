@@ -51,11 +51,7 @@ def register_builtin_templates():
             function_path="builtins/random/randint",
             param_names=["objective", "min", "max"],
             description="生成随机数到指定位置",
-            tags=["random", "math"],
-            validator=lambda p: (
-                int(p['min']) <= int(p['max']),
-                "min must be less than or equal to max"
-            )
+            tags=["random", "math"]
         ),
 
         CommandTemplate(
@@ -64,11 +60,7 @@ def register_builtin_templates():
             function_path="builtins/random/randint",
             param_names=["objective", "path", "min", "max"],
             description="生成随机数到指定位置(较randint少一条指令)",
-            tags=["random", "math"],
-            validator=lambda p: (
-                int(p['min']) <= int(p['max']),
-                "min must be less than or equal to max"
-            )
+            tags=["random", "math"]
         ),
 
         # ============ Setblock 系列 ============

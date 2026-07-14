@@ -337,6 +337,8 @@ def IRCondJump(
 
 @register_repr(IROpCode.COND_JUMP)
 def _cond_jump_repr(instr: IRInstruction) -> str:
+    if len(instr.operands) < 3:
+        print(instr.operands)
     cond = (instr.operands[0].value
             if isinstance(instr.operands[0], Literal)
             else instr.operands[0].get_name())

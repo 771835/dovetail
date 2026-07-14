@@ -8,19 +8,20 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Callable, Any
+from typing import Any
 
 from attrs import define, field
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel, BinaryOps, CompareOps, UnaryOps, StructureType, PrimitiveDataType
 from dovetail.core.enums.types import ValueType
-from dovetail.core.instructions import IROpCode, IRCall, IRAssign, IRJump, IRInstruction
+from dovetail.core.instructions import IROpCode, IRCall, IRAssign, IRJump, IRInstruction, IRReturn
 from dovetail.core.ir_builder import IRBuilder, IRBuilderIterator
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
+from dovetail.utils.constants_operator import COMPARE_OP_HANDLERS, BINARY_OP_HANDLERS, UNARY_OP_HANDLERS
 
 
 @register_pass(PassMetadata(
@@ -41,36 +42,6 @@ class ConstantFoldingPass(IROptimizationPass):
     3. 在条件分支内使用临时符号表
     4. 遇到 COND_JUMP 时，合并所有分支的状态
     """
-    BINARY_OP_HANDLERS: dict[BinaryOps, Callable[[int | bool, int | bool], int | bool]] = {
-        BinaryOps.ADD: lambda a, b: a + b,
-        BinaryOps.SUB: lambda a, b: a - b,
-        BinaryOps.MUL: lambda a, b: a * b,
-        BinaryOps.DIV: lambda a, b: a / b,
-        BinaryOps.MOD: lambda a, b: a % b,
-        BinaryOps.MIN: lambda a, b: min(a, b),
-        BinaryOps.MAX: lambda a, b: max(a, b),
-        BinaryOps.BIT_AND: lambda a, b: a & b,
-        BinaryOps.BIT_OR: lambda a, b: a | b,
-        BinaryOps.BIT_XOR: lambda a, b: a ^ b,
-        BinaryOps.SHL: lambda a, b: a << b,
-        BinaryOps.SHR: lambda a, b: a >> b,
-    }
-
-    COMPARE_OP_HANDLERS: dict[CompareOps, Callable[[int | bool, int | bool], bool]] = {
-        CompareOps.EQ: lambda a, b: a == b,
-        CompareOps.NE: lambda a, b: a != b,
-        CompareOps.GE: lambda a, b: a >= b,
-        CompareOps.GT: lambda a, b: a > b,
-        CompareOps.LE: lambda a, b: a <= b,
-        CompareOps.LT: lambda a, b: a < b,
-
-    }
-
-    UNARY_OP_HANDLERS: dict[UnaryOps, Callable[[int | bool], int]] = {
-        UnaryOps.NEG: lambda a: -a,
-        UnaryOps.NOT: lambda a: not a,
-        UnaryOps.BIT_NOT: lambda a: ~a,
-    }
 
     class FoldingFlags(Enum):
         """常量折叠标志"""
@@ -177,7 +148,8 @@ class ConstantFoldingPass(IROptimizationPass):
             IROpCode.COND_JUMP: self._cond_jump,
             IROpCode.CALL: self._call,
             IROpCode.CAST: self._cast,
-            IROpCode.FUNCTION: self._function
+            IROpCode.FUNCTION: self._function,
+            IROpCode.RETURN: self._return
         }
 
         # ✅ 跟踪当前所在的作用域路径
@@ -224,8 +196,8 @@ class ConstantFoldingPass(IROptimizationPass):
 
     def _resolve_ref(
             self,
-            ref: Reference[Variable | Literal]
-    ) -> Reference[Literal] | FoldingFlags:
+            ref: Reference
+    ) -> Reference | FoldingFlags:
         """解析引用到字面量或标识为未知/未定义"""
         if ref.value_type == ValueType.LITERAL:
             return ref
@@ -281,7 +253,7 @@ class ConstantFoldingPass(IROptimizationPass):
                 new_table = ConstantFoldingPass.SymbolTable(
                     scope_name,
                     scope_type,
-                    parent=self.current_table.parent
+                    parent=self.current_table
                 )
                 # 恢复基础状态到新表
                 for var_name, value in base_state.items():
@@ -379,7 +351,7 @@ class ConstantFoldingPass(IROptimizationPass):
         if op == BinaryOps.ADD and (left_dtype == PrimitiveDataType.STRING or right_dtype == PrimitiveDataType.STRING):
             new_value = str(left.value.value) + str(right.value.value)
         else:
-            new_value = int(self.BINARY_OP_HANDLERS[op](left.value.value, right.value.value))
+            new_value = int(BINARY_OP_HANDLERS[op](left.value.value, right.value.value))
 
         try:
             # 用新指令替换原始指令
@@ -413,7 +385,7 @@ class ConstantFoldingPass(IROptimizationPass):
         if not isinstance(left_dtype, PrimitiveDataType) or not isinstance(right_dtype, PrimitiveDataType):
             return False
 
-        new_value = self.COMPARE_OP_HANDLERS[op](left.value.value, right.value.value)
+        new_value = COMPARE_OP_HANDLERS[op](left.value.value, right.value.value)
         try:
             new_instr = IRAssign(result, Reference.literal(new_value))
             iterator.set_current(new_instr)
@@ -435,7 +407,7 @@ class ConstantFoldingPass(IROptimizationPass):
             return False
 
         try:
-            folded_value = self.UNARY_OP_HANDLERS[op](operand.value.value)
+            folded_value = UNARY_OP_HANDLERS[op](operand.value.value)
             new_instr = IRAssign(result, Reference.literal(folded_value))
             iterator.set_current(new_instr)
             self._assign(iterator, new_instr)
@@ -625,3 +597,17 @@ class ConstantFoldingPass(IROptimizationPass):
         function: Function = instr.get_operands()[0]
         self.current_table.set(function.get_name(), Reference(function))
         return False
+
+    def _return(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
+        value_ref = instr.get_operands()[0]
+        if not isinstance(value_ref, Reference) or value_ref.value_type != ValueType.VARIABLE:
+            return False
+
+        resolved = self._resolve_ref(value_ref)
+        if not self._is_literal(resolved):
+            return False
+
+        # 用字面量替换 return 的操作数
+        new_instr = IRReturn(resolved)
+        iterator.set_current(new_instr)
+        return True
