@@ -73,7 +73,6 @@ class EmptyScopeRemovalPass(IROptimizationPass):
                 self.empty_scopes.add(scope)
 
     def _remove_jump_to_empty_scopes(self):
-        """删除跳转到空作用域的指令"""
         iterator = self.builder.__iter__()
         while True:
             try:
@@ -85,23 +84,23 @@ class EmptyScopeRemovalPass(IROptimizationPass):
                 if instr.operands[0] in self.empty_scopes:
                     iterator.remove_current()
                     self._changed = True
+
             elif instr.opcode == IROpCode.COND_JUMP:
-                cond = instr.operands[0]
                 a = None if instr.operands[1] in self.empty_scopes else instr.operands[1]
                 b = None if instr.operands[2] in self.empty_scopes else instr.operands[2]
                 if a is None and b is None:
                     iterator.remove_current()
-                elif a is None and instr.operands[1]:
-                    iterator.remove_current()
-                    iterator.insert_here(IRCondJump(cond, None, b))
-                elif b is None and instr.operands[2]:
-                    iterator.remove_current()
-                    iterator.insert_here(IRCondJump(cond, a))
+                    self._changed = True
+                elif a != instr.operands[1] or b != instr.operands[2]:
+                    # 有操作数发生变化，原地更新，不触碰迭代器位置
+                    instr.operands[1] = a
+                    instr.operands[2] = b
+                    self._changed = True
 
     def _remove_empty_scope_declarations(self):
         """删除空作用域的指令"""
         iterator = self.builder.__iter__()
-        deleting_scope = None
+        deleting_stack = []  # 用栈记录
 
         while True:
             try:
@@ -112,18 +111,25 @@ class EmptyScopeRemovalPass(IROptimizationPass):
             if instr.opcode == IROpCode.SCOPE_BEGIN:
                 scope_name = instr.get_operands()[0]
                 stype = instr.get_operands()[1]
-                if scope_name in self.empty_scopes and stype not in (StructureType.FUNCTION, StructureType.CLASS):
+                if deleting_stack:
+                    # 已在删除模式中，子作用域也一并删除
                     iterator.remove_current()
                     self._changed = True
-                    deleting_scope = scope_name
+                    deleting_stack.append(scope_name)  # 压栈，追踪嵌套层数
+                elif scope_name in self.empty_scopes and stype not in (StructureType.FUNCTION, StructureType.CLASS):
+                    iterator.remove_current()
+                    self._changed = True
+                    deleting_stack.append(scope_name)  # 开始删除模式
+
             elif instr.opcode == IROpCode.SCOPE_END:
-                if deleting_scope is not None:
+                if deleting_stack:
                     iterator.remove_current()
                     self._changed = True
-                    deleting_scope = None
+                    deleting_stack.pop()  # 出栈，正确对应嵌套层数
+
             elif instr.opcode in (IROpCode.FUNCTION, IROpCode.CLASS):
                 pass
             else:
-                if deleting_scope is not None:
+                if deleting_stack:
                     iterator.remove_current()
                     self._changed = True

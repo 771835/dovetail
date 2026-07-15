@@ -148,7 +148,7 @@ FALSE: "false"
 identifier: ID
 
 // 所有权关键字
-MUT.2: "mut"
+MUT.2: "mut" /\s+/
 
 // 可空关键字
 QUESTION: "?"

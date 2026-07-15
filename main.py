@@ -190,12 +190,9 @@ class Compiler:
                     raise
                 return -1
 
-            except Exception as e:
-                # 未预期的异常，包装后重新抛出
-                raise CompilationError(
-                    f"意外的错误: {e}",
-                    filepath=source_path
-                ) from e
+            except Exception:
+                # 未预期的异常，重新抛出
+                raise
 
         return 0
 

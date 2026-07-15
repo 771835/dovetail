@@ -6,7 +6,7 @@
 将 Pass 类注册到全局注册表。
 由 optimizer.ensure_passes_registered() 统一调用，不应在其他地方直接 import *。
 """
-from .chain_assign import ChainAssignEliminationPass # bug
+from .chain_assign import ChainAssignEliminationPass
 from .constant_folding import ConstantFoldingPass
 from .dead_code_elimination import DeadCodeEliminationPass
 from .declare_cleanup import DeclareCleanupPass

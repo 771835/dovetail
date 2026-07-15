@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.enums import OptimizationLevel, StructureType
+from dovetail.core.enums import OptimizationLevel
 from dovetail.core.enums.types import ValueType
 from dovetail.core.instructions import (
     IRAssign, IRBinaryOp, IRCompare, IRUnaryOp, IRCall,
@@ -24,6 +24,7 @@ from dovetail.core.symbols import Variable, Reference
 # ---- 类型别名 ----
 _AliasMap = dict[str, Reference]  # {var_name: canonical_ref}
 _ScopeTree = dict[str, str | None]  # {scope_name: parent_scope_name}
+_Snapshot = dict[int, _AliasMap]  # {指令索引: 执行该指令前的别名快照}
 
 
 @register_pass(PassMetadata(
@@ -45,8 +46,8 @@ class ChainAssignEliminationPass(IROptimizationPass):
     4. 条件分支两侧别名不一致时，清除对应别名
 
     算法：两遍扫描
-      第一遍: 构建每个作用域的别名映射表
-      第二遍: 替换所有指令中的可替换操作数
+      第一遍: 构建每个作用域的别名映射表，同时为每条指令记录执行前的别名快照
+      第二遍: 用每条指令自己的快照做替换，避免"未来状态污染过去指令"的问题
     """
 
     def __init__(self, builder: IRBuilder, config: CompileConfig):
@@ -61,29 +62,45 @@ class ChainAssignEliminationPass(IROptimizationPass):
         """执行链式赋值消除优化"""
         self._changed = False
 
-        # 构建别名映射和作用域树
-        scope_tree, alias_maps = self._build_alias_maps()
+        # 第一遍：构建别名映射 + 逐指令快照
+        scope_tree, alias_maps, snapshots = self._build_alias_maps()
 
-        # 应用别名替换
-        self._apply_alias_substitution(alias_maps)
+        # 第二遍：用快照精确替换，而非最终状态
+        self._apply_alias_substitution(snapshots)
+
         return self._changed
 
     # ------------------------------------------------------------------ #
-    #  第一遍：构建别名映射                                                  #
+    #  第一遍：构建别名映射 + 快照                                           #
     # ------------------------------------------------------------------ #
 
-    def _build_alias_maps(self) -> tuple[_ScopeTree, dict[str, _AliasMap]]:
+    def _build_alias_maps(self) -> tuple[_ScopeTree, dict[str, _AliasMap], _Snapshot]:
         """
         遍历 IR，为每个作用域建立变量别名映射。
+        同时在处理每条指令「之前」拍下当前作用域的别名快照。
+
+        修复说明：
+            原版用最终 alias_maps 做第二遍替换，导致"后面的赋值"
+            污染"前面指令"的操作数（例如 strcat_0 = p + 'a' 中的 p
+            被替换成了 strcat_0，因为后续 p = strcat_0 已写入映射）。
+            现在改为：每条指令拿自己执行前的快照，时序严格对齐。
 
         Returns:
-            (scope_tree, alias_maps)
+            (scope_tree, alias_maps, snapshots)
         """
         scope_tree: _ScopeTree = {}
         alias_maps: dict[str, _AliasMap] = {"global": {}}
         scope_stack: list[str] = ["global"]
+        snapshots: _Snapshot = {}
 
-        for instr in self.builder.get_instructions():
+        # 需要按索引记录快照，先转成列表
+        instructions = list(self.builder.get_instructions())
+
+        for idx, instr in enumerate(instructions):
+            current_scope = scope_stack[-1]
+
+            # ⚠️ 关键：在处理本条指令之前，先拍快照
+            snapshots[idx] = dict(alias_maps[current_scope])
 
             if instr.opcode == IROpCode.SCOPE_BEGIN:
                 scope_name, scope_type = instr.get_operands()[0], instr.get_operands()[1]
@@ -95,23 +112,19 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 # 子作用域继承父作用域别名（独立拷贝，互不污染）
                 alias_maps[scope_name] = dict(alias_maps[parent])
 
-                if scope_type == StructureType.CONDITIONAL:
-                    pass  # branch_children 此版本不需要，保留注释备查
-
             elif instr.opcode == IROpCode.SCOPE_END:
                 if len(scope_stack) > 1:
                     scope_stack.pop()
 
             elif instr.opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
-                current = scope_stack[-1]
-                alias_maps[current][var.get_name()] = Reference(var)
+                alias_maps[current_scope][var.get_name()] = Reference(var)
 
             elif instr.opcode == IROpCode.ASSIGN:
-                self._process_assign(instr, scope_stack[-1], alias_maps)
+                self._process_assign(instr, current_scope, alias_maps)
 
             elif instr.opcode == IROpCode.COND_JUMP:
-                self._merge_branch_aliases(instr, scope_stack[-1], alias_maps)
+                self._merge_branch_aliases(instr, current_scope, alias_maps)
 
             elif instr.opcode in (
                     IROpCode.BINARY_OP, IROpCode.COMPARE,
@@ -120,9 +133,9 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 # 这些指令产生新值，结果变量不是别名，指向自身
                 result = instr.get_operands()[0]
                 if isinstance(result, Variable):
-                    alias_maps[scope_stack[-1]][result.get_name()] = Reference(result)
+                    alias_maps[current_scope][result.get_name()] = Reference(result)
 
-        return scope_tree, alias_maps
+        return scope_tree, alias_maps, snapshots
 
     def _process_assign(
             self,
@@ -244,27 +257,32 @@ class ChainAssignEliminationPass(IROptimizationPass):
     #  第二遍：替换操作数                                                    #
     # ------------------------------------------------------------------ #
 
-    def _apply_alias_substitution(self, alias_maps: dict[str, _AliasMap]) -> None:
-        """遍历 IR，将所有可替换的操作数替换为其规范形式。"""
+    def _apply_alias_substitution(self, snapshots: _Snapshot) -> None:
+        """
+        遍历 IR，用每条指令执行前的快照做精确替换。
+
+        不再使用最终 alias_maps，而是用 snapshots[idx]，
+        确保每条指令只能"看到"它执行前已确立的别名，
+        不会被后续赋值语句的结果反向污染。
+        """
         iterator = self.builder.__iter__()
-        scope_stack: list[str] = ["global"]
+        idx = 0
 
         for instr in iterator:
-            if instr.opcode == IROpCode.SCOPE_BEGIN:
-                scope_stack.append(instr.get_operands()[0])
+            # 作用域边界不需要替换，直接跳过
+            if instr.opcode in (IROpCode.SCOPE_BEGIN, IROpCode.SCOPE_END):
+                idx += 1
                 continue
 
-            if instr.opcode == IROpCode.SCOPE_END:
-                if len(scope_stack) > 1:
-                    scope_stack.pop()
-                continue
-
-            aliases = alias_maps.get(scope_stack[-1], {})
+            # 拿这条指令执行前的快照
+            aliases = snapshots.get(idx, {})
             new_instr = self._substitute(instr, aliases)
 
             if new_instr is not instr:
                 iterator.set_current(new_instr)
                 self._changed = True
+
+            idx += 1
 
     def _substitute(self, instr: IRInstruction, aliases: _AliasMap) -> IRInstruction:
         """
@@ -342,8 +360,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
             if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
                 alias = aliases.get(arg_ref.get_name())
                 if alias is not None and alias is not arg_ref:
-                    assert alias is not None
-                    new_args[param_name] = alias
+                    new_args[param_name] = alias # noqa
                     changed = True
                     continue
             new_args[param_name] = arg_ref

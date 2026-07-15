@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from typing import cast
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel
@@ -19,7 +20,7 @@ from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.symbols import Reference, Variable, Function
 
 # 内联阈值：函数体指令数超过此值不内联
-INLINE_THRESHOLD = 10
+INLINE_THRESHOLD = 15
 
 
 @register_pass(PassMetadata(
@@ -356,13 +357,15 @@ class FunctionInliningPass(IROptimizationPass):
             result, operator, operand = instr.get_operands()
             new_result = rename_map.get(result.name, result)
             new_operand = self._remap_ref(operand, rename_map)
-            return IRInstruction(op, new_result, operator, new_operand)
+            assert isinstance(new_result, Variable)
+            return IRUnaryOp(new_result, operator, new_operand)
 
         elif op == IROpCode.CAST:
             result, dtype, value_ref = instr.get_operands()
             new_result = rename_map.get(result.name, result)
             new_value_ref = self._remap_ref(value_ref, rename_map)
-            return IRInstruction(op, new_result, dtype, new_value_ref)
+            assert isinstance(new_result, Variable)
+            return IRCast(new_result, dtype, new_value_ref)
 
         elif op == IROpCode.CALL:
             result, func, args = instr.get_operands()
@@ -370,12 +373,9 @@ class FunctionInliningPass(IROptimizationPass):
             new_args = {k: self._remap_ref(v, rename_map) for k, v in args.items()}
             return IRCall(new_result, func, new_args)
 
-        elif op == IROpCode.SCOPE_BEGIN:
+        elif op in (IROpCode.SCOPE_BEGIN, IROpCode.SCOPE_END):
             scope_name, scope_type = instr.get_operands()
             return IRInstruction(op, scope_rename.get(scope_name, scope_name), scope_type)
-
-        elif op == IROpCode.SCOPE_END:
-            return instr
 
         elif op == IROpCode.COND_JUMP:
             cond_var, true_scope, false_scope = instr.get_operands()

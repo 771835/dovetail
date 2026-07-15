@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from dovetail.core.compile_config import CompileConfig
+from dovetail.core.config import FAST_MODE
 from dovetail.core.enums.optimization import OptimizationLevel
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.context import OptimizationContext
@@ -250,6 +251,9 @@ class OptimizationPipeline:
 
                 if self.config.debug:
                     builder.print()
+                    if not FAST_MODE:
+                        from dovetail.utils.ir_scope_validator import assert_ir_scope_structure
+                        assert_ir_scope_structure(builder)
                     logger.info(f"  执行：{pass_class.get_metadata().display_name}")
 
 
