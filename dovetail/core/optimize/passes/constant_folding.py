@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Any
+from typing import Any, Set
 
 from attrs import define, field
 
@@ -41,6 +41,7 @@ class ConstantFoldingPass(IROptimizationPass):
     2. 遇到 CONDITION 作用域时，保存当前状态
     3. 在条件分支内使用临时符号表
     4. 遇到 COND_JUMP 时，合并所有分支的状态
+    5. 循环作用域结束时，向上传播被修改的变量为 UNKNOWN（防止变量遮蔽导致错误折叠）
     """
 
     class FoldingFlags(Enum):
@@ -58,6 +59,9 @@ class ConstantFoldingPass(IROptimizationPass):
         stype: StructureType = field()
         table: dict[str, Reference | ConstantFoldingPass.FoldingFlags] = field(factory=dict)
         parent: "ConstantFoldingPass.SymbolTable | None" = field(default=None)
+        # 记录本作用域内声明的变量，用于区分"声明"与"赋值"
+        # 避免循环内临时变量（如 calc_2）触发不必要的向上传播
+        declared_vars: Set[str] = field(factory=set)
 
         def find(self, name: str) -> Reference | ConstantFoldingPass.FoldingFlags:
             """在当前作用域及其祖先作用域中查找符号"""
@@ -152,7 +156,7 @@ class ConstantFoldingPass(IROptimizationPass):
             IROpCode.RETURN: self._return
         }
 
-        # ✅ 跟踪当前所在的作用域路径
+        # 跟踪当前所在的作用域路径
         self.scope_path = []
 
         while True:
@@ -219,11 +223,11 @@ class ConstantFoldingPass(IROptimizationPass):
 
         self.scope_path.append(scope_name)
 
-        # ✅ 如果是条件分支
+        # 如果是条件分支
         if scope_type == StructureType.CONDITIONAL:
             parent_scope = self.conditional_branches.get(scope_name)
 
-            # ✅ 检查是否在循环体中
+            # 检查是否在循环体中
             in_loop_body = False
             current = self.current_table
             while current:
@@ -232,7 +236,7 @@ class ConstantFoldingPass(IROptimizationPass):
                     break
                 current = current.parent
 
-            # ✅ 如果在循环体中，不使用 branch_base_state 机制
+            # 如果在循环体中，不使用 branch_base_state 机制
             if in_loop_body:
                 new_table = ConstantFoldingPass.SymbolTable(
                     scope_name,
@@ -247,7 +251,7 @@ class ConstantFoldingPass(IROptimizationPass):
                 # 保存当前符号表状态
                 self.branch_base_state[parent_scope] = self.current_table.copy_state()
 
-            # ✅ 从基础状态创建新的符号表
+            # 从基础状态创建新的符号表
             if parent_scope and parent_scope in self.branch_base_state:
                 base_state = self.branch_base_state[parent_scope]
                 new_table = ConstantFoldingPass.SymbolTable(
@@ -276,7 +280,7 @@ class ConstantFoldingPass(IROptimizationPass):
         scope_name = self.current_table.name
         scope_type = self.current_table.stype
 
-        # ✅ 如果是条件分支结束，保存完整状态
+        # 如果是条件分支结束，保存完整状态
         if scope_type == StructureType.CONDITIONAL:
             full_state = {}
             current = self.current_table
@@ -290,6 +294,23 @@ class ConstantFoldingPass(IROptimizationPass):
                 self.pending_branches[scope_name] = []
             self.pending_branches[scope_name].append(full_state)
 
+        # 循环作用域结束时，向上传播变量遮蔽
+        # 循环结束后父作用域中的旧值已不可信，必须标记为 UNKNOWN
+        if scope_type in (StructureType.LOOP_BODY, StructureType.LOOP_CHECK):
+            for var_name in self.current_table.table:
+                # 只传播"赋值但未声明"的变量（即来自父作用域的变量）
+                # 本作用域声明的临时变量（如 calc_2）不需要传播
+                if var_name in self.current_table.declared_vars:
+                    continue
+
+                # 沿父链查找该变量的声明位置，标记为 UNKNOWN
+                parent = self.current_table.parent
+                while parent:
+                    if var_name in parent.table:
+                        parent.table[var_name] = ConstantFoldingPass.FoldingFlags.UNKNOWN
+                        break
+                    parent = parent.parent
+
         if self.current_table.parent is not None:
             self.current_table = self.current_table.parent
 
@@ -302,6 +323,8 @@ class ConstantFoldingPass(IROptimizationPass):
         """处理变量声明"""
         var: Variable = instr.get_operands()[0]
         self.current_table.set(var.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
+        # 记录本作用域声明的变量，用于区分"声明"与"赋值"
+        self.current_table.declared_vars.add(var.get_name())
         return False
 
     def _assign(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
@@ -437,7 +460,7 @@ class ConstantFoldingPass(IROptimizationPass):
                         cond_val = bool(value.value.value)
                         jump_scope = true_scope if cond_val else false_scope
 
-                        # ✅ 条件是常量，选择对应分支的状态
+                        # 条件是常量，选择对应分支的状态
                         selected_state = self.pending_branches.get(jump_scope, [{}])[
                             0] if jump_scope in self.pending_branches else {}
 
@@ -463,7 +486,7 @@ class ConstantFoldingPass(IROptimizationPass):
             cond_val = bool(cond_var.value)
             jump_scope = true_scope if cond_val else false_scope
 
-            # ✅ 条件是字面量，选择对应分支的状态
+            # 条件是字面量，选择对应分支的状态
             selected_state = self.pending_branches.get(jump_scope, [{}])[
                 0] if jump_scope in self.pending_branches else {}
 
@@ -489,12 +512,17 @@ class ConstantFoldingPass(IROptimizationPass):
         true_state = self.pending_branches.get(true_scope, [{}])[0] if true_scope in self.pending_branches else {}
         false_state = self.pending_branches.get(false_scope, [{}])[0] if false_scope in self.pending_branches else {}
 
-        # ✅ 找出所有变量（两个完整状态的并集）
-        all_vars = set(true_state.keys()) | set(false_state.keys())
+        # 修复：获取分支前的基准状态，作为 false 分支无显式作用域时的默认值
+        # 避免 false_state 为空导致未修改变量被误判为 UNKNOWN
+        parent_scope = self.conditional_branches.get(true_scope)
+        base_state = self.branch_base_state.get(parent_scope, {}) if parent_scope else {}
+
+        # 找出所有变量（两个完整状态的并集 + 基准状态）
+        all_vars = set(true_state.keys()) | set(false_state.keys()) | set(base_state.keys())
 
         for var_name in all_vars:
-            true_val = true_state.get(var_name, self.FoldingFlags.UNKNOWN)
-            false_val = false_state.get(var_name, self.FoldingFlags.UNKNOWN)
+            true_val = true_state.get(var_name, base_state.get(var_name, self.FoldingFlags.UNKNOWN))
+            false_val = false_state.get(var_name, base_state.get(var_name, self.FoldingFlags.UNKNOWN))
 
             # 如果两个分支的值相同，使用该值
             if self._values_equal(true_val, false_val):
@@ -508,7 +536,6 @@ class ConstantFoldingPass(IROptimizationPass):
         self.pending_branches.pop(false_scope, None)
 
         # 清理基础状态（从 conditional_branches 中查找父作用域）
-        parent_scope = self.conditional_branches.get(true_scope)
         if parent_scope:
             self.branch_base_state.pop(parent_scope, None)
 
@@ -599,9 +626,18 @@ class ConstantFoldingPass(IROptimizationPass):
         return False
 
     def _return(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
+        """处理返回指令"""
         value_ref = instr.get_operands()[0]
         if not isinstance(value_ref, Reference) or value_ref.value_type != ValueType.VARIABLE:
             return False
+
+        # 防御性检查：如果当前仍在循环作用域内，不折叠返回值
+        # （正常情况下 _find 的 LOOP_CHECK 保护已拦截，此处为额外安全网）
+        current = self.current_table
+        while current:
+            if current.stype in (StructureType.LOOP_BODY, StructureType.LOOP_CHECK):
+                return False
+            current = current.parent
 
         resolved = self._resolve_ref(value_ref)
         if not self._is_literal(resolved):

@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import cast
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel

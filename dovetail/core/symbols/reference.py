@@ -12,11 +12,12 @@ from ..config import FAST_MODE
 from ..enums import PrimitiveDataType
 from ..enums.datatypes import DataTypeBase
 from ..enums.types import ValueType, VariableType
+from ...utils.logger import get_logger
 
 T = TypeVar('T', bound=Symbol)
+logger = get_logger(__name__)
 
-
-@define(slots=True, hash=True, repr=False)
+@define(slots=True, hash=True, repr=False, frozen=True)
 class Reference(Symbol, Generic[T]):
     """
     引用容器
@@ -31,10 +32,7 @@ class Reference(Symbol, Generic[T]):
     if not FAST_MODE:
         def __attrs_post_init__(self):
             if isinstance(self.value, Reference):
-                # 对于多重引用的情况自动拆解
-                self.value = self.value.value  # type: ignore
-                from warnings import warn
-                warn("不应该存在的多重引用")
+                logger.error(f"多重引用: {self.value}")
 
     @property
     def value_type(self) -> ValueType:

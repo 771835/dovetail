@@ -7,13 +7,15 @@
 """
 from __future__ import annotations
 
+from typing import Optional
+
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel
-from dovetail.core.enums.types import ValueType
+from dovetail.core.enums.types import ValueType, StructureType
 from dovetail.core.instructions import (
     IRAssign, IRBinaryOp, IRCompare, IRUnaryOp, IRCall,
     IRCondJump,
-    IRCallMethod, IROpCode, IRInstruction, PrimitiveDataType
+    IRCallMethod, IROpCode, IRInstruction, PrimitiveDataType, IRCast
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.base import IROptimizationPass
@@ -52,6 +54,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
 
     def __init__(self, builder: IRBuilder, config: CompileConfig):
         super().__init__(builder, config)
+        self._assigned_vars: Optional[dict[str, set[str]]] = None
         self._changed = False
 
     # ------------------------------------------------------------------ #
@@ -61,6 +64,9 @@ class ChainAssignEliminationPass(IROptimizationPass):
     def execute(self) -> bool:
         """执行链式赋值消除优化"""
         self._changed = False
+
+        self._scope_tree, self._scope_types = self._prescan_scope_tree()
+        self._assigned_vars = self._collect_assigned_vars()  # 预扫描
 
         # 第一遍：构建别名映射 + 逐指令快照
         scope_tree, alias_maps, snapshots = self._build_alias_maps()
@@ -79,12 +85,6 @@ class ChainAssignEliminationPass(IROptimizationPass):
         遍历 IR，为每个作用域建立变量别名映射。
         同时在处理每条指令「之前」拍下当前作用域的别名快照。
 
-        修复说明：
-            原版用最终 alias_maps 做第二遍替换，导致"后面的赋值"
-            污染"前面指令"的操作数（例如 strcat_0 = p + 'a' 中的 p
-            被替换成了 strcat_0，因为后续 p = strcat_0 已写入映射）。
-            现在改为：每条指令拿自己执行前的快照，时序严格对齐。
-
         Returns:
             (scope_tree, alias_maps, snapshots)
         """
@@ -99,22 +99,46 @@ class ChainAssignEliminationPass(IROptimizationPass):
         for idx, instr in enumerate(instructions):
             current_scope = scope_stack[-1]
 
-            # ⚠️ 关键：在处理本条指令之前，先拍快照
+            # 在处理本条指令之前，先拍快照
             snapshots[idx] = dict(alias_maps[current_scope])
 
             if instr.opcode == IROpCode.SCOPE_BEGIN:
-                scope_name, scope_type = instr.get_operands()[0], instr.get_operands()[1]
+                scope_name = instr.get_operands()[0]
+                scope_type = instr.get_operands()[1]
                 parent = scope_stack[-1]
 
-                scope_tree[scope_name] = parent
                 scope_stack.append(scope_name)
+                inherited = dict(alias_maps[parent])
 
-                # 子作用域继承父作用域别名（独立拷贝，互不污染）
-                alias_maps[scope_name] = dict(alias_maps[parent])
+                if scope_type in (StructureType.LOOP_CHECK, StructureType.LOOP_BODY):
+                    assert self._assigned_vars is not None
+                    # 此时 self._scope_tree 已经完整，递归查找不会漏
+                    dirty_vars = self._collect_all_written_in_scope(
+                        scope_name, self._assigned_vars, self._scope_tree
+                    )
+                    for var_name in dirty_vars:
+                        inherited.pop(var_name, None)  # 直接删，保守处理
+
+                alias_maps[scope_name] = inherited
+
 
             elif instr.opcode == IROpCode.SCOPE_END:
                 if len(scope_stack) > 1:
-                    scope_stack.pop()
+                    leaving_scope = scope_stack[-1]  # 先记住要离开的作用域
+                    leaving_type = self._scope_types.get(leaving_scope)
+                    scope_stack.pop()  # 再弹栈
+                    parent = scope_stack[-1]  # 弹完才能拿到父作用域
+                    # 如果离开的是循环作用域，把它写过的变量从父作用域别名表里清掉
+                    if leaving_type in (StructureType.LOOP_CHECK, StructureType.LOOP_BODY):
+                        dirty = self._collect_all_written_in_scope(
+                            leaving_scope, self._assigned_vars, self._scope_tree
+                        )
+                        for var_name in dirty:
+                            if var_name in alias_maps[parent]:
+                                old_ref = alias_maps[parent][var_name]
+                                alias_maps[parent][var_name] = Reference(
+                                    Variable(var_name, old_ref.value.dtype)
+                                )
 
             elif instr.opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
@@ -147,6 +171,14 @@ class ChainAssignEliminationPass(IROptimizationPass):
         target, source = instr.get_operands()
         target_name = target.get_name()
         current_aliases = alias_maps[current_scope]
+
+        # target 被重新赋值，所有以 target 为别名源的条目失效
+        stale = [
+            k for k, v in current_aliases.items()
+            if v.value_type == ValueType.VARIABLE and v.get_name() == target_name
+        ]
+        for k in stale:
+            current_aliases[k] = Reference(Variable(k, current_aliases[k].value.dtype))
 
         if isinstance(source, Reference):
             if source.value_type == ValueType.VARIABLE:
@@ -193,6 +225,80 @@ class ChainAssignEliminationPass(IROptimizationPass):
                     if original_ref.value_type != ValueType.VARIABLE:
                         var = Variable(var_name, original_ref.value.dtype)
                         current_aliases[var_name] = Reference(var)
+
+    # ------------------------------------------------------------------ #
+    #  预扫描，收集变量名                                                    #
+    # ------------------------------------------------------------------ #
+
+    def _collect_assigned_vars(self) -> dict[str, set[str]]:
+        """
+        预扫描，收集每个作用域内直接被赋值的变量名。
+        key: scope_name, value: 该作用域内被写入的变量名集合
+        """
+        assigned: dict[str, set[str]] = {}
+        scope_stack = ["global"]
+
+        for instr in self.builder.get_instructions():
+            current = scope_stack[-1]
+
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
+                scope_name = instr.get_operands()[0]
+                scope_stack.append(scope_name)
+                assigned.setdefault(scope_name, set())
+
+            elif instr.opcode == IROpCode.SCOPE_END:
+                if len(scope_stack) > 1:
+                    scope_stack.pop()
+
+            elif instr.opcode == IROpCode.ASSIGN:
+                target = instr.get_operands()[0]
+                assigned.setdefault(current, set()).add(target.get_name())
+
+            elif instr.opcode in (IROpCode.BINARY_OP, IROpCode.COMPARE, IROpCode.UNARY_OP):
+                result = instr.get_operands()[0]
+                assigned.setdefault(current, set()).add(result.get_name())
+
+        return assigned
+
+    def _collect_all_written_in_scope(
+            self,
+            scope_name: str,
+            assigned: dict[str, set[str]],
+            scope_tree: _ScopeTree
+    ) -> set[str]:
+        """
+        递归收集一个作用域及其所有子作用域内被写入的变量名。
+        用于判断循环体内哪些变量是"不稳定"的。
+        """
+        result = set(assigned.get(scope_name, set()))
+        for child, parent in scope_tree.items():
+            if parent == scope_name:
+                result |= self._collect_all_written_in_scope(child, assigned, scope_tree)
+        return result
+
+    def _prescan_scope_tree(self) -> tuple[_ScopeTree, dict[str, StructureType]]:
+        """
+        预扫描完整的作用域树和每个作用域的类型。
+        必须在 _build_alias_maps 之前完成。
+        """
+        scope_tree: _ScopeTree = {}
+        scope_types: dict[str, StructureType] = {}
+        scope_stack = ["global"]
+
+        for instr in self.builder.get_instructions():
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
+                scope_name = instr.get_operands()[0]
+                scope_type = instr.get_operands()[1]
+                parent = scope_stack[-1]
+                scope_tree[scope_name] = parent
+                scope_types[scope_name] = scope_type
+                scope_stack.append(scope_name)
+
+            elif instr.opcode == IROpCode.SCOPE_END:
+                if len(scope_stack) > 1:
+                    scope_stack.pop()
+
+        return scope_tree, scope_types
 
     # ------------------------------------------------------------------ #
     #  别名解析                                                             #
@@ -332,6 +438,12 @@ class ChainAssignEliminationPass(IROptimizationPass):
             if changed:
                 return IRCallMethod(result, obj, func, new_args)
 
+        elif instr.opcode == IROpCode.CAST:
+            result, target_type, source = instr.get_operands()
+            new_source = self._resolve_ref(source, aliases)
+            if source is not new_source:
+                return IRCast(result, target_type, new_source)
+
         return instr
 
     def _resolve_ref(self, ref: Reference, aliases: _AliasMap) -> Reference:
@@ -360,7 +472,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
             if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
                 alias = aliases.get(arg_ref.get_name())
                 if alias is not None and alias is not arg_ref:
-                    new_args[param_name] = alias # noqa
+                    new_args[param_name] = alias  # noqa
                     changed = True
                     continue
             new_args[param_name] = arg_ref

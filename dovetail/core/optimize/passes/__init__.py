@@ -15,4 +15,5 @@ from .unreachable_code import UnreachableCodeRemovalPass
 from .unused_function import UnusedFunctionEliminationPass # 可能能用，不确定
 from .useless_scope import UselessScopeRemovalPass
 from .function_inling import FunctionInliningPass
+from .unconditional_scope_inlining import UnconditionalScopeInliningPass
 __all__ = []

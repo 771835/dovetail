@@ -252,8 +252,8 @@ class OptimizationPipeline:
                 if self.config.debug:
                     builder.print()
                     if not FAST_MODE:
-                        from dovetail.utils.ir_scope_validator import assert_ir_scope_structure
-                        assert_ir_scope_structure(builder)
+                        from dovetail.utils.ir_validator import assert_ir
+                        assert_ir(builder)
                     logger.info(f"  执行：{pass_class.get_metadata().display_name}")
 
 

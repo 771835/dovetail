@@ -17,7 +17,9 @@ from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.symbols import Reference
+from dovetail.utils.logger import get_logger
 
+logger = get_logger(__name__)
 
 @register_pass(PassMetadata(
     name="declare_cleanup",
@@ -138,15 +140,18 @@ class DeclareCleanupPass(IROptimizationPass):
                     self.root_vars.add(self._key(current_scope, param.get_name()))
                     self._ref_add(current_scope, param.get_name())
 
-            elif instr.opcode == IROpCode.CALL_METHOD:
-                if instr.opcode == IROpCode.CALL:
-                    result_var, func, args = instr.get_operands()
-                else:
-                    result_var, _, func, args = instr.get_operands()
-
+            elif instr.opcode == IROpCode.CALL:
+                result_var, func, args = instr.get_operands()
                 if result_var:
                     self._ref_add(current_scope, result_var.name)
+                for param_name, arg_ref in args.items():
+                    if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
+                        self._ref_add(current_scope, arg_ref.get_name())
 
+            elif instr.opcode == IROpCode.CALL_METHOD:
+                result_var, _, func, args = instr.get_operands()
+                if result_var:
+                    self._ref_add(current_scope, result_var.name)
                 for param_name, arg_ref in args.items():
                     if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
                         self._ref_add(current_scope, arg_ref.get_name())
@@ -185,6 +190,7 @@ class DeclareCleanupPass(IROptimizationPass):
         iterator = self.builder.__iter__()
         current_scope = "global"
 
+        stack: list[str] = ["global"]
         while True:
             try:
                 instr = next(iterator)
@@ -193,6 +199,11 @@ class DeclareCleanupPass(IROptimizationPass):
 
             if instr.opcode == IROpCode.SCOPE_BEGIN:
                 current_scope = instr.get_operands()[0]
+                stack.append(current_scope)
+
+            elif instr.opcode == IROpCode.SCOPE_END:
+                stack.pop()
+                current_scope =  stack[-1]
 
             elif instr.opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
@@ -216,10 +227,13 @@ class DeclareCleanupPass(IROptimizationPass):
         return self.var_scopes.get(self._key(scope, var_name)) == parent
 
     def _is_used_in_nested_scope(self, var_name: str, scope: str) -> bool:
-        """判断变量是否在嵌套作用域中被使用"""
+        """递归判断变量是否在任意后代作用域中被使用"""
         for nested_scope, parent in self.scope_tree.items():
             if parent == scope:
                 if self._is_var_used_in_scope(var_name, nested_scope):
+                    return True
+                # 递归向下
+                if self._is_used_in_nested_scope(var_name, nested_scope):
                     return True
         return False
 
