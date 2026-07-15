@@ -444,18 +444,18 @@ class ConstantFoldingPass(IROptimizationPass):
 
         关键：此时所有分支已经"执行"完毕，需要合并状态
         """
-        cond_var: Variable | Literal = instr.get_operands()[0]
+        cond: Reference[Variable | Literal] = instr.get_operands()[0]
         true_scope: str = instr.get_operands()[1]
         false_scope: str = instr.get_operands()[2]
 
         # 1. 先尝试优化条件本身
         changed = False
 
-        if isinstance(cond_var, Variable):
-            value = self._find(cond_var)
+        if not cond.is_literal():
+            value = self._find(cond)
 
             if not isinstance(value, ConstantFoldingPass.FoldingFlags):
-                if cond_var.dtype in (PrimitiveDataType.INT, PrimitiveDataType.BOOLEAN):
+                if cond.dtype in (PrimitiveDataType.INT, PrimitiveDataType.BOOLEAN):
                     if isinstance(value, Reference) and value.value_type == ValueType.LITERAL:
                         cond_val = bool(value.value.value)
                         jump_scope = true_scope if cond_val else false_scope
@@ -481,9 +481,8 @@ class ConstantFoldingPass(IROptimizationPass):
                         self.branch_base_state.pop(self.conditional_branches.get(false_scope), None)
 
                         return True
-
-        elif isinstance(cond_var, Literal):
-            cond_val = bool(cond_var.value)
+        else: # 是字面量
+            cond_val = bool(cond.value.value)
             jump_scope = true_scope if cond_val else false_scope
 
             # 条件是字面量，选择对应分支的状态

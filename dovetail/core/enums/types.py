@@ -54,7 +54,7 @@ class StructureType(SafeEnum):
         CLASS: 类定义作用域
         LOOP_CHECK: 循环条件检查作用域
         LOOP_BODY: 循环体执行作用域
-        INTERFACE: 接口定义作用域
+        ENUM: 枚举定义作用域
         CONDITIONAL: 条件语句作用域
     """
     GLOBAL = "global"
@@ -62,7 +62,7 @@ class StructureType(SafeEnum):
     CLASS = "class"
     LOOP_CHECK = "loop_check"
     LOOP_BODY = "loop_body"
-    INTERFACE = "interface"
+    ENUM = "enum"
     CONDITIONAL = "conditional"
 
 

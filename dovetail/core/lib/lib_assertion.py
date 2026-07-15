@@ -67,7 +67,7 @@ class Assertion(Library):
                     }
                 )
             )
-        self.emitter.emit(IRCondJump(condition.value, None, scope_name))
+        self.emitter.emit(IRCondJump(condition, None, scope_name))
 
     def __str__(self) -> str:
         return "Assertion"

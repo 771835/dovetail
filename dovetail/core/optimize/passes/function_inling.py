@@ -26,7 +26,7 @@ INLINE_THRESHOLD = 15
     name="function_inlining",
     display_name="函数内联",
     description="将短小的非递归函数调用展开到调用点",
-    level=OptimizationLevel.O3,# O2即可，但是由于这个优化属于实验性的，故暂时设为O3
+    level=OptimizationLevel.O3,  # O2即可，但是由于这个优化属于实验性的，故暂时设为O3
     phase=PassPhase.TRANSFORM,
     provided_features=("inlined_functions",)
 ))
@@ -205,7 +205,7 @@ class FunctionInliningPass(IROptimizationPass):
         # 2a. 形参绑定：为每个参数插入 DECLARE + ASSIGN
         for param in callee.params:
             new_var = rename_map[param.get_name()]
-            inlined_instrs.append(IRInstruction(IROpCode.DECLARE, new_var))
+            inlined_instrs.append(IRDeclare(new_var))
             arg_ref = arguments.get(param.get_name())
             if arg_ref is not None:
                 inlined_instrs.append(IRAssign(new_var, arg_ref))
@@ -220,7 +220,7 @@ class FunctionInliningPass(IROptimizationPass):
                     continue
                 new_var = rename_map.get(var.name)
                 if new_var is not None:
-                    inlined_instrs.append(IRInstruction(IROpCode.DECLARE, new_var))
+                    inlined_instrs.append(IRDeclare(new_var))
 
             elif orig_instr.opcode == IROpCode.RETURN:
                 # RETURN value → result_var = value（替换后不再需要 RETURN）
@@ -377,18 +377,19 @@ class FunctionInliningPass(IROptimizationPass):
             return IRInstruction(op, scope_rename.get(scope_name, scope_name), scope_type)
 
         elif op == IROpCode.COND_JUMP:
-            cond_var, true_scope, false_scope = instr.get_operands()
-            new_cond = rename_map.get(cond_var.name, cond_var)
-            return IRInstruction(
-                op,
-                new_cond,
-                scope_rename.get(true_scope, true_scope),
-                scope_rename.get(false_scope, false_scope)
-            )
+            cond, true_scope, false_scope = instr.get_operands()
+            if not cond.is_literal():
+                new_cond = rename_map.get(cond.get_name(), cond.value)
+                assert isinstance(new_cond, Variable)
+                return IRCondJump(
+                    Reference(new_cond),
+                    scope_rename.get(true_scope, true_scope),
+                    scope_rename.get(false_scope, false_scope)
+                )
 
         elif op == IROpCode.JUMP:  # IRJump 对应的 opcode
             target_scope = instr.get_operands()[0]
-            return IRInstruction(op, scope_rename.get(target_scope, target_scope))
-        else:
-            # 其他指令原样返回，保守处理
-            return instr
+            return IRJump(scope_rename.get(target_scope, target_scope)) # noqa
+
+        # 其他指令原样返回，保守处理
+        return instr

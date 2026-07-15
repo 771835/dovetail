@@ -307,7 +307,7 @@ def _jump_repr(instr: IRInstruction) -> str:
 
 @validate_instruction
 def IRCondJump(
-        condition: Variable | Literal,
+        condition: Reference[Variable | Literal],
         true_scope: Optional[str] = None,
         false_scope: Optional[str] = None
 ) -> IRInstruction:

@@ -1,3 +1,4 @@
+//#deprecated: 编译时间较长，不推荐使用此方法
 /**
  * 16×16矩阵乘法函数
  * 计算 result_matrix = matrix_a × matrix_b

@@ -4,7 +4,7 @@ IRCondJump 指令处理器
 """
 from dovetail.core.backend import ir_processor, GenerationContext
 from dovetail.core.instructions import IRInstruction, IROpCode
-from dovetail.core.symbols import Variable, Literal
+from dovetail.core.symbols import Variable, Literal, Reference
 from .ir_jump import IRJumpProcessor
 from ..backend import JE1215Backend
 from ..commands import FunctionBuilder, Execute
@@ -13,12 +13,12 @@ from ..commands import FunctionBuilder, Execute
 @ir_processor(JE1215Backend, IROpCode.COND_JUMP)
 class IRCondJumpProcessor(IRJumpProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
-        cond_var: Variable | Literal = instruction.get_operands()[0]
+        cond: Reference[Variable | Literal] = instruction.get_operands()[0]
         true_scope_name: str | None = instruction.get_operands()[1]
         false_scope_name: str | None = instruction.get_operands()[2]
 
-        if isinstance(cond_var, Literal):
-            scope_name = true_scope_name if cond_var.value else false_scope_name
+        if cond.is_literal():
+            scope_name = true_scope_name if cond.value.value else false_scope_name
             if scope_name:
                 scope = context.current_scope.resolve_scope(scope_name)
                 context.current_scope.add_command(
@@ -32,7 +32,7 @@ class IRCondJumpProcessor(IRJumpProcessor):
                 context.current_scope.add_command(
                     Execute.execute()
                     .if_score_matches(
-                        context.current_scope.get_symbol_path(cond_var),
+                        context.current_scope.get_symbol_path(cond),
                         context.objective,
                         "1"
                     )
@@ -48,7 +48,7 @@ class IRCondJumpProcessor(IRJumpProcessor):
                 context.current_scope.add_command(
                     Execute.execute()
                     .unless_score_matches(
-                        context.current_scope.get_symbol_path(cond_var),
+                        context.current_scope.get_symbol_path(cond),
                         context.objective,
                         "1"
                     )

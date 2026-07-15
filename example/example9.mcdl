@@ -24,7 +24,7 @@ fn main() {
 fn fizz_buzz(int n) {
     for (int i = 1; i <= n; i = i + 1) {
         if (i % 3 == 0 or i % 5 == 0) {
-            print((i % 3 == 0 ? "Fizz" : "") + (i % 5 == 0 ? "Buzz" : ""))
+            print((i % 3 == 0 ? "Fizz" : "") + (i % 5 == 0 ? "Buzz" : ""))  # 这种三目运算符的语法已经被废弃了
         } else {
             print(str(i))
         }

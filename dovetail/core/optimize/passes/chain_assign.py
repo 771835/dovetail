@@ -111,13 +111,22 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 inherited = dict(alias_maps[parent])
 
                 if scope_type in (StructureType.LOOP_CHECK, StructureType.LOOP_BODY):
-                    assert self._assigned_vars is not None
-                    # 此时 self._scope_tree 已经完整，递归查找不会漏
-                    dirty_vars = self._collect_all_written_in_scope(
+                    # 循环内部写过的变量
+                    dirty_inner = self._collect_all_written_in_scope(
                         scope_name, self._assigned_vars, self._scope_tree
                     )
+                    # 祖先作用域中赋值过、可能跨迭代存活的变量
+                    dirty_carried = self._collect_loop_carried_vars(scope_name)
+
+                    dirty_vars = dirty_inner | dirty_carried
+
                     for var_name in dirty_vars:
-                        inherited.pop(var_name, None)  # 直接删，保守处理
+                        if var_name in inherited:
+                            # 不直接 pop，而是降级为恒等引用，保留类型信息
+                            old_ref = inherited[var_name]
+                            inherited[var_name] = Reference(
+                                Variable(var_name, old_ref.value.dtype)
+                            )
 
                 alias_maps[scope_name] = inherited
 
@@ -276,6 +285,18 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 result |= self._collect_all_written_in_scope(child, assigned, scope_tree)
         return result
 
+    def _collect_loop_carried_vars(self, loop_scope: str) -> set[str]:
+        """
+        收集所有在循环祖先作用域中被赋值过的变量名。
+        这些变量可能跨迭代存活（loop-carried），不能在循环内做常量传播。
+        """
+        result = set()
+        parent = self._scope_tree.get(loop_scope)
+        while parent and parent != "global":
+            result |= self._assigned_vars.get(parent, set())
+            parent = self._scope_tree.get(parent)
+        return result
+
     def _prescan_scope_tree(self) -> tuple[_ScopeTree, dict[str, StructureType]]:
         """
         预扫描完整的作用域树和每个作用域的类型。
@@ -424,7 +445,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
             cond, true_scope, false_scope = instr.get_operands()
             new_cond = self._resolve_ref(cond, aliases)
             if new_cond is not cond:
-                return IRCondJump(new_cond.value, true_scope, false_scope)
+                return IRCondJump(new_cond, true_scope, false_scope)
 
         elif instr.opcode == IROpCode.CALL:
             result, func, args = instr.get_operands()

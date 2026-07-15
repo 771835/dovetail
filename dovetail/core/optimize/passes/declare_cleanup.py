@@ -162,8 +162,9 @@ class DeclareCleanupPass(IROptimizationPass):
                     self._ref_add(current_scope, value.get_name())
 
             elif instr.opcode == IROpCode.COND_JUMP:
-                cond_var = instr.get_operands()[0]
-                self._ref_add(current_scope, cond_var.name)
+                cond: Reference = instr.get_operands()[0]
+                if not cond.is_literal():
+                    self._ref_add(current_scope, cond.get_name())
 
             elif instr.opcode == IROpCode.ASSIGN:
                 target, source = instr.get_operands()

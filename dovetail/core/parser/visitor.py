@@ -530,9 +530,9 @@ class ASTVisitor(Interpreter):
             with self._push_scope(f"for_check_{loop_count}", StructureType.LOOP_CHECK) as loop_check:  # NOQA
                 # 处理条件表达式
                 if condition:
-                    condition_value = self.visit(condition).value  # noqa
+                    condition_ref = self.visit(condition)  # noqa
                 else:
-                    condition_value = Literal(PrimitiveDataType.BOOLEAN, True)
+                    condition_ref = Reference.literal(True)
 
                 # 处理循环体
                 with self._push_scope(f"for_body_{loop_count}", StructureType.LOOP_BODY) as loop_body:  # NOQA
@@ -541,8 +541,8 @@ class ASTVisitor(Interpreter):
                     if expr:
                         self.visit(expr)  # noqa
 
-                self.ir_emitter.emit(IRCondJump(condition_value, loop_body.name))
-                self.ir_emitter.emit(IRCondJump(condition_value, loop_check.name))
+                self.ir_emitter.emit(IRCondJump(condition_ref, loop_body.name))
+                self.ir_emitter.emit(IRCondJump(condition_ref, loop_check.name))
             self.ir_emitter.emit(IRJump(loop_check.name))
 
     def while_loop(self, tree: Tree):
@@ -557,10 +557,10 @@ class ASTVisitor(Interpreter):
 
             if condition is not None:
                 # 从检查函数调用循环体
-                condition_value = self.visit(condition).value
+                condition_ref = self.visit(condition)
 
-                self.ir_emitter.emit(IRCondJump(condition_value, loop_body.name))
-                self.ir_emitter.emit(IRCondJump(condition_value, loop_check.name))
+                self.ir_emitter.emit(IRCondJump(condition_ref, loop_body.name))
+                self.ir_emitter.emit(IRCondJump(condition_ref, loop_check.name))
             else:
                 self.ir_emitter.emit(IRJump(loop_body.name))
         self.ir_emitter.emit(IRJump(loop_check.name))
@@ -579,9 +579,9 @@ class ASTVisitor(Interpreter):
         if children:
             with self._push_scope(f"else_{count}", StructureType.CONDITIONAL) as else_scope:  # NOQA
                 self.visit(children.pop(0))
-            self.ir_emitter.emit(IRCondJump(condition.value, if_scope.name, else_scope.name))
+            self.ir_emitter.emit(IRCondJump(condition, if_scope.name, else_scope.name))
         else:
-            self.ir_emitter.emit(IRCondJump(condition.value, if_scope.name))
+            self.ir_emitter.emit(IRCondJump(condition, if_scope.name))
 
     @v_args(meta=True)
     def free(self, meta: Meta, _: list[Tree | Token]):
@@ -946,7 +946,7 @@ class ASTVisitor(Interpreter):
                 return Reference.literal(False)
             self.ir_emitter.emit(IRAssign(result_var, right))
 
-        self.ir_emitter.emit(IRCondJump(left.value, f"and_{and_id}_2", f"and_{and_id}"))
+        self.ir_emitter.emit(IRCondJump(left, f"and_{and_id}_2", f"and_{and_id}"))
         return Reference(result_var)
 
     @v_args(meta=True)
@@ -954,8 +954,6 @@ class ASTVisitor(Interpreter):
         # 生成唯一结果变量
         result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
         or_id = next(self.counter)
-
-        self.ir_emitter.emit(IRDeclare(result_var))
 
         # 计算左侧数据的值
         left: Reference = self.visit(children.pop(0))
@@ -985,7 +983,7 @@ class ASTVisitor(Interpreter):
                 return Reference.literal(False)
             self.ir_emitter.emit(IRAssign(result_var, right))
 
-        self.ir_emitter.emit(IRCondJump(left.value, f"or_{or_id}", f"or_{or_id}_2"))
+        self.ir_emitter.emit(IRCondJump(left, f"or_{or_id}", f"or_{or_id}_2"))
         return Reference(result_var)
 
     @v_args(meta=True)

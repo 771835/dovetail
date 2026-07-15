@@ -71,12 +71,12 @@ class PrimitiveDataType(DataTypeBase, SafeEnum):
     INT = 'int'
     STRING = 'string'
     BOOLEAN = 'boolean'
-    NULL_TYPE = 'null'  # 特殊类型，不可为变量的类型
+    NULL_TYPE = 'null'  # 特殊类型，不可作为变量的类型
     VOID = 'void'
     UNDEFINED = 'undefined'  # 特殊类型，仅编译期发生错误时使用，其他时候该类型不应被编译
     FUNCTION = 'function'
 
-    # Type = 'type'  # 特殊类型，待使用
+    # TYPE = 'type'  # 特殊类型，待使用
 
     def get_name(self) -> str:
         """获取类型的显示名称"""

@@ -63,7 +63,7 @@ class UselessScopeRemovalPass(IROptimizationPass):
                 scope_type = instr.get_operands()[1]
 
                 if scope_type in (StructureType.FUNCTION, StructureType.LOOP_BODY,
-                                  StructureType.LOOP_CHECK, StructureType.CLASS, StructureType.INTERFACE):
+                                  StructureType.LOOP_CHECK, StructureType.CLASS, StructureType.ENUM):
                     self.root_scopes.add(scope_name)
 
                 scope_stack.append(scope_name)
@@ -130,8 +130,5 @@ class UselessScopeRemovalPass(IROptimizationPass):
                     delete_level += 1
                 elif instr.opcode == IROpCode.SCOPE_END:
                     delete_level -= 1
-                    iterator.remove_current()
-                    self._changed = True
-                else:
-                    iterator.remove_current()
-                    self._changed = True
+                iterator.remove_current()
+                self._changed = True

@@ -1,3 +1,5 @@
+from dovetail.core.enums.datatypes import DataTypeBase
+
 # DFP 2: IR 设计与规范
 
 ## 提案信息
@@ -21,17 +23,17 @@
 
 #### 控制流指令
 
-| 指令          | 参数                                    | 备注                  |
-|-------------|---------------------------------------|---------------------|
-| JUMP        | scope                                 | 跳转到指定作用域            |
-| COND_JUMP   | cond_var \[true_scope] \[false_scope] | 条件跳转到作用域（提供双目标）     |
-| FUNCTION    | func                                  | 函数定义                |
-| RETURN      | \[value]                              | 从函数返回（可选返回值）        |
-| CALL        | result func \[args...]                | 函数调用                |
-| SCOPE_BEGIN | name type                             | 作用域开始标记（可标记为函数、循环等） |
-| SCOPE_END   | name type                             | 作用域结束标记             |
-| BREAK       | scope_name                            | 跳出指定循环              |
-| CONTINUE    | scope_name                            | 终止当前循环迭代，继续下次迭代     |
+| 指令          | 参数                                | 备注                  |
+|-------------|-----------------------------------|---------------------|
+| JUMP        | scope                             | 跳转到指定作用域            |
+| COND_JUMP   | cond \[true_scope] \[false_scope] | 条件跳转到作用域（提供双目标）     |
+| FUNCTION    | func                              | 函数定义                |
+| RETURN      | \[value]                          | 从函数返回（可选返回值）        |
+| CALL        | result func \[args...]            | 函数调用                |
+| SCOPE_BEGIN | name type                         | 作用域开始标记（可标记为函数、循环等） |
+| SCOPE_END   | name type                         | 作用域结束标记             |
+| BREAK       | scope_name                        | 跳出指定循环              |
+| CONTINUE    | scope_name                        | 终止当前循环迭代，继续下次迭代     |
 
 #### 变量操作
 
@@ -132,24 +134,42 @@ goto for_check_41
 class Symbol(ABC):
     @abstractmethod
     def get_name(self) -> str: ...
+
+    @abstractmethod
+    def get_dtype(self) -> DataTypeBase: ...
 ```
 
 #### 类定义 (Class)
 
 ```python
 @define(slots=True)
-class Class(Symbol, DataTypeBase):
+class Class(Symbol, DataTypeBase, AnnotationMixin):
     name: str  # 类名
     methods: set[Function]  # 方法集合
     interface: Optional[Class]  # 实现的接口
     parent: Optional[Class]  # 父类
     properties: set[Reference[Variable]]  # 属性
     type: ClassType = ClassType.CLASS  # 类型（类/接口）
+    annotations: dict[str, AnnotationAttachment] = field(factory=dict)
 
     def get_name(self) -> str: ...
 
     def is_subclass_of(self, other: DataTypeBase) -> bool: ...
 
+```
+
+#### 枚举定义 (Enumeration)
+
+```python
+@define(slots=True)
+class Enumeration(Symbol, DataTypeBase, AnnotationMixin):
+    name: str  # 类名
+    member: dict[str, Literal]  # 枚举值
+    annotations: dict[str, AnnotationAttachment] = field(factory=dict)
+
+    def get_name(self) -> str: ...
+
+    def is_subclass_of(self, other: DataTypeBase) -> bool: ...
 
 ```
 
@@ -165,21 +185,23 @@ class Variable(Symbol):
 
     def is_mutable(self) -> bool: ...
 
-    def get_name(self) -> str: ...
 ```
 
 #### 函数定义 (Function)
 
 ```python
 @define(slots=True)
-class Function(Symbol):
-    name: str  # 函数名
-    params: list[Parameter]  # 参数列表
-    return_type: DataTypeBase  # 返回类型
-    function_type: FunctionType = FunctionType.FUNCTION  # 函数类型
-    annotations: list[str] = None
 
-    def get_name(self) -> str: ...
+
+nction(Symbol, AnnotationMixin):
+name: str  # 函数名
+params: list[Parameter]  # 参数列表
+return_type: DataTypeBase  # 返回类型
+function_type: FunctionType = FunctionType.FUNCTION  # 函数类型
+annotations: dict[str, AnnotationAttachment] = field(factory=dict)
+
+
+def get_name(self) -> str: ...
 ```
 
 #### 字面量定义 (Literal)
@@ -187,7 +209,7 @@ class Function(Symbol):
 ```python
 @define(slots=True, frozen=True)
 class Literal(Symbol):
-    dtype: PrimitiveDataType  # 数据类型
+    dtype: DataTypeBase  # 数据类型
     value: str | int | bool | None  # 字面量值
 
     def get_name(self) -> None: ...
@@ -200,7 +222,7 @@ class Literal(Symbol):
 class Parameter(Symbol):
     var: Variable  # 参数变量
     optional: bool = False  # 是否可选
-    default: Reference[Variable | Literal | Constant] = None  # 默认值
+    default: Optional[Reference[Variable | Literal]] = None  # 默认值
 
     def get_name(self) -> str: ...
 
@@ -210,15 +232,18 @@ class Parameter(Symbol):
 #### 引用定义 (Reference)
 
 ```python
+T = TypeVar('T', bound=Symbol)
+
 @define(slots=True, hash=True)
 class Reference(Symbol, Generic[T]):
-    value_type: ValueType  # 引用值类型
-    value: Variable | Constant | Literal | Function | Class  # 被引用的符号
-
-    def get_name(self) -> str | None: ...
-
-    def get_data_type(self) -> DataTypeBase: ...
-
+    value: T  # 被引用的符号
+    
+    @property
+    def value_type(self) -> ValueType: ...
+    
+    @property
+    def dtype(self) -> DataTypeBase: ...
+    
     def is_literal(self) -> bool: ...
 
     def get_display_value(self) -> str | None: ...
@@ -229,7 +254,9 @@ class Reference(Symbol, Generic[T]):
     @classmethod
     def variable(cls, var_name, dtype: PrimitiveDataType,
                  var_type: VariableType = VariableType.COMMON) -> Reference: ...
-
+    
+    @classmethod
+    def void(cls) -> Reference[Variable]: ...
 ```
 
 #### 枚举类型说明
@@ -246,11 +273,11 @@ class Reference(Symbol, Generic[T]):
 - `INT`: 整数类型，对应 Minecraft 计分板分数
 - `STRING`: 字符串类型，用于命名和文本处理
 - `BOOLEAN`: 布尔类型，内部表示为 0/1 整数
-- `NULL`: 句柄null的独有类型，不可作为其他值的类型，表示未初始化或无效值
-- `VOID`: 表示空，不可定义
+- `NULL_TYPE`: 句柄null的独有类型，不可作为其他值的类型，表示未初始化或无效值
+- `VOID`: 表示空，不可用于定义变量
 - `UNDEFINED`: 特殊类型，仅编译发生错误时使用
-- `Function`: 函数类型，表示一个函数(未使用)
-- `Type`: 类型(未使用)
+- `FUNCTION`: 函数类型，表示一个函数(未使用)
+- `TYPE`: 类型(未使用)
 
 **VariableType 枚举：**
 
@@ -268,7 +295,7 @@ class Reference(Symbol, Generic[T]):
 **ClassType 枚举：**
 
 - `CLASS`: 具体类，可实例化
-- `INTERFACE`: 接口类，定义契约
+- `ENUM`: 枚举类
 
 **StructureType 枚举：**
 
@@ -277,5 +304,5 @@ class Reference(Symbol, Generic[T]):
 - `CLASS`: 类定义作用域
 - `LOOP_CHECK`: 循环条件检查作用域
 - `LOOP_BODY`: 循环体执行作用域
-- `INTERFACE`: 接口定义作用域
+- `ENUM`: 接口定义作用域
 - `CONDITIONAL`: 条件语句作用域
