@@ -4,12 +4,13 @@ import logging
 import os
 import sys
 import threading
-import time
 from logging.handlers import RotatingFileHandler
 from typing import Optional, Union
 
-LOG_FILE = f"logs/dovetail{time.time_ns()}.log"
-
+if "--debug" in sys.argv:
+    LOG_FILE = "logs/dovetail.log"
+else:
+    LOG_FILE = None
 
 class MessageTranslator:
     """消息翻译器，支持根据键翻译消息"""
@@ -264,7 +265,7 @@ class LoggerFactory:
 
 # 便捷函数
 def get_logger(name: str = 'default',
-               level: Union[str, int] = logging.INFO) -> ThreadSafeLogger:
+               level: Optional[Union[str, int]] = None) -> ThreadSafeLogger:
     """
     获取日志记录器的便捷函数
 
@@ -275,7 +276,11 @@ def get_logger(name: str = 'default',
     Returns:
         ThreadSafeLogger实例
     """
-    return LoggerFactory.get_logger(name, level, LOG_FILE)
+    if level is None:
+        new_level = logging.DEBUG if "--debug" in sys.argv else logging.INFO
+        return LoggerFactory.get_logger(name, new_level, LOG_FILE)
+    else:
+        return LoggerFactory.get_logger(name, level, LOG_FILE)
 
 
 def load_translations(json_file: str):

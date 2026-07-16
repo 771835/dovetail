@@ -254,7 +254,7 @@ class OptimizationPipeline:
                     if not FAST_MODE:
                         from dovetail.utils.ir_validator import assert_ir
                         assert_ir(builder)
-                    logger.info(f"  执行：{pass_class.get_metadata().display_name}")
+                    logger.debug(f"  执行：{pass_class.get_metadata().display_name}")
 
 
                 # 执行优化（修改 IR）

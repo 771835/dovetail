@@ -171,7 +171,7 @@ class Compiler:
                 else:
                     return -1
 
-                builder = Optimizer(generator.builder, self.config).optimize()
+                builder = self._optimize_ir(generator.builder)
 
                 if self.config.debug:
                     print("最终IR:")
@@ -219,6 +219,16 @@ class Compiler:
             target_path (Path): 目标目录路径
         """
         BackendFactory.auto_select(self.config, self.backend_name)(builder, target_path, self.config).generate()
+
+    @timed("IR 优化用时 {:.3f}s")
+    def _optimize_ir(self, builder: IRBuilder):
+        """
+        优化 IR
+
+        Args:
+            builder (IRBuilder): IR构建器
+        """
+        return Optimizer(builder, self.config).optimize()
 
 
 def main():

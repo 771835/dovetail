@@ -44,7 +44,7 @@ from dovetail.core.enums.datatypes import DataTypeBase, ListType, ArrayType, Dic
 from dovetail.core.errors import report, Errors
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp,
-    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRCast, IRArrayAccess
+    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRCast, IRIndexGet
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
@@ -59,7 +59,7 @@ from dovetail.core.parser.parser import parser_file, parse_fstring_iter, parser_
 from dovetail.core.parser.scope import Scope
 from dovetail.core.scope.protocols import ScopeCore
 from dovetail.core.symbols import Variable, Reference, Literal, Function, Class, Parameter
-from dovetail.core.symbols.enumeration import Enumeration
+from dovetail.core.symbols.base import MethodHost
 from dovetail.core.symbols.structure import Structure
 from dovetail.core.symbols.typedef import Typedef
 from dovetail.utils.naming import NameNormalizer
@@ -247,7 +247,7 @@ class ASTVisitor(Interpreter):
         """
         处理函数/方法调用的参数
 
-        根据符号形参填写实参并生成dict
+        根据符号形参填写实参并生成dict=
 
         Args:
             symbol: 函数
@@ -347,7 +347,7 @@ class ASTVisitor(Interpreter):
             assert isinstance(field, Tree)
             field_name, field_type = self.visit(field)
             fields[field_name] = field_type
-        symbol = Structure(_n(name), fields)
+        symbol = Structure(_n(name), fields, {})
 
         # POST_SYMBOL阶段处理注解
         ctx.symbol = symbol  # 补充符号引用
@@ -987,7 +987,7 @@ class ASTVisitor(Interpreter):
         return Reference(result_var)
 
     @v_args(meta=True)
-    def local_assignment(self, meta: Meta, children: list):
+    def local_assign(self, meta: Meta, children: list):
         variable_ref: Reference = self.visit(children.pop(0))
         if variable_ref.value_type != ValueType.VARIABLE:
             self.error_reporter.report(
@@ -1085,12 +1085,12 @@ class ASTVisitor(Interpreter):
         return value, is_mutable
 
     @v_args(meta=True)
-    def array_access(self, meta: Meta, children: list):
-        """数组访问"""
-        arr: Reference[Variable] = self.visit(children.pop(0))
+    def index_get(self, meta: Meta, children: list):
+        """索引读取"""
+        container: Reference[Variable] = self.visit(children.pop(0))
         index: Reference[Variable | Literal] = self.visit(children.pop(0))
         # 先检查内置类型
-        dtype = arr.get_dtype()
+        dtype = container.get_dtype()
         ret_dtype: DataTypeBase
 
         if isinstance(dtype, (DictType, ListType, ArrayType)):
@@ -1099,12 +1099,25 @@ class ASTVisitor(Interpreter):
             else:
                 ret_dtype = dtype.dtype
 
-            var = self.ir_emitter.create_temp_var_declared(ret_dtype)
+            result = self.ir_emitter.create_temp_var_declared(ret_dtype)
 
-            self.ir_emitter.emit(IRArrayAccess(var, arr, index))
-            return Reference(var)
-        elif isinstance(dtype, (Class, StructureType, Enumeration)):
+            self.ir_emitter.emit(IRIndexGet(result, container, index))
+            return Reference(result)
+        elif isinstance(dtype, MethodHost):
             # 对于可调用类型的数据，尝试调用__getitem__方法
+            method = dtype.get_method(_n("__getitem__"))
+            if method is None:
+                self.error_reporter.report(
+                    Errors.MagicMethodNotImplemented,
+                    repr(dtype), # noqa
+                    "__getitem__",
+                    "索引读取",
+                    meta=meta
+                )
+                return Reference.void()
+            result = self.ir_emitter.create_temp_var_declared(method.return_type)
+
+            #self.ir_emitter.emit(IRCallMethod(result, container, method, ...))
             # TODO: 调用具体方法
             ...
         elif isinstance(dtype, PrimitiveDataType):
@@ -1123,8 +1136,8 @@ class ASTVisitor(Interpreter):
         return Reference.void()
 
     @v_args(meta=True)
-    def array_assignment(self, meta: Meta, children: list[Tree | Token]):
-        pass # TODO: 实现数组赋值
+    def index_set(self, meta: Meta, children: list[Tree | Token]):
+        pass # TODO: 实现索引写入
 
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""

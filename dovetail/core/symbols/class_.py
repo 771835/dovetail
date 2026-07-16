@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from attrs import define, field
 
-from .base import Symbol, AnnotationMixin
+from .base import Symbol, Annotatable, MethodHost
 from ..enums.datatypes import DataTypeBase
 from ..enums.types import ClassType
 
@@ -16,9 +16,9 @@ if TYPE_CHECKING:
 
 
 @define(slots=True)
-class Class(Symbol, DataTypeBase, AnnotationMixin):
+class Class(Symbol, DataTypeBase, Annotatable, MethodHost):
     name: str
-    methods: set[Function]
+    methods: dict[str, Function]
     interface: Optional[Class]
     parent: Optional[Class]
     properties: set[Variable]

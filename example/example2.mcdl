@@ -4,7 +4,7 @@ include "stdlib"
 let arr1: array<int>
 let p = -1
 fn foo(val: int) -> int {
-    p += 1
+    p += a
     arr1[p] = val
     return arr1[p]
 }

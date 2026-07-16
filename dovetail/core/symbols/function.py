@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from attrs import define, field
 
-from .base import Symbol, AnnotationMixin
+from .base import Symbol, Annotatable
 from ..enums import PrimitiveDataType
 from ..enums.types import FunctionType
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 @define(slots=True, repr=False)
-class Function(Symbol, AnnotationMixin):
+class Function(Symbol, Annotatable):
     name: str
     params: list[Parameter]
     return_type: DataTypeBase

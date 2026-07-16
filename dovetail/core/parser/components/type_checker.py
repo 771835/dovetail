@@ -10,8 +10,7 @@ from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.enums.datatypes import DataTypeBase, UnionType
 from dovetail.core.errors import Errors
 from dovetail.core.parser.components.error_reporter import ErrorReporter
-from dovetail.core.symbols import Class, Function
-from dovetail.utils.naming import NameNormalizer
+from dovetail.core.symbols import Function
 
 
 class TypeChecker:
@@ -61,19 +60,6 @@ class TypeChecker:
                 )
                 return False
             return True
-        for expected_type in expected_list:
-            if isinstance(expected_type, type) and isinstance(actual, expected_type):
-                return True
-            elif not actual.is_subclass_of(expected):
-                self.error_reporter.report(
-                    Errors.TypeMismatch,
-                    expected.get_name(),
-                    actual.get_name(),
-                    meta=meta,
-                    suggestion=f"在 {context} 时发生类型不匹配"
-                )
-                return False
-        return True
 
     def _check_a_type_match(
             self,
@@ -214,20 +200,18 @@ class TypeChecker:
         # 其他情况返回左操作数类型
         return left
 
-    def check_method_type(
+    def check_function_type(
             self,
-            class_: Class,
-            method_name: str,
+            func: Function,
             param_types: list[DataTypeBase],
             return_value_type: DataTypeBase,
             meta: Meta
     ) -> Function | None:
         """
-        检查特定类的函数的函数签名
+        检查函数的签名类型
 
         Args:
-            class_: 类实例
-            method_name: 方法名
+            func: 方法
             param_types: 形参类型
             return_value_type: 返回值类型
             meta: 元数据
@@ -235,29 +219,15 @@ class TypeChecker:
         Returns:
             当找不到符号时返回 None
         """
-        method = next(
-            (
-                method for method in class_.methods
-                if method.get_name() == NameNormalizer.normalize(method_name)
-            ),
-            None
-        )
-        if method is None:
-            self.error_reporter.report(
-                Errors.UndefinedFunction,
-                f"{class_.name}::{method_name}",
-                meta=meta
-            )
-            return None
 
-        min_args: int = sum(not param.is_optional() for param in method.params)
-        max_args: int = len(method.params)
+        min_args: int = sum(not param.is_optional() for param in func.params)
+        max_args: int = len(func.params)
 
         # 检查参数数量是否在有效范围内
         if not min_args <= len(param_types) <= max_args:
             self.error_reporter.report(
                 Errors.ArgumentNumberMismatch,
-                method.name,
+                func.name,
                 f"{min_args}-{max_args}",
                 str(len(param_types)),
                 meta=meta
@@ -265,24 +235,24 @@ class TypeChecker:
             return None
 
         # 检查类型
-        for expected_type, actual_type in zip(param_types, (param.get_dtype() for param in method.params)):
+        for expected_type, actual_type in zip(param_types, (param.get_dtype() for param in func.params)):
             if not actual_type.is_subclass_of(expected_type):
                 self.error_reporter.report(
                     Errors.ArgumentTypeMismatch,
-                    method.name,
+                    func.name,
                     str(expected_type),
                     str(actual_type),
                     meta=meta
                 )
 
         # 检查返回值类型
-        if return_value_type.is_subclass_of(method.get_dtype()):
+        if return_value_type.is_subclass_of(func.get_dtype()):
             self.error_reporter.report(
                 Errors.ArgumentTypeMismatch,
-                method.name,
+                func.name,
                 str(return_value_type),
-                str(method.get_dtype()),
+                str(func.get_dtype()),
                 meta=meta
             )
 
-        return method
+        return func

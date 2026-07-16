@@ -98,11 +98,11 @@ let: "let" ID "=" expr // 自动推导类型
 ?post_expr: atom
     | post_expr "." ID arguments -> method_call
     | post_expr "." ID -> member_access
-    | post_expr "[" expr "]" -> array_access
+    | post_expr "[" expr "]" -> index_get
     | post_expr arguments -> function_call
-    | post_expr "[" expr "]" COMPOUND_ASSIGN expr -> array_assignment
-    | post_expr "." ID COMPOUND_ASSIGN expr -> member_assignment
-    | identifier COMPOUND_ASSIGN expr -> local_assignment
+    | post_expr "[" expr "]" COMPOUND_ASSIGN expr -> index_set
+    | post_expr "." ID COMPOUND_ASSIGN expr -> member_assign
+    | identifier COMPOUND_ASSIGN expr -> local_assign
 
 ?atom: primary | FSTRING -> fstring | "null" -> null
 

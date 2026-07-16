@@ -13,7 +13,7 @@ from ..commands import Copy, DataPath, StorageLocation
 from ..commands.builtins import CommandRegistry
 
 
-@ir_processor(JE1215Backend, IROpCode.ARRAY_ACCESS)
+@ir_processor(JE1215Backend, IROpCode.INDEX_GET)
 class IRArrayAccessProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         result, array, index = cast("tuple[Variable, Reference, Reference]", instruction.operands)

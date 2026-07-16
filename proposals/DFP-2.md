@@ -1,5 +1,3 @@
-from dovetail.core.enums.datatypes import DataTypeBase
-
 # DFP 2: IR 设计与规范
 
 ## 提案信息

@@ -37,7 +37,7 @@
    将错误分为三类，采取不同的恢复策略：
 
    | 错误类型 | 恢复策略              | 示例          |
-               |------|-------------------|-------------|
+                  |------|-------------------|-------------|
    | 语法错误 | 跳过到下一个有效语句        | 缺少分号、括号不匹配  |
    | 语义错误 | 插入占位符符号或跳过语句并继续分析 | 未定义变量、类型不匹配 |
    | 致命错误 | 立即终止编译            | 文件不存在、内存不足  |
@@ -65,34 +65,36 @@
 - 2026-02-14: 规范了错误报告格式
 - 2026-05-01: 增设了上下文规范
 - 2026-05-10: 补充了完整错误一览表
+- 2026-07-16: 更新了`附录一: 完整错误一览表`
+---
 
-# 附录一： 完整错误一览表(2026/5/10 版)
+# 附录一: 完整错误一览表(2026/x/xx 版)
 
 _此表仅供参考，实际以`dovetail.core.errors`为准_
 
 ### 语法错误 (0x1xxx)
 
-| 编号     | 名称                          |
-|--------|-----------------------------|
-| 0x1001 | InvalidSyntax               |
-| 0x1002 | MissingToken                |
-| 0x1003 | InvalidOperator             |
-| 0x1004 | DuplicateDefinition         |
-| 0x1005 | InvalidAnnotation           |
-| 0x1006 | AnnotationArgumentError     |
-| 0x1007 | InvalidTypeDeclaration      |
-| 0x1008 | InvalidArrayDimension       |
-| 0x1009 | NullableTypeError           |
-| 0x100A | IncludePathError            |
-| 0x100B | CircularInclude             |
-| 0x100C | EmptyStructDefinition       |
-| 0x100D | InvalidEnumMember           |
-| 0x100E | InvalidClassInheritance     |
-| 0x100F | InvalidFunctionSignature    |
-| 0x1010 | InvalidParameterDeclaration |
-| 0x1011 | MissingTypeAnnotation       |
-| 0x1012 | DefaultParameterPosition    |
-| 0x1013 | TypedefRedefinition         |
+| 编号         | 名称                                             |
+|------------|------------------------------------------------|
+| 0x1001     | InvalidSyntax                                  |
+| 0x1002     | MissingToken                                   |
+| 0x1003     | InvalidOperator                                |
+| 0x1004     | DuplicateDefinition                            |
+| 0x1005     | InvalidAnnotation                              |
+| 0x1006     | AnnotationArgumentError                        |
+| 0x1007     | InvalidTypeDeclaration                         |
+| ~~0x1008~~ | ~~InvalidArrayDimension~~ *(已废弃，随 Array 机制移除)* |
+| 0x1009     | NullableTypeError                              |
+| 0x100A     | IncludePathError                               |
+| 0x100B     | CircularInclude                                |
+| 0x100C     | EmptyStructDefinition                          |
+| 0x100D     | InvalidEnumMember                              |
+| 0x100E     | InvalidClassInheritance                        |
+| 0x100F     | InvalidFunctionSignature                       |
+| 0x1010     | InvalidParameterDeclaration                    |
+| 0x1011     | MissingTypeAnnotation                          |
+| 0x1012     | DefaultParameterPosition                       |
+| 0x1013     | TypedefRedefinition                            |
 
 ### 语义错误 — 类型系统 (0x2xxx)
 
@@ -109,16 +111,19 @@ _此表仅供参考，实际以`dovetail.core.errors`为准_
 | 0x2009 | MutabilityViolation        |
 | 0x200A | InvalidMutUsage            |
 | 0x200B | MutArgumentMismatch        |
-| 0x200C | ArrayDimensionMismatch     |
-| 0x200D | ArraySizeUndefined         |
-| 0x200E | InvalidArrayLiteral        |
-| 0x200F | NullableAccessError        |
-| 0x2010 | NullAssignmentError        |
-| 0x2011 | FStringExpressionError     |
-| 0x2012 | InvalidMemberAccess        |
-| 0x2013 | PrivateMemberAccess        |
-| 0x2014 | NotIterable                |
-| 0x2015 | InvalidArrayAccess         |
+| 0x200C | InvalidContainerLiteral    |
+| 0x200D | InvalidIndexAccess         |
+| 0x200E | IndexOutOfBounds           |
+| 0x200F | ContainerKeyTypeMismatch   |
+| 0x2010 | InvalidContainerOperation  |
+| 0x2011 | MagicMethodNotImplemented  |
+| 0x2012 | NullableAccessError        |
+| 0x2013 | NullAssignmentError        |
+| 0x2014 | FStringExpressionError     |
+| 0x2015 | InvalidMemberAccess        |
+| 0x2016 | PrivateMemberAccess        |
+| 0x2017 | NotIterable                |
+| 0x2018 | NotFFISafeType             |
 
 ### 语义错误 — 符号解析 (0x3xxx)
 

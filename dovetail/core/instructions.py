@@ -44,7 +44,6 @@ class InstCategory(SafeEnum):
     DATA_OP = "数据运算"
     OOP = "面向对象"
     OWNERSHIP = "所有权"
-    ARRAY = "数组操作"
     SPECIAL = "特殊指令"
 
 
@@ -81,8 +80,13 @@ class IROpCode(SafeEnum):
     MOVE = (0x60, "所有权转移", InstCategory.OWNERSHIP)
     BORROW = (0x61, "借用", InstCategory.OWNERSHIP)
 
-    # ARRAY (0x80-0x9F)
-    ARRAY_ACCESS = (0x80, "数组读取", InstCategory.ARRAY)
+    # CONTAINER (0x80-0x9F) — 统一容器操作，适用于 ListType 和 DictType
+    INDEX_GET = (0x80, "索引读取", InstCategory.DATA_OP)  # list[i] / dict[k]
+    INDEX_SET = (0x81, "索引写入", InstCategory.DATA_OP)  # list[i]=v / dict[k]=v
+    CONTAINER_LEN = (0x82, "获取长度", InstCategory.DATA_OP)  # len(list) / len(dict)
+    LIST_APPEND = (0x83, "追加元素", InstCategory.DATA_OP)  # 仅 list
+    DICT_HAS = (0x84, "检查键", InstCategory.DATA_OP)  # k in dict
+    DICT_REMOVE = (0x85, "删除键", InstCategory.DATA_OP)  # dict.remove(k)
 
     def __init__(self, code: int, desc: str, category: InstCategory):
         self.code = code
@@ -823,7 +827,7 @@ def _set_property_repr(instr: IRInstruction) -> str:
 def IRCallMethod(
         result: Optional[Variable],
         object_ref: Reference,
-        method_name: str,
+        method: Function,
         arguments: dict[str, Reference]
 ) -> IRInstruction:
     """
@@ -832,13 +836,13 @@ def IRCallMethod(
     Args:
         result: 返回值存储变量（void 方法为 None）
         object_ref: 对象引用
-        method_name: 方法名称
+        method: 方法
         arguments: 方法参数字典，键为参数名，值为 Reference 对象
 
     Returns:
         调用方法指令
     """
-    return IRInstruction(IROpCode.CALL_METHOD, result, object_ref, method_name, arguments)
+    return IRInstruction(IROpCode.CALL_METHOD, result, object_ref, method, arguments)
 
 
 @register_repr(IROpCode.CALL_METHOD)
@@ -938,25 +942,153 @@ def _borrow_repr(instr: IRInstruction) -> str:
 
 
 @validate_instruction
-def IRArrayAccess(result: Variable, array: Reference, index: Reference) -> IRInstruction:
+def IRIndexGet(
+        result: Variable,
+        container: Reference,
+        key: Reference
+) -> IRInstruction:
     """
-    数组读取指令
+    索引读取指令
+
+    适用于 ListType 和 DictType：
+    - container 是 ListType → key 必须是 int → /data get ... [index]
+    - container 是 DictType → key 必须是 string → /data get ... .key
 
     Args:
-        result: 返回变量
-        array: 数组变量
-        index: 源引用（被借用对象）
+        result: 结果变量
+        container: 容器（ListType 或 DictType）
+        key: 索引或键
 
     Returns:
-        数组读取指令
+        索引读取指令
     """
-    return IRInstruction(IROpCode.ARRAY_ACCESS, result, array, index)
+    return IRInstruction(IROpCode.INDEX_GET, result, container, key)
 
 
-@register_repr(IROpCode.ARRAY_ACCESS)
-def _array_access_repr(instr: IRInstruction) -> str:
+@register_repr(IROpCode.INDEX_GET)
+def _index_get_repr(instr: IRInstruction) -> str:
     result: Variable = instr.operands[0]
-    array: Reference = instr.operands[1]
-    index: Reference = instr.operands[2]
+    container: Reference = instr.operands[1]
+    key: Reference = instr.operands[2]
+    return f"{result.get_name()} = {container}[{key!r}]"
 
-    return f"{result.get_name()} = {array}[{index!r}]"
+
+@validate_instruction
+def IRIndexSet(
+        container: Reference,
+        key: Reference,
+        value: Reference
+) -> IRInstruction:
+    """
+    索引写入指令
+
+    适用于 ListType 和 DictType，后端根据 container.dtype 决定生成命令。
+
+    Args:
+        container: 容器（ListType 或 DictType）
+        key: 索引或键
+        value: 写入的值
+
+    Returns:
+        索引写入指令
+    """
+    return IRInstruction(IROpCode.INDEX_SET, container, key, value)
+
+
+@register_repr(IROpCode.INDEX_SET)
+def _index_set_repr(instr: IRInstruction) -> str:
+    container: Reference = instr.operands[0]
+    key: Reference = instr.operands[1]
+    value: Reference = instr.operands[2]
+    return f"{container}[{key!r}] = {value}"
+
+
+@validate_instruction
+def IRContainerLen(result: Variable, container: Reference) -> IRInstruction:
+    """
+    获取容器长度指令
+
+    Args:
+        result: 结果变量（int 类型）
+        container: 容器（ListType 或 DictType）
+
+    Returns:
+        获取长度指令
+    """
+    return IRInstruction(IROpCode.CONTAINER_LEN, result, container)
+
+
+@register_repr(IROpCode.CONTAINER_LEN)
+def _container_len_repr(instr: IRInstruction) -> str:
+    result: Variable = instr.operands[0]
+    container: Reference = instr.operands[1]
+    return f"{result.get_name()} = len({container})"
+
+
+@validate_instruction
+def IRListAppend(container: Reference, value: Reference) -> IRInstruction:
+    """
+    追加元素指令（仅 ListType）
+
+    Args:
+        container: 列表容器
+        value: 要追加的值
+
+    Returns:
+        追加指令
+    """
+    return IRInstruction(IROpCode.LIST_APPEND, container, value)
+
+
+@register_repr(IROpCode.LIST_APPEND)
+def _list_append_repr(instr: IRInstruction) -> str:
+    container: Reference = instr.operands[0]
+    value: Reference = instr.operands[1]
+    return f"{container}.append({value})"
+
+
+
+@validate_instruction
+def IRDictHas(result: Variable, container: Reference, key: Reference) -> IRInstruction:
+    """
+    检查键是否存在指令（仅 DictType）
+
+    Args:
+        result: 结果变量（boolean 类型）
+        container: 字典容器
+        key: 要检查的键
+
+    Returns:
+        检查键指令
+    """
+    return IRInstruction(IROpCode.DICT_HAS, result, container, key)
+
+
+@register_repr(IROpCode.DICT_HAS)
+def _dict_has_repr(instr: IRInstruction) -> str:
+    result: Variable = instr.operands[0]
+    container: Reference = instr.operands[1]
+    key: Reference = instr.operands[2]
+    return f"{result.get_name()} = {key!r} in {container}"
+
+
+@validate_instruction
+def IRDictRemove(container: Reference, key: Reference) -> IRInstruction:
+    """
+    删除键指令（仅 DictType）
+
+    Args:
+        container: 字典容器
+        key: 要删除的键
+
+    Returns:
+        删除键指令
+    """
+    return IRInstruction(IROpCode.DICT_REMOVE, container, key)
+
+
+@register_repr(IROpCode.DICT_REMOVE)
+def _dict_remove_repr(instr: IRInstruction) -> str:
+    container: Reference = instr.operands[0]
+    key: Reference = instr.operands[1]
+    return f"{container}.remove({key!r})"

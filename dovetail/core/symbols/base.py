@@ -1,10 +1,12 @@
 # coding=utf-8
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, TYPE_CHECKING
 
 from dovetail.core.enums.datatypes import DataTypeBase
 
 if TYPE_CHECKING:
+    from dovetail.core.symbols import Function
     from dovetail.core.annotations.base import AnnotationAttachment
 
 
@@ -28,8 +30,12 @@ class Symbol(ABC):
         return PrimitiveDataType.UNDEFINED
 
 
-class AnnotationMixin:
-    annotations: dict[str, "AnnotationAttachment"]
+class Annotatable(ABC):
+    @property
+    @abstractmethod
+    def annotations(self) -> dict[str, "AnnotationAttachment"]:
+        """强制子类提供注解存储"""
+        ...
 
     def has_annotation(self, name: str) -> bool:
         return name in self.annotations
@@ -55,3 +61,18 @@ class AnnotationMixin:
         for a in self.annotations.values():
             result |= a.metadata
         return result
+
+
+class MethodHost(ABC):
+
+    @property
+    @abstractmethod
+    def methods(self) -> dict[str, Function]:
+        """强制子类提供方法存储"""
+        ...
+
+    def get_method(self, name: str) -> Function | None:
+        return self.methods.get(name)
+
+    def has_method(self, name: str) -> bool:
+        return name in self.methods
