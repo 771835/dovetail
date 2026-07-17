@@ -19,6 +19,9 @@ class IRBuilder:
     def get_instructions(self):
         return self._instructions
 
+    def peek(self) -> IRInstruction:
+        return self._instructions[-1]
+
     def __iter__(self):
         return IRBuilderIterator(self._instructions)
 

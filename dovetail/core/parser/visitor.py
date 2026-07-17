@@ -44,7 +44,7 @@ from dovetail.core.enums.datatypes import DataTypeBase, ListType, ArrayType, Dic
 from dovetail.core.errors import report, Errors
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp,
-    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRCast, IRIndexGet
+    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRCast, IRIndexGet, IROpCode
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
@@ -426,6 +426,10 @@ class ASTVisitor(Interpreter):
                     # 访问函数体
                     self.visit(children.pop(0))  # noqa
 
+                    # 末尾强制补return
+                    if self.builder.peek().opcode != IROpCode.RETURN:
+                        self.ir_emitter.emit(IRReturn(Reference.default(return_type)))
+
     @v_args(meta=True)
     def let(self, meta: Meta, children: list[Tree | Token]) -> Optional[Reference]:
         """处理变量声明 (let)"""
@@ -648,20 +652,25 @@ class ASTVisitor(Interpreter):
 
         # 类型检查
         if value is not None:
-            function_symbol: Function | None = function_scope.parent.find_symbol(function_scope.name)
+            func: Function | None = function_scope.parent.find_symbol(function_scope.name)
 
-            if function_symbol is None:
+            if func is None:
                 self.error_reporter.report(
                     Errors.InvalidControlFlow,
-                    f"找不到函数{function_scope.name}的符号信息",
+                    f"找不到函数 {function_scope.name} 的符号信息",
                     meta=meta
                 )
+                return
 
-            if function_symbol.return_type != value.get_dtype():
+            if func.return_type == value.dtype == PrimitiveDataType.VOID:
+                self.ir_emitter.emit(IRReturn())
+                return
+
+            if func.return_type != value.get_dtype():
                 self.error_reporter.report(
                     Errors.ReturnTypeMismatch,
                     value.get_dtype().get_name(),
-                    function_symbol.return_type.get_name(),
+                    func.return_type.get_name(),
                     meta=meta
                 )
                 return

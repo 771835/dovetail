@@ -7,7 +7,7 @@ from typing import Optional
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.enums import StructureType
 from dovetail.core.instructions import IRInstruction, IROpCode
-from dovetail.core.symbols import Variable, Literal, Reference
+from dovetail.core.symbols import Reference
 from dovetail.utils.logger import get_logger
 from ..backend import JE1215Backend
 from ..commands import ScoreboardBuilder, ReturnBuilder

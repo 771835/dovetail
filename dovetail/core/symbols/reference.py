@@ -6,6 +6,7 @@ from typing import TypeVar, Generic
 
 from attrs import define
 
+from . import Class
 from .base import Symbol
 from .literal import Literal
 from .variable import Variable
@@ -17,6 +18,7 @@ from ...utils.logger import get_logger
 
 T = TypeVar('T', bound=Symbol)
 logger = get_logger(__name__)
+
 
 @define(slots=True, hash=True, repr=False, frozen=True)
 class Reference(Symbol, Generic[T]):
@@ -84,7 +86,6 @@ class Reference(Symbol, Generic[T]):
         else:
             return self.get_name()
 
-
     @classmethod
     @functools.lru_cache(maxsize=1)
     def void(cls) -> Reference[Variable]:
@@ -110,6 +111,28 @@ class Reference(Symbol, Generic[T]):
             一个类型为 PrimitiveDataType.UNDEFINED 的不可声明变量
         """
         return cls.variable("_", PrimitiveDataType.UNDEFINED, mutable=False)
+
+    @classmethod
+    @functools.lru_cache(maxsize=None)
+    def default(cls, dtype: DataTypeBase) -> Reference[Literal] | None:
+        """
+        根据传入参数的默认值返回一个其类型的默认值
+
+        Returns:
+            当传入 int, bool, str 时返回 0, False, "" 的引用
+            当传入类时返回 null 的引用
+            当传入不可定义的基本类型或其他类型时返回 None
+        """
+        if dtype == PrimitiveDataType.INT:
+            return Reference.literal(0)
+        elif dtype == PrimitiveDataType.BOOLEAN:
+            return Reference.literal(False)
+        elif dtype == PrimitiveDataType.STRING:
+            return Reference.literal("")
+        elif isinstance(dtype, Class):
+            return Reference.literal(None)
+        else:
+            return None
 
     def __repr__(self):
         return self.get_display_value()
