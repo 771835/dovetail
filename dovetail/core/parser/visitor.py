@@ -1040,7 +1040,7 @@ class ASTVisitor(Interpreter):
                 f"{function.__class__.__name__}",
                 meta=meta
             )
-            return Reference.literal(None)
+            return Reference.undefined()
 
         # 检查递归
         if not self.config.recursion:
@@ -1052,7 +1052,7 @@ class ASTVisitor(Interpreter):
                         f"递归调用是不被允许的",
                         meta=meta
                     )
-                    return Reference.literal(None)
+                    return Reference.undefined()
                 cs = cs.parent
 
         args_dict = self._process_call_arguments(function, args, meta)
@@ -1231,7 +1231,8 @@ class ASTVisitor(Interpreter):
         symbol = self.symbol_resolver.resolve_symbol(_n(symbol_name), meta)
 
         if symbol is None:
-            return Reference.literal(None)
+            # resolve_symbol 内已经报过错了，无需重复报错
+            return Reference.undefined()
 
         return Reference(symbol)
 

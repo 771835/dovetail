@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import annotations
 
+import functools
 from typing import TypeVar, Generic
 
 from attrs import define
@@ -83,7 +84,9 @@ class Reference(Symbol, Generic[T]):
         else:
             return self.get_name()
 
+
     @classmethod
+    @functools.lru_cache(maxsize=1)
     def void(cls) -> Reference[Variable]:
         """
         返回一个类型为 PrimitiveDataType.VOID 的不可声明变量
@@ -94,6 +97,19 @@ class Reference(Symbol, Generic[T]):
             一个类型为 PrimitiveDataType.VOID 的不可声明变量
         """
         return cls.variable("_", PrimitiveDataType.VOID, mutable=False)
+
+    @classmethod
+    @functools.lru_cache(maxsize=1)
+    def undefined(cls) -> Reference[Variable]:
+        """
+        返回一个类型为 PrimitiveDataType.UNDEFINED 的不可声明变量
+
+        通常用于语义错误时填充的默认值
+
+        Returns:
+            一个类型为 PrimitiveDataType.UNDEFINED 的不可声明变量
+        """
+        return cls.variable("_", PrimitiveDataType.UNDEFINED, mutable=False)
 
     def __repr__(self):
         return self.get_display_value()

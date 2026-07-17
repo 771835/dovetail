@@ -2,7 +2,6 @@
 """
 编译期错误定义和报告模块
 """
-import itertools
 import os
 import random
 import sys
@@ -10,9 +9,10 @@ from pathlib import Path
 from typing import Optional
 
 from dovetail.core.config import DEFAULT_SUGGESTIONS
+from dovetail.utils.itertools import PeekableCounter
 from dovetail.utils.safe_enum import SafeEnum
 
-report_count = itertools.count()
+report_count = PeekableCounter()
 
 
 class ErrorType(SafeEnum):

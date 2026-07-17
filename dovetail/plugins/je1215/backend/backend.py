@@ -43,8 +43,6 @@ class JE1215Backend(Backend):
         version = config.version
         if version.display_version != "1.21.5" or version.is_bedrock_edition():
             return False
-        if config.recursion:
-            return False
         return True
 
     @staticmethod

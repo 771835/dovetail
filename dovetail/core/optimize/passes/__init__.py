@@ -16,4 +16,5 @@ from .unused_function import UnusedFunctionEliminationPass # 可能能用，不�
 from .useless_scope import UselessScopeRemovalPass
 from .function_inling import FunctionInliningPass
 from .unconditional_scope_inlining import UnconditionalScopeInliningPass
+from .tail_call_optimization import TailCallOptimizationPass
 __all__ = []

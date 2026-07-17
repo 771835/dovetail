@@ -15,7 +15,7 @@ from dovetail.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, PROJE
     PROJECT_WEBSITE, PROJECT_LICENSE
 from dovetail.core.enums.minecraft import MinecraftVersion
 from dovetail.core.enums.optimization import OptimizationLevel
-from dovetail.core.errors import CompilationError
+from dovetail.core.errors import CompilationError, report_count
 from dovetail.core.errors import report, Errors
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.optimizer import Optimizer
@@ -171,7 +171,15 @@ class Compiler:
                 else:
                     return -1
 
+                if report_count.peek() > 0:
+                    logger.info("因报错中止编译")
+                    return -1
+
                 builder = self._optimize_ir(generator.builder)
+
+                if report_count.peek() > 0:
+                    logger.info("因报错中止编译")
+                    return -1
 
                 if self.config.debug:
                     print("最终IR:")
