@@ -95,7 +95,10 @@ class IROpCode(SafeEnum):
 
     @classmethod
     def find(cls, code: int):
-        return next(cls(val) for name, val in zip(cls.names(), cls.values()) if val[0] == code)
+        for name, val in zip(cls.names(), cls.values()):
+            if val[0] == code:
+                return cls[name]
+        return -0x01, "未知指令", InstCategory.SPECIAL
 
     def __hash__(self):
         return hash(self.value)

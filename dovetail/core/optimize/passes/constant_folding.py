@@ -21,7 +21,8 @@ from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
-from dovetail.utils.constants_operator import COMPARE_OP_HANDLERS, BINARY_OP_HANDLERS, UNARY_OP_HANDLERS
+from dovetail.utils.constants_operator import COMPARE_OP_HANDLERS, BINARY_OP_HANDLERS, UNARY_OP_HANDLERS, \
+    number_to_int32
 
 
 @register_pass(PassMetadata(
@@ -374,7 +375,7 @@ class ConstantFoldingPass(IROptimizationPass):
         if op == BinaryOps.ADD and (left_dtype == PrimitiveDataType.STRING or right_dtype == PrimitiveDataType.STRING):
             new_value = str(left.value.value) + str(right.value.value)
         else:
-            new_value = int(BINARY_OP_HANDLERS[op](left.value.value, right.value.value))
+            new_value = number_to_int32(int(BINARY_OP_HANDLERS[op](left.value.value, right.value.value)))
 
         try:
             # 用新指令替换原始指令
@@ -430,7 +431,7 @@ class ConstantFoldingPass(IROptimizationPass):
             return False
 
         try:
-            folded_value = UNARY_OP_HANDLERS[op](operand.value.value)
+            folded_value = number_to_int32(UNARY_OP_HANDLERS[op](operand.value.value))
             new_instr = IRAssign(result, Reference.literal(folded_value))
             iterator.set_current(new_instr)
             self._assign(iterator, new_instr)

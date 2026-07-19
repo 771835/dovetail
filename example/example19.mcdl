@@ -78,6 +78,8 @@ fn test_nested_scope_chain() -> int {
 }
 
 // ========== 场景 7：函数调用打破别名 ==========
+fn some_func(n: int) -> int;
+
 // call 指令产生新值，结果变量不再被视为别名
 fn test_call_breaks_alias(val: int) -> int {
     let a: int = val

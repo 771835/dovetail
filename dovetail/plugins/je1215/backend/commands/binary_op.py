@@ -2,7 +2,7 @@
 from math import floor
 
 from dovetail.core.enums import BinaryOps
-from dovetail.utils.constants_operator import BINARY_OP_HANDLERS
+from dovetail.utils.constants_operator import BINARY_OP_HANDLERS, number_to_int32
 from ._scoreboard import ScoreboardBuilder
 from .copy import Copy
 from .tools import DataPath, LiteralPoolTools
@@ -30,7 +30,7 @@ class BinaryOp:
 
     @staticmethod
     def _op_both_literal(op: BinaryOps, a: int | str, b: int | str):
-        return floor(BINARY_OP_HANDLERS[op](a, b))
+        return number_to_int32(floor(BINARY_OP_HANDLERS[op](a, b)))
 
     @staticmethod
     def _select_command(op: BinaryOps, target: DataPath, source: DataPath):

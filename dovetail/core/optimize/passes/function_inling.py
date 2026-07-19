@@ -251,7 +251,7 @@ class FunctionInliningPass(IROptimizationPass):
     def _next_suffix(self) -> str:
         """生成全局唯一的内联后缀，避免变量名冲突"""
         self._inline_counter += 1
-        return f"__inline_{self._inline_counter}"
+        return f"_inline_{self._inline_counter}_"
 
     def _build_rename_map(
             self,

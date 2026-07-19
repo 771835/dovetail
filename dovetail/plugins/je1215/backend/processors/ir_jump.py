@@ -17,7 +17,6 @@ class IRJumpProcessor(IRProcessor):
         self._handle_flags(jump_scope, context)
 
     def _handle_flags(self, scope: Scope, context: GenerationContext):
-
         for flag in scope.flags:
             if scope.flags[flag] > 1:
                 context.current_scope.flags[flag] = scope.flags[flag] - 1

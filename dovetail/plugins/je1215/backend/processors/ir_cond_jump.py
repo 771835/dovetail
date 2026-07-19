@@ -26,6 +26,9 @@ class IRCondJumpProcessor(IRJumpProcessor):
                         f"{context.namespace}:{scope.get_absolute_path('/')}"
                     )
                 )
+                scope = context.current_scope.resolve_scope(scope_name)
+                self._handle_flags(scope, context)
+                
         else:
             if true_scope_name:  # 生成条件满足时的作用域
                 true_scope = context.current_scope.resolve_scope(true_scope_name)

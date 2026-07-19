@@ -23,7 +23,7 @@ from dovetail.core.symbols import Function, Reference
 
 # ─── 常量 ────────────────────────────────────────────────────────────────────
 
-_TCO_SCOPE_SUFFIX = "__tco_loop"
+_TCO_SCOPE_SUFFIX = "_1_tco_loop" # _1是为了保证不会与其他函数命名重复，关闭命名归一化无效
 
 
 # ─── Pass 注册 ────────────────────────────────────────────────────────────────

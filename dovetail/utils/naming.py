@@ -1,21 +1,28 @@
 # coding=utf-8
 """
 命名规范化工具模块。
-
-该模块提供了一个 `NameNormalizer` 类，用于将字符串名称规范化为特定格式，
-并在需要时能够还原为原始字符串。主要用于处理标识符中不兼容的字符。
 """
+import sys
 
 
 class NameNormalizer:
-    """
-    提供名称规范化与反规范化功能的工具类。
-
-    该类可以根据启用状态对字符串进行规范化处理，
-    处理包括大写字母转小写并加前缀下划线、下划线转义、特殊字符编码等。
-    """
-
     enable = False
+
+    @staticmethod
+    def _to_base36(n: int) -> str:
+        if n == 0:
+            return '0'
+        digits = []
+        while n:
+            digits.append('0123456789abcdefghijklmnopqrstuvwxyz'[n % 36])
+            n //= 36
+        return ''.join(reversed(digits))
+
+    @staticmethod
+    def _to_base36_fixed(n: int) -> tuple[str, str]:
+        """返回 (长度前缀数字字符, base36字符串)"""
+        b36 = NameNormalizer._to_base36(n)
+        return str(len(b36)), b36  # 长度前缀 + 内容
 
     @staticmethod
     def normalize(name: str) -> str:
@@ -25,7 +32,9 @@ class NameNormalizer:
         规范化规则如下：
         - 大写字母替换为 "_小写形式"
         - 连续下划线 "__" 表示原始的下划线
-        - 非字母数字或下划线的字符替换为 "___ASCII码___"
+        - 非字母数字或下划线的字符替换为 "_{后面编码的长度}{36进制编码的字符}"
+
+        在 Windows 平台下，对于aux、com1、com2、prn、con、nul等会特殊返回,不受命名归一化是否开启影响。
 
         Args:
             name (str): 原始字符串名称
@@ -33,6 +42,10 @@ class NameNormalizer:
         Returns:
             str: 规范化后的字符串
         """
+
+        if sys.platform.startswith("win") and  name in ("aux","com1","com2","prn","con","nul"):
+            return f"_9{name}"
+
         if not NameNormalizer.enable:
             return name
         new_name = ""
@@ -44,7 +57,8 @@ class NameNormalizer:
             elif char.isdigit() or char.islower():
                 new_name += char
             else:
-                new_name += f"___{str(ord(char))}___"
+                prefix, b36 = NameNormalizer._to_base36_fixed(ord(char))
+                new_name += f"_{prefix}{b36}"
         return new_name
 
     @staticmethod
@@ -52,10 +66,7 @@ class NameNormalizer:
         """
         将规范化后的名称还原为原始字符串。
 
-        该方法会反向解析规范化后的字符串：
-        - "_小写字母" 转换为原始大写字母
-        - "__" 转换为原始下划线
-        - "___ASCII码___" 转换为原始特殊字符
+        该方法会反向解析规范化后的字符串
 
         Args:
             normalized_name (str): 已规范化的字符串名称
@@ -71,32 +82,29 @@ class NameNormalizer:
 
         while i < n:
             if normalized_name[i] == '_':
-                # 检查特殊字符标记 (___ASCII___)
-                if i + 2 < n and normalized_name[i:i + 3] == '___':
-                    # 找到结束标记
-                    j = i + 3
-                    while j + 2 < n and normalized_name[j:j + 3] != '___':
-                        j += 1
-
-                    if j + 2 < n and normalized_name[j:j + 3] == '___':
-                        # 提取ASCII码
-                        ascii_str = normalized_name[i + 3:j]
+                # 特殊字符：_ 后跟数字 1-9（长度前缀）
+                if i + 1 < n and normalized_name[i + 1].isdigit() and normalized_name[i + 1] != '0':
+                    length = int(normalized_name[i + 1])
+                    start = i + 2
+                    end = start + length
+                    if end <= n:
+                        ascii_str = normalized_name[start:end]
                         try:
-                            char_code = int(ascii_str)
+                            char_code = int(ascii_str, 36)
                             original += chr(char_code)
-                            i = j + 3  # 跳过结束标记
+                            i = end
                             continue
                         except ValueError:
-                            # 处理无效ASCII码
+                            # 处理无效的36进制 unicode 码
                             pass
 
-                # 检查双下划线 (原始下划线)
+                # 双下划线（原始下划线）
                 if i + 1 < n and normalized_name[i + 1] == '_':
                     original += '_'
                     i += 2
                     continue
 
-                # 检查大写字母标记 (_后跟小写字母)
+                # 大写字母标记
                 if i + 1 < n and normalized_name[i + 1].islower():
                     original += normalized_name[i + 1].upper()
                     i += 2

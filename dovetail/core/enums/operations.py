@@ -1,8 +1,8 @@
 # coding=utf-8
 """
-MCDL 转译器操作符枚举模块
+Dovetail 操作符枚举模块
 
-此模块包含 MCDL 语言中所有运算操作符的枚举定义，
+此模块包含 Dovetail 语言中所有运算操作符的枚举定义，
 用于语法解析、表达式求值和代码生成。
 """
 from dovetail.utils.safe_enum import SafeEnum

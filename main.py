@@ -32,7 +32,7 @@ logger = get_logger(__name__)
 
 class Compiler:
     """
-    编译mcdl代码
+    编译 Dovetail 代码
 
     Attributes:
         config (CompileConfig): 编译器配置对象

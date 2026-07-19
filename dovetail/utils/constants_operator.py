@@ -9,6 +9,9 @@ from dovetail.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# 将数限制到32位int的合理位置内
+def number_to_int32(x: int) -> int:
+    return ((x + 0x80000000) & 0xFFFFFFFF) - 0x80000000
 
 # ── 安全运算辅助函数 ──────────────────────────────────────────
 

@@ -137,6 +137,15 @@ class IRBuilderIterator:
         self.instructions.insert(self.index, instruction)
 
     def insert_after_current(self, instruction: IRInstruction) -> None:
+        """
+        在当前访问的位置后插入一条指令
+
+        插入后下次获取指令会得到这条被插入的指令
+
+        Args:
+            instruction: 被插入指令
+
+        """
         if self._last_index == -1:
             raise IndexError("No current instruction (call next() first)")
 

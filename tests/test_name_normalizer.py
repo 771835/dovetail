@@ -2,6 +2,7 @@
 import unittest
 from dovetail.utils.naming import NameNormalizer  # 请替换 your_module 为你的文件名
 
+
 class TestNameNormalizer(unittest.TestCase):
 
     def setUp(self):
@@ -36,13 +37,12 @@ class TestNameNormalizer(unittest.TestCase):
         self.assertEqual(NameNormalizer.denormalize("a__b"), "a_b")
 
     def test_special_characters(self):
-        """测试特殊字符转换为 ASCII 编码"""
-        # "!" 的 ASCII 是 33
-        self.assertEqual(NameNormalizer.normalize("!"), "___33___")
-        # " " (空格) 的 ASCII 是 32
-        self.assertEqual(NameNormalizer.normalize(" "), "___32___")
-        self.assertEqual(NameNormalizer.denormalize("___33___"), "!")
-        self.assertEqual(NameNormalizer.denormalize("___32___"), " ")
+        # "!" ASCII=33, base36=x（1位）→ _1x
+        self.assertEqual(NameNormalizer.normalize("!"), "_1x")
+        # " " ASCII=32, base36=w（1位）→ _1w
+        self.assertEqual(NameNormalizer.normalize(" "), "_1w")
+        self.assertEqual(NameNormalizer.denormalize("_1x"), "!")
+        self.assertEqual(NameNormalizer.denormalize("_1w"), " ")
 
     def test_complex_combination(self):
         """测试多种情况组合"""
@@ -67,7 +67,7 @@ class TestNameNormalizer(unittest.TestCase):
             "Complex_Name_With_Numbers_123",
             "Special!@#$%^&*()_+",
             "Unicode_Test_中文",  # 只要 ord() 能处理，通常没问题
-            "___" # 边界测试
+            "___"  # 边界测试
         ]
         for s in test_strings:
             norm = NameNormalizer.normalize(s)
@@ -77,10 +77,11 @@ class TestNameNormalizer(unittest.TestCase):
     def test_invalid_denormalization(self):
         """测试非预期的输入（健壮性检查）"""
         # 故意传入一个不符合规范的字符串，验证denormalize不会崩
-        invalid_input = "___999abc" # 这是一个无效的ASCII定义
+        invalid_input = "___999abc"  # 这是一个无效的ASCII定义
         # 代码逻辑中 try...except 会跳过，应返回原样
         result = NameNormalizer.denormalize(invalid_input)
         self.assertIn("abc", result)
+
 
 if __name__ == '__main__':
     unittest.main()
