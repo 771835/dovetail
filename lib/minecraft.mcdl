@@ -1,0 +1,4185 @@
+// ================================================================
+// lib/_minecraft.mcdl
+// Minecraft Java Edition 原版指令标准库
+// 由 gen_minecraft_lib.py 自动生成，请勿手动修改
+// ================================================================
+
+// ────────────────────────────────────────────────────────────
+// advancement
+// ────────────────────────────────────────────────────────────
+
+fn advancement_grant_everything(targets: string) {
+    exec(f"advancement grant {targets} everything")
+}
+
+fn advancement_grant_from(targets: string, advancement: string) {
+    exec(f"advancement grant {targets} from {advancement}")
+}
+
+fn advancement_grant_only(targets: string, advancement: string, criterion: string = "") {
+    if (criterion == "") {
+        exec(f"advancement grant {targets} only {advancement}")
+    } else {
+        exec(f"advancement grant {targets} only {advancement} {criterion}")
+    }
+}
+
+fn advancement_grant_through(targets: string, advancement: string) {
+    exec(f"advancement grant {targets} through {advancement}")
+}
+
+fn advancement_grant_until(targets: string, advancement: string) {
+    exec(f"advancement grant {targets} until {advancement}")
+}
+
+fn advancement_revoke_everything(targets: string) {
+    exec(f"advancement revoke {targets} everything")
+}
+
+fn advancement_revoke_from(targets: string, advancement: string) {
+    exec(f"advancement revoke {targets} from {advancement}")
+}
+
+fn advancement_revoke_only(targets: string, advancement: string, criterion: string = "") {
+    if (criterion == "") {
+        exec(f"advancement revoke {targets} only {advancement}")
+    } else {
+        exec(f"advancement revoke {targets} only {advancement} {criterion}")
+    }
+}
+
+fn advancement_revoke_through(targets: string, advancement: string) {
+    exec(f"advancement revoke {targets} through {advancement}")
+}
+
+fn advancement_revoke_until(targets: string, advancement: string) {
+    exec(f"advancement revoke {targets} until {advancement}")
+}
+
+// ────────────────────────────────────────────────────────────
+// attribute
+// ────────────────────────────────────────────────────────────
+
+fn attribute_base_get(target: string, attribute: string, scale: string = "") {
+    if (scale == "") {
+        exec(f"attribute {target} {attribute} base get")
+    } else {
+        exec(f"attribute {target} {attribute} base get {scale}")
+    }
+}
+
+fn attribute_base_reset(target: string, attribute: string) {
+    exec(f"attribute {target} {attribute} base reset")
+}
+
+fn attribute_base_set(target: string, attribute: string, value: string) {
+    exec(f"attribute {target} {attribute} base set {value}")
+}
+
+fn attribute_get(target: string, attribute: string, scale: string = "") {
+    if (scale == "") {
+        exec(f"attribute {target} {attribute} get")
+    } else {
+        exec(f"attribute {target} {attribute} get {scale}")
+    }
+}
+
+fn attribute_modifier_add_add_multiplied_base(target: string, attribute: string, id: string, value: string) {
+    exec(f"attribute {target} {attribute} modifier add {id} {value} add_multiplied_base")
+}
+
+fn attribute_modifier_add_add_multiplied_total(target: string, attribute: string, id: string, value: string) {
+    exec(f"attribute {target} {attribute} modifier add {id} {value} add_multiplied_total")
+}
+
+fn attribute_modifier_add_add_value(target: string, attribute: string, id: string, value: string) {
+    exec(f"attribute {target} {attribute} modifier add {id} {value} add_value")
+}
+
+fn attribute_modifier_remove(target: string, attribute: string, id: string) {
+    exec(f"attribute {target} {attribute} modifier remove {id}")
+}
+
+fn attribute_modifier_value_get(target: string, attribute: string, id: string, scale: string = "") {
+    if (scale == "") {
+        exec(f"attribute {target} {attribute} modifier value get {id}")
+    } else {
+        exec(f"attribute {target} {attribute} modifier value get {id} {scale}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// ban
+// ────────────────────────────────────────────────────────────
+
+fn ban(targets: string, reason: string = "") {
+    if (reason == "") {
+        exec(f"ban {targets}")
+    } else {
+        exec(f"ban {targets} {reason}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// ban-ip
+// ────────────────────────────────────────────────────────────
+
+fn ban_ip(target: string, reason: string = "") {
+    if (reason == "") {
+        exec(f"ban-ip {target}")
+    } else {
+        exec(f"ban-ip {target} {reason}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// banlist
+// ────────────────────────────────────────────────────────────
+
+fn banlist_ips() {
+    exec(f"banlist ips")
+}
+
+fn banlist_players() {
+    exec(f"banlist players")
+}
+
+// ────────────────────────────────────────────────────────────
+// bossbar
+// ────────────────────────────────────────────────────────────
+
+fn bossbar_add(id: string, name: string) {
+    exec(f"bossbar add {id} {name}")
+}
+
+fn bossbar_get_max(id: string) {
+    exec(f"bossbar get {id} max")
+}
+
+fn bossbar_get_players(id: string) {
+    exec(f"bossbar get {id} players")
+}
+
+fn bossbar_get_value(id: string) {
+    exec(f"bossbar get {id} value")
+}
+
+fn bossbar_get_visible(id: string) {
+    exec(f"bossbar get {id} visible")
+}
+
+fn bossbar_list() {
+    exec(f"bossbar list")
+}
+
+fn bossbar_remove(id: string) {
+    exec(f"bossbar remove {id}")
+}
+
+fn bossbar_set_color_blue(id: string) {
+    exec(f"bossbar set {id} color blue")
+}
+
+fn bossbar_set_color_green(id: string) {
+    exec(f"bossbar set {id} color green")
+}
+
+fn bossbar_set_color_pink(id: string) {
+    exec(f"bossbar set {id} color pink")
+}
+
+fn bossbar_set_color_purple(id: string) {
+    exec(f"bossbar set {id} color purple")
+}
+
+fn bossbar_set_color_red(id: string) {
+    exec(f"bossbar set {id} color red")
+}
+
+fn bossbar_set_color_white(id: string) {
+    exec(f"bossbar set {id} color white")
+}
+
+fn bossbar_set_color_yellow(id: string) {
+    exec(f"bossbar set {id} color yellow")
+}
+
+fn bossbar_set_max(id: string, max: string) {
+    exec(f"bossbar set {id} max {max}")
+}
+
+fn bossbar_set_name(id: string, name: string) {
+    exec(f"bossbar set {id} name {name}")
+}
+
+fn bossbar_set_players(id: string, targets: string = "") {
+    if (targets == "") {
+        exec(f"bossbar set {id} players")
+    } else {
+        exec(f"bossbar set {id} players {targets}")
+    }
+}
+
+fn bossbar_set_style_notched_10(id: string) {
+    exec(f"bossbar set {id} style notched_10")
+}
+
+fn bossbar_set_style_notched_12(id: string) {
+    exec(f"bossbar set {id} style notched_12")
+}
+
+fn bossbar_set_style_notched_20(id: string) {
+    exec(f"bossbar set {id} style notched_20")
+}
+
+fn bossbar_set_style_notched_6(id: string) {
+    exec(f"bossbar set {id} style notched_6")
+}
+
+fn bossbar_set_style_progress(id: string) {
+    exec(f"bossbar set {id} style progress")
+}
+
+fn bossbar_set_value(id: string, value: string) {
+    exec(f"bossbar set {id} value {value}")
+}
+
+fn bossbar_set_visible(id: string, visible: string) {
+    exec(f"bossbar set {id} visible {visible}")
+}
+
+// ────────────────────────────────────────────────────────────
+// clear
+// ────────────────────────────────────────────────────────────
+
+fn clear(targets: string, item: string = "", maxCount: string = "") {
+    if (item == "") {
+        exec(f"clear {targets}")
+    } else if (maxCount == "") {
+        exec(f"clear {targets} {item}")
+    } else {
+        exec(f"clear {targets} {item} {maxCount}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// clone
+// ────────────────────────────────────────────────────────────
+
+fn clone(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination}")
+}
+
+fn clone_filtered(begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} {destination} filtered {filter}")
+}
+
+fn clone_filtered_force(begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} {destination} filtered {filter} force")
+}
+
+fn clone_filtered_move(begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} {destination} filtered {filter} move")
+}
+
+fn clone_filtered_normal(begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} {destination} filtered {filter} normal")
+}
+
+fn clone_masked(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} masked")
+}
+
+fn clone_masked_force(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} masked force")
+}
+
+fn clone_masked_move(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} masked move")
+}
+
+fn clone_masked_normal(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} masked normal")
+}
+
+fn clone_replace(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} replace")
+}
+
+fn clone_replace_force(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} replace force")
+}
+
+fn clone_replace_move(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} replace move")
+}
+
+fn clone_replace_normal(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} replace normal")
+}
+
+fn clone_strict(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} strict")
+}
+
+fn clone_strict_filtered(begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} {destination} strict filtered {filter}")
+}
+
+fn clone_strict_filtered_force(begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} {destination} strict filtered {filter} force")
+}
+
+fn clone_strict_filtered_move(begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} {destination} strict filtered {filter} move")
+}
+
+fn clone_strict_filtered_normal(begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} {destination} strict filtered {filter} normal")
+}
+
+fn clone_strict_masked(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} strict masked")
+}
+
+fn clone_strict_masked_force(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} strict masked force")
+}
+
+fn clone_strict_masked_move(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} strict masked move")
+}
+
+fn clone_strict_masked_normal(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} strict masked normal")
+}
+
+fn clone_strict_replace(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} strict replace")
+}
+
+fn clone_strict_replace_force(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} strict replace force")
+}
+
+fn clone_strict_replace_move(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} strict replace move")
+}
+
+fn clone_strict_replace_normal(begin: string, end: string, destination: string) {
+    exec(f"clone {begin} {end} {destination} strict replace normal")
+}
+
+fn clone_to(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination}")
+}
+
+fn clone_to_filtered(begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} filtered {filter}")
+}
+
+fn clone_to_filtered_force(begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} filtered {filter} force")
+}
+
+fn clone_to_filtered_move(begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} filtered {filter} move")
+}
+
+fn clone_to_filtered_normal(begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} filtered {filter} normal")
+}
+
+fn clone_to_masked(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} masked")
+}
+
+fn clone_to_masked_force(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} masked force")
+}
+
+fn clone_to_masked_move(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} masked move")
+}
+
+fn clone_to_masked_normal(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} masked normal")
+}
+
+fn clone_to_replace(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} replace")
+}
+
+fn clone_to_replace_force(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} replace force")
+}
+
+fn clone_to_replace_move(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} replace move")
+}
+
+fn clone_to_replace_normal(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} replace normal")
+}
+
+fn clone_to_strict(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict")
+}
+
+fn clone_to_strict_filtered(begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict filtered {filter}")
+}
+
+fn clone_to_strict_filtered_force(begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict filtered {filter} force")
+}
+
+fn clone_to_strict_filtered_move(begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict filtered {filter} move")
+}
+
+fn clone_to_strict_filtered_normal(begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict filtered {filter} normal")
+}
+
+fn clone_to_strict_masked(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict masked")
+}
+
+fn clone_to_strict_masked_force(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict masked force")
+}
+
+fn clone_to_strict_masked_move(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict masked move")
+}
+
+fn clone_to_strict_masked_normal(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict masked normal")
+}
+
+fn clone_to_strict_replace(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict replace")
+}
+
+fn clone_to_strict_replace_force(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict replace force")
+}
+
+fn clone_to_strict_replace_move(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict replace move")
+}
+
+fn clone_to_strict_replace_normal(begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone {begin} {end} to {targetDimension} {destination} strict replace normal")
+}
+
+fn clone_from(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination}")
+}
+
+fn clone_from_filtered(sourceDimension: string, begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} filtered {filter}")
+}
+
+fn clone_from_filtered_force(sourceDimension: string, begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} filtered {filter} force")
+}
+
+fn clone_from_filtered_move(sourceDimension: string, begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} filtered {filter} move")
+}
+
+fn clone_from_filtered_normal(sourceDimension: string, begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} filtered {filter} normal")
+}
+
+fn clone_from_masked(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} masked")
+}
+
+fn clone_from_masked_force(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} masked force")
+}
+
+fn clone_from_masked_move(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} masked move")
+}
+
+fn clone_from_masked_normal(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} masked normal")
+}
+
+fn clone_from_replace(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} replace")
+}
+
+fn clone_from_replace_force(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} replace force")
+}
+
+fn clone_from_replace_move(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} replace move")
+}
+
+fn clone_from_replace_normal(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} replace normal")
+}
+
+fn clone_from_strict(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict")
+}
+
+fn clone_from_strict_filtered(sourceDimension: string, begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict filtered {filter}")
+}
+
+fn clone_from_strict_filtered_force(sourceDimension: string, begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict filtered {filter} force")
+}
+
+fn clone_from_strict_filtered_move(sourceDimension: string, begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict filtered {filter} move")
+}
+
+fn clone_from_strict_filtered_normal(sourceDimension: string, begin: string, end: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict filtered {filter} normal")
+}
+
+fn clone_from_strict_masked(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict masked")
+}
+
+fn clone_from_strict_masked_force(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict masked force")
+}
+
+fn clone_from_strict_masked_move(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict masked move")
+}
+
+fn clone_from_strict_masked_normal(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict masked normal")
+}
+
+fn clone_from_strict_replace(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict replace")
+}
+
+fn clone_from_strict_replace_force(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict replace force")
+}
+
+fn clone_from_strict_replace_move(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict replace move")
+}
+
+fn clone_from_strict_replace_normal(sourceDimension: string, begin: string, end: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} {destination} strict replace normal")
+}
+
+fn clone_from_to(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination}")
+}
+
+fn clone_from_to_filtered(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} filtered {filter}")
+}
+
+fn clone_from_to_filtered_force(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} filtered {filter} force")
+}
+
+fn clone_from_to_filtered_move(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} filtered {filter} move")
+}
+
+fn clone_from_to_filtered_normal(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} filtered {filter} normal")
+}
+
+fn clone_from_to_masked(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} masked")
+}
+
+fn clone_from_to_masked_force(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} masked force")
+}
+
+fn clone_from_to_masked_move(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} masked move")
+}
+
+fn clone_from_to_masked_normal(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} masked normal")
+}
+
+fn clone_from_to_replace(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} replace")
+}
+
+fn clone_from_to_replace_force(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} replace force")
+}
+
+fn clone_from_to_replace_move(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} replace move")
+}
+
+fn clone_from_to_replace_normal(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} replace normal")
+}
+
+fn clone_from_to_strict(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict")
+}
+
+fn clone_from_to_strict_filtered(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict filtered {filter}")
+}
+
+fn clone_from_to_strict_filtered_force(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict filtered {filter} force")
+}
+
+fn clone_from_to_strict_filtered_move(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict filtered {filter} move")
+}
+
+fn clone_from_to_strict_filtered_normal(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string, filter: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict filtered {filter} normal")
+}
+
+fn clone_from_to_strict_masked(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict masked")
+}
+
+fn clone_from_to_strict_masked_force(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict masked force")
+}
+
+fn clone_from_to_strict_masked_move(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict masked move")
+}
+
+fn clone_from_to_strict_masked_normal(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict masked normal")
+}
+
+fn clone_from_to_strict_replace(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict replace")
+}
+
+fn clone_from_to_strict_replace_force(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict replace force")
+}
+
+fn clone_from_to_strict_replace_move(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict replace move")
+}
+
+fn clone_from_to_strict_replace_normal(sourceDimension: string, begin: string, end: string, targetDimension: string, destination: string) {
+    exec(f"clone from {sourceDimension} {begin} {end} to {targetDimension} {destination} strict replace normal")
+}
+
+// ────────────────────────────────────────────────────────────
+// damage
+// ────────────────────────────────────────────────────────────
+
+fn damage(target: string, amount: string, damageType: string = "") {
+    if (damageType == "") {
+        exec(f"damage {target} {amount}")
+    } else {
+        exec(f"damage {target} {amount} {damageType}")
+    }
+}
+
+fn damage_at(target: string, amount: string, damageType: string, location: string) {
+    exec(f"damage {target} {amount} {damageType} at {location}")
+}
+
+fn damage_by(target: string, amount: string, damageType: string, entity: string) {
+    exec(f"damage {target} {amount} {damageType} by {entity}")
+}
+
+fn damage_by_from(target: string, amount: string, damageType: string, entity: string, cause: string) {
+    exec(f"damage {target} {amount} {damageType} by {entity} from {cause}")
+}
+
+// ────────────────────────────────────────────────────────────
+// data
+// ────────────────────────────────────────────────────────────
+
+fn data_get_block(targetPos: string, path: string = "", scale: string = "") {
+    if (path == "") {
+        exec(f"data get block {targetPos}")
+    } else if (scale == "") {
+        exec(f"data get block {targetPos} {path}")
+    } else {
+        exec(f"data get block {targetPos} {path} {scale}")
+    }
+}
+
+fn data_get_entity(target: string, path: string = "", scale: string = "") {
+    if (path == "") {
+        exec(f"data get entity {target}")
+    } else if (scale == "") {
+        exec(f"data get entity {target} {path}")
+    } else {
+        exec(f"data get entity {target} {path} {scale}")
+    }
+}
+
+fn data_get_storage(target: string, path: string = "", scale: string = "") {
+    if (path == "") {
+        exec(f"data get storage {target}")
+    } else if (scale == "") {
+        exec(f"data get storage {target} {path}")
+    } else {
+        exec(f"data get storage {target} {path} {scale}")
+    }
+}
+
+fn data_merge_block(targetPos: string, nbt: string) {
+    exec(f"data merge block {targetPos} {nbt}")
+}
+
+fn data_merge_entity(target: string, nbt: string) {
+    exec(f"data merge entity {target} {nbt}")
+}
+
+fn data_merge_storage(target: string, nbt: string) {
+    exec(f"data merge storage {target} {nbt}")
+}
+
+fn data_modify_block_append_from_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} append from block {sourcePos}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} append from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_block_append_from_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} append from entity {source}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} append from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_block_append_from_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} append from storage {source}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} append from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_block_append_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} append string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} append string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} append string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} append string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_append_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} append string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} append string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} append string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} append string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_append_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} append string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} append string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} append string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} append string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_append_value(targetPos: string, targetPath: string, value: string) {
+    exec(f"data modify block {targetPos} {targetPath} append value {value}")
+}
+
+fn data_modify_block_insert_from_block(targetPos: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} from block {sourcePos}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_block_insert_from_entity(targetPos: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} from entity {source}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_block_insert_from_storage(targetPos: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} from storage {source}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_block_insert_string_block(targetPos: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_insert_string_entity(targetPos: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_insert_string_storage(targetPos: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} insert {index} string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_insert_value(targetPos: string, targetPath: string, index: string, value: string) {
+    exec(f"data modify block {targetPos} {targetPath} insert {index} value {value}")
+}
+
+fn data_modify_block_merge_from_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge from block {sourcePos}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} merge from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_block_merge_from_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge from entity {source}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} merge from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_block_merge_from_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge from storage {source}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} merge from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_block_merge_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} merge string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_merge_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} merge string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_merge_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} merge string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} merge string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_merge_value(targetPos: string, targetPath: string, value: string) {
+    exec(f"data modify block {targetPos} {targetPath} merge value {value}")
+}
+
+fn data_modify_block_prepend_from_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend from block {sourcePos}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} prepend from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_block_prepend_from_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend from entity {source}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} prepend from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_block_prepend_from_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend from storage {source}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} prepend from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_block_prepend_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} prepend string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_prepend_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} prepend string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_prepend_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} prepend string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} prepend string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_prepend_value(targetPos: string, targetPath: string, value: string) {
+    exec(f"data modify block {targetPos} {targetPath} prepend value {value}")
+}
+
+fn data_modify_block_set_from_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} set from block {sourcePos}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} set from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_block_set_from_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} set from entity {source}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} set from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_block_set_from_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} set from storage {source}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} set from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_block_set_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} set string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} set string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} set string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} set string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_set_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} set string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} set string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} set string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} set string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_set_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify block {targetPos} {targetPath} set string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify block {targetPos} {targetPath} set string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify block {targetPos} {targetPath} set string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify block {targetPos} {targetPath} set string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_block_set_value(targetPos: string, targetPath: string, value: string) {
+    exec(f"data modify block {targetPos} {targetPath} set value {value}")
+}
+
+fn data_modify_entity_append_from_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} append from block {sourcePos}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} append from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_append_from_entity(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} append from entity {source}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} append from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_append_from_storage(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} append from storage {source}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} append from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_append_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} append string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} append string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} append string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} append string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_append_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} append string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} append string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} append string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} append string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_append_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} append string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} append string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} append string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} append string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_append_value(target: string, targetPath: string, value: string) {
+    exec(f"data modify entity {target} {targetPath} append value {value}")
+}
+
+fn data_modify_entity_insert_from_block(target: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} from block {sourcePos}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} insert {index} from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_insert_from_entity(target: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} from entity {source}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} insert {index} from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_insert_from_storage(target: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} from storage {source}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} insert {index} from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_insert_string_block(target: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_insert_string_entity(target: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} insert {index} string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_insert_string_storage(target: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} insert {index} string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} insert {index} string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_insert_value(target: string, targetPath: string, index: string, value: string) {
+    exec(f"data modify entity {target} {targetPath} insert {index} value {value}")
+}
+
+fn data_modify_entity_merge_from_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} merge from block {sourcePos}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} merge from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_merge_from_entity(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} merge from entity {source}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} merge from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_merge_from_storage(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} merge from storage {source}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} merge from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_merge_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} merge string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} merge string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} merge string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} merge string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_merge_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} merge string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} merge string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} merge string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} merge string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_merge_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} merge string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} merge string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} merge string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} merge string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_merge_value(target: string, targetPath: string, value: string) {
+    exec(f"data modify entity {target} {targetPath} merge value {value}")
+}
+
+fn data_modify_entity_prepend_from_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} prepend from block {sourcePos}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} prepend from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_prepend_from_entity(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} prepend from entity {source}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} prepend from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_prepend_from_storage(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} prepend from storage {source}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} prepend from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_prepend_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} prepend string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} prepend string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} prepend string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} prepend string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_prepend_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} prepend string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} prepend string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} prepend string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} prepend string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_prepend_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} prepend string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} prepend string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} prepend string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} prepend string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_prepend_value(target: string, targetPath: string, value: string) {
+    exec(f"data modify entity {target} {targetPath} prepend value {value}")
+}
+
+fn data_modify_entity_set_from_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} set from block {sourcePos}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} set from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_set_from_entity(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} set from entity {source}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} set from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_set_from_storage(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} set from storage {source}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} set from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_entity_set_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} set string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} set string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} set string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} set string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_set_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} set string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} set string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} set string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} set string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_set_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify entity {target} {targetPath} set string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify entity {target} {targetPath} set string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify entity {target} {targetPath} set string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify entity {target} {targetPath} set string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_entity_set_value(target: string, targetPath: string, value: string) {
+    exec(f"data modify entity {target} {targetPath} set value {value}")
+}
+
+fn data_modify_storage_append_from_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} append from block {sourcePos}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} append from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_append_from_entity(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} append from entity {source}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} append from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_append_from_storage(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} append from storage {source}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} append from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_append_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} append string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} append string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} append string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} append string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_append_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} append string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} append string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} append string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} append string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_append_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} append string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} append string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} append string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} append string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_append_value(target: string, targetPath: string, value: string) {
+    exec(f"data modify storage {target} {targetPath} append value {value}")
+}
+
+fn data_modify_storage_insert_from_block(target: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} from block {sourcePos}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} insert {index} from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_insert_from_entity(target: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} from entity {source}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} insert {index} from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_insert_from_storage(target: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} from storage {source}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} insert {index} from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_insert_string_block(target: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_insert_string_entity(target: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} insert {index} string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_insert_string_storage(target: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} insert {index} string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} insert {index} string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_insert_value(target: string, targetPath: string, index: string, value: string) {
+    exec(f"data modify storage {target} {targetPath} insert {index} value {value}")
+}
+
+fn data_modify_storage_merge_from_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} merge from block {sourcePos}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} merge from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_merge_from_entity(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} merge from entity {source}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} merge from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_merge_from_storage(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} merge from storage {source}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} merge from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_merge_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} merge string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} merge string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} merge string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} merge string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_merge_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} merge string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} merge string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} merge string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} merge string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_merge_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} merge string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} merge string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} merge string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} merge string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_merge_value(target: string, targetPath: string, value: string) {
+    exec(f"data modify storage {target} {targetPath} merge value {value}")
+}
+
+fn data_modify_storage_prepend_from_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} prepend from block {sourcePos}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} prepend from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_prepend_from_entity(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} prepend from entity {source}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} prepend from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_prepend_from_storage(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} prepend from storage {source}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} prepend from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_prepend_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} prepend string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} prepend string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} prepend string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} prepend string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_prepend_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} prepend string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} prepend string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} prepend string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} prepend string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_prepend_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} prepend string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} prepend string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} prepend string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} prepend string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_prepend_value(target: string, targetPath: string, value: string) {
+    exec(f"data modify storage {target} {targetPath} prepend value {value}")
+}
+
+fn data_modify_storage_set_from_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} set from block {sourcePos}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} set from block {sourcePos} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_set_from_entity(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} set from entity {source}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} set from entity {source} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_set_from_storage(target: string, targetPath: string, source: string, sourcePath: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} set from storage {source}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} set from storage {source} {sourcePath}")
+    }
+}
+
+fn data_modify_storage_set_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} set string block {sourcePos}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} set string block {sourcePos} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} set string block {sourcePos} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} set string block {sourcePos} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_set_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} set string entity {source}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} set string entity {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} set string entity {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} set string entity {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_set_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
+    if (sourcePath == "") {
+        exec(f"data modify storage {target} {targetPath} set string storage {source}")
+    } else if (start == "") {
+        exec(f"data modify storage {target} {targetPath} set string storage {source} {sourcePath}")
+    } else if (end == "") {
+        exec(f"data modify storage {target} {targetPath} set string storage {source} {sourcePath} {start}")
+    } else {
+        exec(f"data modify storage {target} {targetPath} set string storage {source} {sourcePath} {start} {end}")
+    }
+}
+
+fn data_modify_storage_set_value(target: string, targetPath: string, value: string) {
+    exec(f"data modify storage {target} {targetPath} set value {value}")
+}
+
+fn data_remove_block(targetPos: string, path: string) {
+    exec(f"data remove block {targetPos} {path}")
+}
+
+fn data_remove_entity(target: string, path: string) {
+    exec(f"data remove entity {target} {path}")
+}
+
+fn data_remove_storage(target: string, path: string) {
+    exec(f"data remove storage {target} {path}")
+}
+
+// ────────────────────────────────────────────────────────────
+// datapack
+// ────────────────────────────────────────────────────────────
+
+fn datapack_disable(name: string) {
+    exec(f"datapack disable {name}")
+}
+
+fn datapack_enable(name: string) {
+    exec(f"datapack enable {name}")
+}
+
+fn datapack_enable_after(name: string, existing: string) {
+    exec(f"datapack enable {name} after {existing}")
+}
+
+fn datapack_enable_before(name: string, existing: string) {
+    exec(f"datapack enable {name} before {existing}")
+}
+
+fn datapack_enable_first(name: string) {
+    exec(f"datapack enable {name} first")
+}
+
+fn datapack_enable_last(name: string) {
+    exec(f"datapack enable {name} last")
+}
+
+fn datapack_list() {
+    exec(f"datapack list")
+}
+
+fn datapack_list_available() {
+    exec(f"datapack list available")
+}
+
+fn datapack_list_enabled() {
+    exec(f"datapack list enabled")
+}
+
+// ────────────────────────────────────────────────────────────
+// debug
+// ────────────────────────────────────────────────────────────
+
+fn debug_function(name: string) {
+    exec(f"debug function {name}")
+}
+
+fn debug_start() {
+    exec(f"debug start")
+}
+
+fn debug_stop() {
+    exec(f"debug stop")
+}
+
+// ────────────────────────────────────────────────────────────
+// defaultgamemode
+// ────────────────────────────────────────────────────────────
+
+fn defaultgamemode(gamemode: string) {
+    exec(f"defaultgamemode {gamemode}")
+}
+
+// ────────────────────────────────────────────────────────────
+// deop
+// ────────────────────────────────────────────────────────────
+
+fn deop(targets: string) {
+    exec(f"deop {targets}")
+}
+
+// ────────────────────────────────────────────────────────────
+// difficulty
+// ────────────────────────────────────────────────────────────
+
+fn difficulty_easy() {
+    exec(f"difficulty easy")
+}
+
+fn difficulty_hard() {
+    exec(f"difficulty hard")
+}
+
+fn difficulty_normal() {
+    exec(f"difficulty normal")
+}
+
+fn difficulty_peaceful() {
+    exec(f"difficulty peaceful")
+}
+
+// ────────────────────────────────────────────────────────────
+// effect
+// ────────────────────────────────────────────────────────────
+
+fn effect_clear(targets: string, effect: string = "") {
+    if (effect == "") {
+        exec(f"effect clear")
+    } else if (effect == "") {
+        exec(f"effect clear {targets}")
+    } else {
+        exec(f"effect clear {targets} {effect}")
+    }
+}
+
+fn effect_give(targets: string, effect: string, seconds: string = "", amplifier: string = "", hideParticles: string = "") {
+    if (seconds == "") {
+        exec(f"effect give {targets} {effect}")
+    } else if (amplifier == "") {
+        exec(f"effect give {targets} {effect} {seconds}")
+    } else if (hideParticles == "") {
+        exec(f"effect give {targets} {effect} {seconds} {amplifier}")
+    } else {
+        exec(f"effect give {targets} {effect} {seconds} {amplifier} {hideParticles}")
+    }
+}
+
+fn effect_give_infinite(targets: string, effect: string, amplifier: string = "", hideParticles: string = "") {
+    if (amplifier == "") {
+        exec(f"effect give {targets} {effect} infinite")
+    } else if (hideParticles == "") {
+        exec(f"effect give {targets} {effect} infinite {amplifier}")
+    } else {
+        exec(f"effect give {targets} {effect} infinite {amplifier} {hideParticles}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// enchant
+// ────────────────────────────────────────────────────────────
+
+fn enchant(targets: string, enchantment: string, level: string = "") {
+    if (level == "") {
+        exec(f"enchant {targets} {enchantment}")
+    } else {
+        exec(f"enchant {targets} {enchantment} {level}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// execute
+// ────────────────────────────────────────────────────────────
+
+fn execute_if_biome(pos: string, biome: string) {
+    exec(f"execute if biome {pos} {biome}")
+}
+
+fn execute_if_block(pos: string, block: string) {
+    exec(f"execute if block {pos} {block}")
+}
+
+fn execute_if_blocks_all(start: string, end: string, destination: string) {
+    exec(f"execute if blocks {start} {end} {destination} all")
+}
+
+fn execute_if_blocks_masked(start: string, end: string, destination: string) {
+    exec(f"execute if blocks {start} {end} {destination} masked")
+}
+
+fn execute_if_data_block(sourcePos: string, path: string) {
+    exec(f"execute if data block {sourcePos} {path}")
+}
+
+fn execute_if_data_entity(source: string, path: string) {
+    exec(f"execute if data entity {source} {path}")
+}
+
+fn execute_if_data_storage(source: string, path: string) {
+    exec(f"execute if data storage {source} {path}")
+}
+
+fn execute_if_dimension(dimension: string) {
+    exec(f"execute if dimension {dimension}")
+}
+
+fn execute_if_entity(entities: string) {
+    exec(f"execute if entity {entities}")
+}
+
+fn execute_if_items_block(pos: string, slots: string, item_predicate: string) {
+    exec(f"execute if items block {pos} {slots} {item_predicate}")
+}
+
+fn execute_if_items_entity(entities: string, slots: string, item_predicate: string) {
+    exec(f"execute if items entity {entities} {slots} {item_predicate}")
+}
+
+fn execute_if_loaded(pos: string) {
+    exec(f"execute if loaded {pos}")
+}
+
+fn execute_if_predicate(predicate: string) {
+    exec(f"execute if predicate {predicate}")
+}
+
+fn execute_if_score__(target: string, targetObjective: string, source: string, sourceObjective: string) {
+    exec(f"execute if score {target} {targetObjective} < {source} {sourceObjective}")
+}
+
+fn execute_if_score___(target: string, targetObjective: string, source: string, sourceObjective: string) {
+    exec(f"execute if score {target} {targetObjective} <= {source} {sourceObjective}")
+}
+
+fn execute_if_score_matches(target: string, targetObjective: string, range: string) {
+    exec(f"execute if score {target} {targetObjective} matches {range}")
+}
+
+fn execute_unless_biome(pos: string, biome: string) {
+    exec(f"execute unless biome {pos} {biome}")
+}
+
+fn execute_unless_block(pos: string, block: string) {
+    exec(f"execute unless block {pos} {block}")
+}
+
+fn execute_unless_blocks_all(start: string, end: string, destination: string) {
+    exec(f"execute unless blocks {start} {end} {destination} all")
+}
+
+fn execute_unless_blocks_masked(start: string, end: string, destination: string) {
+    exec(f"execute unless blocks {start} {end} {destination} masked")
+}
+
+fn execute_unless_data_block(sourcePos: string, path: string) {
+    exec(f"execute unless data block {sourcePos} {path}")
+}
+
+fn execute_unless_data_entity(source: string, path: string) {
+    exec(f"execute unless data entity {source} {path}")
+}
+
+fn execute_unless_data_storage(source: string, path: string) {
+    exec(f"execute unless data storage {source} {path}")
+}
+
+fn execute_unless_dimension(dimension: string) {
+    exec(f"execute unless dimension {dimension}")
+}
+
+fn execute_unless_entity(entities: string) {
+    exec(f"execute unless entity {entities}")
+}
+
+fn execute_unless_items_block(pos: string, slots: string, item_predicate: string) {
+    exec(f"execute unless items block {pos} {slots} {item_predicate}")
+}
+
+fn execute_unless_items_entity(entities: string, slots: string, item_predicate: string) {
+    exec(f"execute unless items entity {entities} {slots} {item_predicate}")
+}
+
+fn execute_unless_loaded(pos: string) {
+    exec(f"execute unless loaded {pos}")
+}
+
+fn execute_unless_predicate(predicate: string) {
+    exec(f"execute unless predicate {predicate}")
+}
+
+fn execute_unless_score__(target: string, targetObjective: string, source: string, sourceObjective: string) {
+    exec(f"execute unless score {target} {targetObjective} < {source} {sourceObjective}")
+}
+
+fn execute_unless_score___(target: string, targetObjective: string, source: string, sourceObjective: string) {
+    exec(f"execute unless score {target} {targetObjective} <= {source} {sourceObjective}")
+}
+
+fn execute_unless_score_matches(target: string, targetObjective: string, range: string) {
+    exec(f"execute unless score {target} {targetObjective} matches {range}")
+}
+
+// ────────────────────────────────────────────────────────────
+// experience
+// ────────────────────────────────────────────────────────────
+
+fn experience_add(target: string, amount: string) {
+    exec(f"experience add {target} {amount}")
+}
+
+fn experience_add_levels(target: string, amount: string) {
+    exec(f"experience add {target} {amount} levels")
+}
+
+fn experience_add_points(target: string, amount: string) {
+    exec(f"experience add {target} {amount} points")
+}
+
+fn experience_query_levels(target: string) {
+    exec(f"experience query {target} levels")
+}
+
+fn experience_query_points(target: string) {
+    exec(f"experience query {target} points")
+}
+
+fn experience_set(target: string, amount: string) {
+    exec(f"experience set {target} {amount}")
+}
+
+fn experience_set_levels(target: string, amount: string) {
+    exec(f"experience set {target} {amount} levels")
+}
+
+fn experience_set_points(target: string, amount: string) {
+    exec(f"experience set {target} {amount} points")
+}
+
+// ────────────────────────────────────────────────────────────
+// fill
+// ────────────────────────────────────────────────────────────
+
+fn fill(from: string, to: string, block: string) {
+    exec(f"fill {from} {to} {block}")
+}
+
+fn fill_destroy(from: string, to: string, block: string) {
+    exec(f"fill {from} {to} {block} destroy")
+}
+
+fn fill_hollow(from: string, to: string, block: string) {
+    exec(f"fill {from} {to} {block} hollow")
+}
+
+fn fill_keep(from: string, to: string, block: string) {
+    exec(f"fill {from} {to} {block} keep")
+}
+
+fn fill_outline(from: string, to: string, block: string) {
+    exec(f"fill {from} {to} {block} outline")
+}
+
+fn fill_replace(from: string, to: string, block: string, filter: string = "") {
+    if (filter == "") {
+        exec(f"fill {from} {to} {block} replace")
+    } else {
+        exec(f"fill {from} {to} {block} replace {filter}")
+    }
+}
+
+fn fill_replace_destroy(from: string, to: string, block: string, filter: string) {
+    exec(f"fill {from} {to} {block} replace {filter} destroy")
+}
+
+fn fill_replace_hollow(from: string, to: string, block: string, filter: string) {
+    exec(f"fill {from} {to} {block} replace {filter} hollow")
+}
+
+fn fill_replace_outline(from: string, to: string, block: string, filter: string) {
+    exec(f"fill {from} {to} {block} replace {filter} outline")
+}
+
+fn fill_replace_strict(from: string, to: string, block: string, filter: string) {
+    exec(f"fill {from} {to} {block} replace {filter} strict")
+}
+
+fn fill_strict(from: string, to: string, block: string) {
+    exec(f"fill {from} {to} {block} strict")
+}
+
+// ────────────────────────────────────────────────────────────
+// fillbiome
+// ────────────────────────────────────────────────────────────
+
+fn fillbiome(from: string, to: string, biome: string) {
+    exec(f"fillbiome {from} {to} {biome}")
+}
+
+fn fillbiome_replace(from: string, to: string, biome: string, filter: string) {
+    exec(f"fillbiome {from} {to} {biome} replace {filter}")
+}
+
+// ────────────────────────────────────────────────────────────
+// forceload
+// ────────────────────────────────────────────────────────────
+
+fn forceload_add(from: string, to: string = "") {
+    if (to == "") {
+        exec(f"forceload add {from}")
+    } else {
+        exec(f"forceload add {from} {to}")
+    }
+}
+
+fn forceload_query(pos: string) {
+    exec(f"forceload query {pos}")
+}
+
+fn forceload_remove_all() {
+    exec(f"forceload remove all")
+}
+
+fn forceload_remove(from: string, to: string = "") {
+    if (to == "") {
+        exec(f"forceload remove {from}")
+    } else {
+        exec(f"forceload remove {from} {to}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// function
+// ────────────────────────────────────────────────────────────
+
+fn function(name: string, arguments: string = "") {
+    if (arguments == "") {
+        exec(f"function {name}")
+    } else {
+        exec(f"function {name} {arguments}")
+    }
+}
+
+fn function_with_block(name: string, sourcePos: string, path: string = "") {
+    if (path == "") {
+        exec(f"function {name} with block {sourcePos}")
+    } else {
+        exec(f"function {name} with block {sourcePos} {path}")
+    }
+}
+
+fn function_with_entity(name: string, source: string, path: string = "") {
+    if (path == "") {
+        exec(f"function {name} with entity {source}")
+    } else {
+        exec(f"function {name} with entity {source} {path}")
+    }
+}
+
+fn function_with_storage(name: string, source: string, path: string = "") {
+    if (path == "") {
+        exec(f"function {name} with storage {source}")
+    } else {
+        exec(f"function {name} with storage {source} {path}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// gamemode
+// ────────────────────────────────────────────────────────────
+
+fn gamemode(gamemode: string, target: string = "") {
+    if (target == "") {
+        exec(f"gamemode {gamemode}")
+    } else {
+        exec(f"gamemode {gamemode} {target}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// gamerule
+// ────────────────────────────────────────────────────────────
+
+fn gamerule_allowFireTicksAwayFromPlayer(value: string) {
+    exec(f"gamerule allowFireTicksAwayFromPlayer {value}")
+}
+
+fn gamerule_announceAdvancements(value: string) {
+    exec(f"gamerule announceAdvancements {value}")
+}
+
+fn gamerule_blockExplosionDropDecay(value: string) {
+    exec(f"gamerule blockExplosionDropDecay {value}")
+}
+
+fn gamerule_commandBlockOutput(value: string) {
+    exec(f"gamerule commandBlockOutput {value}")
+}
+
+fn gamerule_commandModificationBlockLimit(value: string) {
+    exec(f"gamerule commandModificationBlockLimit {value}")
+}
+
+fn gamerule_disableElytraMovementCheck(value: string) {
+    exec(f"gamerule disableElytraMovementCheck {value}")
+}
+
+fn gamerule_disablePlayerMovementCheck(value: string) {
+    exec(f"gamerule disablePlayerMovementCheck {value}")
+}
+
+fn gamerule_disableRaids(value: string) {
+    exec(f"gamerule disableRaids {value}")
+}
+
+fn gamerule_doDaylightCycle(value: string) {
+    exec(f"gamerule doDaylightCycle {value}")
+}
+
+fn gamerule_doEntityDrops(value: string) {
+    exec(f"gamerule doEntityDrops {value}")
+}
+
+fn gamerule_doFireTick(value: string) {
+    exec(f"gamerule doFireTick {value}")
+}
+
+fn gamerule_doImmediateRespawn(value: string) {
+    exec(f"gamerule doImmediateRespawn {value}")
+}
+
+fn gamerule_doInsomnia(value: string) {
+    exec(f"gamerule doInsomnia {value}")
+}
+
+fn gamerule_doLimitedCrafting(value: string) {
+    exec(f"gamerule doLimitedCrafting {value}")
+}
+
+fn gamerule_doMobLoot(value: string) {
+    exec(f"gamerule doMobLoot {value}")
+}
+
+fn gamerule_doMobSpawning(value: string) {
+    exec(f"gamerule doMobSpawning {value}")
+}
+
+fn gamerule_doPatrolSpawning(value: string) {
+    exec(f"gamerule doPatrolSpawning {value}")
+}
+
+fn gamerule_doTileDrops(value: string) {
+    exec(f"gamerule doTileDrops {value}")
+}
+
+fn gamerule_doTraderSpawning(value: string) {
+    exec(f"gamerule doTraderSpawning {value}")
+}
+
+fn gamerule_doVinesSpread(value: string) {
+    exec(f"gamerule doVinesSpread {value}")
+}
+
+fn gamerule_doWardenSpawning(value: string) {
+    exec(f"gamerule doWardenSpawning {value}")
+}
+
+fn gamerule_doWeatherCycle(value: string) {
+    exec(f"gamerule doWeatherCycle {value}")
+}
+
+fn gamerule_drowningDamage(value: string) {
+    exec(f"gamerule drowningDamage {value}")
+}
+
+fn gamerule_enderPearlsVanishOnDeath(value: string) {
+    exec(f"gamerule enderPearlsVanishOnDeath {value}")
+}
+
+fn gamerule_fallDamage(value: string) {
+    exec(f"gamerule fallDamage {value}")
+}
+
+fn gamerule_fireDamage(value: string) {
+    exec(f"gamerule fireDamage {value}")
+}
+
+fn gamerule_forgiveDeadPlayers(value: string) {
+    exec(f"gamerule forgiveDeadPlayers {value}")
+}
+
+fn gamerule_freezeDamage(value: string) {
+    exec(f"gamerule freezeDamage {value}")
+}
+
+fn gamerule_globalSoundEvents(value: string) {
+    exec(f"gamerule globalSoundEvents {value}")
+}
+
+fn gamerule_keepInventory(value: string) {
+    exec(f"gamerule keepInventory {value}")
+}
+
+fn gamerule_lavaSourceConversion(value: string) {
+    exec(f"gamerule lavaSourceConversion {value}")
+}
+
+fn gamerule_logAdminCommands(value: string) {
+    exec(f"gamerule logAdminCommands {value}")
+}
+
+fn gamerule_maxCommandChainLength(value: string) {
+    exec(f"gamerule maxCommandChainLength {value}")
+}
+
+fn gamerule_maxCommandForkCount(value: string) {
+    exec(f"gamerule maxCommandForkCount {value}")
+}
+
+fn gamerule_maxEntityCramming(value: string) {
+    exec(f"gamerule maxEntityCramming {value}")
+}
+
+fn gamerule_minecartMaxSpeed(value: string) {
+    exec(f"gamerule minecartMaxSpeed {value}")
+}
+
+fn gamerule_mobExplosionDropDecay(value: string) {
+    exec(f"gamerule mobExplosionDropDecay {value}")
+}
+
+fn gamerule_mobGriefing(value: string) {
+    exec(f"gamerule mobGriefing {value}")
+}
+
+fn gamerule_naturalRegeneration(value: string) {
+    exec(f"gamerule naturalRegeneration {value}")
+}
+
+fn gamerule_playersNetherPortalCreativeDelay(value: string) {
+    exec(f"gamerule playersNetherPortalCreativeDelay {value}")
+}
+
+fn gamerule_playersNetherPortalDefaultDelay(value: string) {
+    exec(f"gamerule playersNetherPortalDefaultDelay {value}")
+}
+
+fn gamerule_playersSleepingPercentage(value: string) {
+    exec(f"gamerule playersSleepingPercentage {value}")
+}
+
+fn gamerule_projectilesCanBreakBlocks(value: string) {
+    exec(f"gamerule projectilesCanBreakBlocks {value}")
+}
+
+fn gamerule_randomTickSpeed(value: string) {
+    exec(f"gamerule randomTickSpeed {value}")
+}
+
+fn gamerule_reducedDebugInfo(value: string) {
+    exec(f"gamerule reducedDebugInfo {value}")
+}
+
+fn gamerule_sendCommandFeedback(value: string) {
+    exec(f"gamerule sendCommandFeedback {value}")
+}
+
+fn gamerule_showDeathMessages(value: string) {
+    exec(f"gamerule showDeathMessages {value}")
+}
+
+fn gamerule_snowAccumulationHeight(value: string) {
+    exec(f"gamerule snowAccumulationHeight {value}")
+}
+
+fn gamerule_spawnChunkRadius(value: string) {
+    exec(f"gamerule spawnChunkRadius {value}")
+}
+
+fn gamerule_spawnRadius(value: string) {
+    exec(f"gamerule spawnRadius {value}")
+}
+
+fn gamerule_spectatorsGenerateChunks(value: string) {
+    exec(f"gamerule spectatorsGenerateChunks {value}")
+}
+
+fn gamerule_tntExplodes(value: string) {
+    exec(f"gamerule tntExplodes {value}")
+}
+
+fn gamerule_tntExplosionDropDecay(value: string) {
+    exec(f"gamerule tntExplosionDropDecay {value}")
+}
+
+fn gamerule_universalAnger(value: string) {
+    exec(f"gamerule universalAnger {value}")
+}
+
+fn gamerule_waterSourceConversion(value: string) {
+    exec(f"gamerule waterSourceConversion {value}")
+}
+
+// ────────────────────────────────────────────────────────────
+// give
+// ────────────────────────────────────────────────────────────
+
+fn give(targets: string, item: string, count: string = "") {
+    if (count == "") {
+        exec(f"give {targets} {item}")
+    } else {
+        exec(f"give {targets} {item} {count}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// help
+// ────────────────────────────────────────────────────────────
+
+fn help(command: string) {
+    exec(f"help {command}")
+}
+
+// ────────────────────────────────────────────────────────────
+// item
+// ────────────────────────────────────────────────────────────
+
+fn item_modify_block(pos: string, slot: string, modifier: string) {
+    exec(f"item modify block {pos} {slot} {modifier}")
+}
+
+fn item_modify_entity(targets: string, slot: string, modifier: string) {
+    exec(f"item modify entity {targets} {slot} {modifier}")
+}
+
+fn item_replace_block_from_block(pos: string, slot: string, source: string, sourceSlot: string, modifier: string = "") {
+    if (modifier == "") {
+        exec(f"item replace block {pos} {slot} from block {source} {sourceSlot}")
+    } else {
+        exec(f"item replace block {pos} {slot} from block {source} {sourceSlot} {modifier}")
+    }
+}
+
+fn item_replace_block_from_entity(pos: string, slot: string, source: string, sourceSlot: string, modifier: string = "") {
+    if (modifier == "") {
+        exec(f"item replace block {pos} {slot} from entity {source} {sourceSlot}")
+    } else {
+        exec(f"item replace block {pos} {slot} from entity {source} {sourceSlot} {modifier}")
+    }
+}
+
+fn item_replace_block_with(pos: string, slot: string, item: string, count: string = "") {
+    if (count == "") {
+        exec(f"item replace block {pos} {slot} with {item}")
+    } else {
+        exec(f"item replace block {pos} {slot} with {item} {count}")
+    }
+}
+
+fn item_replace_entity_from_block(targets: string, slot: string, source: string, sourceSlot: string, modifier: string = "") {
+    if (modifier == "") {
+        exec(f"item replace entity {targets} {slot} from block {source} {sourceSlot}")
+    } else {
+        exec(f"item replace entity {targets} {slot} from block {source} {sourceSlot} {modifier}")
+    }
+}
+
+fn item_replace_entity_from_entity(targets: string, slot: string, source: string, sourceSlot: string, modifier: string = "") {
+    if (modifier == "") {
+        exec(f"item replace entity {targets} {slot} from entity {source} {sourceSlot}")
+    } else {
+        exec(f"item replace entity {targets} {slot} from entity {source} {sourceSlot} {modifier}")
+    }
+}
+
+fn item_replace_entity_with(targets: string, slot: string, item: string, count: string = "") {
+    if (count == "") {
+        exec(f"item replace entity {targets} {slot} with {item}")
+    } else {
+        exec(f"item replace entity {targets} {slot} with {item} {count}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// jfr
+// ────────────────────────────────────────────────────────────
+
+fn jfr_start() {
+    exec(f"jfr start")
+}
+
+fn jfr_stop() {
+    exec(f"jfr stop")
+}
+
+// ────────────────────────────────────────────────────────────
+// kick
+// ────────────────────────────────────────────────────────────
+
+fn kick(targets: string, reason: string = "") {
+    if (reason == "") {
+        exec(f"kick {targets}")
+    } else {
+        exec(f"kick {targets} {reason}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// kill
+// ────────────────────────────────────────────────────────────
+
+fn kill(targets: string) {
+    exec(f"kill {targets}")
+}
+
+// ────────────────────────────────────────────────────────────
+// list
+// ────────────────────────────────────────────────────────────
+
+fn list_uuids() {
+    exec(f"list uuids")
+}
+
+// ────────────────────────────────────────────────────────────
+// locate
+// ────────────────────────────────────────────────────────────
+
+fn locate_biome(biome: string) {
+    exec(f"locate biome {biome}")
+}
+
+fn locate_poi(poi: string) {
+    exec(f"locate poi {poi}")
+}
+
+fn locate_structure(structure: string) {
+    exec(f"locate structure {structure}")
+}
+
+// ────────────────────────────────────────────────────────────
+// loot
+// ────────────────────────────────────────────────────────────
+
+fn loot_give_fish(players: string, loot_table: string, pos: string, tool: string = "") {
+    if (tool == "") {
+        exec(f"loot give {players} fish {loot_table} {pos}")
+    } else {
+        exec(f"loot give {players} fish {loot_table} {pos} {tool}")
+    }
+}
+
+fn loot_give_fish_mainhand(players: string, loot_table: string, pos: string) {
+    exec(f"loot give {players} fish {loot_table} {pos} mainhand")
+}
+
+fn loot_give_fish_offhand(players: string, loot_table: string, pos: string) {
+    exec(f"loot give {players} fish {loot_table} {pos} offhand")
+}
+
+fn loot_give_kill(players: string, target: string) {
+    exec(f"loot give {players} kill {target}")
+}
+
+fn loot_give_loot(players: string, loot_table: string) {
+    exec(f"loot give {players} loot {loot_table}")
+}
+
+fn loot_give_mine(players: string, pos: string, tool: string = "") {
+    if (tool == "") {
+        exec(f"loot give {players} mine {pos}")
+    } else {
+        exec(f"loot give {players} mine {pos} {tool}")
+    }
+}
+
+fn loot_give_mine_mainhand(players: string, pos: string) {
+    exec(f"loot give {players} mine {pos} mainhand")
+}
+
+fn loot_give_mine_offhand(players: string, pos: string) {
+    exec(f"loot give {players} mine {pos} offhand")
+}
+
+fn loot_insert_fish(targetPos: string, loot_table: string, pos: string, tool: string = "") {
+    if (tool == "") {
+        exec(f"loot insert {targetPos} fish {loot_table} {pos}")
+    } else {
+        exec(f"loot insert {targetPos} fish {loot_table} {pos} {tool}")
+    }
+}
+
+fn loot_insert_fish_mainhand(targetPos: string, loot_table: string, pos: string) {
+    exec(f"loot insert {targetPos} fish {loot_table} {pos} mainhand")
+}
+
+fn loot_insert_fish_offhand(targetPos: string, loot_table: string, pos: string) {
+    exec(f"loot insert {targetPos} fish {loot_table} {pos} offhand")
+}
+
+fn loot_insert_kill(targetPos: string, target: string) {
+    exec(f"loot insert {targetPos} kill {target}")
+}
+
+fn loot_insert_loot(targetPos: string, loot_table: string) {
+    exec(f"loot insert {targetPos} loot {loot_table}")
+}
+
+fn loot_insert_mine(targetPos: string, pos: string, tool: string = "") {
+    if (tool == "") {
+        exec(f"loot insert {targetPos} mine {pos}")
+    } else {
+        exec(f"loot insert {targetPos} mine {pos} {tool}")
+    }
+}
+
+fn loot_insert_mine_mainhand(targetPos: string, pos: string) {
+    exec(f"loot insert {targetPos} mine {pos} mainhand")
+}
+
+fn loot_insert_mine_offhand(targetPos: string, pos: string) {
+    exec(f"loot insert {targetPos} mine {pos} offhand")
+}
+
+fn loot_replace_block_fish(targetPos: string, slot: string, loot_table: string, pos: string, count: string = "", tool: string = "") {
+    if (count == "") {
+        exec(f"loot replace block {targetPos} {slot} fish {loot_table} {pos}")
+    } else if (tool == "") {
+        exec(f"loot replace block {targetPos} {slot} {count} fish {loot_table} {pos}")
+    } else if (count == "") {
+        exec(f"loot replace block {targetPos} {slot} fish {loot_table} {pos} {tool}")
+    } else {
+        exec(f"loot replace block {targetPos} {slot} {count} fish {loot_table} {pos} {tool}")
+    }
+}
+
+fn loot_replace_block_fish_mainhand(targetPos: string, slot: string, loot_table: string, pos: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace block {targetPos} {slot} fish {loot_table} {pos} mainhand")
+    } else {
+        exec(f"loot replace block {targetPos} {slot} {count} fish {loot_table} {pos} mainhand")
+    }
+}
+
+fn loot_replace_block_fish_offhand(targetPos: string, slot: string, loot_table: string, pos: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace block {targetPos} {slot} fish {loot_table} {pos} offhand")
+    } else {
+        exec(f"loot replace block {targetPos} {slot} {count} fish {loot_table} {pos} offhand")
+    }
+}
+
+fn loot_replace_block_kill(targetPos: string, slot: string, target: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace block {targetPos} {slot} kill {target}")
+    } else {
+        exec(f"loot replace block {targetPos} {slot} {count} kill {target}")
+    }
+}
+
+fn loot_replace_block_loot(targetPos: string, slot: string, loot_table: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace block {targetPos} {slot} loot {loot_table}")
+    } else {
+        exec(f"loot replace block {targetPos} {slot} {count} loot {loot_table}")
+    }
+}
+
+fn loot_replace_block_mine(targetPos: string, slot: string, pos: string, count: string = "", tool: string = "") {
+    if (count == "") {
+        exec(f"loot replace block {targetPos} {slot} mine {pos}")
+    } else if (tool == "") {
+        exec(f"loot replace block {targetPos} {slot} {count} mine {pos}")
+    } else if (count == "") {
+        exec(f"loot replace block {targetPos} {slot} mine {pos} {tool}")
+    } else {
+        exec(f"loot replace block {targetPos} {slot} {count} mine {pos} {tool}")
+    }
+}
+
+fn loot_replace_block_mine_mainhand(targetPos: string, slot: string, pos: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace block {targetPos} {slot} mine {pos} mainhand")
+    } else {
+        exec(f"loot replace block {targetPos} {slot} {count} mine {pos} mainhand")
+    }
+}
+
+fn loot_replace_block_mine_offhand(targetPos: string, slot: string, pos: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace block {targetPos} {slot} mine {pos} offhand")
+    } else {
+        exec(f"loot replace block {targetPos} {slot} {count} mine {pos} offhand")
+    }
+}
+
+fn loot_replace_entity_fish(entities: string, slot: string, loot_table: string, pos: string, count: string = "", tool: string = "") {
+    if (count == "") {
+        exec(f"loot replace entity {entities} {slot} fish {loot_table} {pos}")
+    } else if (tool == "") {
+        exec(f"loot replace entity {entities} {slot} {count} fish {loot_table} {pos}")
+    } else if (count == "") {
+        exec(f"loot replace entity {entities} {slot} fish {loot_table} {pos} {tool}")
+    } else {
+        exec(f"loot replace entity {entities} {slot} {count} fish {loot_table} {pos} {tool}")
+    }
+}
+
+fn loot_replace_entity_fish_mainhand(entities: string, slot: string, loot_table: string, pos: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace entity {entities} {slot} fish {loot_table} {pos} mainhand")
+    } else {
+        exec(f"loot replace entity {entities} {slot} {count} fish {loot_table} {pos} mainhand")
+    }
+}
+
+fn loot_replace_entity_fish_offhand(entities: string, slot: string, loot_table: string, pos: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace entity {entities} {slot} fish {loot_table} {pos} offhand")
+    } else {
+        exec(f"loot replace entity {entities} {slot} {count} fish {loot_table} {pos} offhand")
+    }
+}
+
+fn loot_replace_entity_kill(entities: string, slot: string, target: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace entity {entities} {slot} kill {target}")
+    } else {
+        exec(f"loot replace entity {entities} {slot} {count} kill {target}")
+    }
+}
+
+fn loot_replace_entity_loot(entities: string, slot: string, loot_table: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace entity {entities} {slot} loot {loot_table}")
+    } else {
+        exec(f"loot replace entity {entities} {slot} {count} loot {loot_table}")
+    }
+}
+
+fn loot_replace_entity_mine(entities: string, slot: string, pos: string, count: string = "", tool: string = "") {
+    if (count == "") {
+        exec(f"loot replace entity {entities} {slot} mine {pos}")
+    } else if (tool == "") {
+        exec(f"loot replace entity {entities} {slot} {count} mine {pos}")
+    } else if (count == "") {
+        exec(f"loot replace entity {entities} {slot} mine {pos} {tool}")
+    } else {
+        exec(f"loot replace entity {entities} {slot} {count} mine {pos} {tool}")
+    }
+}
+
+fn loot_replace_entity_mine_mainhand(entities: string, slot: string, pos: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace entity {entities} {slot} mine {pos} mainhand")
+    } else {
+        exec(f"loot replace entity {entities} {slot} {count} mine {pos} mainhand")
+    }
+}
+
+fn loot_replace_entity_mine_offhand(entities: string, slot: string, pos: string, count: string = "") {
+    if (count == "") {
+        exec(f"loot replace entity {entities} {slot} mine {pos} offhand")
+    } else {
+        exec(f"loot replace entity {entities} {slot} {count} mine {pos} offhand")
+    }
+}
+
+fn loot_spawn_fish(targetPos: string, loot_table: string, pos: string, tool: string = "") {
+    if (tool == "") {
+        exec(f"loot spawn {targetPos} fish {loot_table} {pos}")
+    } else {
+        exec(f"loot spawn {targetPos} fish {loot_table} {pos} {tool}")
+    }
+}
+
+fn loot_spawn_fish_mainhand(targetPos: string, loot_table: string, pos: string) {
+    exec(f"loot spawn {targetPos} fish {loot_table} {pos} mainhand")
+}
+
+fn loot_spawn_fish_offhand(targetPos: string, loot_table: string, pos: string) {
+    exec(f"loot spawn {targetPos} fish {loot_table} {pos} offhand")
+}
+
+fn loot_spawn_kill(targetPos: string, target: string) {
+    exec(f"loot spawn {targetPos} kill {target}")
+}
+
+fn loot_spawn_loot(targetPos: string, loot_table: string) {
+    exec(f"loot spawn {targetPos} loot {loot_table}")
+}
+
+fn loot_spawn_mine(targetPos: string, pos: string, tool: string = "") {
+    if (tool == "") {
+        exec(f"loot spawn {targetPos} mine {pos}")
+    } else {
+        exec(f"loot spawn {targetPos} mine {pos} {tool}")
+    }
+}
+
+fn loot_spawn_mine_mainhand(targetPos: string, pos: string) {
+    exec(f"loot spawn {targetPos} mine {pos} mainhand")
+}
+
+fn loot_spawn_mine_offhand(targetPos: string, pos: string) {
+    exec(f"loot spawn {targetPos} mine {pos} offhand")
+}
+
+// ────────────────────────────────────────────────────────────
+// me
+// ────────────────────────────────────────────────────────────
+
+fn me(action: string) {
+    exec(f"me {action}")
+}
+
+// ────────────────────────────────────────────────────────────
+// msg
+// ────────────────────────────────────────────────────────────
+
+fn msg(targets: string, message: string) {
+    exec(f"msg {targets} {message}")
+}
+
+// ────────────────────────────────────────────────────────────
+// op
+// ────────────────────────────────────────────────────────────
+
+fn op(targets: string) {
+    exec(f"op {targets}")
+}
+
+// ────────────────────────────────────────────────────────────
+// pardon
+// ────────────────────────────────────────────────────────────
+
+fn pardon(targets: string) {
+    exec(f"pardon {targets}")
+}
+
+// ────────────────────────────────────────────────────────────
+// pardon-ip
+// ────────────────────────────────────────────────────────────
+
+fn pardon_ip(target: string) {
+    exec(f"pardon-ip {target}")
+}
+
+// ────────────────────────────────────────────────────────────
+// particle
+// ────────────────────────────────────────────────────────────
+
+fn particle(name: string, pos: string = "", delta: string = "", speed: string = "", count: string = "") {
+    if (pos == "") {
+        exec(f"particle {name}")
+    } else if (delta == "") {
+        exec(f"particle {name} {pos}")
+    } else {
+        exec(f"particle {name} {pos} {delta} {speed} {count}")
+    }
+}
+
+fn particle_force(name: string, pos: string, delta: string, speed: string, count: string, viewers: string = "") {
+    if (viewers == "") {
+        exec(f"particle {name} {pos} {delta} {speed} {count} force")
+    } else {
+        exec(f"particle {name} {pos} {delta} {speed} {count} force {viewers}")
+    }
+}
+
+fn particle_normal(name: string, pos: string, delta: string, speed: string, count: string, viewers: string = "") {
+    if (viewers == "") {
+        exec(f"particle {name} {pos} {delta} {speed} {count} normal")
+    } else {
+        exec(f"particle {name} {pos} {delta} {speed} {count} normal {viewers}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// perf
+// ────────────────────────────────────────────────────────────
+
+fn perf_start() {
+    exec(f"perf start")
+}
+
+fn perf_stop() {
+    exec(f"perf stop")
+}
+
+// ────────────────────────────────────────────────────────────
+// place
+// ────────────────────────────────────────────────────────────
+
+fn place_feature(feature: string, pos: string = "") {
+    if (pos == "") {
+        exec(f"place feature {feature}")
+    } else {
+        exec(f"place feature {feature} {pos}")
+    }
+}
+
+fn place_jigsaw(pool: string, target: string, max_depth: string, position: string = "") {
+    if (position == "") {
+        exec(f"place jigsaw {pool} {target} {max_depth}")
+    } else {
+        exec(f"place jigsaw {pool} {target} {max_depth} {position}")
+    }
+}
+
+fn place_structure(structure: string, pos: string = "") {
+    if (pos == "") {
+        exec(f"place structure {structure}")
+    } else {
+        exec(f"place structure {structure} {pos}")
+    }
+}
+
+fn place_template(template: string, pos: string = "", rotation: string = "", mirror: string = "", integrity: string = "", seed: string = "") {
+    if (pos == "") {
+        exec(f"place template {template}")
+    } else if (rotation == "") {
+        exec(f"place template {template} {pos}")
+    } else if (mirror == "") {
+        exec(f"place template {template} {pos} {rotation}")
+    } else if (integrity == "") {
+        exec(f"place template {template} {pos} {rotation} {mirror}")
+    } else if (seed == "") {
+        exec(f"place template {template} {pos} {rotation} {mirror} {integrity}")
+    } else {
+        exec(f"place template {template} {pos} {rotation} {mirror} {integrity} {seed}")
+    }
+}
+
+fn place_template_strict(template: string, pos: string, rotation: string, mirror: string, integrity: string, seed: string) {
+    exec(f"place template {template} {pos} {rotation} {mirror} {integrity} {seed} strict")
+}
+
+// ────────────────────────────────────────────────────────────
+// playsound
+// ────────────────────────────────────────────────────────────
+
+fn playsound(sound: string) {
+    exec(f"playsound {sound}")
+}
+
+fn playsound_ambient(sound: string, targets: string = "", pos: string = "", volume: string = "", pitch: string = "", minVolume: string = "") {
+    if (targets == "") {
+        exec(f"playsound {sound} ambient")
+    } else if (pos == "") {
+        exec(f"playsound {sound} ambient {targets}")
+    } else if (volume == "") {
+        exec(f"playsound {sound} ambient {targets} {pos}")
+    } else if (pitch == "") {
+        exec(f"playsound {sound} ambient {targets} {pos} {volume}")
+    } else if (minVolume == "") {
+        exec(f"playsound {sound} ambient {targets} {pos} {volume} {pitch}")
+    } else {
+        exec(f"playsound {sound} ambient {targets} {pos} {volume} {pitch} {minVolume}")
+    }
+}
+
+fn playsound_block(sound: string, targets: string = "", pos: string = "", volume: string = "", pitch: string = "", minVolume: string = "") {
+    if (targets == "") {
+        exec(f"playsound {sound} block")
+    } else if (pos == "") {
+        exec(f"playsound {sound} block {targets}")
+    } else if (volume == "") {
+        exec(f"playsound {sound} block {targets} {pos}")
+    } else if (pitch == "") {
+        exec(f"playsound {sound} block {targets} {pos} {volume}")
+    } else if (minVolume == "") {
+        exec(f"playsound {sound} block {targets} {pos} {volume} {pitch}")
+    } else {
+        exec(f"playsound {sound} block {targets} {pos} {volume} {pitch} {minVolume}")
+    }
+}
+
+fn playsound_hostile(sound: string, targets: string = "", pos: string = "", volume: string = "", pitch: string = "", minVolume: string = "") {
+    if (targets == "") {
+        exec(f"playsound {sound} hostile")
+    } else if (pos == "") {
+        exec(f"playsound {sound} hostile {targets}")
+    } else if (volume == "") {
+        exec(f"playsound {sound} hostile {targets} {pos}")
+    } else if (pitch == "") {
+        exec(f"playsound {sound} hostile {targets} {pos} {volume}")
+    } else if (minVolume == "") {
+        exec(f"playsound {sound} hostile {targets} {pos} {volume} {pitch}")
+    } else {
+        exec(f"playsound {sound} hostile {targets} {pos} {volume} {pitch} {minVolume}")
+    }
+}
+
+fn playsound_master(sound: string, targets: string = "", pos: string = "", volume: string = "", pitch: string = "", minVolume: string = "") {
+    if (targets == "") {
+        exec(f"playsound {sound} master")
+    } else if (pos == "") {
+        exec(f"playsound {sound} master {targets}")
+    } else if (volume == "") {
+        exec(f"playsound {sound} master {targets} {pos}")
+    } else if (pitch == "") {
+        exec(f"playsound {sound} master {targets} {pos} {volume}")
+    } else if (minVolume == "") {
+        exec(f"playsound {sound} master {targets} {pos} {volume} {pitch}")
+    } else {
+        exec(f"playsound {sound} master {targets} {pos} {volume} {pitch} {minVolume}")
+    }
+}
+
+fn playsound_music(sound: string, targets: string = "", pos: string = "", volume: string = "", pitch: string = "", minVolume: string = "") {
+    if (targets == "") {
+        exec(f"playsound {sound} music")
+    } else if (pos == "") {
+        exec(f"playsound {sound} music {targets}")
+    } else if (volume == "") {
+        exec(f"playsound {sound} music {targets} {pos}")
+    } else if (pitch == "") {
+        exec(f"playsound {sound} music {targets} {pos} {volume}")
+    } else if (minVolume == "") {
+        exec(f"playsound {sound} music {targets} {pos} {volume} {pitch}")
+    } else {
+        exec(f"playsound {sound} music {targets} {pos} {volume} {pitch} {minVolume}")
+    }
+}
+
+fn playsound_neutral(sound: string, targets: string = "", pos: string = "", volume: string = "", pitch: string = "", minVolume: string = "") {
+    if (targets == "") {
+        exec(f"playsound {sound} neutral")
+    } else if (pos == "") {
+        exec(f"playsound {sound} neutral {targets}")
+    } else if (volume == "") {
+        exec(f"playsound {sound} neutral {targets} {pos}")
+    } else if (pitch == "") {
+        exec(f"playsound {sound} neutral {targets} {pos} {volume}")
+    } else if (minVolume == "") {
+        exec(f"playsound {sound} neutral {targets} {pos} {volume} {pitch}")
+    } else {
+        exec(f"playsound {sound} neutral {targets} {pos} {volume} {pitch} {minVolume}")
+    }
+}
+
+fn playsound_player(sound: string, targets: string = "", pos: string = "", volume: string = "", pitch: string = "", minVolume: string = "") {
+    if (targets == "") {
+        exec(f"playsound {sound} player")
+    } else if (pos == "") {
+        exec(f"playsound {sound} player {targets}")
+    } else if (volume == "") {
+        exec(f"playsound {sound} player {targets} {pos}")
+    } else if (pitch == "") {
+        exec(f"playsound {sound} player {targets} {pos} {volume}")
+    } else if (minVolume == "") {
+        exec(f"playsound {sound} player {targets} {pos} {volume} {pitch}")
+    } else {
+        exec(f"playsound {sound} player {targets} {pos} {volume} {pitch} {minVolume}")
+    }
+}
+
+fn playsound_record(sound: string, targets: string = "", pos: string = "", volume: string = "", pitch: string = "", minVolume: string = "") {
+    if (targets == "") {
+        exec(f"playsound {sound} record")
+    } else if (pos == "") {
+        exec(f"playsound {sound} record {targets}")
+    } else if (volume == "") {
+        exec(f"playsound {sound} record {targets} {pos}")
+    } else if (pitch == "") {
+        exec(f"playsound {sound} record {targets} {pos} {volume}")
+    } else if (minVolume == "") {
+        exec(f"playsound {sound} record {targets} {pos} {volume} {pitch}")
+    } else {
+        exec(f"playsound {sound} record {targets} {pos} {volume} {pitch} {minVolume}")
+    }
+}
+
+fn playsound_voice(sound: string, targets: string = "", pos: string = "", volume: string = "", pitch: string = "", minVolume: string = "") {
+    if (targets == "") {
+        exec(f"playsound {sound} voice")
+    } else if (pos == "") {
+        exec(f"playsound {sound} voice {targets}")
+    } else if (volume == "") {
+        exec(f"playsound {sound} voice {targets} {pos}")
+    } else if (pitch == "") {
+        exec(f"playsound {sound} voice {targets} {pos} {volume}")
+    } else if (minVolume == "") {
+        exec(f"playsound {sound} voice {targets} {pos} {volume} {pitch}")
+    } else {
+        exec(f"playsound {sound} voice {targets} {pos} {volume} {pitch} {minVolume}")
+    }
+}
+
+fn playsound_weather(sound: string, targets: string = "", pos: string = "", volume: string = "", pitch: string = "", minVolume: string = "") {
+    if (targets == "") {
+        exec(f"playsound {sound} weather")
+    } else if (pos == "") {
+        exec(f"playsound {sound} weather {targets}")
+    } else if (volume == "") {
+        exec(f"playsound {sound} weather {targets} {pos}")
+    } else if (pitch == "") {
+        exec(f"playsound {sound} weather {targets} {pos} {volume}")
+    } else if (minVolume == "") {
+        exec(f"playsound {sound} weather {targets} {pos} {volume} {pitch}")
+    } else {
+        exec(f"playsound {sound} weather {targets} {pos} {volume} {pitch} {minVolume}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// publish
+// ────────────────────────────────────────────────────────────
+
+fn publish(allowCommands: string, gamemode: string = "", port: string = "") {
+    if (gamemode == "") {
+        exec(f"publish {allowCommands}")
+    } else if (port == "") {
+        exec(f"publish {allowCommands} {gamemode}")
+    } else {
+        exec(f"publish {allowCommands} {gamemode} {port}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// random
+// ────────────────────────────────────────────────────────────
+
+fn random_reset__(seed: string, includeWorldSeed: string = "", includeSequenceId: string = "") {
+    if (includeWorldSeed == "") {
+        exec(f"random reset *")
+    } else if (includeWorldSeed == "") {
+        exec(f"random reset * {seed}")
+    } else if (includeSequenceId == "") {
+        exec(f"random reset * {seed} {includeWorldSeed}")
+    } else {
+        exec(f"random reset * {seed} {includeWorldSeed} {includeSequenceId}")
+    }
+}
+
+fn random_reset(sequence: string, seed: string = "", includeWorldSeed: string = "", includeSequenceId: string = "") {
+    if (seed == "") {
+        exec(f"random reset {sequence}")
+    } else if (includeWorldSeed == "") {
+        exec(f"random reset {sequence} {seed}")
+    } else if (includeSequenceId == "") {
+        exec(f"random reset {sequence} {seed} {includeWorldSeed}")
+    } else {
+        exec(f"random reset {sequence} {seed} {includeWorldSeed} {includeSequenceId}")
+    }
+}
+
+fn random_roll(range: string, sequence: string = "") {
+    if (sequence == "") {
+        exec(f"random roll {range}")
+    } else {
+        exec(f"random roll {range} {sequence}")
+    }
+}
+
+fn random_value(range: string, sequence: string = "") {
+    if (sequence == "") {
+        exec(f"random value {range}")
+    } else {
+        exec(f"random value {range} {sequence}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// recipe
+// ────────────────────────────────────────────────────────────
+
+fn recipe_give__(targets: string) {
+    exec(f"recipe give {targets} *")
+}
+
+fn recipe_give(targets: string, recipe: string) {
+    exec(f"recipe give {targets} {recipe}")
+}
+
+fn recipe_take__(targets: string) {
+    exec(f"recipe take {targets} *")
+}
+
+fn recipe_take(targets: string, recipe: string) {
+    exec(f"recipe take {targets} {recipe}")
+}
+
+// ────────────────────────────────────────────────────────────
+// reload
+// ────────────────────────────────────────────────────────────
+
+// (无可执行子命令)
+
+// ────────────────────────────────────────────────────────────
+// return
+// ────────────────────────────────────────────────────────────
+
+fn return_fail() {
+    exec(f"return fail")
+}
+
+fn return(value: string) {
+    exec(f"return {value}")
+}
+
+// ────────────────────────────────────────────────────────────
+// ride
+// ────────────────────────────────────────────────────────────
+
+fn ride_dismount(target: string) {
+    exec(f"ride {target} dismount")
+}
+
+fn ride_mount(target: string, vehicle: string) {
+    exec(f"ride {target} mount {vehicle}")
+}
+
+// ────────────────────────────────────────────────────────────
+// rotate
+// ────────────────────────────────────────────────────────────
+
+fn rotate_facing_entity(target: string, facingEntity: string, facingAnchor: string = "") {
+    if (facingAnchor == "") {
+        exec(f"rotate {target} facing entity {facingEntity}")
+    } else {
+        exec(f"rotate {target} facing entity {facingEntity} {facingAnchor}")
+    }
+}
+
+fn rotate_facing(target: string, facingLocation: string) {
+    exec(f"rotate {target} facing {facingLocation}")
+}
+
+fn rotate(target: string, rotation: string) {
+    exec(f"rotate {target} {rotation}")
+}
+
+// ────────────────────────────────────────────────────────────
+// save-all
+// ────────────────────────────────────────────────────────────
+
+fn save_all_flush() {
+    exec(f"save-all flush")
+}
+
+// ────────────────────────────────────────────────────────────
+// save-off
+// ────────────────────────────────────────────────────────────
+
+// (无可执行子命令)
+
+// ────────────────────────────────────────────────────────────
+// save-on
+// ────────────────────────────────────────────────────────────
+
+// (无可执行子命令)
+
+// ────────────────────────────────────────────────────────────
+// say
+// ────────────────────────────────────────────────────────────
+
+fn say(message: string) {
+    exec(f"say {message}")
+}
+
+// ────────────────────────────────────────────────────────────
+// schedule
+// ────────────────────────────────────────────────────────────
+
+fn schedule_clear(function: string) {
+    exec(f"schedule clear {function}")
+}
+
+fn schedule_function(function: string, time: string) {
+    exec(f"schedule function {function} {time}")
+}
+
+fn schedule_function_append(function: string, time: string) {
+    exec(f"schedule function {function} {time} append")
+}
+
+fn schedule_function_replace(function: string, time: string) {
+    exec(f"schedule function {function} {time} replace")
+}
+
+// ────────────────────────────────────────────────────────────
+// scoreboard
+// ────────────────────────────────────────────────────────────
+
+fn scoreboard_objectives_add(objective: string, criteria: string, displayName: string = "") {
+    if (displayName == "") {
+        exec(f"scoreboard objectives add {objective} {criteria}")
+    } else {
+        exec(f"scoreboard objectives add {objective} {criteria} {displayName}")
+    }
+}
+
+fn scoreboard_objectives_list() {
+    exec(f"scoreboard objectives list")
+}
+
+fn scoreboard_objectives_modify_displayautoupdate(objective: string, value: string) {
+    exec(f"scoreboard objectives modify {objective} displayautoupdate {value}")
+}
+
+fn scoreboard_objectives_modify_displayname(objective: string, displayName: string) {
+    exec(f"scoreboard objectives modify {objective} displayname {displayName}")
+}
+
+fn scoreboard_objectives_modify_numberformat(objective: string) {
+    exec(f"scoreboard objectives modify {objective} numberformat")
+}
+
+fn scoreboard_objectives_modify_numberformat_blank(objective: string) {
+    exec(f"scoreboard objectives modify {objective} numberformat blank")
+}
+
+fn scoreboard_objectives_modify_numberformat_fixed(objective: string, contents: string) {
+    exec(f"scoreboard objectives modify {objective} numberformat fixed {contents}")
+}
+
+fn scoreboard_objectives_modify_numberformat_styled(objective: string, style: string) {
+    exec(f"scoreboard objectives modify {objective} numberformat styled {style}")
+}
+
+fn scoreboard_objectives_modify_rendertype_hearts(objective: string) {
+    exec(f"scoreboard objectives modify {objective} rendertype hearts")
+}
+
+fn scoreboard_objectives_modify_rendertype_integer(objective: string) {
+    exec(f"scoreboard objectives modify {objective} rendertype integer")
+}
+
+fn scoreboard_objectives_remove(objective: string) {
+    exec(f"scoreboard objectives remove {objective}")
+}
+
+fn scoreboard_objectives_setdisplay(slot: string, objective: string = "") {
+    if (objective == "") {
+        exec(f"scoreboard objectives setdisplay {slot}")
+    } else {
+        exec(f"scoreboard objectives setdisplay {slot} {objective}")
+    }
+}
+
+fn scoreboard_players_add(targets: string, objective: string, score: string) {
+    exec(f"scoreboard players add {targets} {objective} {score}")
+}
+
+fn scoreboard_players_display_name(targets: string, objective: string, name: string = "") {
+    if (name == "") {
+        exec(f"scoreboard players display name {targets} {objective}")
+    } else {
+        exec(f"scoreboard players display name {targets} {objective} {name}")
+    }
+}
+
+fn scoreboard_players_display_numberformat(targets: string, objective: string) {
+    exec(f"scoreboard players display numberformat {targets} {objective}")
+}
+
+fn scoreboard_players_display_numberformat_blank(targets: string, objective: string) {
+    exec(f"scoreboard players display numberformat {targets} {objective} blank")
+}
+
+fn scoreboard_players_display_numberformat_fixed(targets: string, objective: string, contents: string) {
+    exec(f"scoreboard players display numberformat {targets} {objective} fixed {contents}")
+}
+
+fn scoreboard_players_display_numberformat_styled(targets: string, objective: string, style: string) {
+    exec(f"scoreboard players display numberformat {targets} {objective} styled {style}")
+}
+
+fn scoreboard_players_enable(targets: string, objective: string) {
+    exec(f"scoreboard players enable {targets} {objective}")
+}
+
+fn scoreboard_players_get(target: string, objective: string) {
+    exec(f"scoreboard players get {target} {objective}")
+}
+
+fn scoreboard_players_list(target: string) {
+    exec(f"scoreboard players list {target}")
+}
+
+fn scoreboard_players_operation(targets: string, targetObjective: string, operation: string, source: string, sourceObjective: string) {
+    exec(f"scoreboard players operation {targets} {targetObjective} {operation} {source} {sourceObjective}")
+}
+
+fn scoreboard_players_remove(targets: string, objective: string, score: string) {
+    exec(f"scoreboard players remove {targets} {objective} {score}")
+}
+
+fn scoreboard_players_reset(targets: string, objective: string = "") {
+    if (objective == "") {
+        exec(f"scoreboard players reset {targets}")
+    } else {
+        exec(f"scoreboard players reset {targets} {objective}")
+    }
+}
+
+fn scoreboard_players_set(targets: string, objective: string, score: string) {
+    exec(f"scoreboard players set {targets} {objective} {score}")
+}
+
+// ────────────────────────────────────────────────────────────
+// seed
+// ────────────────────────────────────────────────────────────
+
+// (无可执行子命令)
+
+// ────────────────────────────────────────────────────────────
+// setblock
+// ────────────────────────────────────────────────────────────
+
+fn setblock(pos: string, block: string) {
+    exec(f"setblock {pos} {block}")
+}
+
+fn setblock_destroy(pos: string, block: string) {
+    exec(f"setblock {pos} {block} destroy")
+}
+
+fn setblock_keep(pos: string, block: string) {
+    exec(f"setblock {pos} {block} keep")
+}
+
+fn setblock_replace(pos: string, block: string) {
+    exec(f"setblock {pos} {block} replace")
+}
+
+fn setblock_strict(pos: string, block: string) {
+    exec(f"setblock {pos} {block} strict")
+}
+
+// ────────────────────────────────────────────────────────────
+// setidletimeout
+// ────────────────────────────────────────────────────────────
+
+fn setidletimeout(minutes: string) {
+    exec(f"setidletimeout {minutes}")
+}
+
+// ────────────────────────────────────────────────────────────
+// setworldspawn
+// ────────────────────────────────────────────────────────────
+
+fn setworldspawn(pos: string, angle: string = "") {
+    if (angle == "") {
+        exec(f"setworldspawn {pos}")
+    } else {
+        exec(f"setworldspawn {pos} {angle}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// spawnpoint
+// ────────────────────────────────────────────────────────────
+
+fn spawnpoint(targets: string, pos: string = "", angle: string = "") {
+    if (pos == "") {
+        exec(f"spawnpoint {targets}")
+    } else if (angle == "") {
+        exec(f"spawnpoint {targets} {pos}")
+    } else {
+        exec(f"spawnpoint {targets} {pos} {angle}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// spectate
+// ────────────────────────────────────────────────────────────
+
+fn spectate(target: string, player: string = "") {
+    if (player == "") {
+        exec(f"spectate {target}")
+    } else {
+        exec(f"spectate {target} {player}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// spreadplayers
+// ────────────────────────────────────────────────────────────
+
+fn spreadplayers(center: string, spreadDistance: string, maxRange: string, respectTeams: string, targets: string) {
+    exec(f"spreadplayers {center} {spreadDistance} {maxRange} {respectTeams} {targets}")
+}
+
+fn spreadplayers_under(center: string, spreadDistance: string, maxRange: string, maxHeight: string, respectTeams: string, targets: string) {
+    exec(f"spreadplayers {center} {spreadDistance} {maxRange} under {maxHeight} {respectTeams} {targets}")
+}
+
+// ────────────────────────────────────────────────────────────
+// stop
+// ────────────────────────────────────────────────────────────
+
+// (无可执行子命令)
+
+// ────────────────────────────────────────────────────────────
+// stopsound
+// ────────────────────────────────────────────────────────────
+
+fn stopsound(targets: string) {
+    exec(f"stopsound {targets}")
+}
+
+fn stopsound__(targets: string, sound: string) {
+    exec(f"stopsound {targets} * {sound}")
+}
+
+fn stopsound_ambient(targets: string, sound: string = "") {
+    if (sound == "") {
+        exec(f"stopsound {targets} ambient")
+    } else {
+        exec(f"stopsound {targets} ambient {sound}")
+    }
+}
+
+fn stopsound_block(targets: string, sound: string = "") {
+    if (sound == "") {
+        exec(f"stopsound {targets} block")
+    } else {
+        exec(f"stopsound {targets} block {sound}")
+    }
+}
+
+fn stopsound_hostile(targets: string, sound: string = "") {
+    if (sound == "") {
+        exec(f"stopsound {targets} hostile")
+    } else {
+        exec(f"stopsound {targets} hostile {sound}")
+    }
+}
+
+fn stopsound_master(targets: string, sound: string = "") {
+    if (sound == "") {
+        exec(f"stopsound {targets} master")
+    } else {
+        exec(f"stopsound {targets} master {sound}")
+    }
+}
+
+fn stopsound_music(targets: string, sound: string = "") {
+    if (sound == "") {
+        exec(f"stopsound {targets} music")
+    } else {
+        exec(f"stopsound {targets} music {sound}")
+    }
+}
+
+fn stopsound_neutral(targets: string, sound: string = "") {
+    if (sound == "") {
+        exec(f"stopsound {targets} neutral")
+    } else {
+        exec(f"stopsound {targets} neutral {sound}")
+    }
+}
+
+fn stopsound_player(targets: string, sound: string = "") {
+    if (sound == "") {
+        exec(f"stopsound {targets} player")
+    } else {
+        exec(f"stopsound {targets} player {sound}")
+    }
+}
+
+fn stopsound_record(targets: string, sound: string = "") {
+    if (sound == "") {
+        exec(f"stopsound {targets} record")
+    } else {
+        exec(f"stopsound {targets} record {sound}")
+    }
+}
+
+fn stopsound_voice(targets: string, sound: string = "") {
+    if (sound == "") {
+        exec(f"stopsound {targets} voice")
+    } else {
+        exec(f"stopsound {targets} voice {sound}")
+    }
+}
+
+fn stopsound_weather(targets: string, sound: string = "") {
+    if (sound == "") {
+        exec(f"stopsound {targets} weather")
+    } else {
+        exec(f"stopsound {targets} weather {sound}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// summon
+// ────────────────────────────────────────────────────────────
+
+fn summon(entity: string, pos: string = "", nbt: string = "") {
+    if (pos == "") {
+        exec(f"summon {entity}")
+    } else if (nbt == "") {
+        exec(f"summon {entity} {pos}")
+    } else {
+        exec(f"summon {entity} {pos} {nbt}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// tag
+// ────────────────────────────────────────────────────────────
+
+fn tag_add(targets: string, name: string) {
+    exec(f"tag {targets} add {name}")
+}
+
+fn tag_list(targets: string) {
+    exec(f"tag {targets} list")
+}
+
+fn tag_remove(targets: string, name: string) {
+    exec(f"tag {targets} remove {name}")
+}
+
+// ────────────────────────────────────────────────────────────
+// team
+// ────────────────────────────────────────────────────────────
+
+fn team_add(team: string, displayName: string = "") {
+    if (displayName == "") {
+        exec(f"team add {team}")
+    } else {
+        exec(f"team add {team} {displayName}")
+    }
+}
+
+fn team_empty(team: string) {
+    exec(f"team empty {team}")
+}
+
+fn team_join(team: string, members: string = "") {
+    if (members == "") {
+        exec(f"team join {team}")
+    } else {
+        exec(f"team join {team} {members}")
+    }
+}
+
+fn team_leave(members: string) {
+    exec(f"team leave {members}")
+}
+
+fn team_list(team: string) {
+    exec(f"team list {team}")
+}
+
+fn team_modify_collisionRule_always(team: string) {
+    exec(f"team modify {team} collisionRule always")
+}
+
+fn team_modify_collisionRule_never(team: string) {
+    exec(f"team modify {team} collisionRule never")
+}
+
+fn team_modify_collisionRule_pushOtherTeams(team: string) {
+    exec(f"team modify {team} collisionRule pushOtherTeams")
+}
+
+fn team_modify_collisionRule_pushOwnTeam(team: string) {
+    exec(f"team modify {team} collisionRule pushOwnTeam")
+}
+
+fn team_modify_color(team: string, value: string) {
+    exec(f"team modify {team} color {value}")
+}
+
+fn team_modify_deathMessageVisibility_always(team: string) {
+    exec(f"team modify {team} deathMessageVisibility always")
+}
+
+fn team_modify_deathMessageVisibility_hideForOtherTeams(team: string) {
+    exec(f"team modify {team} deathMessageVisibility hideForOtherTeams")
+}
+
+fn team_modify_deathMessageVisibility_hideForOwnTeam(team: string) {
+    exec(f"team modify {team} deathMessageVisibility hideForOwnTeam")
+}
+
+fn team_modify_deathMessageVisibility_never(team: string) {
+    exec(f"team modify {team} deathMessageVisibility never")
+}
+
+fn team_modify_displayName(team: string, displayName: string) {
+    exec(f"team modify {team} displayName {displayName}")
+}
+
+fn team_modify_friendlyFire(team: string, allowed: string) {
+    exec(f"team modify {team} friendlyFire {allowed}")
+}
+
+fn team_modify_nametagVisibility_always(team: string) {
+    exec(f"team modify {team} nametagVisibility always")
+}
+
+fn team_modify_nametagVisibility_hideForOtherTeams(team: string) {
+    exec(f"team modify {team} nametagVisibility hideForOtherTeams")
+}
+
+fn team_modify_nametagVisibility_hideForOwnTeam(team: string) {
+    exec(f"team modify {team} nametagVisibility hideForOwnTeam")
+}
+
+fn team_modify_nametagVisibility_never(team: string) {
+    exec(f"team modify {team} nametagVisibility never")
+}
+
+fn team_modify_prefix(team: string, prefix: string) {
+    exec(f"team modify {team} prefix {prefix}")
+}
+
+fn team_modify_seeFriendlyInvisibles(team: string, allowed: string) {
+    exec(f"team modify {team} seeFriendlyInvisibles {allowed}")
+}
+
+fn team_modify_suffix(team: string, suffix: string) {
+    exec(f"team modify {team} suffix {suffix}")
+}
+
+fn team_remove(team: string) {
+    exec(f"team remove {team}")
+}
+
+// ────────────────────────────────────────────────────────────
+// teammsg
+// ────────────────────────────────────────────────────────────
+
+fn teammsg(message: string) {
+    exec(f"teammsg {message}")
+}
+
+// ────────────────────────────────────────────────────────────
+// teleport
+// ────────────────────────────────────────────────────────────
+
+fn teleport(targets: string, location: string = "", rotation: string = "", destination: string = "") {
+    if (location == "") {
+        exec(f"teleport {destination}")
+    } else if (targets == "") {
+        exec(f"teleport {location}")
+    } else if (location == "") {
+        exec(f"teleport {targets} {destination}")
+    } else if (rotation == "") {
+        exec(f"teleport {targets} {location}")
+    } else {
+        exec(f"teleport {targets} {location} {rotation}")
+    }
+}
+
+fn teleport_facing_entity(targets: string, location: string, facingEntity: string, facingAnchor: string = "") {
+    if (facingAnchor == "") {
+        exec(f"teleport {targets} {location} facing entity {facingEntity}")
+    } else {
+        exec(f"teleport {targets} {location} facing entity {facingEntity} {facingAnchor}")
+    }
+}
+
+fn teleport_facing(targets: string, location: string, facingLocation: string) {
+    exec(f"teleport {targets} {location} facing {facingLocation}")
+}
+
+// ────────────────────────────────────────────────────────────
+// tell
+// ────────────────────────────────────────────────────────────
+
+// (无可执行子命令)
+
+// ────────────────────────────────────────────────────────────
+// tellraw
+// ────────────────────────────────────────────────────────────
+
+fn tellraw(targets: string, message: string) {
+    exec(f"tellraw {targets} {message}")
+}
+
+// ────────────────────────────────────────────────────────────
+// test
+// ────────────────────────────────────────────────────────────
+
+fn test_clearall(radius: string) {
+    exec(f"test clearall {radius}")
+}
+
+fn test_clearthat() {
+    exec(f"test clearthat")
+}
+
+fn test_clearthese() {
+    exec(f"test clearthese")
+}
+
+fn test_create(id: string, width: string = "", height: string = "", depth: string = "") {
+    if (width == "") {
+        exec(f"test create {id}")
+    } else if (height == "") {
+        exec(f"test create {id} {width}")
+    } else {
+        exec(f"test create {id} {width} {height} {depth}")
+    }
+}
+
+fn test_locate(tests: string) {
+    exec(f"test locate {tests}")
+}
+
+fn test_pos(var: string) {
+    exec(f"test pos {var}")
+}
+
+fn test_resetclosest() {
+    exec(f"test resetclosest")
+}
+
+fn test_resetthat() {
+    exec(f"test resetthat")
+}
+
+fn test_resetthese() {
+    exec(f"test resetthese")
+}
+
+fn test_run(tests: string, numberOfTimes: string = "", untilFailed: string = "", rotationSteps: string = "", testsPerRow: string = "") {
+    if (numberOfTimes == "") {
+        exec(f"test run {tests}")
+    } else if (untilFailed == "") {
+        exec(f"test run {tests} {numberOfTimes}")
+    } else if (rotationSteps == "") {
+        exec(f"test run {tests} {numberOfTimes} {untilFailed}")
+    } else if (testsPerRow == "") {
+        exec(f"test run {tests} {numberOfTimes} {untilFailed} {rotationSteps}")
+    } else {
+        exec(f"test run {tests} {numberOfTimes} {untilFailed} {rotationSteps} {testsPerRow}")
+    }
+}
+
+fn test_runclosest(numberOfTimes: string, untilFailed: string = "") {
+    if (untilFailed == "") {
+        exec(f"test runclosest")
+    } else if (untilFailed == "") {
+        exec(f"test runclosest {numberOfTimes}")
+    } else {
+        exec(f"test runclosest {numberOfTimes} {untilFailed}")
+    }
+}
+
+fn test_runfailed(onlyRequiredTests: string, numberOfTimes: string, untilFailed: string = "", rotationSteps: string = "", testsPerRow: string = "") {
+    if (untilFailed == "") {
+        exec(f"test runfailed")
+    } else if (onlyRequiredTests == "") {
+        exec(f"test runfailed {numberOfTimes}")
+    } else if (numberOfTimes == "") {
+        exec(f"test runfailed {onlyRequiredTests}")
+    } else if (onlyRequiredTests == "") {
+        exec(f"test runfailed {numberOfTimes} {untilFailed}")
+    } else if (untilFailed == "") {
+        exec(f"test runfailed {onlyRequiredTests} {numberOfTimes}")
+    } else if (onlyRequiredTests == "") {
+        exec(f"test runfailed {numberOfTimes} {untilFailed} {rotationSteps}")
+    } else if (rotationSteps == "") {
+        exec(f"test runfailed {onlyRequiredTests} {numberOfTimes} {untilFailed}")
+    } else if (onlyRequiredTests == "") {
+        exec(f"test runfailed {numberOfTimes} {untilFailed} {rotationSteps} {testsPerRow}")
+    } else if (testsPerRow == "") {
+        exec(f"test runfailed {onlyRequiredTests} {numberOfTimes} {untilFailed} {rotationSteps}")
+    } else {
+        exec(f"test runfailed {onlyRequiredTests} {numberOfTimes} {untilFailed} {rotationSteps} {testsPerRow}")
+    }
+}
+
+fn test_runmultiple(tests: string, amount: string = "") {
+    if (amount == "") {
+        exec(f"test runmultiple {tests}")
+    } else {
+        exec(f"test runmultiple {tests} {amount}")
+    }
+}
+
+fn test_runthat(numberOfTimes: string, untilFailed: string = "") {
+    if (untilFailed == "") {
+        exec(f"test runthat")
+    } else if (untilFailed == "") {
+        exec(f"test runthat {numberOfTimes}")
+    } else {
+        exec(f"test runthat {numberOfTimes} {untilFailed}")
+    }
+}
+
+fn test_runthese(numberOfTimes: string, untilFailed: string = "") {
+    if (untilFailed == "") {
+        exec(f"test runthese")
+    } else if (untilFailed == "") {
+        exec(f"test runthese {numberOfTimes}")
+    } else {
+        exec(f"test runthese {numberOfTimes} {untilFailed}")
+    }
+}
+
+fn test_stop() {
+    exec(f"test stop")
+}
+
+fn test_verify(tests: string) {
+    exec(f"test verify {tests}")
+}
+
+// ────────────────────────────────────────────────────────────
+// tick
+// ────────────────────────────────────────────────────────────
+
+fn tick_freeze() {
+    exec(f"tick freeze")
+}
+
+fn tick_query() {
+    exec(f"tick query")
+}
+
+fn tick_rate(rate: string) {
+    exec(f"tick rate {rate}")
+}
+
+fn tick_sprint_stop() {
+    exec(f"tick sprint stop")
+}
+
+fn tick_sprint(time: string) {
+    exec(f"tick sprint {time}")
+}
+
+fn tick_step(time: string) {
+    exec(f"tick step {time}")
+}
+
+fn tick_step_stop() {
+    exec(f"tick step stop")
+}
+
+fn tick_unfreeze() {
+    exec(f"tick unfreeze")
+}
+
+// ────────────────────────────────────────────────────────────
+// time
+// ────────────────────────────────────────────────────────────
+
+fn time_add(time: string) {
+    exec(f"time add {time}")
+}
+
+fn time_query_day() {
+    exec(f"time query day")
+}
+
+fn time_query_daytime() {
+    exec(f"time query daytime")
+}
+
+fn time_query_gametime() {
+    exec(f"time query gametime")
+}
+
+fn time_set_day() {
+    exec(f"time set day")
+}
+
+fn time_set_midnight() {
+    exec(f"time set midnight")
+}
+
+fn time_set_night() {
+    exec(f"time set night")
+}
+
+fn time_set_noon() {
+    exec(f"time set noon")
+}
+
+fn time_set(time: string) {
+    exec(f"time set {time}")
+}
+
+// ────────────────────────────────────────────────────────────
+// title
+// ────────────────────────────────────────────────────────────
+
+fn title_actionbar(targets: string, title: string) {
+    exec(f"title {targets} actionbar {title}")
+}
+
+fn title_clear(targets: string) {
+    exec(f"title {targets} clear")
+}
+
+fn title_reset(targets: string) {
+    exec(f"title {targets} reset")
+}
+
+fn title_subtitle(targets: string, title: string) {
+    exec(f"title {targets} subtitle {title}")
+}
+
+fn title_times(targets: string, fadeIn: string, stay: string, fadeOut: string) {
+    exec(f"title {targets} times {fadeIn} {stay} {fadeOut}")
+}
+
+fn title_title(targets: string, title: string) {
+    exec(f"title {targets} title {title}")
+}
+
+// ────────────────────────────────────────────────────────────
+// tm
+// ────────────────────────────────────────────────────────────
+
+// (无可执行子命令)
+
+// ────────────────────────────────────────────────────────────
+// tp
+// ────────────────────────────────────────────────────────────
+
+// (无可执行子命令)
+
+// ────────────────────────────────────────────────────────────
+// transfer
+// ────────────────────────────────────────────────────────────
+
+fn transfer(hostname: string, port: string = "", players: string = "") {
+    if (port == "") {
+        exec(f"transfer {hostname}")
+    } else if (players == "") {
+        exec(f"transfer {hostname} {port}")
+    } else {
+        exec(f"transfer {hostname} {port} {players}")
+    }
+}
+
+// ────────────────────────────────────────────────────────────
+// trigger
+// ────────────────────────────────────────────────────────────
+
+fn trigger(objective: string) {
+    exec(f"trigger {objective}")
+}
+
+fn trigger_add(objective: string, value: string) {
+    exec(f"trigger {objective} add {value}")
+}
+
+fn trigger_set(objective: string, value: string) {
+    exec(f"trigger {objective} set {value}")
+}
+
+// ────────────────────────────────────────────────────────────
+// w
+// ────────────────────────────────────────────────────────────
+
+// (无可执行子命令)
+
+// ────────────────────────────────────────────────────────────
+// weather
+// ────────────────────────────────────────────────────────────
+
+fn weather_clear(duration: string) {
+    exec(f"weather clear {duration}")
+}
+
+fn weather_rain(duration: string) {
+    exec(f"weather rain {duration}")
+}
+
+fn weather_thunder(duration: string) {
+    exec(f"weather thunder {duration}")
+}
+
+// ────────────────────────────────────────────────────────────
+// whitelist
+// ────────────────────────────────────────────────────────────
+
+fn whitelist_add(targets: string) {
+    exec(f"whitelist add {targets}")
+}
+
+fn whitelist_list() {
+    exec(f"whitelist list")
+}
+
+fn whitelist_off() {
+    exec(f"whitelist off")
+}
+
+fn whitelist_on() {
+    exec(f"whitelist on")
+}
+
+fn whitelist_reload() {
+    exec(f"whitelist reload")
+}
+
+fn whitelist_remove(targets: string) {
+    exec(f"whitelist remove {targets}")
+}
+
+// ────────────────────────────────────────────────────────────
+// worldborder
+// ────────────────────────────────────────────────────────────
+
+fn worldborder_add(distance: string, time: string = "") {
+    if (time == "") {
+        exec(f"worldborder add {distance}")
+    } else {
+        exec(f"worldborder add {distance} {time}")
+    }
+}
+
+fn worldborder_center(pos: string) {
+    exec(f"worldborder center {pos}")
+}
+
+fn worldborder_damage_amount(damagePerBlock: string) {
+    exec(f"worldborder damage amount {damagePerBlock}")
+}
+
+fn worldborder_damage_buffer(distance: string) {
+    exec(f"worldborder damage buffer {distance}")
+}
+
+fn worldborder_get() {
+    exec(f"worldborder get")
+}
+
+fn worldborder_set(distance: string, time: string = "") {
+    if (time == "") {
+        exec(f"worldborder set {distance}")
+    } else {
+        exec(f"worldborder set {distance} {time}")
+    }
+}
+
+fn worldborder_warning_distance(distance: string) {
+    exec(f"worldborder warning distance {distance}")
+}
+
+fn worldborder_warning_time(time: string) {
+    exec(f"worldborder warning time {time}")
+}
+
+// ────────────────────────────────────────────────────────────
+// xp
+// ────────────────────────────────────────────────────────────
+
+// (无可执行子命令)
+
+// ────────────────────────────────────────────────────────────
+// 命令别名（tp → teleport，w/msg → tell 等）
+// ────────────────────────────────────────────────────────────
+
+fn tp(targets: string, location: string = "", rotation: string = "", destination: string = "") {
+    if (location == "") {
+        exec(f"tp {destination}")
+    } else if (targets == "") {
+        exec(f"tp {location}")
+    } else if (location == "") {
+        exec(f"tp {targets} {destination}")
+    } else if (rotation == "") {
+        exec(f"tp {targets} {location}")
+    } else {
+        exec(f"tp {targets} {location} {rotation}")
+    }
+}
+
+fn tp_facing_entity(targets: string, location: string, facingEntity: string, facingAnchor: string = "") {
+    if (facingAnchor == "") {
+        exec(f"tp {targets} {location} facing entity {facingEntity}")
+    } else {
+        exec(f"tp {targets} {location} facing entity {facingEntity} {facingAnchor}")
+    }
+}
+
+fn tp_facing(targets: string, location: string, facingLocation: string) {
+    exec(f"tp {targets} {location} facing {facingLocation}")
+}
+
+fn wraw(targets: string, message: string) {
+    exec(f"w {targets} {message}")
+}
+
+fn msgraw(targets: string, message: string) {
+    exec(f"msg {targets} {message}")
+}

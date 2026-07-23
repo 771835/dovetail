@@ -34,7 +34,7 @@ class NameNormalizer:
         - 连续下划线 "__" 表示原始的下划线
         - 非字母数字或下划线的字符替换为 "_{后面编码的长度}{36进制编码的字符}"
 
-        在 Windows 平台下，对于aux、com1、com2、prn、con、nul等会返回"_0_{对应字符}",不受命名归一化是否开启影响。
+        在 Windows 平台下，对于aux、com1、com2、prn、con、nul等会返回"_0_{对应字符}"，不受命名归一化是否开启影响。
 
         Args:
             name (str): 原始字符串名称

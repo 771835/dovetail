@@ -1,10 +1,12 @@
+include "minecraft.mcdl"
+
 typedef int i32
 
 fn foo() -> i32;
 @init
 fn beef(){
     if (foo()==350234) {
-        exec("say 𝔀𝓪𝔀")
+        say("𝔀𝓪𝔀")
         print("1")
     }else {
         exec("say 2")

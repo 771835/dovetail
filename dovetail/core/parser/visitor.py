@@ -49,7 +49,6 @@ from dovetail.core.instructions import (
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
 from dovetail.core.lib.library_mapping import LibraryMapping
-from dovetail.core.parser.components.declaration_handler import DeclarationHandler
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.parser.components.include_manager import IncludeManager, CircularIncludeException
 from dovetail.core.parser.components.ir_emitter import IREmitter
@@ -91,7 +90,8 @@ class ASTVisitor(Interpreter):
         # 初始化组件
         self.error_reporter = ErrorReporter(entry_file)
         self.builder = IRBuilder()
-        self.ir_emitter = IREmitter(self.builder)
+
+        self.type_checker = TypeChecker(self.error_reporter)
 
         # 初始化作用域及符号表
         self.symbol_resolver = SymbolResolver(
@@ -99,13 +99,11 @@ class ASTVisitor(Interpreter):
             self.error_reporter
         )
 
-        self.type_checker = TypeChecker(self.error_reporter)
-
-        self.declaration_handler = DeclarationHandler(
-            self.symbol_resolver,
+        self.ir_emitter = IREmitter(
+            self.builder,
+            self.error_reporter,
             self.type_checker,
-            self.ir_emitter,
-            self.error_reporter
+            self.symbol_resolver
         )
 
         self.include_manager = IncludeManager(self.error_reporter, entry_file)
@@ -450,7 +448,7 @@ class ASTVisitor(Interpreter):
             assert isinstance(default_value, Reference)
             dtype = default_value.get_dtype()
 
-        return self.declaration_handler.declare_variable(symbol_name, dtype, default_value, meta)
+        return self.ir_emitter.declare_variable(symbol_name, dtype, default_value, meta)
 
     @v_args(meta=True)
     def const(self, meta: Meta, children: list[Tree | Token]) -> Optional[Reference]:
@@ -469,7 +467,7 @@ class ASTVisitor(Interpreter):
             dtype = self.visit(children[1])  # noqa
             value = self.visit(children[2])  # noqa
 
-        return self.declaration_handler.declare_variable(symbol_name, dtype, value, meta, False)
+        return self.ir_emitter.declare_variable(symbol_name, dtype, value, meta, False)
 
     def params(self, tree: Tree) -> list[Parameter]:
         """处理参数列表"""

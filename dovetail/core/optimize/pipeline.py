@@ -27,9 +27,10 @@ logger = get_logger(__name__)
 
 # 阶段优先级：值越小越先执行
 _PHASE_PRIORITY: dict[PassPhase, int] = {
-    PassPhase.ANALYZE: 0,
-    PassPhase.TRANSFORM: 1,
-    PassPhase.CLEANUP: 2,
+    PassPhase.PRUNE: 0,
+    PassPhase.ANALYZE: 1,
+    PassPhase.TRANSFORM: 2,
+    PassPhase.CLEANUP: 3,
 }
 
 

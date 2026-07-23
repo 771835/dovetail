@@ -16,6 +16,9 @@ from dovetail.utils.safe_enum import SafeEnum
 class PassPhase(SafeEnum):
     """优化 Pass 执行阶段"""
 
+    PRUNE = "prune"
+    """裁剪阶段：优先裁剪无用 IR，减小代码体积，提高后续处理效率"""
+
     ANALYZE = "analyze"
     """分析阶段：收集 IR 信息，不修改 IR"""
 
@@ -28,7 +31,7 @@ class PassPhase(SafeEnum):
     @classmethod
     def get_phase_order(cls) -> tuple[PassPhase, ...]:
         """获取阶段执行顺序"""
-        return cls.ANALYZE, cls.TRANSFORM, cls.CLEANUP
+        return cls.PRUNE, cls.ANALYZE, cls.TRANSFORM, cls.CLEANUP
 
 
 @define(frozen=True, slots=True)

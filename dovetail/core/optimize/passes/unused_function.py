@@ -51,7 +51,7 @@ from dovetail.core.symbols import Function
     display_name="未使用函数消除",
     description="移除从未被调用的函数",
     level=OptimizationLevel.O1,
-    phase=PassPhase.CLEANUP,
+    phase=PassPhase.PRUNE,
     provided_features=("removed_unused_functions",)
 ))
 class UnusedFunctionEliminationPass(IROptimizationPass):
