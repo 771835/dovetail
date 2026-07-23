@@ -4,7 +4,7 @@
 
 调度策略：
   依赖绝对优先——拓扑排序决定执行顺序。
-  阶段作 tie-breaker——同入度为 0 的节点间按 ANALYZE < TRANSFORM < CLEANUP 排列。
+  阶段作 tie-breaker——同入度为 0 的节点间按 PRUNE < ANALYZE < TRANSFORM < CLEANUP 排列。
   禁止跨阶段逆序依赖——TRANSFORM Pass 不能依赖 CLEANUP Pass，违者在构建时抛出 ValueError。
 """
 from __future__ import annotations
@@ -251,12 +251,11 @@ class OptimizationPipeline:
                     )
 
                 if self.config.debug:
-                    builder.print()
+                    # builder.print()
                     if not FAST_MODE:
                         from dovetail.utils.ir_validator import assert_ir
                         assert_ir(builder)
                     logger.debug(f"  执行：{pass_class.get_metadata().display_name}")
-
 
                 # 执行优化（修改 IR）
                 if pass_instance.execute():

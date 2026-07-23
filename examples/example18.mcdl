@@ -1,4 +1,4 @@
-# 一个常量折叠的错误，会使最终输出超过int上线
+# 测试常量折叠在过大数时的效果
 fn square(x: int) -> int {
     return x * x
 }

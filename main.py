@@ -134,6 +134,7 @@ class Compiler:
 
         return self._compile_file(Path(source_path / pack_config_data["main"]).resolve(), target_path, source_path)
 
+    @timed("编译总用时: {:.3f}s")
     def _compile_file(
             self,
             source_path: Path,

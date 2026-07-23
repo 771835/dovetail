@@ -2,10 +2,13 @@
 """
 未使用函数消除 Pass
 
-移除从未被 CALL 或 CALL_METHOD 指令引用的函数。
+基于调用图从根节点出发做 BFS，标记所有可达函数，
+未被标记的函数（含前向声明）一律删除。
 
 """
 from __future__ import annotations
+
+from collections import defaultdict, deque
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel, FunctionType
@@ -20,69 +23,118 @@ from dovetail.core.symbols import Function
 @register_pass(PassMetadata(
     name="unused_function_elimination",
     display_name="未使用函数消除",
-    description="移除从未被调用的函数",
+    description="基于调用图可达性分析，移除所有不可达函数",
     level=OptimizationLevel.O1,
     phase=PassPhase.PRUNE,
     provided_features=("removed_unused_functions",)
 ))
 class UnusedFunctionEliminationPass(IROptimizationPass):
-    """未使用函数消除优化 Pass"""
+    """基于调用图可达性分析的死函数消除 Pass"""
 
     def __init__(self, builder: IRBuilder, config: CompileConfig):
         super().__init__(builder, config)
-        self.function_calls: dict[str, int] = {}
+        # func_name -> Function 对象（以实现为准）
         self.function_declarations: dict[str, Function] = {}
+        # 调用图：caller -> set of callees
+        self.call_graph: dict[str, set[str]] = defaultdict(set)
+        # 函数体内的指令属于哪个函数（构建调用图时用）
         self._changed = False
 
     def execute(self) -> bool:
-        """执行未使用函数消除优化"""
         self._changed = False
-        self._analyze_functions()
-        self._remove_unused_functions()
+        self._build_call_graph()
+        reachable = self._compute_reachable()
+        self._prune(reachable)
         return self._changed
 
-    def _analyze_functions(self) -> None:
-        """
-        收集函数声明与调用信息。
+    # ──────────────────────────────────────────────────────────
+    # Phase 1：构建调用图
+    # ──────────────────────────────────────────────────────────
 
-        同名函数可能同时存在前向声明（FUNCTION_UNIMPLEMENTED）和实现（FUNCTION），
-        以实现为准写入 function_declarations，确保后续 no_dce 等标志判断正确。
+    def _build_call_graph(self) -> None:
         """
+        单次扫描 IR，同时完成两件事：
+        1. 收集所有函数声明（以实现覆盖前向声明）
+        2. 建立 caller -> {callee, ...} 的调用图
+
+        顶层调用（不在任何函数体内）归入虚拟根节点 "__root__"。
+        """
+        current_func: str = "__root__"
+        scope_depth: int = 0
+
         for instr in self.builder.get_instructions():
-            if instr.opcode == IROpCode.FUNCTION:
+            opcode = instr.opcode
+
+            if opcode == IROpCode.FUNCTION:
                 func: Function = instr.get_operands()[0]
                 existing = self.function_declarations.get(func.name)
-                # 尚未记录，或当前是实现（非前向声明）→ 覆盖
                 if existing is None or func.function_type != FunctionType.FUNCTION_UNIMPLEMENTED:
                     self.function_declarations[func.name] = func
 
-            elif instr.opcode == IROpCode.CALL:
-                func = instr.get_operands()[1]
-                self.function_calls[func.name] = self.function_calls.get(func.name, 0) + 1
+                if func.function_type != FunctionType.FUNCTION_UNIMPLEMENTED:
+                    # 进入函数体
+                    current_func = func.name
+                    scope_depth = 0
+                # 前向声明不改变 current_func
 
-            elif instr.opcode == IROpCode.CALL_METHOD:
-                func = instr.get_operands()[2]
-                self.function_calls[func.name] = self.function_calls.get(func.name, 0) + 1
+            elif opcode == IROpCode.SCOPE_BEGIN:
+                scope_depth += 1
 
-    def _remove_unused_functions(self) -> None:
+            elif opcode == IROpCode.SCOPE_END:
+                scope_depth -= 1
+                if scope_depth < 0:
+                    # 函数体结束，回到根上下文
+                    current_func = "__root__"
+                    scope_depth = 0
+
+            elif opcode == IROpCode.CALL:
+                callee: Function = instr.get_operands()[1]
+                self.call_graph[current_func].add(callee.name)
+
+            elif opcode == IROpCode.CALL_METHOD:
+                callee: Function = instr.get_operands()[2]
+                self.call_graph[current_func].add(callee.name)
+
+    # ──────────────────────────────────────────────────────────
+    # Phase 2：BFS 计算可达集合
+    # ──────────────────────────────────────────────────────────
+
+    def _compute_reachable(self) -> set[str]:
         """
-        高效删除所有未被调用的函数（含其前向声明）。
-        复杂度：O(M)，只对 IR 完整扫描一次。
+        从 __root__ 出发 BFS，返回所有可达函数名。
+        同时尊重 no_dce 标志——打了该标志的函数视为根节点。
         """
-        # 1. 收集所有需要被删除的函数名
-        unused_func_names: set[str] = set()
+        roots: set[str] = {"__root__"}
         for func_name, func in self.function_declarations.items():
-            if func_name not in self.function_calls:
-                if "no_dce" not in func.all_flags():
-                    unused_func_names.add(func_name)
+            if "no_dce" in func.all_flags():
+                roots.add(func_name)
 
-        if not unused_func_names:
-            return  # 没有要删的，直接退出
+        visited: set[str] = set()
+        queue: deque[str] = deque(roots)
 
-        # 2. 单次遍历 IR，精准干掉所有无用函数
+        while queue:
+            node = queue.popleft()
+            if node in visited:
+                continue
+            visited.add(node)
+            for callee in self.call_graph.get(node, ()):
+                if callee not in visited:
+                    queue.append(callee)
+
+        return visited  # 包含 __root__ 本身，不影响后续判断
+
+    # ──────────────────────────────────────────────────────────
+    # Phase 3：删除不可达函数
+    # ──────────────────────────────────────────────────────────
+
+    def _prune(self, reachable: set[str]) -> None:
+        """
+        单次遍历 IR，删除所有不可达函数（含前向声明和函数体）。
+        复杂度 O(N)，N 为 IR 指令总数。
+        """
         iterator = self.builder.__iter__()
         current_deleting_func: str | None = None
-        level = 0
+        level: int = 0
 
         while True:
             try:
@@ -90,12 +142,12 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            # ── 如果当前正在删除某个函数的函数体 ──────────────────
+            # ── 正在删除某函数体内的指令 ──
             if current_deleting_func is not None:
-                # 安全防范：中途遇到新的 FUNCTION 指令
                 if instr.opcode == IROpCode.FUNCTION:
+                    # 意外撞上新函数头，退出删除模式，重新走扫描逻辑
                     current_deleting_func = None
-                    # 不要跳过当前 instr，让它进入下面的扫描逻辑
+                    # ⬇ fall through
 
                 elif instr.opcode == IROpCode.SCOPE_BEGIN:
                     iterator.remove_current()
@@ -107,8 +159,8 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
                     level -= 1
                     iterator.remove_current()
                     self._changed = True
-                    if level == 0:
-                        current_deleting_func = model = None  # 删完了
+                    if level < 0:
+                        current_deleting_func = None  # 函数体清除完毕
                     continue
 
                 else:
@@ -116,14 +168,12 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
                     self._changed = True
                     continue
 
-            # ── 扫描模式：寻找未使用的函数 ────────────────────────
+            # ── 扫描模式 ──
             if instr.opcode == IROpCode.FUNCTION:
                 func: Function = instr.get_operands()[0]
-                if func.name in unused_func_names:
+                if func.name not in reachable:
                     iterator.remove_current()
                     self._changed = True
-
-                    # 如果是带函数体的实现，进入删除模式
                     if func.function_type != FunctionType.FUNCTION_UNIMPLEMENTED:
                         current_deleting_func = func.name
                         level = 0
