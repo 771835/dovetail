@@ -1,21 +1,22 @@
 include "minecraft.mcdl"
+include "math"
 
 typedef int i32
 
 fn foo() -> i32;
 @init
 fn beef(){
-    if (foo()==350234) {
+    if (foo()==INT_MAX) {
         say("𝔀𝓪𝔀")
         print("1")
     }else {
-        exec("say 2")
+        say("2")
     }
 }
 
 @target("java")
 fn foo() -> i32{
-    return 350234
+    return INT_MAX
 }
 
 @target("be")

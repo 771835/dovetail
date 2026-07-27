@@ -5,7 +5,7 @@
 **作者**: 771835 <2790834181@qq.com>  
 **状态**: Active  
 **创建日期**: 2025-11-09  
-**最新更新**: 2026-01-18
+**最新更新**: 2026-07-28
 
 ## 设计目标
 
@@ -21,46 +21,51 @@
 
 #### 控制流指令
 
-| 指令          | 参数                                | 备注                  |
-|-------------|-----------------------------------|---------------------|
-| JUMP        | scope                             | 跳转到指定作用域            |
-| COND_JUMP   | cond \[true_scope] \[false_scope] | 条件跳转到作用域（提供双目标）     |
-| FUNCTION    | func                              | 函数定义                |
-| RETURN      | \[value]                          | 从函数返回（可选返回值）        |
-| CALL        | result func \[args...]            | 函数调用                |
+| 指令        | 参数                              | 备注                                   |
+|-------------|-----------------------------------|----------------------------------------|
+| JUMP        | scope                             | 跳转到指定作用域                       |
+| COND_JUMP   | cond \[true_scope] \[false_scope] | 条件跳转到作用域（提供双目标）         |
+| FUNCTION    | func                              | 函数定义                               |
+| RETURN      | \[value]                          | 从函数返回（可选返回值）               |
+| CALL        | result func \[args...]            | 函数调用                               |
 | SCOPE_BEGIN | name type                         | 作用域开始标记（可标记为函数、循环等） |
-| SCOPE_END   | name type                         | 作用域结束标记             |
-| BREAK       | scope_name                        | 跳出指定循环              |
-| CONTINUE    | scope_name                        | 终止当前循环迭代，继续下次迭代     |
+| SCOPE_END   | name type                         | 作用域结束标记                         |
+| BREAK       | scope_name                        | 跳出指定循环                           |
+| CONTINUE    | scope_name                        | 终止当前循环迭代，继续下次迭代         |
 
 #### 变量操作
 
-| 指令        | 参数                   | 备注                    |
-|-----------|----------------------|-----------------------|
-| DECLARE   | variable             | 声明变量                  |
-| ASSIGN    | target source        | 赋值操作                  |
+| 指令      | 参数                 | 备注                         |
+|-----------|----------------------|------------------------------|
+| DECLARE   | variable             | 声明变量                     |
+| ASSIGN    | target source        | 赋值操作                     |
 | UNARY_OP  | result op operand    | 一元运算（如 `-a`, `!b`）    |
 | BINARY_OP | result op left right | 二元运算（如 `a+b`, `c*d`）  |
 | COMPARE   | result op left right | 比较运算（如 `a>b`, `c==d`） |
-| CAST      | result type value    | 显式类型转换                |
-| FREE      | variable             | 释放变量（暂不实现）            |
+| CAST      | result type value    | 显式类型转换                 |
+| FREE      | variable             | 释放变量（暂不实现）         |
 
 #### 面向对象指令
 
-| 指令           | 参数                          | 备注         |
-|--------------|-----------------------------|------------|
-| CLASS        | class                       | 声明类结构      |
-| NEW_OBJ      | result class [args...]      | 创建对象实例     |
-| GET_PROPERTY | result obj property         | 获取对象属性值    |
-| SET_PROPERTY | obj property value          | 设置对象属性值    |
-| CALL_METHOD  | result obj method [args...] | 调用对象方法     |
+| 指令         | 参数                        | 备注                 |
+|--------------|-----------------------------|----------------------|
+| CLASS        | class                       | 声明类结构           |
+| NEW_OBJ      | result class [args...]      | 创建对象实例         |
+| GET_PROPERTY | result obj property         | 获取对象属性值       |
+| SET_PROPERTY | obj property value          | 设置对象属性值       |
+| CALL_METHOD  | result obj method [args...] | 调用对象方法         |
 | FREE_OBJ     | obj                         | 释放对象（暂不实现） |
 
-#### 数组操作
+#### 统一容器操作
 
-| 指令           | 参数                 | 备注             |
-|--------------|--------------------|----------------|
-| ARRAY_ACCESS | result array index | 数组读取（如 `a[1]`） |
+| 指令          | 参数                   | 备注                               |
+|---------------|------------------------|------------------------------------|
+| INDEX_GET     | result container index | 索引读取（如 `list[i] / dict[k]`） |
+| INDEX_SET     | container key value    | 索引写入                           |
+| CONTAINER_LEN | result container       | 获取长度                           |
+| LIST_APPEND   | container value        | 追加元素                           |
+| DICT_HAS      | result container key   | 检查键                             |
+| DICT_REMOVE   | container key          | 删除键                             |
 
 ### 关键实现细节
 
@@ -72,7 +77,7 @@
 
 #### 2. 控制流实现
 
-- `JUMP`和`COND_JUMP`指令不等同于类似其他语言的跳转，而是跳转完成后**返回原先位置继续执行**
+- `JUMP`和`COND_JUMP`指令不等同于类似其他语言的跳转，而是跳转完成后 **返回原先位置继续执行**
 
 ##### if-else 示例
 
@@ -83,15 +88,13 @@ if (cond_var) {
     # else块代码
 }
 # 转换成ir:
-
-scope if_41 (CONDITIONAL) {
+scope if_0 (CONDITIONAL) {
     # if块代码
-} // end scope if_41
-scope else_41 (CONDITIONAL) {
+} // end scope if_0
+scope else_0 (CONDITIONAL) {
     # else块代码
-} // end scope else_41
-if cond__var goto if_41 else goto else_41
-
+} // end scope else_0
+if cond__var goto if_0 else goto else_0
 ```
 
 ##### 传统for循环示例
@@ -103,24 +106,25 @@ for (let i=0;i<3;i+=1) {
 # 转换成ir:
 declare int i
 i = 0
-scope for_check_41 (LOOP_CHECK) {
-    declare boolean cmp_result_134
-    cmp_result_134 = i < 3
-    scope for_body_41 (LOOP_BODY) {
-        i = i + 1
+scope for_check_0 (LOOP_CHECK) {
+    declare boolean cmp_result_0_
+    cmp_result_0_ = i < 3
+    scope for_body_0 (LOOP_BODY) {
         # 循环体
-    } // end scope for_body_41
-    if cmp_result_134 goto for_body_41
-    if cmp_result_134 goto for_check_41
-} // end scope for_check_41
-goto for_check_41
+        i = i + 1
+    } // end scope for_body_0
+    if cmp_result_0_ goto for_body_0
+    if cmp_result_0_ goto for_check_0
+} // end scope for_check_0
+goto for_check_0
 ```
 
 ## 变更日志
 
 - 2025-11-09 独立为一篇单独的提案
 - 2025-12-28 修改了项目信息以适应最新格式
-- 2026-01-18 更新了ir示例，根据新的代码实现修改了文档
+- 2026-01-18 更新了 IR 示例，根据新的代码实现修改了文档
+- 2026-07-28 补充了统一容器操作相关 IR 内容
 
 ## 附录
 
@@ -141,7 +145,7 @@ class Symbol(ABC):
 
 ```python
 @define(slots=True)
-class Class(Symbol, DataTypeBase, AnnotationMixin):
+class Class(Symbol, DataTypeBase, Annotatable):
     name: str  # 类名
     methods: set[Function]  # 方法集合
     interface: Optional[Class]  # 实现的接口
@@ -160,7 +164,7 @@ class Class(Symbol, DataTypeBase, AnnotationMixin):
 
 ```python
 @define(slots=True)
-class Enumeration(Symbol, DataTypeBase, AnnotationMixin):
+class Enumeration(Symbol, DataTypeBase, Annotatable):
     name: str  # 类名
     member: dict[str, Literal]  # 枚举值
     annotations: dict[str, AnnotationAttachment] = field(factory=dict)
@@ -189,17 +193,14 @@ class Variable(Symbol):
 
 ```python
 @define(slots=True)
+class Function(Symbol, Annotatable):
+    name: str  # 函数名
+    params: list[Parameter]  # 参数列表
+    return_type: DataTypeBase  # 返回类型
+    function_type: FunctionType = FunctionType.FUNCTION  # 函数类型
+    annotations: dict[str, AnnotationAttachment] = field(factory=dict)
 
-
-nction(Symbol, AnnotationMixin):
-name: str  # 函数名
-params: list[Parameter]  # 参数列表
-return_type: DataTypeBase  # 返回类型
-function_type: FunctionType = FunctionType.FUNCTION  # 函数类型
-annotations: dict[str, AnnotationAttachment] = field(factory=dict)
-
-
-def get_name(self) -> str: ...
+    def get_name(self) -> str: ...
 ```
 
 #### 字面量定义 (Literal)
@@ -232,16 +233,17 @@ class Parameter(Symbol):
 ```python
 T = TypeVar('T', bound=Symbol)
 
+
 @define(slots=True, hash=True)
 class Reference(Symbol, Generic[T]):
     value: T  # 被引用的符号
-    
+
     @property
     def value_type(self) -> ValueType: ...
-    
+
     @property
     def dtype(self) -> DataTypeBase: ...
-    
+
     def is_literal(self) -> bool: ...
 
     def get_display_value(self) -> str | None: ...
@@ -252,12 +254,14 @@ class Reference(Symbol, Generic[T]):
     @classmethod
     def variable(cls, var_name, dtype: PrimitiveDataType,
                  var_type: VariableType = VariableType.COMMON) -> Reference: ...
-    
+
     @classmethod
     def void(cls) -> Reference[Variable]: ...
 ```
 
 #### 枚举类型说明
+
+_以下枚举仅供参考，不保证编译器稳定支持内容，不做强制性规范。_
 
 **ValueType 枚举：**
 
@@ -274,14 +278,13 @@ class Reference(Symbol, Generic[T]):
 - `NULL_TYPE`: 句柄null的独有类型，不可作为其他值的类型，表示未初始化或无效值
 - `VOID`: 表示空，不可用于定义变量
 - `UNDEFINED`: 特殊类型，仅编译发生错误时使用
-- `FUNCTION`: 函数类型，表示一个函数(未使用)
-- `TYPE`: 类型(未使用)
+- `FUNCTION`: 函数类型，表示一个函数 (未使用)
+- `TYPE`: 类型 (未使用)
 
 **VariableType 枚举：**
 
 - `COMMON`: 普通局部变量
 - `PARAMETER`: 函数参数变量
-- `RETURN`: 函数返回值变量(不被优化)
 
 **FunctionType 枚举：**
 

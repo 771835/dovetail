@@ -165,9 +165,9 @@ class Compiler:
                 ast_tree = parser_file(source_path)
 
                 if ast_tree is not None:
-                    if self.config.debug:
-                        print("AST结构:")
-                        print(ast_tree.pretty())
+                    # if self.config.debug:
+                    #     print("AST结构:")
+                    #     print(ast_tree.pretty())
                     generator.visit(ast_tree)
                 else:
                     return -1

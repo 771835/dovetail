@@ -131,9 +131,11 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
         """
         单次遍历 IR，删除所有不可达函数（含前向声明和函数体）。
         复杂度 O(N)，N 为 IR 指令总数。
+
+        Notes: 删除建立在函数仅为单层，不删除类方法的前提下
         """
         iterator = self.builder.__iter__()
-        current_deleting_func: str | None = None
+        remove_mode = False
         level: int = 0
 
         while True:
@@ -142,38 +144,22 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
             except StopIteration:
                 break
 
-            # ── 正在删除某函数体内的指令 ──
-            if current_deleting_func is not None:
-                if instr.opcode == IROpCode.FUNCTION:
-                    # 意外撞上新函数头，退出删除模式，重新走扫描逻辑
-                    current_deleting_func = None
-                    # ⬇ fall through
-
-                elif instr.opcode == IROpCode.SCOPE_BEGIN:
-                    iterator.remove_current()
-                    self._changed = True
-                    level += 1
-                    continue
-
-                elif instr.opcode == IROpCode.SCOPE_END:
-                    level -= 1
-                    iterator.remove_current()
-                    self._changed = True
-                    if level < 0:
-                        current_deleting_func = None  # 函数体清除完毕
-                    continue
-
-                else:
-                    iterator.remove_current()
-                    self._changed = True
-                    continue
-
-            # ── 扫描模式 ──
             if instr.opcode == IROpCode.FUNCTION:
-                func: Function = instr.get_operands()[0]
+                func:Function = instr.operands[0]
                 if func.name not in reachable:
                     iterator.remove_current()
                     self._changed = True
                     if func.function_type != FunctionType.FUNCTION_UNIMPLEMENTED:
-                        current_deleting_func = func.name
-                        level = 0
+                        remove_mode = True
+                    continue
+            elif instr.opcode == IROpCode.SCOPE_BEGIN:
+                level += 1
+            elif instr.opcode == IROpCode.SCOPE_END:
+                level -= 1
+                name, scope_type = instr.operands
+                if name not in reachable and scope_type == StructureType.FUNCTION and level == 0:
+                    iterator.remove_current()
+                    remove_mode = False
+                    continue
+            if remove_mode:
+                iterator.remove_current()

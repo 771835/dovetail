@@ -16,6 +16,7 @@ _n = NameNormalizer.normalize
 class Builtins(Library):
 
     def __init__(self, context: LibraryContext):
+        self.context = context
         self.error_reporter = context.error_reporter
         self.emitter = context.emitter
         self.symbol_resolver = context.symbol_resolver
@@ -57,7 +58,16 @@ class Builtins(Library):
             Function(
                 "print",
                 [
-                    Parameter(Variable("msg", PrimitiveDataType.STRING))
+                    Parameter(
+                        Variable(
+                            "msg",
+                            UnionType(
+                                PrimitiveDataType.STRING,
+                                PrimitiveDataType.INT,
+                                PrimitiveDataType.BOOLEAN
+                            )
+                        )
+                    )
                 ],
                 PrimitiveDataType.VOID,
                 FunctionType.LIBRARY
@@ -337,3 +347,11 @@ class Builtins(Library):
 
     def get_functions(self):
         return self._functions
+
+    def get_variables(self):
+        return {
+            Variable(_n("__namespace__"), PrimitiveDataType.STRING, mutable=False):
+                Reference.literal(self.context.config.namespace),
+            Variable(_n("__minecraft_version__"), PrimitiveDataType.STRING, mutable=False):
+                Reference.literal(self.context.config.version.display_version),
+        }

@@ -3,19 +3,26 @@
 死代码消除 Pass
 
 基于作用域感知的活跃变量分析（Liveness Analysis），
-移除永远不会被使用的变量赋值和计算结果。
+移除永远不会被使用的变量赋值、计算结果和变量声明。
 
 算法概述：
   第一遍（_collect_defs_and_uses）：
     扫描所有指令，以 "scope::var_name" 为唯一键，
-    建立 定义表（defs）、使用表（uses）和 根活跃集（roots）。
+    建立 定义图（_def_graph）和 根活跃集（roots）。
+    同时收集所有 DECLARE，填充 _declared 供作用域查找使用。
 
   第二遍（_propagate_liveness）：
-    从 roots 出发，沿 use → def 方向反向传播，
+    从 roots 出发，沿 _def_graph 反向传播，
     标记所有可达的活跃变量。
 
   第三遍（_remove_dead_code）：
-    删除结果变量不在活跃集中的指令。
+    删除结果变量不在活跃集中的纯计算指令。
+    删除变量不在活跃集中的 DECLARE 指令（PARAMETER/RETURN 除外）。
+
+Key 一致性原则：
+  所有变量的 key 统一通过 _lookup_key 构造，
+  沿作用域栈向上寻找实际声明作用域。
+  构建图和删除判断使用完全相同的 key，保证活跃集查找可靠。
 """
 from __future__ import annotations
 
@@ -24,20 +31,17 @@ from collections import deque
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel
 from dovetail.core.enums.types import ValueType, VariableType
-from dovetail.core.instructions import (
-    IROpCode
-)
+from dovetail.core.instructions import IROpCode
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.symbols import Reference
+from dovetail.utils.logger import get_logger
 
-# ---- 类型别名 ----
 _VarKey = str  # "scope_name::var_name"
-_DefMap = dict[_VarKey, _VarKey]  # result_key → 产生它的指令的唯一标识（此处复用 result_key）
-_UseMap = dict[_VarKey, set[_VarKey]]  # operand_key → {依赖它的 result_key 集合}
 
+logger = get_logger(__name__)
 
 def _make_key(scope: str, var_name: str) -> _VarKey:
     """构造作用域限定的变量唯一键。"""
@@ -47,17 +51,22 @@ def _make_key(scope: str, var_name: str) -> _VarKey:
 @register_pass(PassMetadata(
     name="dead_code_elimination",
     display_name="死代码消除",
-    description="移除永远不会使用的变量赋值和计算结果",
+    description=(
+            "移除永远不会使用的变量赋值、计算结果和声明。"
+            "基于活跃变量图传播分析，覆盖引用计数的全部能力，"
+            "并额外处理传递性死代码。"
+    ),
     level=OptimizationLevel.O1,
     phase=PassPhase.CLEANUP,
-    provided_features=("cleaned_dead_code",)
+    provided_features=("cleaned_dead_code", "cleaned_declarations"),
 ))
 class DeadCodeEliminationPass(IROptimizationPass):
     """
-    死代码消除优化 Pass
+    死代码消除优化 Pass（含声明清理）
 
-    以 "scope::var_name" 作为变量唯一键，避免不同作用域的同名变量相互污染。
-    不依赖 Variable 对象的 id() 或内存地址，依赖名字。
+    以 "scope::var_name" 作为变量唯一键，
+    所有 key 均通过 _lookup_key 统一构造，
+    保证构建图和活跃集查找时同一变量对应同一 key。
     """
 
     def __init__(self, builder: IRBuilder, config: CompileConfig):
@@ -66,16 +75,13 @@ class DeadCodeEliminationPass(IROptimizationPass):
         # 定义图：result_key → set of operand_keys（该结果依赖哪些操作数）
         self._def_graph: dict[_VarKey, set[_VarKey]] = {}
 
-        # 反向使用图：operand_key → set of result_keys（哪些结果依赖该操作数）
-        self._use_graph: dict[_VarKey, set[_VarKey]] = {}
-
-        # 活跃变量集（_VarKey）
+        # 活跃变量集
         self._live: set[_VarKey] = set()
 
-        # 已声明变量的键集合，用于过滤从未声明的幽灵变量
+        # 已声明变量的键集合，供 _lookup_key 作用域查找使用
         self._declared: set[_VarKey] = set()
 
-        self._changed = False
+        self._changed: bool = False
 
     # ------------------------------------------------------------------ #
     #  公开接口                                                            #
@@ -83,53 +89,38 @@ class DeadCodeEliminationPass(IROptimizationPass):
 
     def execute(self) -> bool:
         self._changed = False
-        self._prescan_declarations()  # 先收集所有声明
+        self._def_graph.clear()
+        self._live.clear()
+        self._declared.clear()
+
         roots = self._collect_defs_and_uses()
         self._propagate_liveness(roots)
         self._remove_dead_code()
         return self._changed
 
     # ------------------------------------------------------------------ #
-    #  第一遍：收集定义、使用关系，确定活跃根                                  #
+    #  第一遍：收集声明、定义图、活跃根                                       #
     # ------------------------------------------------------------------ #
-
-    def _prescan_declarations(self) -> None:
-        """预扫描，收集所有变量声明及其所在作用域，填充 _declared。"""
-        scope_stack: list[str] = ["global"]
-        for instr in self.builder.get_instructions():
-            if instr.opcode == IROpCode.SCOPE_BEGIN:
-                scope_stack.append(instr.get_operands()[0])
-            elif instr.opcode == IROpCode.SCOPE_END:
-                if len(scope_stack) > 1:
-                    scope_stack.pop()
-            elif instr.opcode == IROpCode.DECLARE:
-                var = instr.get_operands()[0]
-                self._declared.add(_make_key(scope_stack[-1], var.get_name()))
 
     def _collect_defs_and_uses(self) -> set[_VarKey]:
         """
-        单遍扫描 IR，建立定义/使用图，同时收集活跃根。
+        单遍扫描 IR，收集变量声明，建立定义图，确定活跃根。
 
-        活跃根定义：
-          - 函数参数（VariableType.PARAMETER）
-          - 函数返回变量（VariableType.RETURN）
-          - IRReturn 的返回值
-          - IRCondJump 的条件变量
-          - IRCall / IRCallMethod 的所有实参及 obj
-          - 有外部可见副作用的指令（CALL、CALL_METHOD）的结果变量
-            （即使结果没人用，调用本身也不能删）
-
-        Returns:
-            roots: 初始活跃变量键集合
+        活跃根：
+          - PARAMETER / RETURN 类型的变量声明
+          - RETURN 指令的返回值
+          - COND_JUMP 的条件变量
+          - CALL / CALL_METHOD 的所有实参、obj 以及结果变量
+            （有副作用，调用不能删，结果强制活跃）
         """
         roots: set[_VarKey] = set()
         scope_stack: list[str] = ["global"]
 
         for instr in self.builder.get_instructions():
+            opcode = instr.opcode
             current_scope = scope_stack[-1]
 
-            opcode = instr.opcode
-
+            # ------ 作用域边界 ------
             if opcode == IROpCode.SCOPE_BEGIN:
                 scope_stack.append(instr.get_operands()[0])
                 continue
@@ -139,110 +130,94 @@ class DeadCodeEliminationPass(IROptimizationPass):
                     scope_stack.pop()
                 continue
 
-            # ---------- DECLARE ----------
+            # ------ DECLARE ------
             if opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
                 key = _make_key(current_scope, var.get_name())
                 self._declared.add(key)
-
-                # 参数和返回槽天然活跃
-                if var.var_type in (VariableType.PARAMETER, VariableType.RETURN):
+                if var.var_type == VariableType.PARAMETER:
                     roots.add(key)
                 continue
 
-            # ---------- ASSIGN ----------
+            # ------ ASSIGN ------
             if opcode == IROpCode.ASSIGN:
                 target, source = instr.get_operands()
                 target_key = self._lookup_key(target.get_name(), current_scope, scope_stack)
                 self._ensure_def(target_key)
-
                 if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
                     src_key = self._lookup_key(source.get_name(), current_scope, scope_stack)
                     self._add_edge(target_key, src_key)
                 continue
 
-            # ---------- BINARY_OP / COMPARE ----------
+            # ------ BINARY_OP / COMPARE ------
             if opcode in (IROpCode.BINARY_OP, IROpCode.COMPARE):
                 operands = instr.get_operands()
                 result, _op, left, right = operands[0], operands[1], operands[2], operands[3]
-                result_key = _make_key(current_scope, result.get_name())
+                result_key = self._lookup_key(result.get_name(), current_scope, scope_stack)
                 self._ensure_def(result_key)
-
                 for ref in (left, right):
                     if isinstance(ref, Reference) and ref.value_type == ValueType.VARIABLE:
                         op_key = self._lookup_key(ref.get_name(), current_scope, scope_stack)
                         self._add_edge(result_key, op_key)
                 continue
 
-            # ---------- UNARY_OP ----------
+            # ------ UNARY_OP ------
             if opcode == IROpCode.UNARY_OP:
                 result, _op, operand = instr.get_operands()
-                result_key = _make_key(current_scope, result.get_name())
+                result_key = self._lookup_key(result.get_name(), current_scope, scope_stack)
                 self._ensure_def(result_key)
-
                 if isinstance(operand, Reference) and operand.value_type == ValueType.VARIABLE:
                     op_key = self._lookup_key(operand.get_name(), current_scope, scope_stack)
                     self._add_edge(result_key, op_key)
                 continue
 
-            # ---------- CAST ----------
+            # ------ CAST ------
             if opcode == IROpCode.CAST:
                 result, _dtype, source = instr.get_operands()
-                result_key = _make_key(current_scope, result.get_name())
+                result_key = self._lookup_key(result.get_name(), current_scope, scope_stack)
                 self._ensure_def(result_key)
-
                 if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
                     src_key = self._lookup_key(source.get_name(), current_scope, scope_stack)
                     self._add_edge(result_key, src_key)
                 continue
 
-            # ---------- CALL ----------
+            # ------ CALL ------
             if opcode == IROpCode.CALL:
                 result, _func, args = instr.get_operands()
-
-                # 调用本身有外部副作用，result 强制活跃（即使没人读返回值）
                 if result is not None:
-                    result_key = _make_key(current_scope, result.get_name())
+                    result_key = self._lookup_key(result.get_name(), current_scope, scope_stack)
                     self._ensure_def(result_key)
                     roots.add(result_key)
-
-                # 所有实参活跃
                 for arg_ref in args.values():
                     if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
                         roots.add(self._lookup_key(arg_ref.get_name(), current_scope, scope_stack))
                 continue
 
-            # ---------- CALL_METHOD ----------
+            # ------ CALL_METHOD ------
             if opcode == IROpCode.CALL_METHOD:
                 result, obj_ref, _method, args = instr.get_operands()
-
                 if result is not None:
-                    result_key = _make_key(current_scope, result.get_name())
+                    result_key = self._lookup_key(result.get_name(), current_scope, scope_stack)
                     self._ensure_def(result_key)
                     roots.add(result_key)
-
-                # obj 本身也是操作数，必须活跃
                 if isinstance(obj_ref, Reference) and obj_ref.value_type == ValueType.VARIABLE:
                     roots.add(self._lookup_key(obj_ref.get_name(), current_scope, scope_stack))
-
                 for arg_ref in args.values():
                     if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
                         roots.add(self._lookup_key(arg_ref.get_name(), current_scope, scope_stack))
                 continue
 
-            # ---------- RETURN ----------
+            # ------ RETURN ------
             if opcode == IROpCode.RETURN:
                 operands = instr.get_operands()
-                # IRReturn(value=None) 时 operands 可能是 (None,) 或空，防御一下
                 value_ref = operands[0] if operands else None
                 if isinstance(value_ref, Reference) and value_ref.value_type == ValueType.VARIABLE:
                     roots.add(self._lookup_key(value_ref.get_name(), current_scope, scope_stack))
                 continue
 
-            # ---------- COND_JUMP ----------
+            # ------ COND_JUMP ------
             if opcode == IROpCode.COND_JUMP:
                 cond_ref, _true_scope, _false_scope = instr.get_operands()
-                # 按最新约定，cond 是 Reference
                 if isinstance(cond_ref, Reference) and cond_ref.value_type == ValueType.VARIABLE:
                     roots.add(self._lookup_key(cond_ref.get_name(), current_scope, scope_stack))
                 continue
@@ -250,17 +225,12 @@ class DeadCodeEliminationPass(IROptimizationPass):
         return roots
 
     # ------------------------------------------------------------------ #
-    #  第二遍：从根出发反向传播活跃性                                          #
+    #  第二遍：BFS 反向传播活跃性                                            #
     # ------------------------------------------------------------------ #
 
     def _propagate_liveness(self, roots: set[_VarKey]) -> None:
-        """
-        BFS 反向传播：一个变量活跃 → 产生它所依赖的操作数也活跃。
-
-        方向：result_key --(_def_graph)--> operand_keys
-        """
+        """从根出发，沿 _def_graph 传播：result 活跃 → 其依赖的 operands 也活跃。"""
         queue: deque[_VarKey] = deque()
-
         for key in roots:
             if key not in self._live:
                 self._live.add(key)
@@ -268,22 +238,24 @@ class DeadCodeEliminationPass(IROptimizationPass):
 
         while queue:
             key = queue.popleft()
-
-            # 该变量活跃 → 它的所有操作数也活跃
             for operand_key in self._def_graph.get(key, ()):
                 if operand_key not in self._live:
                     self._live.add(operand_key)
                     queue.append(operand_key)
 
     # ------------------------------------------------------------------ #
-    #  第三遍：删除死代码                                                    #
+    #  第三遍：删除死计算指令和死声明                                         #
     # ------------------------------------------------------------------ #
 
     def _remove_dead_code(self) -> None:
         """
-        删除结果变量不在活跃集中的指令。
+        删除死计算指令和死声明。
 
-        只删纯计算指令（ASSIGN、BINARY_OP、COMPARE、UNARY_OP、CAST）。
+        删除条件：
+          - DECLARE：变量不在活跃集，且不是 PARAMETER/RETURN
+          - ASSIGN：target 不在活跃集
+          - BINARY_OP/COMPARE/UNARY_OP/CAST：result 不在活跃集
+
         有副作用的指令（CALL、CALL_METHOD、RETURN 等）绝不删除。
         """
         scope_stack: list[str] = ["global"]
@@ -303,52 +275,57 @@ class DeadCodeEliminationPass(IROptimizationPass):
 
             current_scope = scope_stack[-1]
 
+            if opcode == IROpCode.DECLARE:
+                var = instr.get_operands()[0]
+                if var.var_type == VariableType.PARAMETER:
+                    continue
+                key = self._lookup_key(var.get_name(), current_scope, scope_stack)
+                if key not in self._live:
+                    iterator.remove_current()
+                    self._changed = True
+                continue
+
             if opcode == IROpCode.ASSIGN:
                 target, _source = instr.get_operands()
                 key = self._lookup_key(target.get_name(), current_scope, scope_stack)
                 if key not in self._live:
                     iterator.remove_current()
                     self._changed = True
+                continue
 
-            elif opcode in (IROpCode.BINARY_OP, IROpCode.COMPARE,
-                            IROpCode.UNARY_OP, IROpCode.CAST):
+            if opcode in (IROpCode.BINARY_OP, IROpCode.COMPARE,
+                          IROpCode.UNARY_OP, IROpCode.CAST):
                 result = instr.get_operands()[0]
-                key = self._lookup_key(result.get_name(),current_scope, scope_stack)
+                key = self._lookup_key(result.get_name(), current_scope, scope_stack)
                 if key not in self._live:
-
                     iterator.remove_current()
                     self._changed = True
+                continue
 
     # ------------------------------------------------------------------ #
-    #  图操作辅助                                                           #
+    #  辅助方法                                                            #
     # ------------------------------------------------------------------ #
 
     def _ensure_def(self, result_key: _VarKey) -> None:
-        """确保 result_key 在 _def_graph 中有条目（即使没有操作数依赖）。"""
         if result_key not in self._def_graph:
             self._def_graph[result_key] = set()
 
     def _add_edge(self, result_key: _VarKey, operand_key: _VarKey) -> None:
-        """
-        建立 result → operand 的依赖边，同时维护反向使用图。
-        """
         self._def_graph.setdefault(result_key, set()).add(operand_key)
-        self._use_graph.setdefault(operand_key, set()).add(result_key)
-
-    # ------------------------------------------------------------------ #
-    #  作用域查找辅助                                                        #
-    # ------------------------------------------------------------------ #
 
     def _lookup_key(self, var_name: str, current_scope: str, scope_stack: list[str]) -> _VarKey:
         """
-        沿作用域栈向上查找变量的声明作用域，返回声明作用域限定的键。
-        找不到则 fallback 到当前作用域（理论上不应发生）。
+        沿作用域栈向上查找变量的实际声明作用域，返回声明作用域限定的 key。
+        找不到时降级到 current_scope 并发出警告——这不应发生在正常 IR 中。
         """
-        # 从当前作用域开始向上找，直到找到声明了该变量的作用域
         for scope in reversed(scope_stack):
-            if _make_key(scope, var_name) in self._declared:
-                return _make_key(scope, var_name)
+            candidate = _make_key(scope, var_name)
+            if candidate in self._declared:
+                return candidate
 
-        # 【魔法兜底】：找不到声明，可能是跨 pass 产生的临时变量，
-        # 降级到当前作用域，保守处理不删除。
+        logger.warning(
+            f"变量 '{var_name}' 在作用域链 {scope_stack} 中未找到声明，"
+            f"降级到当前作用域 '{current_scope}'。",
+            stacklevel=2,
+        )
         return _make_key(current_scope, var_name)

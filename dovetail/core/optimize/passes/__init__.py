@@ -9,7 +9,6 @@
 from .chain_assign import ChainAssignEliminationPass
 from .constant_folding import ConstantFoldingPass
 from .dead_code_elimination import DeadCodeEliminationPass
-from .declare_cleanup import DeclareCleanupPass
 from .empty_scope import EmptyScopeRemovalPass
 from .unreachable_code import UnreachableCodeRemovalPass
 from .unused_function import UnusedFunctionEliminationPass # 可能能用，不确定

@@ -628,9 +628,6 @@ class ASTVisitor(Interpreter):
         value: Reference | None = None
         if children:
             value: Reference = self.visit(children.pop(0))
-            # 标记返回值的变量类型
-            if isinstance(value.value, Variable):
-                value.value.var_type = VariableType.RETURN
 
         # 查找所在函数的作用域
         function_scope = next(

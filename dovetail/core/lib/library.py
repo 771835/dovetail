@@ -39,7 +39,7 @@ class Library(metaclass=ABCMeta):
         """获取函数及其处理函数的映射"""
         return {}
 
-    def get_variables(self) -> dict[Variable, Reference[Variable]]:
+    def get_variables(self) -> dict[Variable, Reference[Variable | Literal]]:
         """获取库中定义的所有量"""
         return {}
 

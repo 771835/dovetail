@@ -98,3 +98,6 @@ def get_datapack_format(
         return get_datapack_format(version, new_map)
     else:
         return next(reversed(ref_map.values()))
+
+if __name__ == '__main__':
+    print(_get_wiki_new_map())

@@ -2,8 +2,7 @@
 from dovetail.utils.logger import get_logger
 from .backend.backend import JE1215Backend
 from .backend.processors import *  # NOQA
-from ..plugin_api import Plugin
-from ..plugin_api.v2.registry import registry_backend
+from dovetail.plugins.plugin_api import Plugin, registry_backend
 
 
 class PluginMain(Plugin):

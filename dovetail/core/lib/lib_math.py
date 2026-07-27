@@ -5,14 +5,11 @@ from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.enums.types import FunctionType
 from dovetail.core.lib.library import Library
 from dovetail.core.symbols import Reference, Function, Variable, Parameter, Literal
+from dovetail.utils.naming import NameNormalizer
 
 
 class Math(Library):
     def __init__(self, _):
-        self._variable: dict[Variable, Reference] = {
-            Variable("INT_MAX", PrimitiveDataType.INT, mutable=False): Reference.literal(2147483647),
-            Variable("INT_MIN", PrimitiveDataType.INT, mutable=False): Reference.literal(-2147483648),
-        }
         self._functions: dict[Function, Callable[..., Variable | Literal] | None] = {
             Function(
                 "abs",
@@ -48,5 +45,10 @@ class Math(Library):
     def get_functions(self):
         return self._functions
 
-    def get_variables(self) -> dict[Variable, Reference]:
-        return self._variable
+    def get_variables(self):
+        return {
+            Variable(NameNormalizer.normalize("INT_MAX"), PrimitiveDataType.INT, mutable=False):
+                Reference.literal(2147483647),
+            Variable(NameNormalizer.normalize("INT_MIN"), PrimitiveDataType.INT, mutable=False):
+                Reference.literal(-2147483648)
+        }
