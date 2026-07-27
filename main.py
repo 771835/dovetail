@@ -323,8 +323,5 @@ def main():
 
     sys.exit(compiler.compile(entry, target_path))
 
-
-plugin_loader.load_plugin("plugin_loader")
-
 if __name__ == "__main__":
     main()

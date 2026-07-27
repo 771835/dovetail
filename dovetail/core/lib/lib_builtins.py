@@ -16,7 +16,6 @@ _n = NameNormalizer.normalize
 class Builtins(Library):
 
     def __init__(self, context: LibraryContext):
-
         self.error_reporter = context.error_reporter
         self.emitter = context.emitter
         self.symbol_resolver = context.symbol_resolver

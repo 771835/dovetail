@@ -1,0 +1,207 @@
+// ================================================================
+// 数字炸弹 —— 猜数字小游戏
+//
+// 玩法：
+//   服务器内藏一个"炸弹数字"(1~100)
+//   玩家通过聊天输入猜测，系统给出 higher / lower / boom 提示
+//   猜中后统计用了几次，并给予奖励/惩罚
+//
+// ================================================================
+
+include "minecraft.mcdl"
+include "random"
+// ----------------------------------------------------------------
+// 常量区
+// ----------------------------------------------------------------
+const MAX_GUESS   = 100     // 最大猜测次数上限（防无限循环演示用）
+const ANSWER      = randint(1, 100)      // 炸弹数字
+const REWARD_ITEM = "diamond"
+const PUNISH_CMD  = "effect give @s minecraft:blindness 5 1"
+
+// ----------------------------------------------------------------
+// 数据结构
+// ----------------------------------------------------------------
+struct GameState {
+    answer    : int     // 目标数字
+    attempts  : int     // 已猜次数
+    low_bound : int     // 当前下界提示
+    high_bound: int     // 当前上界提示
+    solved    : boolean // false:未解开 true:已解开
+}
+
+// ----------------------------------------------------------------
+// 工具函数
+// ----------------------------------------------------------------
+
+/// 向玩家发送带颜色的提示（借助 tellraw JSON 组件）
+fn hint(player: string, msg: string) {
+    tellraw(player, msg)
+}
+
+/// 给玩家头顶显示当前范围 actionbar
+fn show_range(player: string, lo: string, hi: string) {
+    let bar: string = '{"text":"[ ' + lo + " ~ " + hi + ' ]","color":"aqua"}'
+    titleraw_actionbar(player, bar)
+}
+
+/// 根据猜测次数给出评价
+fn grade(player: string, attempts: int) {
+    if (attempts <= 3) {
+        let msg: string = '{"text":"⚡ 神级直觉！仅用 ' + str(attempts) + ' 次！","color":"gold"}'
+        hint(player, msg)
+        advancement_grant_only(player, "minecraft:adventure/kill_a_mob", "")
+    } else if (attempts <= 7) {
+        let msg: string = '{"text":"✓ 不错！用了 ' + str(attempts) + ' 次。","color":"green"}'
+        hint(player, msg)
+        give(player, REWARD_ITEM)
+    } else if (attempts <= 15) {
+        let msg: string = '{"text":"△ 还行，' + str(attempts) + ' 次才猜中。","color":"yellow"}'
+        hint(player, msg)
+    } else {
+        let msg: string = '{"text":"✗ 用了 ' + str(attempts) + ' 次……要不要换个爱好？","color":"red"}'
+        hint(player, msg)
+        exec(f"effect give {player} minecraft:blindness 5 1")
+    }
+}
+
+/// 核心猜测判断逻辑，返回：-1=太小 0=正确 1=太大
+fn judge(guess: int, answer: int) -> int {
+    if (guess == answer) {
+        return 0
+    }
+    if (guess < answer) {
+        return -1
+    }
+    return 1
+}
+
+// ----------------------------------------------------------------
+// 游戏主体
+// ----------------------------------------------------------------
+
+/// 初始化游戏状态，广播开场白
+fn game_init(player: string) -> GameState {
+    let state: GameState
+    state.answer     = ANSWER
+    state.attempts   = 0
+    state.low_bound  = 1
+    state.high_bound = 100
+    state.solved     = 0
+
+    // 开场演出
+    title_title(player, '{"text":"💣 数字炸弹","color":"red","bold":true}')
+    title_subtitle(player, '{"text":"猜一个 1~100 的数字","color":"white"}')
+    hint(player, '{"text":"游戏开始！输入你的猜测吧（范围：1 ~ 100）","color":"aqua"}')
+
+    // 粒子效果装个样子
+    particle(player, "minecraft:explosion_emitter", "~ ~1 ~")
+
+    return state
+}
+
+/// 处理单次猜测（模拟：guess 由外部 scoreboard 读入，此处直接传参演示）
+fn game_guess(player: string, mut state: GameState, guess: int) {
+    state.attempts += 1
+
+    let result: int = judge(guess, state.answer)
+
+    if (result == 0) {
+        // 猜中了
+        state.solved = 1
+
+        title_title(player, '{"text":"💥 BOOM！","color":"red","bold":true}')
+        title_subtitle(
+            player,
+            '{"text":"你找到了炸弹！","color":"yellow"}'
+        )
+        // 音效
+        playsound(player, "minecraft:entity.generic.explode", "master", "~ ~ ~", "1", "1", "")
+        // 爆炸粒子
+        particle(player, "minecraft:explosion_emitter", "~ ~ ~")
+
+        grade(player, state.attempts)
+
+    } else if (result == -1) {
+        // 猜小了
+        if (guess > state.low_bound) {
+            state.low_bound = guess
+        }
+        let lo: string = str(state.low_bound)
+        let hi: string = str(state.high_bound)
+        let msg: string = '{"text":"📈 再大一点！范围缩小到 [ ' + lo + " ~ " + hi + ' ]","color":"yellow"}'
+        hint(player, msg)
+        show_range(player, lo, hi)
+        playsound(player, "minecraft:block.note_block.bass", "master", "~ ~ ~", "1", "0.8", "")
+
+    } else {
+        // 猜大了
+        if (guess < state.high_bound) {
+            state.high_bound = guess
+        }
+        let lo: string = str(state.low_bound)
+        let hi: string = str(state.high_bound)
+        let msg: string = '{"text":"📉 再小一点！范围缩小到 [ ' + lo + " ~ " + hi + ' ]","color":"yellow"}'
+        hint(player, msg)
+        show_range(player, lo, hi)
+        playsound(player, "minecraft:block.note_block.bass", "master", "~ ~ ~", "1", "1.2", "")
+    }
+
+    // 剩余机会警告
+    let remaining: int = MAX_GUESS - state.attempts
+    if (remaining <= 5 and state.solved == 0) {
+        let warn: string = '{"text":"⚠ 仅剩 ' + str(remaining) + ' 次机会！","color":"red","bold":true}'
+        hint(player, warn)
+        exec(f"effect give {player} minecraft:haste 3 2")
+    }
+}
+
+/// 超时失败处理
+fn game_over(player: string, answer: int) {
+    title_title(player, '{"text":"💀 引爆失败","color":"dark_red","bold":true}')
+    let ans_str: string = str(answer)
+    let msg: string = '{"text":"答案是 ' + ans_str + '，你寄了。","color":"gray"}'
+    hint(player, msg)
+    exec(f"effect give {player} minecraft:darkness 10 1")
+    playsound(player, "minecraft:entity.wither.death", "master", "~ ~ ~", "1", "1", "")
+}
+
+// ----------------------------------------------------------------
+// 全局变量
+// ----------------------------------------------------------------
+
+let state: GameState
+let player: string = "@p"
+
+// ----------------------------------------------------------------
+// 入口：一局完整游戏流程
+// ----------------------------------------------------------------
+@init
+fn main() {
+    state = game_init(player)
+
+    // 初始化触发器
+    scoreboard_objectives_add("game_trigger", "trigger", "游戏触发器")
+    scoreboard_players_enable(player, "game_trigger")
+
+    for (let i = 0; i < 7; i += 1) {
+        if (state.solved == 0) {
+            let g: int = guesses[i]
+            let round_str: string = str(state.attempts + 1)
+            let g_str: string = str(g)
+            hint(player, '{"text":"— 第 ' + round_str + " 次猜测：" + g_str + ' —","color":"gray"}')
+            game_guess(player, state, g)
+        }
+    }
+
+    // 若模拟序列跑完还没猜中（理论上不会），触发 game_over
+    if (state.solved == 0) {
+        game_over(player, state.answer)
+    }
+}
+@tick()
+fn tick() {
+    if (state.solved == 0) {
+        exec("execute as @a[scores={game_trigger=1..}] run ")
+    }
+
+}

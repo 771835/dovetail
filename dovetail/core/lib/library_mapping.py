@@ -9,6 +9,7 @@ from dovetail.core.compile_config import CompileConfig
 from dovetail.core.lib.lib_builtins import Builtins
 from dovetail.core.lib.lib_experimental import Experimental
 from dovetail.core.lib.lib_assertion import Assertion
+from dovetail.core.lib.lib_getting_commands import GettingCommands
 from dovetail.core.lib.lib_math import Math
 from dovetail.core.lib.lib_random import Random
 from dovetail.core.lib.lib_string import Strlib
@@ -30,14 +31,14 @@ class LibraryMapping:
         "dovetail.minecraft.random": Random,
         "math": Math,
         "dovetail.math": Math,
-        # "int_list": IntList,
-        # "dovetail.list.int_list": IntList,
         "__strlib__": Strlib,
-        "dovetail.builtin.strlib": Strlib,
+        "dovetail.builtin.__strlib__": Strlib,
         "assert": Assertion,
         "dovetail.assert": Assertion,
         "stdlib": Stdlib,
-        "dovetail.stdlib":Stdlib,
+        "dovetail.stdlib": Stdlib,
+        "__minecraft_getting__": GettingCommands,
+        "dovetail.minecraft.__getting_commands__": GettingCommands
     }
 
     @classmethod

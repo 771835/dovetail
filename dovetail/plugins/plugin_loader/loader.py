@@ -8,6 +8,7 @@
 import json
 import os
 import traceback
+from inspect import stack
 from pathlib import Path
 from typing import Dict
 
@@ -21,6 +22,7 @@ __all__ = [
 
 logger = get_logger(__name__)
 
+load_stack = []
 
 class PluginLoader:
     """
@@ -51,6 +53,13 @@ class PluginLoader:
 
         该方法会搜索插件路径，读取插件元数据和主文件，创建执行环境并实例化插件。
         """
+        if plugin_name in self.plugins_instance:
+            logger.warning(f"插件重复加载：插件 '{plugin_name}' 已经被加载了")
+            return
+
+        load_stack.append(plugin_name)
+        logger.debug(f"插件加载栈：{' -> '.join(load_stack)}")
+
         # 根据插件目录名获取插件入口代码
         metadata = None
         code = None
@@ -132,6 +141,6 @@ class PluginLoader:
                 del self.plugins_instance[plugin_name]
             if os.environ.get("PLUGIN_DEBUG", None):
                 traceback.print_tb(e.__traceback__)
-
+        load_stack.pop()
 
 plugin_loader = PluginLoader()
