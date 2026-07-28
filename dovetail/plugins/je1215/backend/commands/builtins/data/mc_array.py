@@ -1,10 +1,10 @@
 # coding=utf-8
 from typing import cast
 
-from ..base import TemplateCommandHandler, CommandRegistry, CommandHandler
-from ..template import CommandTemplate, TemplateParameter, ParameterBuilder
 from dovetail.core.backend import GenerationContext
 from dovetail.core.symbols import Variable, Reference, Literal
+from ..base import TemplateCommandHandler, CommandRegistry, CommandHandler
+from ..template import CommandTemplate, TemplateParameter, ParameterBuilder
 from ... import DataBuilder
 
 
@@ -68,7 +68,7 @@ class MallocCommand(CommandHandler):
                 DataBuilder.modify_storage_set_value(
                     context.objective,
                     "temp_array",
-                    f"[{'0,'*size_t}]"
+                    f"[{'0,' * size_t}]"
                 )
             )
             context.current_scope.add_command(
@@ -80,4 +80,4 @@ class MallocCommand(CommandHandler):
                 )
             )
         else:
-            pass # TODO: 实现对编译期未知的情况下的数组槽位分配
+            pass  # TODO: 实现对编译期未知的情况下的数组槽位分配

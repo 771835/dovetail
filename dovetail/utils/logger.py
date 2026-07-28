@@ -12,6 +12,7 @@ if "--debug" in sys.argv:
 else:
     LOG_FILE = None
 
+
 class MessageTranslator:
     """消息翻译器，支持根据键翻译消息"""
 

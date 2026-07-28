@@ -9,13 +9,16 @@ import uuid
 from dovetail.core.backend import OutputWriter, GenerationContext
 from dovetail.core.enums import ValueType
 from dovetail.core.symbols import Reference, Literal
+from dovetail.utils.logger import get_logger
 from .commands import ReturnBuilder, Execute, ScoreboardBuilder
 from .commands.copy import Copy
 from .commands.tools import LiteralPoolTools
 
+logger = get_logger(__name__)
+
 
 class LiteralPoolWriter(OutputWriter):
-    builtin_literals = {1, -1}
+    builtin_literals = {1, -1, True, False}
 
     def write(self, context: GenerationContext):
         function_dir_path = context.target / context.namespace / "data" / context.namespace / "function"
@@ -59,7 +62,7 @@ class LiteralPoolWriter(OutputWriter):
         elif value is None:
             literals.add(0)
         else:
-            # get_project_logger().warning(f"Unsupported literal '{value}'({type(value)})")
+            logger.debug(f"未知的常量(不一定是常量w) '{value}'({type(value)})")
             return
 
     @staticmethod

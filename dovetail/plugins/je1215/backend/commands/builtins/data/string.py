@@ -3,12 +3,17 @@ from dovetail.core.backend import GenerationContext
 from dovetail.core.symbols import Variable, Reference, Literal
 from ..base import CommandRegistry, CommandHandler, TemplateCommandHandler
 from ..template import TemplateParameter, ParameterBuilder
-from ... import Copy, DataPath, Execute, DataBuilder, LiteralPoolTools
+from ...copy import Copy
+from ..._execute import Execute
+from ..._data import DataBuilder
+from ...tools import DataPath, LiteralPoolTools
+
 
 @CommandRegistry.register("strcat_fast")
 class StrcatFastCommand(TemplateCommandHandler):
     no_size_effects = True
     template_name = "strcat_fast"
+
     def build_params(self, result, context, args, template):
         assert result is not None
         builder = ParameterBuilder(context.current_scope, context.objective)

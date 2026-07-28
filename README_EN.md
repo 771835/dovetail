@@ -41,7 +41,7 @@ _𝓣𝓱𝓲𝓼 𝓪𝓻𝓽𝓲𝓬𝓵𝓮 𝔀𝓪𝓼 𝓽𝓻𝓪𝓷𝓼
 - [x] Optimize error display
 - [x] Unified log output
 - [ ] Improve plugin functionality
-- [ ] Stack implementation methods that save performance
+<!-- - [ ] Stack implementation methods that save performance -->
 - [ ] Compiler internationalization support
 - [ ] Allow declaration and invocation of other datapacks through simple syntax
 - [ ] Predicates, custom data, and other features
@@ -55,7 +55,7 @@ _𝓣𝓱𝓲𝓼 𝓪𝓻𝓽𝓲𝓬𝓵𝓮 𝔀𝓪𝓼 𝓽𝓻𝓪𝓷𝓼
 
 ### Requirements
 
-- Python 3.11+ (PyPy is supported and recommended)
+- Python 3.11+
 - Minecraft Java Edition 1.21.5
 
 ### Installation
@@ -170,7 +170,8 @@ Thank you for your support!
 ### Code Usage
 
 > Due to `Minecraft` version differences and actual usage considerations, necessary modifications may be made to the
-> following projects when used. If you are an author or contributor of the following projects and do not want your project
+> following projects when used. If you are an author or contributor of the following projects and do not want your
+> project
 > to be used or modified, please contact the project author to discuss removal.
 
 - Project [fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) - Fast integer square root  
@@ -187,8 +188,8 @@ Thank you for your support!
 ### Other Recommendations
 
 - [《Feature》](https://vanillalibrary.mcfpp.top/datapack-index/feature/_index.html)  
-  is hosted by the Vanilla Library team, a platform for collecting and showcasing short articles aimed at vanilla mod (
-  datapack + resource pack) development, used for communication between developers, updated monthly.
+  is hosted by the Vanilla Library team, a platform for collecting and showcasing short articles aimed at vanilla mod
+  (datapack + resource pack) development, used for communication between developers, updated monthly.
 
 ### Inspiration Sources / Credits
 

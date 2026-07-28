@@ -18,7 +18,6 @@ class IRArrayAccessProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
         result, array, index = cast("tuple[Variable, Reference, Reference]", instruction.operands)
 
-
         if index.is_literal():
             array_path = context.current_scope.get_symbol_path(array)
             # 生成复制数据的指令
@@ -31,8 +30,8 @@ class IRArrayAccessProcessor(IRProcessor):
                 )
             ))
             return
-        else: # 调用宏函数
-            if StorageLocation.get_storage(result.dtype) == StorageLocation.STORAGE: # (string等数据)
+        else:  # 调用宏函数
+            if StorageLocation.get_storage(result.dtype) == StorageLocation.STORAGE:  # (string等数据)
                 CommandRegistry.get(NameNormalizer.normalize("array_access_to_storage")).call(
                     result,
                     context,
@@ -41,7 +40,7 @@ class IRArrayAccessProcessor(IRProcessor):
                         "index": index
                     }
                 )
-            else: # SCORE (int, bool等值)
+            else:  # SCORE (int, bool等值)
                 CommandRegistry.get(NameNormalizer.normalize("array_access_to_score")).call(
                     result,
                     context,

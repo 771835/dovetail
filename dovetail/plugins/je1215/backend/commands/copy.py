@@ -1,16 +1,21 @@
 # coding=utf-8
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from ._data import DataBuilder
 from ._execute import Execute
 from ._scoreboard import ScoreboardBuilder
-from .tools import DataPath, StorageLocation
+
+if TYPE_CHECKING:
+    from .tools import DataPath
 
 
 class Copy:
     """
     复制模块，用于生成复制数据的指令
     """
+
     @staticmethod
     def copy_score_to_score(
             target: DataPath,
@@ -38,7 +43,7 @@ class Copy:
             source: DataPath,
     ):
         return (Execute.execute()
-                .store_result_storage(*reversed(target), 'int', 1.0) # noqa
+                .store_result_storage(*reversed(target), 'int', 1.0)  # noqa
                 .run(ScoreboardBuilder.get_score(*source)))
 
     @staticmethod
@@ -46,6 +51,7 @@ class Copy:
             target: DataPath,
             source: DataPath,
     ):
+        from .tools import StorageLocation
         if target.location == source.location:
             if target.location == StorageLocation.SCORE:
                 return Copy.copy_score_to_score(target, source)
@@ -61,11 +67,11 @@ class Copy:
     ) -> str:
         assert isinstance(source, int | str | bool | None), f"Invalid literal type: {type(source)}"
         if isinstance(source, int):
-            return ScoreboardBuilder.set_score(*target, int(source)) # noqa
+            return ScoreboardBuilder.set_score(*target, int(source))  # noqa
         elif isinstance(source, str):
             return DataBuilder.modify_storage_set_value(*reversed(target), repr(source))
         elif source is None:
-            return ScoreboardBuilder.set_score(*target, 0) # noqa
+            return ScoreboardBuilder.set_score(*target, 0)  # noqa
         raise
 
     @staticmethod
@@ -82,6 +88,7 @@ class Copy:
         Returns:
             生成的指令
         """
+        from .tools import StorageLocation
         if target.location == source.location:
             # 两数据位于同一位置
             if target.location == StorageLocation.SCORE:
@@ -108,6 +115,7 @@ class Copy:
         Returns:
             生成的指令
         """
+        from .tools import DataPath
         if isinstance(source, DataPath):
             return Copy.copy(target, source)
         else:

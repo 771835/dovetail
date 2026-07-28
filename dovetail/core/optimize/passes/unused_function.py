@@ -145,7 +145,7 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
                 break
 
             if instr.opcode == IROpCode.FUNCTION:
-                func:Function = instr.operands[0]
+                func: Function = instr.operands[0]
                 if func.name not in reachable:
                     iterator.remove_current()
                     self._changed = True

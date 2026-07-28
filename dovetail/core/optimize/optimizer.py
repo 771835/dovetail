@@ -31,7 +31,7 @@ def ensure_passes_registered() -> None:
         return
 
     # 导入优化管道，触发各自的 @register_pass 装饰器
-    import dovetail.core.optimize.passes # noqa: F401
+    import dovetail.core.optimize.passes  # noqa: F401
 
     _passes_registered = True
 

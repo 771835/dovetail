@@ -4,7 +4,7 @@ IRDeclare 指令处理器
 """
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.enums import PrimitiveDataType
-from dovetail.core.enums.datatypes import ArrayType,  DictType, ListType
+from dovetail.core.enums.datatypes import ArrayType, DictType, ListType
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable
 from ..backend import JE1215Backend
@@ -19,7 +19,7 @@ class IRDeclareProcessor(IRProcessor):
 
         # 对复合类型进行初始化
         if isinstance(var.dtype, ArrayType):
-            if var.dtype.dtype == PrimitiveDataType.BOOLEAN: # 由于语言中没有long的类型，故暂不允许设置[L;]的数组
+            if var.dtype.dtype == PrimitiveDataType.BOOLEAN:  # 由于语言中没有long的类型，故暂不允许设置[L;]的数组
                 initial_value = "[B;]"
             else:
                 initial_value = "[I;]"

@@ -56,6 +56,8 @@ class LiteralPoolTools:
     def get_literal_path_str(literal):
         if isinstance(literal, str):
             return f"literal_pool.str.{hash(literal)}"
+        elif isinstance(literal, bool):
+            return f"literal_pool.bool.{str(literal).lower()}"
         elif isinstance(literal, int):
             return f"literal_pool.int.{'n' if literal < 0 else ''}{abs(literal)}"
         else:
@@ -66,6 +68,8 @@ class LiteralPoolTools:
         assert isinstance(literal, (int, bool, str)), f"literal type {type(literal)} is not supported"
         if isinstance(literal, str):
             return DataPath(f"literal_pool.str.{hash(literal)}", target, StorageLocation.STORAGE)
+        elif isinstance(literal, bool):
+            return DataPath(f"literal_pool.bool.{str(literal).lower()}", target)
         elif isinstance(literal, int):
             return DataPath(f"literal_pool.int.{'n' if literal < 0 else ''}{abs(literal)}", target)
         else:

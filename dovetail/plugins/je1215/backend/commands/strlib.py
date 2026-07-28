@@ -7,6 +7,7 @@ from .tools import DataPath, StorageLocation, LiteralPoolTools
 
 logger = get_logger(__name__)
 
+
 def strcat_literal(result: DataPath, a: str, b: str):
     return Copy.copy_literals(result, str(a) + str(b))
 

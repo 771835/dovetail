@@ -10,7 +10,8 @@ from typing import Optional
 from dovetail.utils.logger import get_logger
 from .parameter import TemplateParameter
 from .template import CommandTemplate, TemplateRegistry
-from ... import LiteralPoolTools, DataPath, Copy, StorageLocation
+from ...tools import LiteralPoolTools, DataPath, StorageLocation
+from ...copy import Copy
 from ....commands import FunctionBuilder
 
 logger = get_logger(__name__)

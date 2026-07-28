@@ -11,17 +11,20 @@ from dovetail.core.instructions import IROpCode
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.symbols import Variable, Reference
 
-STACK_TYPE = list[tuple[str, StructureType, int, set[str]]] # {作用域名, 作用域类型, 作用域开始指令, 作用域内定义的变量}
+STACK_TYPE = list[tuple[str, StructureType, int, set[str]]]  # {作用域名, 作用域类型, 作用域开始指令, 作用域内定义的变量}
+
 
 class IRValidationError(Exception):
     """IR 结构验证失败。"""
 
-def _validate_has_declared(var_name:str, stack: STACK_TYPE) -> tuple[bool, Optional[set[str]]]:
+
+def _validate_has_declared(var_name: str, stack: STACK_TYPE) -> tuple[bool, Optional[set[str]]]:
     for begin_name, begin_type, begin_idx, var_table in reversed(stack):
         if var_name in var_table:
             return True, var_table
     else:
         return False, None
+
 
 def validate_ir(builder: IRBuilder) -> list[str]:
     """
@@ -57,7 +60,7 @@ def validate_ir(builder: IRBuilder) -> list[str]:
             if len(operands) < 1:
                 errors.append(f"[{idx}] DECLARE 缺少操作数: {instr}")
                 continue
-            var:Variable = operands[0]
+            var: Variable = operands[0]
             if current_var_table is None:
                 continue
             if var.name in current_var_table:

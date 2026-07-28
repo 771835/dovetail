@@ -1,8 +1,8 @@
 # coding=utf-8
+from dovetail.plugins.plugin_api import Plugin, registry_backend
 from dovetail.utils.logger import get_logger
 from .backend.backend import JE1215Backend
 from .backend.processors import *  # NOQA
-from dovetail.plugins.plugin_api import Plugin, registry_backend
 
 
 class PluginMain(Plugin):

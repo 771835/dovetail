@@ -389,7 +389,7 @@ class FunctionInliningPass(IROptimizationPass):
 
         elif op == IROpCode.JUMP:  # IRJump 对应的 opcode
             target_scope = instr.get_operands()[0]
-            return IRJump(scope_rename.get(target_scope, target_scope)) # noqa
+            return IRJump(scope_rename.get(target_scope, target_scope))  # noqa
 
         # 其他指令原样返回，保守处理
         return instr

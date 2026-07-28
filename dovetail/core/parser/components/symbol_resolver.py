@@ -79,8 +79,8 @@ class SymbolResolver:
     def add_symbol(
             self,
             symbol: Any,
-            meta: Optional[Meta] = None,
-            force: bool = False
+            force: bool = False,
+            meta: Optional[Meta] = None
     ) -> bool:
         """
         添加符号到当前作用域

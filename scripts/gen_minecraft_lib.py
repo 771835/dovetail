@@ -8,8 +8,8 @@ gen_minecraft_lib.py
 import json
 import re
 import sys
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 # ── 开关 ──────────────────────────────────────────────────────────
 EMIT_REAL_ALIAS = True  # True：别名生成真实函数体；False：仅生成注释索引

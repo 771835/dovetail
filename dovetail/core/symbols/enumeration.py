@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 
 from attrs import define, field
 
-from .base import Symbol, Annotatable, MethodHost
 from dovetail.core.enums.datatypes import DataTypeBase
+from .base import Symbol, Annotatable, MethodHost
 
 if TYPE_CHECKING:
     from dovetail.core.symbols import Literal, Function

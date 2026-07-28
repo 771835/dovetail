@@ -5,12 +5,12 @@ from typing import Any, Optional
 
 from attrs import define
 
-from ... import LiteralPoolTools, DataPath, StorageLocation
 from dovetail.core.backend import Scope
 from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.core.enums.types import ValueType
 from dovetail.core.symbols import Reference
+from ...tools import LiteralPoolTools, DataPath, StorageLocation
 
 
 class ParamBindingType(Enum):
@@ -88,6 +88,7 @@ class TemplateParameter:
             self.objective or "dovetail",
             StorageLocation.get_storage(self.dtype or PrimitiveDataType.INT)
         )
+
 
 class ParameterBuilder:
     """参数构建器 - 简化参数创建流程"""

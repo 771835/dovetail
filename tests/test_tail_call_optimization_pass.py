@@ -9,17 +9,17 @@ import unittest
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel, PrimitiveDataType, MinecraftVersion
+from dovetail.core.enums.types import StructureType
 from dovetail.core.instructions import (
     IRFunction, IRCall, IRReturn, IRScopeBegin, IRScopeEnd,
     IROpCode,
 )
-from dovetail.core.enums.types import StructureType
 from dovetail.core.ir_builder import IRBuilder
-from dovetail.core.symbols import Function, Variable, Reference, Parameter
 from dovetail.core.optimize.passes.tail_call_optimization import (
     TailCallOptimizationPass,
     _TCO_SCOPE_SUFFIX,
 )
+from dovetail.core.symbols import Function, Variable, Reference, Parameter
 
 
 # ─── 工具函数 ─────────────────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from ..annotations.base import AnnotationAttachment
     from .function import Function
 
+
 @define(slots=True, frozen=True)
 class Structure(Symbol, DataTypeBase, Annotatable, MethodHost):
     name: str

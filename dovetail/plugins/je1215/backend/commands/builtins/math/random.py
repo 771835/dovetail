@@ -29,6 +29,7 @@ class RandintCommand(TemplateCommandHandler):
             )
         )
 
+
 @CommandRegistry.register("randint_fast")
 class RandintFastCommand(TemplateCommandHandler):
     no_size_effects = True

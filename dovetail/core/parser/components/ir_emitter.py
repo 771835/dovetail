@@ -19,8 +19,8 @@ from dovetail.core.instructions import (
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.parser.components.error_reporter import ErrorReporter
-from dovetail.core.parser.components.type_checker import TypeChecker
 from dovetail.core.parser.components.symbol_resolver import SymbolResolver
+from dovetail.core.parser.components.type_checker import TypeChecker
 from dovetail.core.symbols import Variable, Reference, Function
 from dovetail.utils.naming import NameNormalizer
 
@@ -76,7 +76,6 @@ class IREmitter:
 
     # ==================== 高频模式封装 ====================
 
-
     def declare_variable(
             self,
             name: str,
@@ -123,7 +122,7 @@ class IREmitter:
 
         # 创建并注册符号
         variable = Variable(NameNormalizer.normalize(name), dtype, mutable=mutable)
-        if not self.symbol_resolver.add_symbol(variable, meta):
+        if not self.symbol_resolver.add_symbol(variable, meta=meta):
             return None
 
         # 生成 IR
@@ -131,7 +130,6 @@ class IREmitter:
         if value:
             self.emit(IRAssign(variable, value))
         return Reference(variable)
-
 
     # ==================== 工具方法 ====================
 

@@ -1,7 +1,6 @@
 # coding=utf-8
 from __future__ import annotations
 
-
 from dovetail.utils.safe_enum import SafeEnum
 
 
@@ -12,7 +11,6 @@ class DataTypeBase:
     See Also:
         此类不应该被实例化
     """
-
 
     def get_name(self) -> str:
         """
@@ -171,5 +169,6 @@ class UnionType(DataTypeBase):
 
     def __repr__(self):
         return " | ".join(map(str, self.types))
+
 
 BUILT_IN_COMPOSITE_TYPES = ArrayType | DictType | ListType

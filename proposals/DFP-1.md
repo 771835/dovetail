@@ -5,7 +5,7 @@
 **作者**: 771835 <2790834181@qq.com>  
 **状态**: Active  
 **创建日期**: 2025-06-06  
-**最新更新**: 2026-03-06
+**最新更新**: 2026-07-28
 
 ## 摘要
 
@@ -24,8 +24,8 @@
 通过结构化的语法设计，`Dovetail` 将实现如下改进：
 
 - 代码结构更具模块性和可维护性
-- 提供**编译时类型检查**
-- 支持**类定义与多继承**，增强模块间交互
+- 提供 **编译时类型检查**
+- 支持 **类定义与多继承**，增强模块间交互
 - 更易于与现代开发工具链集成
 
 ## 技术规范
@@ -40,12 +40,12 @@ include "mathlib.mcdl"
 include "selector.mcdl"
 
 // 顶层常量
-const PI: float = 3.14159
+const number = 6767
 
 // 顶层变量
 let global_counter: int = 0
 
-// 类定义
+// 类定义（暂未实现）
 class Entity(BaseEntity) {
     let health: int
     let name: string
@@ -60,7 +60,7 @@ class Entity(BaseEntity) {
 }
 
 // 函数定义
-function main() {
+fn main() {
     let player = Entity(100)
     player.takeDamage(20)
 }
@@ -76,58 +76,34 @@ function main() {
 
 #### 基础类型
 
-| 类型      | 说明   | 示例值        |
-|---------|------|------------|
-| int     | 整数   | 42, -10    |
-| float   | 浮点数  | 3.14, -0.5 |
-| string  | 字符串  | "Hello"    |
-| boolean | 布尔值  | true/false |
+| 类型    | 说明     | 示例值     |
+|---------|----------|------------|
+| int     | 整数     | 42, -10    |
+| string  | 字符串   | "Hello"    |
+| boolean | 布尔值   | true/false |
 | null    | 空值句柄 | null       |
 
 #### 类型标注
 
-所有变量、参数、函数返回值**强制类型标注**（除非使用 `let` 自动推导）：
+所有变量、参数、函数返回值 **强制类型标注**（除非使用 `let` 自动推导）：
 
 ```dovetail
 let x = 42                    // 自动推导为 int
 let y: int = 42               // 显式标注
-const MAX: int = 100          // 常量必须初始化
+const MAX = 100               // 常量必须初始化，但是无需强制标注
 
-function add(a: int, b: int) -> int {
-    return a + b
-}
-
-// 或使用前置类型风格
-function int add(int a, int b) {
+fn add(a: int, b: int) -> int {
     return a + b
 }
 ```
 
-#### 复合类型
+#### 内建复合基本类型
 
-```dovetail
-// 数组类型
-let fixed_array: int[10]              // 固定大小数组
-let dynamic_array: int[]              // 动态数组
-let matrix: int[10][20]               // 多维数组
+- 见 [DFP-1502](/proposals/DFP-1502.md)
 
-// 可空类型（仅对象）
-let nullable_entity: Entity?          // 可为 null 的对象引用
+### 类与多继承（暂未实现）
 
-// 类类型
-class Player { /*...*/ }
-```
-
-**数组大小**可使用常量表达式或标识符：
-
-```dovetail
-const SIZE = 10
-let arr: int[SIZE]
-```
-
-### 类与多继承
-
-Dovetail 支持**多继承**：
+Dovetail 支持 **多继承**：
 
 ```dovetail
 class Zombie(Mob, Damageable, Aggressive) {
@@ -157,11 +133,10 @@ class SimpleEntity() {
 
 ```dovetail
 @inline
-function fast_add(a: int, b: int) -> int {
+fn fast_add(a: int, b: int) -> int {
     return a + b
 }
 
-@optimize("level", 3)
 @deprecated
 class OldSystem() {
     // ...
@@ -171,7 +146,7 @@ class OldSystem() {
 **语法规则**：
 
 - `@ID` 或 `@ID(literal, literal, ...)`
-- 可标注函数、类、方法
+- 可标注函数、类、方法等
 
 ### 控制流语句
 
@@ -195,7 +170,7 @@ for (let i: int = 0; i < 10; i += 1) {
     summonChicken()
 }
 
-// 增强 for 循环（迭代对象）
+// 增强 for 循环（迭代对象，暂未实现）
 for (Entity entity: getEntities()) {
     entity.update()
 }
@@ -215,7 +190,6 @@ return value          // 返回值
 return                // 无返回值
 break                 // 跳出循环
 continue              // 继续下一次循环
-free resource         // 释放资源
 pass                  // 空语句（或使用 ;）
 ```
 
@@ -223,16 +197,16 @@ pass                  // 空语句（或使用 ;）
 
 #### 运算符优先级（从高到低）
 
-| 优先级 | 运算符                          | 描述           |
-|-----|------------------------------|--------------|
-| 1   | `()` `.` `[]`                | 括号、成员访问、数组访问 |
-| 2   | `-` `!` `not`                | 一元负号、逻辑非     |
-| 3   | `*` `/` `%`                  | 乘除、模运算       |
-| 4   | `+` `-`                      | 加减           |
-| 5   | `==` `!=` `<` `>` `<=` `>=`  | 比较运算         |
-| 6   | `&&` `and`                   | 逻辑与          |
-| 7   | `\|\|` `or`                  | 逻辑或          |
-| 8   | `=` `+=` `-=` `*=` `/=` `%=` | 赋值运算         |
+| 优先级 | 运算符                       | 描述                     |
+|--------|------------------------------|--------------------------|
+| 1      | `()` `.` `[]`                | 括号、成员访问、元素访问 |
+| 2      | `-` `!` `not`                | 一元负号、逻辑非         |
+| 3      | `*` `/` `%`                  | 乘除、模运算             |
+| 4      | `+` `-`                      | 加减                     |
+| 5      | `==` `!=` `<` `>` `<=` `>=`  | 比较运算                 |
+| 6      | `&&` `and`                   | 逻辑与                   |
+| 7      | `\|\|` `or`                  | 逻辑或                   |
+| 8      | `=` `+=` `-=` `*=` `/=` `%=` | 赋值运算                 |
 
 #### 特殊表达式
 
@@ -247,7 +221,7 @@ entity.takeDamage(10)
 // 成员访问
 player.health
 
-// 数组访问
+// 元素访问
 arr[5]
 
 // 函数调用
@@ -257,16 +231,6 @@ add(1, 2)
 health += 10
 arr[i] *= 2
 player.score -= 5
-```
-
-#### 可变参数
-
-使用 `mut` 关键字标记可变参数（目前仅对数组有效）：
-
-```dovetail
-function modify_array(mut arr: int[]) {
-    arr[0] = 100  // 修改传入的数组
-}
 ```
 
 ### 变量与常量
@@ -282,8 +246,7 @@ let z: int                // 延迟初始化（需要在使用前赋值，否则
 #### 常量声明
 
 ```dovetail
-const PI: float = 3.14159
-const int MAX = 100       // 前置类型风格
+const MAX = 100
 ```
 
 **注意**：常量必须在声明时初始化。
@@ -312,3 +275,4 @@ const int MAX = 100       // 前置类型风格
 - 2026-02-07 为语法更新做准备
 - 2026-02-12 语法更新，采用 Lark 解析器代替旧有 ANTLR 解析器
 - 2026-03-06 新增多继承、F-string、可空类型等特性
+- 2026-07-28 根据现有语法进行修改

@@ -1,4 +1,4 @@
-// errorlib.mcdl - 错误处理核心库
+// errorlib.mcdl - 错误处理库
 
 const ERRNO_OK = 0                    // 无错误
 const ERRNO_INVALID_ARG = 1           // 非法参数

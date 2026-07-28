@@ -41,7 +41,7 @@ from dovetail.core.enums import (
     ValueType, BinaryOps, UnaryOps, CompareOps
 )
 from dovetail.core.enums.datatypes import DataTypeBase, ListType, ArrayType, DictType
-from dovetail.core.errors import report, Errors
+from dovetail.core.errors import Errors
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp,
     IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRCast, IRIndexGet, IROpCode
@@ -162,7 +162,7 @@ class ASTVisitor(Interpreter):
             for class_, method_handlers in library.get_classes().items():
                 self.symbol_resolver.add_symbol(class_)
                 for method_name, handler in method_handlers.items():
-                    self.builtin_function[f"{class_.name}:{method_name}"] = handler
+                    self.builtin_function[f"{class_.name}::{method_name}"] = handler
 
         except Exception as e:
             self.error_reporter.report(
@@ -355,7 +355,7 @@ class ASTVisitor(Interpreter):
         symbol.annotations.update(post.attachments)
 
         # 添加符号
-        self.symbol_resolver.add_symbol(symbol, meta)
+        self.symbol_resolver.add_symbol(symbol, meta=meta)
 
     def struct_field(self, tree: Tree) -> tuple[str, DataTypeBase]:
         """处理结构体字段"""
@@ -376,14 +376,17 @@ class ASTVisitor(Interpreter):
         params: list[Parameter]
         name: str = _n(children.pop(0).value)
 
-        # PRE_SYMBOL阶段处理注解
-        ctx = self._make_annotation_ctx(
-            name=name, symbol=None,
-            target=AnnotationTarget.FUNCTION, meta=meta,
-        )
-        pre = get_registry().process_pre(raw_annotations, ctx)
-        if pre.skip:
-            return
+        if raw_annotations:
+            # PRE_SYMBOL阶段处理注解
+            ctx = self._make_annotation_ctx(
+                name=name, symbol=None,
+                target=AnnotationTarget.FUNCTION, meta=meta,
+            )
+            pre = get_registry().process_pre(raw_annotations, ctx)
+            if pre.skip:
+                return
+        else:
+            pre = None
 
         # 处理形参
         params = self.visit(children.pop(0))  # noqa
@@ -401,25 +404,27 @@ class ASTVisitor(Interpreter):
         func_type = (FunctionType.FUNCTION if children
                      else FunctionType.FUNCTION_UNIMPLEMENTED)
         function = Function(name, params, return_type, func_type)
-        self.symbol_resolver.add_symbol(function, meta, True)
+        self.symbol_resolver.add_symbol(function, True, meta)
 
         # 生成 IR
         self.ir_emitter.emit(IRFunction(function))
 
-        # POST_SYMBOL 阶段处理注解
-        ctx.symbol = function
-        post = get_registry().process_post(raw_annotations, ctx)
-        if post.merged.type_override:
-            function.function_type = post.merged.type_override
-        function.annotations.update(post.attachments)
+        if pre:
+            # POST_SYMBOL 阶段处理注解
+            ctx.symbol = function  # noqa
+            post = get_registry().process_post(raw_annotations, ctx)
+            if post.merged.type_override:
+                function.function_type = post.merged.type_override
+            function.annotations.update(post.attachments)
 
         # 处理函数体
         if children:
             with self._push_scope(name, StructureType.FUNCTION):  # NOQA
                 with self.error_reporter.context(f"函数 {_dn(name)}"):
                     # 添加参数到作用域
+                    scope = self.symbol_resolver.current_scope
                     for param in params:
-                        self.symbol_resolver.add_symbol(param.var, meta)
+                        scope.symbols[param.get_name()] = param.var  # 直接写入
                         self.ir_emitter.emit(IRDeclare(param.var))
                     # 访问函数体
                     self.visit(children.pop(0))  # noqa
@@ -584,16 +589,6 @@ class ASTVisitor(Interpreter):
             self.ir_emitter.emit(IRCondJump(condition, if_scope.name, else_scope.name))
         else:
             self.ir_emitter.emit(IRCondJump(condition, if_scope.name))
-
-    @v_args(meta=True)
-    def free(self, meta: Meta, _: list[Tree | Token]):
-        report(
-            Errors.MissingImplementation,
-            "free 命令较为危险，故暂不实现(此错误不会影响编译)",
-            filepath=self.filepath,
-            line=meta.line,
-            column=meta.column,
-        )
 
     @v_args(meta=True)
     def condition(self, meta: Meta, children: list):
@@ -1113,7 +1108,7 @@ class ASTVisitor(Interpreter):
             if method is None:
                 self.error_reporter.report(
                     Errors.MagicMethodNotImplemented,
-                    repr(dtype), # noqa
+                    repr(dtype),  # noqa
                     "__getitem__",
                     "索引读取",
                     meta=meta
@@ -1121,7 +1116,7 @@ class ASTVisitor(Interpreter):
                 return Reference.void()
             result = self.ir_emitter.create_temp_var_declared(method.return_type)
 
-            #self.ir_emitter.emit(IRCallMethod(result, container, method, ...))
+            # self.ir_emitter.emit(IRCallMethod(result, container, method, ...))
             # TODO: 调用具体方法
             ...
         elif isinstance(dtype, PrimitiveDataType):
@@ -1141,7 +1136,7 @@ class ASTVisitor(Interpreter):
 
     @v_args(meta=True)
     def index_set(self, meta: Meta, children: list[Tree | Token]):
-        pass # TODO: 实现索引写入
+        pass  # TODO: 实现索引写入
 
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""

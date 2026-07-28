@@ -9,11 +9,11 @@ from __future__ import annotations
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel
+from dovetail.core.enums.types import StructureType
 from dovetail.core.instructions import (
     IRInstruction, IROpCode,
     IRAssign, IRJump, IRScopeBegin, IRScopeEnd,
 )
-from dovetail.core.enums.types import StructureType
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.context import OptimizationContext
@@ -23,7 +23,7 @@ from dovetail.core.symbols import Function, Reference
 
 # ─── 常量 ────────────────────────────────────────────────────────────────────
 
-_TCO_SCOPE_SUFFIX = "_1_tco_loop" # _1是为了保证不会与其他函数命名重复，关闭命名归一化无效
+_TCO_SCOPE_SUFFIX = "_1_tco_loop"  # _1是为了保证不会与其他函数命名重复，关闭命名归一化无效
 
 
 # ─── Pass 注册 ────────────────────────────────────────────────────────────────

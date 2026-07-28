@@ -43,7 +43,7 @@ class NameNormalizer:
             str: 规范化后的字符串
         """
 
-        if sys.platform.startswith("win") and  name in ("aux","com1","com2","prn","con","nul"):
+        if sys.platform.startswith("win") and name in ("aux", "com1", "com2", "prn", "con", "nul"):
             return f"_0_{name}"
 
         if not NameNormalizer.enable:

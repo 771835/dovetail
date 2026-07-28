@@ -98,6 +98,7 @@ class _CacheManager:
         # 文件存在但没有缓存记录，假定有效
         return True
 
+
 def _get_system_proxies() -> dict:
     """
     自动读取系统代理环境变量

@@ -212,7 +212,6 @@ def register_builtin_templates():
             tags=["data", "array", "storage"]
         ),
 
-
         CommandTemplate(
             name="array_assign",
             template="data modify storage $(target) $(path)[$(index)] set value $(value)",

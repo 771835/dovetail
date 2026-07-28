@@ -482,7 +482,7 @@ class ConstantFoldingPass(IROptimizationPass):
                         self.branch_base_state.pop(self.conditional_branches.get(false_scope), None)
 
                         return True
-        else: # 是字面量
+        else:  # 是字面量
             cond_val = bool(cond.value.value)
             jump_scope = true_scope if cond_val else false_scope
 

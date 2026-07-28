@@ -206,7 +206,7 @@ fn bossbar_set_color_yellow(id: string) {
     exec(f"bossbar set {id} color yellow")
 }
 
-fn bossbar_set_max(id: string, max: int) {
+fn bossbar_set_max(id: string, max: string) {
     exec(f"bossbar set {id} max {max}")
 }
 
@@ -242,7 +242,7 @@ fn bossbar_set_style_progress(id: string) {
     exec(f"bossbar set {id} style progress")
 }
 
-fn bossbar_set_value(id: string, value: int) {
+fn bossbar_set_value(id: string, value: string) {
     exec(f"bossbar set {id} value {value}")
 }
 
@@ -254,10 +254,10 @@ fn bossbar_set_visible(id: string, visible: string) {
 // clear
 // ────────────────────────────────────────────────────────────
 
-fn clear(targets: string, item: string = "", maxCount: int = 0) {
+fn clear(targets: string, item: string = "", maxCount: string = "") {
     if (item == "") {
         exec(f"clear {targets}")
-    } else if (maxCount == 0) {
+    } else if (maxCount == "") {
         exec(f"clear {targets} {item}")
     } else {
         exec(f"clear {targets} {item} {maxCount}")
@@ -748,36 +748,36 @@ fn data_modify_block_append_from_storage(targetPos: string, targetPath: string, 
     }
 }
 
-fn data_modify_block_append_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_append_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} append string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} append string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} append string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} append string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_block_append_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_append_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} append string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} append string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} append string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} append string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_block_append_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_append_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} append string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} append string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} append string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} append string storage {source} {sourcePath} {start} {end}")
@@ -788,7 +788,7 @@ fn data_modify_block_append_value(targetPos: string, targetPath: string, value: 
     exec(f"data modify block {targetPos} {targetPath} append value {value}")
 }
 
-fn data_modify_block_insert_from_block(targetPos: string, targetPath: string, index: int, sourcePos: string, sourcePath: string = "") {
+fn data_modify_block_insert_from_block(targetPos: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} from block {sourcePos}")
     } else {
@@ -796,7 +796,7 @@ fn data_modify_block_insert_from_block(targetPos: string, targetPath: string, in
     }
 }
 
-fn data_modify_block_insert_from_entity(targetPos: string, targetPath: string, index: int, source: string, sourcePath: string = "") {
+fn data_modify_block_insert_from_entity(targetPos: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} from entity {source}")
     } else {
@@ -804,7 +804,7 @@ fn data_modify_block_insert_from_entity(targetPos: string, targetPath: string, i
     }
 }
 
-fn data_modify_block_insert_from_storage(targetPos: string, targetPath: string, index: int, source: string, sourcePath: string = "") {
+fn data_modify_block_insert_from_storage(targetPos: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} from storage {source}")
     } else {
@@ -812,43 +812,43 @@ fn data_modify_block_insert_from_storage(targetPos: string, targetPath: string, 
     }
 }
 
-fn data_modify_block_insert_string_block(targetPos: string, targetPath: string, index: int, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_insert_string_block(targetPos: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_block_insert_string_entity(targetPos: string, targetPath: string, index: int, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_insert_string_entity(targetPos: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_block_insert_string_storage(targetPos: string, targetPath: string, index: int, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_insert_string_storage(targetPos: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} insert {index} string storage {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_block_insert_value(targetPos: string, targetPath: string, index: int, value: string) {
+fn data_modify_block_insert_value(targetPos: string, targetPath: string, index: string, value: string) {
     exec(f"data modify block {targetPos} {targetPath} insert {index} value {value}")
 }
 
@@ -876,36 +876,36 @@ fn data_modify_block_merge_from_storage(targetPos: string, targetPath: string, s
     }
 }
 
-fn data_modify_block_merge_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_merge_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} merge string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} merge string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} merge string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} merge string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_block_merge_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_merge_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} merge string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} merge string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} merge string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} merge string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_block_merge_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_merge_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} merge string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} merge string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} merge string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} merge string storage {source} {sourcePath} {start} {end}")
@@ -940,36 +940,36 @@ fn data_modify_block_prepend_from_storage(targetPos: string, targetPath: string,
     }
 }
 
-fn data_modify_block_prepend_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_prepend_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} prepend string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} prepend string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} prepend string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} prepend string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_block_prepend_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_prepend_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} prepend string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} prepend string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} prepend string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} prepend string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_block_prepend_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_prepend_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} prepend string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} prepend string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} prepend string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} prepend string storage {source} {sourcePath} {start} {end}")
@@ -1004,36 +1004,36 @@ fn data_modify_block_set_from_storage(targetPos: string, targetPath: string, sou
     }
 }
 
-fn data_modify_block_set_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_set_string_block(targetPos: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} set string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} set string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} set string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} set string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_block_set_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_set_string_entity(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} set string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} set string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} set string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} set string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_block_set_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_block_set_string_storage(targetPos: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify block {targetPos} {targetPath} set string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify block {targetPos} {targetPath} set string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify block {targetPos} {targetPath} set string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify block {targetPos} {targetPath} set string storage {source} {sourcePath} {start} {end}")
@@ -1068,36 +1068,36 @@ fn data_modify_entity_append_from_storage(target: string, targetPath: string, so
     }
 }
 
-fn data_modify_entity_append_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_append_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} append string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} append string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} append string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} append string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_entity_append_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_append_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} append string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} append string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} append string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} append string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_entity_append_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_append_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} append string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} append string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} append string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} append string storage {source} {sourcePath} {start} {end}")
@@ -1108,7 +1108,7 @@ fn data_modify_entity_append_value(target: string, targetPath: string, value: st
     exec(f"data modify entity {target} {targetPath} append value {value}")
 }
 
-fn data_modify_entity_insert_from_block(target: string, targetPath: string, index: int, sourcePos: string, sourcePath: string = "") {
+fn data_modify_entity_insert_from_block(target: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} from block {sourcePos}")
     } else {
@@ -1116,7 +1116,7 @@ fn data_modify_entity_insert_from_block(target: string, targetPath: string, inde
     }
 }
 
-fn data_modify_entity_insert_from_entity(target: string, targetPath: string, index: int, source: string, sourcePath: string = "") {
+fn data_modify_entity_insert_from_entity(target: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} from entity {source}")
     } else {
@@ -1124,7 +1124,7 @@ fn data_modify_entity_insert_from_entity(target: string, targetPath: string, ind
     }
 }
 
-fn data_modify_entity_insert_from_storage(target: string, targetPath: string, index: int, source: string, sourcePath: string = "") {
+fn data_modify_entity_insert_from_storage(target: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} from storage {source}")
     } else {
@@ -1132,43 +1132,43 @@ fn data_modify_entity_insert_from_storage(target: string, targetPath: string, in
     }
 }
 
-fn data_modify_entity_insert_string_block(target: string, targetPath: string, index: int, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_insert_string_block(target: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_entity_insert_string_entity(target: string, targetPath: string, index: int, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_insert_string_entity(target: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} insert {index} string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_entity_insert_string_storage(target: string, targetPath: string, index: int, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_insert_string_storage(target: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} insert {index} string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} insert {index} string storage {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_entity_insert_value(target: string, targetPath: string, index: int, value: string) {
+fn data_modify_entity_insert_value(target: string, targetPath: string, index: string, value: string) {
     exec(f"data modify entity {target} {targetPath} insert {index} value {value}")
 }
 
@@ -1196,36 +1196,36 @@ fn data_modify_entity_merge_from_storage(target: string, targetPath: string, sou
     }
 }
 
-fn data_modify_entity_merge_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_merge_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} merge string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} merge string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} merge string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} merge string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_entity_merge_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_merge_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} merge string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} merge string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} merge string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} merge string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_entity_merge_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_merge_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} merge string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} merge string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} merge string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} merge string storage {source} {sourcePath} {start} {end}")
@@ -1260,36 +1260,36 @@ fn data_modify_entity_prepend_from_storage(target: string, targetPath: string, s
     }
 }
 
-fn data_modify_entity_prepend_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_prepend_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} prepend string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} prepend string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} prepend string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} prepend string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_entity_prepend_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_prepend_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} prepend string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} prepend string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} prepend string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} prepend string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_entity_prepend_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_prepend_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} prepend string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} prepend string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} prepend string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} prepend string storage {source} {sourcePath} {start} {end}")
@@ -1324,36 +1324,36 @@ fn data_modify_entity_set_from_storage(target: string, targetPath: string, sourc
     }
 }
 
-fn data_modify_entity_set_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_set_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} set string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} set string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} set string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} set string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_entity_set_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_set_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} set string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} set string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} set string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} set string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_entity_set_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_entity_set_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify entity {target} {targetPath} set string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify entity {target} {targetPath} set string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify entity {target} {targetPath} set string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify entity {target} {targetPath} set string storage {source} {sourcePath} {start} {end}")
@@ -1388,36 +1388,36 @@ fn data_modify_storage_append_from_storage(target: string, targetPath: string, s
     }
 }
 
-fn data_modify_storage_append_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_append_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} append string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} append string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} append string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} append string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_storage_append_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_append_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} append string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} append string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} append string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} append string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_storage_append_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_append_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} append string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} append string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} append string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} append string storage {source} {sourcePath} {start} {end}")
@@ -1428,7 +1428,7 @@ fn data_modify_storage_append_value(target: string, targetPath: string, value: s
     exec(f"data modify storage {target} {targetPath} append value {value}")
 }
 
-fn data_modify_storage_insert_from_block(target: string, targetPath: string, index: int, sourcePos: string, sourcePath: string = "") {
+fn data_modify_storage_insert_from_block(target: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} from block {sourcePos}")
     } else {
@@ -1436,7 +1436,7 @@ fn data_modify_storage_insert_from_block(target: string, targetPath: string, ind
     }
 }
 
-fn data_modify_storage_insert_from_entity(target: string, targetPath: string, index: int, source: string, sourcePath: string = "") {
+fn data_modify_storage_insert_from_entity(target: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} from entity {source}")
     } else {
@@ -1444,7 +1444,7 @@ fn data_modify_storage_insert_from_entity(target: string, targetPath: string, in
     }
 }
 
-fn data_modify_storage_insert_from_storage(target: string, targetPath: string, index: int, source: string, sourcePath: string = "") {
+fn data_modify_storage_insert_from_storage(target: string, targetPath: string, index: string, source: string, sourcePath: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} from storage {source}")
     } else {
@@ -1452,43 +1452,43 @@ fn data_modify_storage_insert_from_storage(target: string, targetPath: string, i
     }
 }
 
-fn data_modify_storage_insert_string_block(target: string, targetPath: string, index: int, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_insert_string_block(target: string, targetPath: string, index: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} insert {index} string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_storage_insert_string_entity(target: string, targetPath: string, index: int, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_insert_string_entity(target: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} insert {index} string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_storage_insert_string_storage(target: string, targetPath: string, index: int, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_insert_string_storage(target: string, targetPath: string, index: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} insert {index} string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} insert {index} string storage {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_storage_insert_value(target: string, targetPath: string, index: int, value: string) {
+fn data_modify_storage_insert_value(target: string, targetPath: string, index: string, value: string) {
     exec(f"data modify storage {target} {targetPath} insert {index} value {value}")
 }
 
@@ -1516,36 +1516,36 @@ fn data_modify_storage_merge_from_storage(target: string, targetPath: string, so
     }
 }
 
-fn data_modify_storage_merge_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_merge_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} merge string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} merge string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} merge string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} merge string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_storage_merge_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_merge_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} merge string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} merge string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} merge string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} merge string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_storage_merge_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_merge_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} merge string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} merge string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} merge string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} merge string storage {source} {sourcePath} {start} {end}")
@@ -1580,36 +1580,36 @@ fn data_modify_storage_prepend_from_storage(target: string, targetPath: string, 
     }
 }
 
-fn data_modify_storage_prepend_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_prepend_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} prepend string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} prepend string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} prepend string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} prepend string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_storage_prepend_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_prepend_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} prepend string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} prepend string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} prepend string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} prepend string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_storage_prepend_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_prepend_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} prepend string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} prepend string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} prepend string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} prepend string storage {source} {sourcePath} {start} {end}")
@@ -1644,36 +1644,36 @@ fn data_modify_storage_set_from_storage(target: string, targetPath: string, sour
     }
 }
 
-fn data_modify_storage_set_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_set_string_block(target: string, targetPath: string, sourcePos: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} set string block {sourcePos}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} set string block {sourcePos} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} set string block {sourcePos} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} set string block {sourcePos} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_storage_set_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_set_string_entity(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} set string entity {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} set string entity {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} set string entity {source} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} set string entity {source} {sourcePath} {start} {end}")
     }
 }
 
-fn data_modify_storage_set_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: int = 0, end: int = 0) {
+fn data_modify_storage_set_string_storage(target: string, targetPath: string, source: string, sourcePath: string = "", start: string = "", end: string = "") {
     if (sourcePath == "") {
         exec(f"data modify storage {target} {targetPath} set string storage {source}")
-    } else if (start == 0) {
+    } else if (start == "") {
         exec(f"data modify storage {target} {targetPath} set string storage {source} {sourcePath}")
-    } else if (end == 0) {
+    } else if (end == "") {
         exec(f"data modify storage {target} {targetPath} set string storage {source} {sourcePath} {start}")
     } else {
         exec(f"data modify storage {target} {targetPath} set string storage {source} {sourcePath} {start} {end}")
@@ -1778,10 +1778,10 @@ fn effect_clear(targets: string, effect: string = "") {
     }
 }
 
-fn effect_give(targets: string, effect: string, seconds: int = 0, amplifier: int = 0, hideParticles: string = "") {
-    if (seconds == 0) {
+fn effect_give(targets: string, effect: string, seconds: string = "", amplifier: string = "", hideParticles: string = "") {
+    if (seconds == "") {
         exec(f"effect give {targets} {effect}")
-    } else if (amplifier == 0) {
+    } else if (amplifier == "") {
         exec(f"effect give {targets} {effect} {seconds}")
     } else if (hideParticles == "") {
         exec(f"effect give {targets} {effect} {seconds} {amplifier}")
@@ -1790,8 +1790,8 @@ fn effect_give(targets: string, effect: string, seconds: int = 0, amplifier: int
     }
 }
 
-fn effect_give_infinite(targets: string, effect: string, amplifier: int = 0, hideParticles: string = "") {
-    if (amplifier == 0) {
+fn effect_give_infinite(targets: string, effect: string, amplifier: string = "", hideParticles: string = "") {
+    if (amplifier == "") {
         exec(f"effect give {targets} {effect} infinite")
     } else if (hideParticles == "") {
         exec(f"effect give {targets} {effect} infinite {amplifier}")
@@ -1804,8 +1804,8 @@ fn effect_give_infinite(targets: string, effect: string, amplifier: int = 0, hid
 // enchant
 // ────────────────────────────────────────────────────────────
 
-fn enchant(targets: string, enchantment: string, level: int = 0) {
-    if (level == 0) {
+fn enchant(targets: string, enchantment: string, level: string = "") {
+    if (level == "") {
         exec(f"enchant {targets} {enchantment}")
     } else {
         exec(f"enchant {targets} {enchantment} {level}")
@@ -1948,15 +1948,15 @@ fn execute_unless_score_matches(target: string, targetObjective: string, range: 
 // experience
 // ────────────────────────────────────────────────────────────
 
-fn experience_add(target: string, amount: int) {
+fn experience_add(target: string, amount: string) {
     exec(f"experience add {target} {amount}")
 }
 
-fn experience_add_levels(target: string, amount: int) {
+fn experience_add_levels(target: string, amount: string) {
     exec(f"experience add {target} {amount} levels")
 }
 
-fn experience_add_points(target: string, amount: int) {
+fn experience_add_points(target: string, amount: string) {
     exec(f"experience add {target} {amount} points")
 }
 
@@ -1968,15 +1968,15 @@ fn experience_query_points(target: string) {
     exec(f"experience query {target} points")
 }
 
-fn experience_set(target: string, amount: int) {
+fn experience_set(target: string, amount: string) {
     exec(f"experience set {target} {amount}")
 }
 
-fn experience_set_levels(target: string, amount: int) {
+fn experience_set_levels(target: string, amount: string) {
     exec(f"experience set {target} {amount} levels")
 }
 
-fn experience_set_points(target: string, amount: int) {
+fn experience_set_points(target: string, amount: string) {
     exec(f"experience set {target} {amount} points")
 }
 
@@ -2140,7 +2140,7 @@ fn gamerule_commandBlockOutput(value: string) {
     exec(f"gamerule commandBlockOutput {value}")
 }
 
-fn gamerule_commandModificationBlockLimit(value: int) {
+fn gamerule_commandModificationBlockLimit(value: string) {
     exec(f"gamerule commandModificationBlockLimit {value}")
 }
 
@@ -2252,19 +2252,19 @@ fn gamerule_logAdminCommands(value: string) {
     exec(f"gamerule logAdminCommands {value}")
 }
 
-fn gamerule_maxCommandChainLength(value: int) {
+fn gamerule_maxCommandChainLength(value: string) {
     exec(f"gamerule maxCommandChainLength {value}")
 }
 
-fn gamerule_maxCommandForkCount(value: int) {
+fn gamerule_maxCommandForkCount(value: string) {
     exec(f"gamerule maxCommandForkCount {value}")
 }
 
-fn gamerule_maxEntityCramming(value: int) {
+fn gamerule_maxEntityCramming(value: string) {
     exec(f"gamerule maxEntityCramming {value}")
 }
 
-fn gamerule_minecartMaxSpeed(value: int) {
+fn gamerule_minecartMaxSpeed(value: string) {
     exec(f"gamerule minecartMaxSpeed {value}")
 }
 
@@ -2280,15 +2280,15 @@ fn gamerule_naturalRegeneration(value: string) {
     exec(f"gamerule naturalRegeneration {value}")
 }
 
-fn gamerule_playersNetherPortalCreativeDelay(value: int) {
+fn gamerule_playersNetherPortalCreativeDelay(value: string) {
     exec(f"gamerule playersNetherPortalCreativeDelay {value}")
 }
 
-fn gamerule_playersNetherPortalDefaultDelay(value: int) {
+fn gamerule_playersNetherPortalDefaultDelay(value: string) {
     exec(f"gamerule playersNetherPortalDefaultDelay {value}")
 }
 
-fn gamerule_playersSleepingPercentage(value: int) {
+fn gamerule_playersSleepingPercentage(value: string) {
     exec(f"gamerule playersSleepingPercentage {value}")
 }
 
@@ -2296,7 +2296,7 @@ fn gamerule_projectilesCanBreakBlocks(value: string) {
     exec(f"gamerule projectilesCanBreakBlocks {value}")
 }
 
-fn gamerule_randomTickSpeed(value: int) {
+fn gamerule_randomTickSpeed(value: string) {
     exec(f"gamerule randomTickSpeed {value}")
 }
 
@@ -2312,15 +2312,15 @@ fn gamerule_showDeathMessages(value: string) {
     exec(f"gamerule showDeathMessages {value}")
 }
 
-fn gamerule_snowAccumulationHeight(value: int) {
+fn gamerule_snowAccumulationHeight(value: string) {
     exec(f"gamerule snowAccumulationHeight {value}")
 }
 
-fn gamerule_spawnChunkRadius(value: int) {
+fn gamerule_spawnChunkRadius(value: string) {
     exec(f"gamerule spawnChunkRadius {value}")
 }
 
-fn gamerule_spawnRadius(value: int) {
+fn gamerule_spawnRadius(value: string) {
     exec(f"gamerule spawnRadius {value}")
 }
 
@@ -2348,8 +2348,8 @@ fn gamerule_waterSourceConversion(value: string) {
 // give
 // ────────────────────────────────────────────────────────────
 
-fn give(targets: string, item: string, count: int = 0) {
-    if (count == 0) {
+fn give(targets: string, item: string, count: string = "") {
+    if (count == "") {
         exec(f"give {targets} {item}")
     } else {
         exec(f"give {targets} {item} {count}")
@@ -2384,8 +2384,8 @@ fn item_replace_block_from_entity(pos: string, slot: string, source: string, sou
     }
 }
 
-fn item_replace_block_with(pos: string, slot: string, item: string, count: int = 0) {
-    if (count == 0) {
+fn item_replace_block_with(pos: string, slot: string, item: string, count: string = "") {
+    if (count == "") {
         exec(f"item replace block {pos} {slot} with {item}")
     } else {
         exec(f"item replace block {pos} {slot} with {item} {count}")
@@ -2408,8 +2408,8 @@ fn item_replace_entity_from_entity(targets: string, slot: string, source: string
     }
 }
 
-fn item_replace_entity_with(targets: string, slot: string, item: string, count: int = 0) {
-    if (count == 0) {
+fn item_replace_entity_with(targets: string, slot: string, item: string, count: string = "") {
+    if (count == "") {
         exec(f"item replace entity {targets} {slot} with {item}")
     } else {
         exec(f"item replace entity {targets} {slot} with {item} {count}")
@@ -2536,144 +2536,144 @@ fn loot_insert_mine_offhand(targetPos: string, pos: string) {
     exec(f"loot insert {targetPos} mine {pos} offhand")
 }
 
-fn loot_replace_block_fish(targetPos: string, slot: string, loot_table: string, pos: string, count: int = 0, tool: string = "") {
-    if (count == 0) {
+fn loot_replace_block_fish(targetPos: string, slot: string, loot_table: string, pos: string, count: string = "", tool: string = "") {
+    if (count == "") {
         exec(f"loot replace block {targetPos} {slot} fish {loot_table} {pos}")
     } else if (tool == "") {
         exec(f"loot replace block {targetPos} {slot} {count} fish {loot_table} {pos}")
-    } else if (count == 0) {
+    } else if (count == "") {
         exec(f"loot replace block {targetPos} {slot} fish {loot_table} {pos} {tool}")
     } else {
         exec(f"loot replace block {targetPos} {slot} {count} fish {loot_table} {pos} {tool}")
     }
 }
 
-fn loot_replace_block_fish_mainhand(targetPos: string, slot: string, loot_table: string, pos: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_block_fish_mainhand(targetPos: string, slot: string, loot_table: string, pos: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace block {targetPos} {slot} fish {loot_table} {pos} mainhand")
     } else {
         exec(f"loot replace block {targetPos} {slot} {count} fish {loot_table} {pos} mainhand")
     }
 }
 
-fn loot_replace_block_fish_offhand(targetPos: string, slot: string, loot_table: string, pos: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_block_fish_offhand(targetPos: string, slot: string, loot_table: string, pos: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace block {targetPos} {slot} fish {loot_table} {pos} offhand")
     } else {
         exec(f"loot replace block {targetPos} {slot} {count} fish {loot_table} {pos} offhand")
     }
 }
 
-fn loot_replace_block_kill(targetPos: string, slot: string, target: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_block_kill(targetPos: string, slot: string, target: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace block {targetPos} {slot} kill {target}")
     } else {
         exec(f"loot replace block {targetPos} {slot} {count} kill {target}")
     }
 }
 
-fn loot_replace_block_loot(targetPos: string, slot: string, loot_table: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_block_loot(targetPos: string, slot: string, loot_table: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace block {targetPos} {slot} loot {loot_table}")
     } else {
         exec(f"loot replace block {targetPos} {slot} {count} loot {loot_table}")
     }
 }
 
-fn loot_replace_block_mine(targetPos: string, slot: string, pos: string, count: int = 0, tool: string = "") {
-    if (count == 0) {
+fn loot_replace_block_mine(targetPos: string, slot: string, pos: string, count: string = "", tool: string = "") {
+    if (count == "") {
         exec(f"loot replace block {targetPos} {slot} mine {pos}")
     } else if (tool == "") {
         exec(f"loot replace block {targetPos} {slot} {count} mine {pos}")
-    } else if (count == 0) {
+    } else if (count == "") {
         exec(f"loot replace block {targetPos} {slot} mine {pos} {tool}")
     } else {
         exec(f"loot replace block {targetPos} {slot} {count} mine {pos} {tool}")
     }
 }
 
-fn loot_replace_block_mine_mainhand(targetPos: string, slot: string, pos: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_block_mine_mainhand(targetPos: string, slot: string, pos: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace block {targetPos} {slot} mine {pos} mainhand")
     } else {
         exec(f"loot replace block {targetPos} {slot} {count} mine {pos} mainhand")
     }
 }
 
-fn loot_replace_block_mine_offhand(targetPos: string, slot: string, pos: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_block_mine_offhand(targetPos: string, slot: string, pos: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace block {targetPos} {slot} mine {pos} offhand")
     } else {
         exec(f"loot replace block {targetPos} {slot} {count} mine {pos} offhand")
     }
 }
 
-fn loot_replace_entity_fish(entities: string, slot: string, loot_table: string, pos: string, count: int = 0, tool: string = "") {
-    if (count == 0) {
+fn loot_replace_entity_fish(entities: string, slot: string, loot_table: string, pos: string, count: string = "", tool: string = "") {
+    if (count == "") {
         exec(f"loot replace entity {entities} {slot} fish {loot_table} {pos}")
     } else if (tool == "") {
         exec(f"loot replace entity {entities} {slot} {count} fish {loot_table} {pos}")
-    } else if (count == 0) {
+    } else if (count == "") {
         exec(f"loot replace entity {entities} {slot} fish {loot_table} {pos} {tool}")
     } else {
         exec(f"loot replace entity {entities} {slot} {count} fish {loot_table} {pos} {tool}")
     }
 }
 
-fn loot_replace_entity_fish_mainhand(entities: string, slot: string, loot_table: string, pos: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_entity_fish_mainhand(entities: string, slot: string, loot_table: string, pos: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace entity {entities} {slot} fish {loot_table} {pos} mainhand")
     } else {
         exec(f"loot replace entity {entities} {slot} {count} fish {loot_table} {pos} mainhand")
     }
 }
 
-fn loot_replace_entity_fish_offhand(entities: string, slot: string, loot_table: string, pos: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_entity_fish_offhand(entities: string, slot: string, loot_table: string, pos: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace entity {entities} {slot} fish {loot_table} {pos} offhand")
     } else {
         exec(f"loot replace entity {entities} {slot} {count} fish {loot_table} {pos} offhand")
     }
 }
 
-fn loot_replace_entity_kill(entities: string, slot: string, target: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_entity_kill(entities: string, slot: string, target: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace entity {entities} {slot} kill {target}")
     } else {
         exec(f"loot replace entity {entities} {slot} {count} kill {target}")
     }
 }
 
-fn loot_replace_entity_loot(entities: string, slot: string, loot_table: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_entity_loot(entities: string, slot: string, loot_table: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace entity {entities} {slot} loot {loot_table}")
     } else {
         exec(f"loot replace entity {entities} {slot} {count} loot {loot_table}")
     }
 }
 
-fn loot_replace_entity_mine(entities: string, slot: string, pos: string, count: int = 0, tool: string = "") {
-    if (count == 0) {
+fn loot_replace_entity_mine(entities: string, slot: string, pos: string, count: string = "", tool: string = "") {
+    if (count == "") {
         exec(f"loot replace entity {entities} {slot} mine {pos}")
     } else if (tool == "") {
         exec(f"loot replace entity {entities} {slot} {count} mine {pos}")
-    } else if (count == 0) {
+    } else if (count == "") {
         exec(f"loot replace entity {entities} {slot} mine {pos} {tool}")
     } else {
         exec(f"loot replace entity {entities} {slot} {count} mine {pos} {tool}")
     }
 }
 
-fn loot_replace_entity_mine_mainhand(entities: string, slot: string, pos: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_entity_mine_mainhand(entities: string, slot: string, pos: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace entity {entities} {slot} mine {pos} mainhand")
     } else {
         exec(f"loot replace entity {entities} {slot} {count} mine {pos} mainhand")
     }
 }
 
-fn loot_replace_entity_mine_offhand(entities: string, slot: string, pos: string, count: int = 0) {
-    if (count == 0) {
+fn loot_replace_entity_mine_offhand(entities: string, slot: string, pos: string, count: string = "") {
+    if (count == "") {
         exec(f"loot replace entity {entities} {slot} mine {pos} offhand")
     } else {
         exec(f"loot replace entity {entities} {slot} {count} mine {pos} offhand")
@@ -2756,7 +2756,7 @@ fn pardon_ip(target: string) {
 // particle
 // ────────────────────────────────────────────────────────────
 
-fn particle(name: string, pos: string = "", delta: string = "", speed: string = "", count: int = 0) {
+fn particle(name: string, pos: string = "", delta: string = "", speed: string = "", count: string = "") {
     if (pos == "") {
         exec(f"particle {name}")
     } else if (delta == "") {
@@ -2766,7 +2766,7 @@ fn particle(name: string, pos: string = "", delta: string = "", speed: string = 
     }
 }
 
-fn particle_force(name: string, pos: string, delta: string, speed: string, count: int, viewers: string = "") {
+fn particle_force(name: string, pos: string, delta: string, speed: string, count: string, viewers: string = "") {
     if (viewers == "") {
         exec(f"particle {name} {pos} {delta} {speed} {count} force")
     } else {
@@ -2774,7 +2774,7 @@ fn particle_force(name: string, pos: string, delta: string, speed: string, count
     }
 }
 
-fn particle_normal(name: string, pos: string, delta: string, speed: string, count: int, viewers: string = "") {
+fn particle_normal(name: string, pos: string, delta: string, speed: string, count: string, viewers: string = "") {
     if (viewers == "") {
         exec(f"particle {name} {pos} {delta} {speed} {count} normal")
     } else {
@@ -2806,7 +2806,7 @@ fn place_feature(feature: string, pos: string = "") {
     }
 }
 
-fn place_jigsaw(pool: string, target: string, max_depth: int, position: string = "") {
+fn place_jigsaw(pool: string, target: string, max_depth: string, position: string = "") {
     if (position == "") {
         exec(f"place jigsaw {pool} {target} {max_depth}")
     } else {
@@ -2822,7 +2822,7 @@ fn place_structure(structure: string, pos: string = "") {
     }
 }
 
-fn place_template(template: string, pos: string = "", rotation: string = "", mirror: string = "", integrity: string = "", seed: int = 0) {
+fn place_template(template: string, pos: string = "", rotation: string = "", mirror: string = "", integrity: string = "", seed: string = "") {
     if (pos == "") {
         exec(f"place template {template}")
     } else if (rotation == "") {
@@ -2831,14 +2831,14 @@ fn place_template(template: string, pos: string = "", rotation: string = "", mir
         exec(f"place template {template} {pos} {rotation}")
     } else if (integrity == "") {
         exec(f"place template {template} {pos} {rotation} {mirror}")
-    } else if (seed == 0) {
+    } else if (seed == "") {
         exec(f"place template {template} {pos} {rotation} {mirror} {integrity}")
     } else {
         exec(f"place template {template} {pos} {rotation} {mirror} {integrity} {seed}")
     }
 }
 
-fn place_template_strict(template: string, pos: string, rotation: string, mirror: string, integrity: string, seed: int) {
+fn place_template_strict(template: string, pos: string, rotation: string, mirror: string, integrity: string, seed: string) {
     exec(f"place template {template} {pos} {rotation} {mirror} {integrity} {seed} strict")
 }
 
@@ -3014,7 +3014,7 @@ fn playsound_weather(sound: string, targets: string = "", pos: string = "", volu
 // random
 // ────────────────────────────────────────────────────────────
 
-fn random_reset__(seed: int, includeWorldSeed: string = "", includeSequenceId: string = "") {
+fn random_reset__(seed: string, includeWorldSeed: string = "", includeSequenceId: string = "") {
     if (includeWorldSeed == "") {
         exec(f"random reset *")
     } else if (includeWorldSeed == "") {
@@ -3026,8 +3026,8 @@ fn random_reset__(seed: int, includeWorldSeed: string = "", includeSequenceId: s
     }
 }
 
-fn random_reset(sequence: string, seed: int = 0, includeWorldSeed: string = "", includeSequenceId: string = "") {
-    if (seed == 0) {
+fn random_reset(sequence: string, seed: string = "", includeWorldSeed: string = "", includeSequenceId: string = "") {
+    if (seed == "") {
         exec(f"random reset {sequence}")
     } else if (includeWorldSeed == "") {
         exec(f"random reset {sequence} {seed}")
@@ -3082,7 +3082,7 @@ fn return_fail() {
     exec(f"return fail")
 }
 
-fn return(value: int) {
+fn return(value: string) {
     exec(f"return {value}")
 }
 
@@ -3206,7 +3206,7 @@ fn scoreboard_objectives_setdisplay(slot: string, objective: string = "") {
     }
 }
 
-fn scoreboard_players_add(targets: string, objective: string, score: int) {
+fn scoreboard_players_add(targets: string, objective: string, score: string) {
     exec(f"scoreboard players add {targets} {objective} {score}")
 }
 
@@ -3246,7 +3246,7 @@ fn scoreboard_players_operation(targets: string, targetObjective: string, operat
     exec(f"scoreboard players operation {targets} {targetObjective} {operation} {source} {sourceObjective}")
 }
 
-fn scoreboard_players_remove(targets: string, objective: string, score: int) {
+fn scoreboard_players_remove(targets: string, objective: string, score: string) {
     exec(f"scoreboard players remove {targets} {objective} {score}")
 }
 
@@ -3258,7 +3258,7 @@ fn scoreboard_players_reset(targets: string, objective: string = "") {
     }
 }
 
-fn scoreboard_players_set(targets: string, objective: string, score: int) {
+fn scoreboard_players_set(targets: string, objective: string, score: string) {
     exec(f"scoreboard players set {targets} {objective} {score}")
 }
 
@@ -3290,7 +3290,7 @@ fn setblock_strict(pos: string, block: string) {
 // setidletimeout
 // ────────────────────────────────────────────────────────────
 
-fn setidletimeout(minutes: int) {
+fn setidletimeout(minutes: string) {
     exec(f"setidletimeout {minutes}")
 }
 
@@ -3340,7 +3340,7 @@ fn spreadplayers(center: string, spreadDistance: string, maxRange: string, respe
     exec(f"spreadplayers {center} {spreadDistance} {maxRange} {respectTeams} {targets}")
 }
 
-fn spreadplayers_under(center: string, spreadDistance: string, maxRange: string, maxHeight: int, respectTeams: string, targets: string) {
+fn spreadplayers_under(center: string, spreadDistance: string, maxRange: string, maxHeight: string, respectTeams: string, targets: string) {
     exec(f"spreadplayers {center} {spreadDistance} {maxRange} under {maxHeight} {respectTeams} {targets}")
 }
 
@@ -3752,8 +3752,8 @@ fn title_title(targets: string, title: string) {
 // transfer
 // ────────────────────────────────────────────────────────────
 
-fn transfer(hostname: string, port: int = 0, players: string = "") {
-    if (port == 0) {
+fn transfer(hostname: string, port: string = "", players: string = "") {
+    if (port == "") {
         exec(f"transfer {hostname}")
     } else if (players == "") {
         exec(f"transfer {hostname} {port}")
@@ -3770,11 +3770,11 @@ fn trigger(objective: string) {
     exec(f"trigger {objective}")
 }
 
-fn trigger_add(objective: string, value: int) {
+fn trigger_add(objective: string, value: string) {
     exec(f"trigger {objective} add {value}")
 }
 
-fn trigger_set(objective: string, value: int) {
+fn trigger_set(objective: string, value: string) {
     exec(f"trigger {objective} set {value}")
 }
 
@@ -3832,8 +3832,8 @@ fn whitelist_remove(targets: string) {
 // worldborder
 // ────────────────────────────────────────────────────────────
 
-fn worldborder_add(distance: string, time: int = 0) {
-    if (time == 0) {
+fn worldborder_add(distance: string, time: string = "") {
+    if (time == "") {
         exec(f"worldborder add {distance}")
     } else {
         exec(f"worldborder add {distance} {time}")
@@ -3856,19 +3856,19 @@ fn worldborder_get() {
     exec(f"worldborder get")
 }
 
-fn worldborder_set(distance: string, time: int = 0) {
-    if (time == 0) {
+fn worldborder_set(distance: string, time: string = "") {
+    if (time == "") {
         exec(f"worldborder set {distance}")
     } else {
         exec(f"worldborder set {distance} {time}")
     }
 }
 
-fn worldborder_warning_distance(distance: int) {
+fn worldborder_warning_distance(distance: string) {
     exec(f"worldborder warning distance {distance}")
 }
 
-fn worldborder_warning_time(time: int) {
+fn worldborder_warning_time(time: string) {
     exec(f"worldborder warning time {time}")
 }
 
@@ -3882,15 +3882,15 @@ fn worldborder_warning_time(time: int) {
 // 命令别名
 // ────────────────────────────────────────────────────────────
 
-fn xp_add(target: string, amount: int) {
+fn xp_add(target: string, amount: string) {
     exec(f"xp add {target} {amount}")
 }
 
-fn xp_add_levels(target: string, amount: int) {
+fn xp_add_levels(target: string, amount: string) {
     exec(f"xp add {target} {amount} levels")
 }
 
-fn xp_add_points(target: string, amount: int) {
+fn xp_add_points(target: string, amount: string) {
     exec(f"xp add {target} {amount} points")
 }
 
@@ -3902,14 +3902,14 @@ fn xp_query_points(target: string) {
     exec(f"xp query {target} points")
 }
 
-fn xp_set(target: string, amount: int) {
+fn xp_set(target: string, amount: string) {
     exec(f"xp set {target} {amount}")
 }
 
-fn xp_set_levels(target: string, amount: int) {
+fn xp_set_levels(target: string, amount: string) {
     exec(f"xp set {target} {amount} levels")
 }
 
-fn xp_set_points(target: string, amount: int) {
+fn xp_set_points(target: string, amount: string) {
     exec(f"xp set {target} {amount} points")
 }

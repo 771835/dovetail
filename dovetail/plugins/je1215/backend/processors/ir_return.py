@@ -16,10 +16,11 @@ from ..commands.tools import DataPath, StorageLocation
 
 logger = get_logger(__name__)
 
+
 @ir_processor(JE1215Backend, IROpCode.RETURN)
 class IRReturnProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
-        return_value_ref: Optional[Reference] =  instruction.operands[0] if instruction.operands else None
+        return_value_ref: Optional[Reference] = instruction.operands[0] if instruction.operands else None
         # 查找需要退出的函数作用域
         for scope in reversed(context.scope_stack):
             if scope.scope_type == StructureType.FUNCTION:

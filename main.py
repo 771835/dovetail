@@ -1,14 +1,16 @@
 # coding=utf-8
 """主程序"""
-import sys
 import argparse
 import json
 import os
+import sys
+import time
 from contextlib import chdir
 from pathlib import Path
 from typing import NoReturn, Optional
 
 import fastjsonschema
+
 from dovetail.core.backend import BackendFactory
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, PROJECT_NAME, PROJECT_VERSION, \
@@ -168,7 +170,9 @@ class Compiler:
                     # if self.config.debug:
                     #     print("AST结构:")
                     #     print(ast_tree.pretty())
+                    start_time = time.time()
                     generator.visit(ast_tree)
+                    logger.info(f"AST遍历总用时: {time.time() - start_time:.3f}s")
                 else:
                     return -1
 
@@ -322,6 +326,7 @@ def main():
     )
 
     sys.exit(compiler.compile(entry, target_path))
+
 
 if __name__ == "__main__":
     main()

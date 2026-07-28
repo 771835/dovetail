@@ -43,6 +43,7 @@ _VarKey = str  # "scope_name::var_name"
 
 logger = get_logger(__name__)
 
+
 def _make_key(scope: str, var_name: str) -> _VarKey:
     """构造作用域限定的变量唯一键。"""
     return f"{scope}::{var_name}"

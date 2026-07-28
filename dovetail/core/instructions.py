@@ -7,9 +7,6 @@ IR 指令系统
 2. 通过 opcode 区分指令类型
 3. 使用工厂函数提供类型提示和自动补全
 4. 可选的运行时验证（通过装饰器控制）
-
-See Also:
-    判定单条IR指令类型的唯一金标准是比较 IROpCode 的ID编号是否相同
 """
 from __future__ import annotations
 
@@ -237,7 +234,7 @@ class IRInstruction:
 
         return self._hash_cache
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any):
         if not isinstance(other, IRInstruction):
             return False
         if self.opcode != other.opcode:
@@ -1048,7 +1045,6 @@ def _list_append_repr(instr: IRInstruction) -> str:
     container: Reference = instr.operands[0]
     value: Reference = instr.operands[1]
     return f"{container}.append({value})"
-
 
 
 @validate_instruction

@@ -10,6 +10,7 @@ from ..commands import ReturnBuilder, ScoreboardBuilder
 
 logger = get_logger(__name__)
 
+
 @ir_processor(JE1215Backend, IROpCode.CONTINUE)
 class IRContinueProcessor(IRProcessor):
     def process(self, instruction: IRInstruction, context: GenerationContext):
