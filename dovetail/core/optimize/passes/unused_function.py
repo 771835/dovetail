@@ -134,32 +134,37 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
 
         Notes: 删除建立在函数仅为单层，不删除类方法的前提下
         """
-        iterator = self.builder.__iter__()
+
+        instructions = self.builder.get_instructions()
+
         remove_mode = False
         level: int = 0
+        keep_flags = [True] * len(instructions)
 
-        while True:
-            try:
-                instr = next(iterator)
-            except StopIteration:
-                break
-
+        for i, instr in enumerate(instructions):
             if instr.opcode == IROpCode.FUNCTION:
                 func: Function = instr.operands[0]
                 if func.name not in reachable:
-                    iterator.remove_current()
+                    keep_flags[i] = False
                     self._changed = True
                     if func.function_type != FunctionType.FUNCTION_UNIMPLEMENTED:
                         remove_mode = True
-                    continue
-            elif instr.opcode == IROpCode.SCOPE_BEGIN:
+                continue
+
+            if instr.opcode == IROpCode.SCOPE_BEGIN:
                 level += 1
+
             elif instr.opcode == IROpCode.SCOPE_END:
                 level -= 1
                 name, scope_type = instr.operands
                 if name not in reachable and scope_type == StructureType.FUNCTION and level == 0:
-                    iterator.remove_current()
+                    keep_flags[i] = False
                     remove_mode = False
                     continue
+
             if remove_mode:
-                iterator.remove_current()
+                keep_flags[i] = False
+
+        if self._changed:
+            # 一次重建，单次 memmove
+            instructions[:] = [instr for instr, keep in zip(instructions, keep_flags) if keep]

@@ -120,7 +120,7 @@ class ConstantFoldingPass(IROptimizationPass):
 
         scope_stack = []
 
-        for instr in self.builder.get_instructions():
+        for instr in self.builder:
             if instr.opcode == IROpCode.SCOPE_BEGIN:
                 scope_name = instr.get_operands()[0]
                 scope_type = instr.get_operands()[1]

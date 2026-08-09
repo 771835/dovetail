@@ -62,7 +62,7 @@ class LiteralPoolWriter(OutputWriter):
         elif value is None:
             literals.add(0)
         else:
-            logger.debug(f"未知的常量(不一定是常量w) '{value}'({type(value)})")
+            # logger.debug(f"未知的常量(不一定是常量w) '{value}'({type(value)})")
             return
 
     @staticmethod

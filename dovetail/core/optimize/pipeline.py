@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
 from dovetail.core.compile_config import CompileConfig
@@ -223,19 +224,14 @@ class OptimizationPipeline:
                         logger.debug(f"  跳过：{pass_class.get_metadata().display_name}")
                     continue
 
+                s_t = time.time()
+
                 # 执行分析（不修改 IR）
                 analysis = pass_instance.analyze()
                 if analysis:
                     context = context.with_updates(
                         analysis_results={pass_class.get_metadata().name: analysis}
                     )
-
-                if self.config.debug:
-                    # builder.print()
-                    if not FAST_MODE:
-                        from dovetail.utils.ir_validator import assert_ir
-                        assert_ir(builder)
-                    logger.debug(f"  执行：{pass_class.get_metadata().display_name}")
 
                 # 执行优化（修改 IR）
                 if pass_instance.execute():
@@ -244,6 +240,16 @@ class OptimizationPipeline:
                         executed_passes={pass_class.get_metadata().name},
                         ir_features=set(pass_class.get_metadata().provided_features),
                     )
+
+                # 调试输出
+                if self.config.debug:
+                    logger.debug(f"  执行：{pass_class.get_metadata().display_name}, 用时{time.time()-s_t:1f}")
+                    logger.debug("存在修改" if changed else "不存在修改")
+                    if not FAST_MODE:
+                        from dovetail.utils.ir_validator import assert_ir
+                        assert_ir(builder)
+                    # builder.print()
+
 
             if not changed:
                 logger.debug(f"  第 {iteration} 轮无变化，提前退出")

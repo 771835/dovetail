@@ -66,6 +66,28 @@ from dovetail.utils.naming import NameNormalizer
 _n = NameNormalizer.normalize
 _dn = NameNormalizer.denormalize
 
+import re
+
+_SIMPLE_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+
+def _try_fast_path_expr(
+        data: str,
+        symbol_resolver: SymbolResolver,
+        meta
+) -> Reference | None:
+    """
+    快速路径：纯标识符直接查符号表，跳过 lark 解析。
+    不匹配则返回 None，交给原始路径处理。
+    """
+    data = data.strip()
+    if not _SIMPLE_IDENT.match(data):
+        return None
+    symbol = symbol_resolver.resolve_symbol(_n(data), meta)
+    if symbol is None:
+        return None
+    return Reference(symbol)
+
 
 class ASTVisitor(Interpreter):
     """
@@ -1187,7 +1209,15 @@ class ASTVisitor(Interpreter):
             else:
                 try:
                     with self.error_reporter.context(f"格式化字符串 {meta.line}:{meta.column}"):
-                        expr: Reference = self.visit(parser_code(data, "expr"))
+                        # ── 快速路径：纯标识符，跳过 lark ──────────────────
+                        expr = _try_fast_path_expr(
+                            data,
+                            self.symbol_resolver,
+                            meta
+                        )
+                        # ── 慢速路径：复杂表达式，走 lark ───────────────────
+                        if expr is None:
+                            expr: Reference = self.visit(parser_code(data, "expr"))
                 except LarkError as e:
                     self.error_reporter.report(
                         Errors.FStringExpressionError,

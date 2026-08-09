@@ -186,6 +186,6 @@ def assert_ir(builder: IRBuilder) -> None:
 
     若存在错误，则抛出 IRValidationError。
     """
-    errors = validate_ir(builder)
+    errors = validate_ir_scope_structure(builder)
     if errors:
         raise IRValidationError("IR 作用域结构验证失败:\n" + "\n".join(errors))

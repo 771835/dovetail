@@ -421,8 +421,7 @@ class TestTCOPassEdgeCases(unittest.TestCase):
         pass_.execute()
 
         # fib 应有 JUMP，bar 对应区域不应有 JUMP
-        instructions = builder.get_instructions()
-        jumps = [i for i, instr in enumerate(instructions)
+        jumps = [i for i, instr in enumerate(builder)
                  if instr.opcode is IROpCode.JUMP]
 
         # 只应有一个 JUMP，且在 fib 的函数体内

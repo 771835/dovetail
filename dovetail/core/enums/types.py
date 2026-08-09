@@ -94,11 +94,9 @@ class VariableType(SafeEnum):
     Attributes:
         PARAMETER: 函数参数变量
         COMMON: 普通局部变量
-        RETURN: 函数返回值变量(不被优化删除)
     """
     PARAMETER = "parameter"
     COMMON = "common"
-    RETURN = "return"
 
 
 class ClassType(SafeEnum):

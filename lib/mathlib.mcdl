@@ -451,3 +451,29 @@ fn distance_squared(x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> int
 fn chebyshev_distance(x1: int, y1: int, z1: int, x2: int, y2: int, z2: int) -> int {
     return max(abs(x2 - x1), max(abs(y2 - y1), abs(z2 - z1)))
 }
+
+/**
+ * 从 [start, start+step, ...) 中随机取一个值
+ * 类似 Python 的 random.randrange
+ *
+ * 参数:
+ *   start - 范围内的开始值，包含在范围内。
+ *   stop - 范围内的结束值，不包含在范围内，应大于start。
+ *   step - 递增基数，为非零数。
+ *
+ * 返回值:
+ *    从给定的范围返回随机项。
+ */
+fn randrange(start: int, stop: int, step: int) -> int {
+    if (step <= 0) {
+        return start
+    }
+
+    let diff = stop - start
+    if (diff <= 0) {
+        return start
+    }
+
+    let count = (diff + step - 1) / step
+    return start + randint(0, count - 1) * step
+}

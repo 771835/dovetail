@@ -115,7 +115,7 @@ class PluginLoader:
         if not metadata or not plugin_main or code is None:
             logger.error(f"Plugin '{plugin_path}' is invalid")
             return
-        logger.info(f"插件 '{plugin_name}' 被从 '{plugin_path}' 加载")
+        logger.debug(f"插件 '{plugin_name}' 被从 '{plugin_path}' 加载")
 
         load_stack.append(plugin_name)
         logger.debug(f"插件加载栈：{' -> '.join(load_stack)}， 长度为 {len(load_stack)}")

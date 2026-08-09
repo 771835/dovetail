@@ -30,3 +30,79 @@ fn strstr(haystack: string, needle: string) -> int {
 
     return -1
 }
+
+
+/**
+ * 判断 s 是否包含 sub
+ */
+fn str_contains(s: string, sub: string) -> boolean {
+    return strstr(s, sub) != -1
+}
+
+/**
+ * 判断 s 是否以 prefix 开头
+ */
+fn str_starts_with(s: string, prefix: string) -> boolean {
+    let p_len = strlen(prefix)
+    if (p_len > strlen(s)) {
+        return false
+    }
+    return substring(s, 0, p_len) == prefix
+}
+
+/**
+ * 判断 s 是否以 suffix 结尾
+ */
+fn str_ends_with(s: string, suffix: string) -> boolean {
+    let s_len = strlen(s)
+    let suf_len = strlen(suffix)
+    if (suf_len > s_len) {
+        return false
+    }
+    return substring(s, s_len - suf_len, s_len) == suffix
+}
+
+/**
+ * 将 haystack 中所有 needle 替换为 replacement
+ */
+fn str_replace(haystack: string, needle: string, replacement: string) -> string {
+    let n_len = strlen(needle)
+    if (n_len == 0) {
+        return haystack
+    }
+
+    let result = ""
+    let remaining = haystack
+    let found = strstr(remaining, needle)
+
+    while (found != -1) {
+        result += substring(remaining, 0, found) + replacement
+        remaining = substring(remaining, found + n_len, strlen(remaining))
+        found = strstr(remaining, needle)
+    }
+
+    result = strcat(result, remaining)
+    return result
+}
+
+/**
+ * 统计 needle 在 haystack 中出现的次数
+ */
+fn str_count(haystack: string, needle: string) -> int {
+    let n_len = strlen(needle)
+    if (n_len == 0) {
+        return 0
+    }
+
+    let count = 0
+    let remaining = haystack
+    let found = strstr(remaining, needle)
+
+    while (found != -1) {
+        count = count + 1
+        remaining = substring(remaining, found + n_len, strlen(remaining))
+        found = strstr(remaining, needle)
+    }
+
+    return count
+}

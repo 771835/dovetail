@@ -1,0 +1,57 @@
+// 已经过项目 datapack-sandbox 运行测试
+include "strlib.mcdl"
+include "assert"
+include "mathlib.mcdl"
+
+@init
+fn test_strlib() {
+
+    // str_replace 测试
+    assert(str_replace("hello world", "world", "there") == "hello there", "str_replace: basic")
+    assert(str_replace("aaa", "a", "b") == "bbb", "str_replace: multi")
+    assert(str_replace("hello", "xyz", "abc") == "hello", "str_replace: no match")
+    assert(str_replace("aaaa", "aa", "b") == "bb", "str_replace: no overlap")
+    assert(str_replace("hello", "", "x") == "hello", "str_replace: empty needle")
+
+    // str_count 测试
+    assert(str_count("hello", "ll") == 1, "str_count: single")
+    assert(str_count("ababab", "ab") == 3, "str_count: multiple")
+    assert(str_count("aaaa", "aa") == 2, "str_count: no overlap")
+    assert(str_count("hello", "") == 0, "str_count: empty needle")
+    assert(str_count("mississippi", "s") == 4, "str_count: single char")
+
+    print("strlib tests passed")
+
+
+    // clamp
+    assert(clamp(5, 0, 10) == 5, "clamp: in range")
+    assert(clamp(-1, 0, 10) == 0, "clamp: below")
+    assert(clamp(15, 0, 10) == 10, "clamp: above")
+
+    // sign
+    assert(sign(5) == 1, "sign: positive")
+    assert(sign(-5) == -1, "sign: negative")
+    assert(sign(0) == 0, "sign: zero")
+
+    // mod
+    assert(mod(-5, 3) == 1, "mod: negative dividend")
+    assert(mod(7, 3) == 1, "mod: positive")
+
+    // log2
+    assert(log2(8) == 3, "log2: power of 2")
+    assert(log2(7) == 2, "log2: not power of 2")
+    assert(log2(1) == 0, "log2: one")
+    assert(log2(0) == -1, "log2: zero")
+
+    // isqrt
+    assert(isqrt(16) == 4, "isqrt: perfect square")
+    assert(isqrt(15) == 3, "isqrt: non-perfect")
+    assert(isqrt(0) == 0, "isqrt: zero")
+
+    // gcd / lcm
+    assert(gcd(12, 8) == 4, "gcd: basic")
+    assert(gcd(0, 5) == 5, "gcd: with zero")
+    assert(lcm(4, 6) == 12, "lcm: basic")
+
+    print("mathlib tests passed")
+}

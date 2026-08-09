@@ -117,7 +117,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
         roots: set[_VarKey] = set()
         scope_stack: list[str] = ["global"]
 
-        for instr in self.builder.get_instructions():
+        for instr in self.builder:
             opcode = instr.opcode
             current_scope = scope_stack[-1]
 

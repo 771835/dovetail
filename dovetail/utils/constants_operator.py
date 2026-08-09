@@ -20,7 +20,7 @@ def number_to_int32(x: int) -> int:
 def _safe_div(a: int | float, b: int | float) -> int | float:
     """除法，除数为 0 时修正为 1"""
     if b == 0:
-        logger.error("除数为 0（已自动修正为 1）")
+        logger.error("除数为 0（已自动将除数修正为 1）")
         return a
     return a // b if isinstance(a, int) and isinstance(b, int) else a / b
 
@@ -28,7 +28,7 @@ def _safe_div(a: int | float, b: int | float) -> int | float:
 def _safe_mod(a: int, b: int) -> int:
     """取模，除数为 0 时修正为 1"""
     if b == 0:
-        logger.error("除数为 0（已自动修正为 1）")
+        logger.error("除数为 0（已自动将除数修正为 1）")
         return a
     return a % b
 

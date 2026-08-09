@@ -362,7 +362,7 @@ def download_dependencies(
     # 检查文件是否已在缓存中且有效
     if filepath.exists():
         if cache_manager.is_file_valid(filepath, sha256):
-            logger.info(f"文件已经存在于缓存中且有效: {filepath}")
+            logger.debug(f"文件已经存在于缓存中且有效: {filepath}")
             # 确保缓存表中有记录
             if not cache_manager.get_cache_info(filepath):
                 cache_manager.update_cache_info(filepath, url, sha256)

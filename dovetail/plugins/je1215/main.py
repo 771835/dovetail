@@ -3,7 +3,7 @@ from dovetail.plugins.plugin_api import Plugin, registry_backend
 from dovetail.utils.logger import get_logger
 from .backend.backend import JE1215Backend
 from .backend.processors import *  # NOQA
-import optimize  # NOQA: 加载优化管道
+from .optimize import *  # NOQA: 加载优化管道
 
 
 class PluginMain(Plugin):
@@ -11,11 +11,9 @@ class PluginMain(Plugin):
 
     def load(self):
         self.logger = get_logger("Backend-1.21.5-JE")
-        self.logger.info("插件加载中")
         registry_backend(JE1215Backend)
 
     def unload(self) -> bool:
-        self.logger.info("插件卸载中")
         return True
 
     def validate(self) -> tuple[bool, str | None]:
