@@ -2,6 +2,7 @@
 """
 命名规范化工具模块。
 """
+import functools
 import sys
 
 
@@ -25,6 +26,7 @@ class NameNormalizer:
         return str(len(b36)), b36  # 长度前缀 + 内容
 
     @staticmethod
+    @functools.lru_cache(maxsize=None)
     def normalize(name: str) -> str:
         """
         将原始字符串规范化为兼容格式。
@@ -62,6 +64,7 @@ class NameNormalizer:
         return new_name
 
     @staticmethod
+    @functools.lru_cache(maxsize=None)
     def denormalize(normalized_name: str) -> str:
         """
         将规范化后的名称还原为原始字符串。

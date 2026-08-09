@@ -1,5 +1,7 @@
 # coding=utf-8
 import ast
+import hashlib
+import pickle
 import time
 from collections.abc import Generator
 from pathlib import Path
@@ -7,21 +9,92 @@ from typing import Optional
 
 from lark import Lark, Tree
 
-from dovetail.core.config import MAX_FILE_SIZE
+from dovetail.core.config import MAX_FILE_SIZE, CACHE_FILE_PREFIX
 from dovetail.core.errors import report, Errors
 from dovetail.core.parser.components import ErrorReporter
 from dovetail.utils.logger import get_logger
 
 # 初始化 Lark 解析器
+_LARK_GRAMMAR_PATH = Path(r"lark/dovetail.lark")
+_lark_grammar_text = _LARK_GRAMMAR_PATH.read_text(encoding='utf-8')
+
 lark_parser = Lark(
-    open(r"lark/dovetail.lark", encoding='utf-8').read(),
+    _lark_grammar_text,
     start=["program", "expr"],
     parser='lalr',
     cache=".lark_cache",
     propagate_positions=True,
     maybe_placeholders=True
 )
+
+# 语法文件的 MD5，用作缓存 key 的一部分
+# 语法变了 → 所有 .mcdc 缓存自动失效
+_GRAMMAR_HASH: str = hashlib.md5(_lark_grammar_text.encode()).hexdigest()
+
 logger = get_logger(__name__)
+
+
+def _get_ast_cache_path(filepath: Path) -> Path:
+    """
+    根据源文件路径，返回对应的 AST 缓存文件路径（同目录，后缀 .mcdc）
+    """
+    return filepath.with_suffix(CACHE_FILE_PREFIX)
+
+
+def _compute_file_hash(content: str) -> str:
+    """
+    计算源文件内容的 MD5
+    """
+    return hashlib.md5(content.encode()).hexdigest()
+
+
+def _load_ast_cache(cache_path: Path, file_hash: str, start: str) -> Optional[Tree]:
+    """
+    尝试从 .mcdc 缓存文件中读取 AST。
+
+    缓存格式（pickle）：
+        {
+            "grammar_hash": str,   # 语法文件 MD5
+            "file_hash":    str,   # 源文件 MD5
+            "start":        str,   # 解析起点，如 "program"
+            "tree":         Tree,  # 序列化的 Lark AST
+        }
+
+    任意字段不匹配则视为缓存失效，返回 None。
+    """
+    if not cache_path.exists():
+        return None
+    try:
+        with open(cache_path, 'rb') as f:
+            cached = pickle.load(f)
+        if (
+                cached.get("grammar_hash") == _GRAMMAR_HASH
+                and cached.get("file_hash") == file_hash
+                and cached.get("start") == start
+        ):
+            return cached["tree"]
+    except Exception:
+        # 缓存损坏或格式不兼容，静默忽略，重新解析即可
+        pass
+    return None
+
+
+def _save_ast_cache(cache_path: Path, file_hash: str, start: str, tree: Tree) -> None:
+    """
+    将 AST 写入 .mcdc 缓存文件。
+    写入失败不影响主流程，静默忽略。
+    """
+    try:
+        with open(cache_path, 'wb') as f:
+            pickle.dump({
+                "grammar_hash": _GRAMMAR_HASH,
+                "file_hash": file_hash,
+                "start": start,
+                "tree": tree,
+            }, f, protocol=pickle.HIGHEST_PROTOCOL)
+    except Exception:
+        pass
+
 
 def parser_code(code: str, start: Optional[str] = None) -> Tree:
     """
@@ -34,16 +107,15 @@ def parser_code(code: str, start: Optional[str] = None) -> Tree:
     Returns:
         AST 树
     """
-
     parse_start = start if start is not None else "program"
-
-    return lark_parser.parse(code, start=parse_start)  # , on_error=lambda e: True)
+    return lark_parser.parse(code, start=parse_start)
 
 
 def parser_file(filepath: Path, start: Optional[str] = None, error_reporter: Optional[ErrorReporter] = None) -> \
         Optional[Tree]:
     """
-    解析代码文件生成 AST
+    解析代码文件生成 AST。
+    若源文件内容与语法文件均未变更，则直接从 .mcdc 缓存中读取 AST，跳过解析。
 
     Args:
         filepath: 代码文件路径
@@ -55,12 +127,10 @@ def parser_file(filepath: Path, start: Optional[str] = None, error_reporter: Opt
     """
     _report = error_reporter.report if error_reporter is not None else report
     start_time = time.perf_counter()
+    parse_start = start if start is not None else "program"
 
     if not filepath.exists() or not filepath.is_file():
-        _report(
-            Errors.FileNotFound,
-            str(filepath),
-        )
+        _report(Errors.FileNotFound, str(filepath))
         return None
 
     if filepath.stat().st_size >= MAX_FILE_SIZE:
@@ -77,7 +147,19 @@ def parser_file(filepath: Path, start: Optional[str] = None, error_reporter: Opt
     with open(filepath, encoding='utf-8') as f:
         code = f.read()
 
+    file_hash = _compute_file_hash(code)
+    cache_path = _get_ast_cache_path(filepath)
+
+    # 尝试命中缓存
+    tree = _load_ast_cache(cache_path, file_hash, parse_start)
+    if tree is not None:
+        elapsed = time.perf_counter() - start_time
+        logger.info(f"解析文件 '{filepath.name}' 命中缓存，用时 {elapsed:.3f}s.")
+        return tree
+
+    # 缓存未命中，正常解析并写回缓存
     tree = parser_code(code, start=start)
+    _save_ast_cache(cache_path, file_hash, parse_start, tree)
 
     elapsed = time.perf_counter() - start_time
     logger.info(f"解析文件 '{filepath.name}' 用时 {elapsed:.3f}s.")
