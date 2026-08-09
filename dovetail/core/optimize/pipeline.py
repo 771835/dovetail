@@ -243,13 +243,14 @@ class OptimizationPipeline:
 
                 # 调试输出
                 if self.config.debug:
-                    logger.debug(f"  执行：{pass_class.get_metadata().display_name}, 用时{time.time()-s_t:1f}")
-                    logger.debug("存在修改" if changed else "不存在修改")
+                    logger.debug(
+                        f"  执行：{pass_class.get_metadata().display_name}，"
+                        f"用时{time.time() - s_t:1f}，"
+                        f"期间{'' if changed else '不'}存在修改。")
                     if not FAST_MODE:
                         from dovetail.utils.ir_validator import assert_ir
                         assert_ir(builder)
                     # builder.print()
-
 
             if not changed:
                 logger.debug(f"  第 {iteration} 轮无变化，提前退出")

@@ -230,6 +230,7 @@ class LoggerFactory:
         logger_instance = ThreadSafeLogger(name, level)
 
         if log_file:
+            log_file = os.path.abspath(log_file)
             cls._add_file_handler(logger_instance, log_file, max_bytes, backup_count)
 
         return logger_instance

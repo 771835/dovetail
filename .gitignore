@@ -6,6 +6,7 @@
 *.tokens
 *.iml
 *.mcdc
+*.mcdci
 *.log
 .lark_cache
 main.build/

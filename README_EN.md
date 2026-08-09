@@ -7,25 +7,24 @@ _𝓣𝓱𝓲𝓼 𝓪𝓻𝓽𝓲𝓬𝓵𝓮 𝔀𝓪𝓼 𝓽𝓻𝓪𝓷𝓼
 > Minecraft Datapack Compilation Language - A Solution with Partial Object-Oriented Features  
 > **Dovetail** is a language with object-oriented characteristics that compiles into `Minecraft Datapacks` (hereafter
 > referred to as `datapacks`). It aims to transform the procedural orientation of traditional commands into a
-> goal-oriented approach.
+> goal-oriented approach.  
 > Due to technical and author bandwidth limitations, no new feature implementations will be submitted in the short term.
 >
 > **Current Status:**
 > - **Advantages:** Syntax is basically usable and can compile simple programs.
 > - **Known Limitations:** Lack of extensive standard library, unfriendly error messages, optimizer may introduce bugs,
-    incomplete OOP features and array borrowing mechanism not yet implemented.
-> - **Production Environment Recommendation:** If you need it for production, please consider
-    using [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) or other more mature projects.
+>   incomplete OOP features and array borrowing mechanism not yet implemented.
+> - **Production Environment Recommendation:** If you need it for production, please consider using
+>   [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) or other more mature projects.
 > - **Nature:** Compared to projects like **clang-mc** that pursue stability, this project leans towards using more
-    aggressive features and optimizations, as well as experimental handling of certain content. These modifications may
-    not be specially marked and lack long-term stable maintenance.
+>   aggressive features and optimizations, as well as experimental handling of certain content. These modifications may
+>   not be specially marked and lack long-term stable maintenance.
 > - **Syntax:** Syntax updates iterate quickly, so backward compatibility is not guaranteed. Only when official releases
-    are published is the accompanying example syntax guaranteed to be correct. Object-oriented syntax specifics are
-    pending and may undergo significant changes.
+>   are published is the accompanying example syntax guaranteed to be correct. Object-oriented syntax specifics are
+>   pending and may undergo significant changes.
 > - **Minecraft Version Support:** Unlike other languages, this project does not have stable long-term version support,
-    i.e., it will not stay on a specific version for long. Officially supported backends will focus their main efforts
-    on iterating to the latest game version of `Minecraft`. See environment requirements below for specific supported
-    versions.
+>   i.e., it will not stay on a specific version for long. Supported backends will focus their main efforts on iterating
+>   to the latest `Minecraft` version. See environment requirements below for specific supported versions.
 
 ## Goals
 
@@ -120,11 +119,12 @@ final standard.
 ## FAQ
 
 Q: Why doesn't it support recursion?  
-A: Recursion requires runtime maintenance of stack frames, which is very performance-intensive to implement in
-Minecraft. It's recommended to rewrite recursive algorithms into iterative implementations.
+A: Recursion requires runtime maintenance of stack frames, which is very performance-intensive to implement in Minecraft.
+It's recommended to rewrite recursive algorithms into iterative implementations.
 
-Q: There are techniques to solve recursion, but the project chooses to ignore them?  
-A: Due to technical limitations and the author's limited bandwidth.
+Q: Does `UB` behavior guarantee identical results across different optimization pipelines?  
+A: No guarantees are made, especially for functions ending in `_fast` and some built-in functions — the optimization
+pipeline may infer their behavior and substitute calls accordingly.
 
 Q: Why does the compiler report an unknown error and provide stack information? How to solve it?  
 A: Please submit an issue on GitHub to report the problem.
@@ -138,6 +138,9 @@ A: Please try using the `gamerule` command to appropriately increase the `maxCom
 
 Q: What to do if no available backend is found?  
 A: Install the corresponding backend plugin.
+
+Q: How do I debug errors?  
+A: Please refer to the [Debugging Guide](docs/zh-cn/debugging-guide.md) *(Chinese only for now)*.
 
 ## Known Characteristics (Won't be fixed in the long term)
 
@@ -173,8 +176,7 @@ Thank you for your support!
 
 > Due to `Minecraft` version differences and actual usage considerations, necessary modifications may be made to the
 > following projects when used. If you are an author or contributor of the following projects and do not want your
-> project
-> to be used or modified, please contact the project author to discuss removal.
+> project to be used or modified, please contact the project author to discuss removal.
 
 - Project [fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) - Fast integer square root  
   _The isqrt function in [mathlib](lib/mathlib.mcdl)_
@@ -197,8 +199,12 @@ Thank you for your support!
 
 - [zmr-233](https://github.com/zmr-233/) proposed ideas for solving the recursion problem (although I haven't read the
   books they recommended, nor implemented it)
-- Project [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) - An excellent project with a different technical
-  approach to stack handling
-- Project [clang-mc](https://github.com/xia-mc/clang-mc) - A very innovative idea implementing partial assembly support
-  in Minecraft and compiling `C` code to `mcfunction`
 
+### Similar Projects
+
+- Project [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) - An excellent project with a different technical
+  approach to handling the stack
+- Project [clang-mc](https://github.com/xia-mc/clang-mc) - A highly innovative idea implementing partial assembly
+  support in Minecraft and compiling `C` code to `mcfunction`
+- Project [Minecraft-Script](https://github.com/SpyC0der77/Minecraft-Script) - A programming language that simplifies
+  Minecraft datapack creation, notable for supporting generation of datapacks across multiple versions

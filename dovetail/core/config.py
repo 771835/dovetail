@@ -7,7 +7,7 @@ import fastjsonschema
 # 项目信息
 PROJECT_NAME = "Dovetail"
 PROJECT_WEBSITE = "https://github.com/771835/dovetail"
-PROJECT_VERSION = "1.0.2"
+PROJECT_VERSION = "dev20260810"
 PROJECT_LICENSE = "Apache 2.0"
 
 # 文件后缀
