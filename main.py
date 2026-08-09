@@ -21,12 +21,13 @@ from dovetail.core.errors import CompilationError, report_count
 from dovetail.core.errors import report, Errors
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.optimizer import Optimizer
+from dovetail.core.optimize.pass_registry import get_registry
 from dovetail.core.parser.parser import parser_file
 from dovetail.core.parser.visitor import ASTVisitor
 from dovetail.plugins.plugin_loader.loader import plugin_loader
 from dovetail.utils.annotations import timed
 from dovetail.utils.ir_serializer import IRSymbolSerializer
-from dovetail.utils.logger import get_logger
+from dovetail.utils.logger import get_logger, ThreadSafeLogger
 from dovetail.utils.naming import NameNormalizer
 
 logger = get_logger(__name__)
@@ -250,9 +251,19 @@ def main():
     """
 
     if "--version" in sys.argv:
+        import dovetail.core.optimize.passes  # noqa
+        ThreadSafeLogger.DISABLED = True
+        plugin_loader.load_plugin("plugin_loader")
+
         print(f"The version of {PROJECT_NAME} is {PROJECT_VERSION}\n")
         print(f"License: {PROJECT_LICENSE}")
         print(f"Repository: {PROJECT_WEBSITE}")
+        if get_registry().get_all():
+            print("OptimizationPass:")
+            for pass_class in get_registry().get_all().values():
+                metadata = pass_class.get_metadata()
+                print(f"\t[{metadata.phase}] {metadata.display_name} ({metadata.name})")
+
         if not BackendFactory.is_empty():
             print("Backends:")
             for backend in BackendFactory.get_available_backends():
@@ -260,28 +271,26 @@ def main():
 
         return
 
-    args_parser = argparse.ArgumentParser(description="dovetail")
-    args_parser.add_argument('input', type=str, help='输入文件路径')
-    args_parser.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本',
-                             default="1.21.5")
-    args_parser.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
-    args_parser.add_argument('--lib-path', '-l', metavar='path', type=str, help='强制指定标准库路径')
-    args_parser.add_argument('--backend', '-b', metavar='name', type=str, help='强制指定后端名称', default="")
-    args_parser.add_argument('--namespace', '-n', metavar='namespace', type=str, help='输出数据包命名空间')
-    args_parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')
-    args_parser.add_argument('--no-generate-commands', '-ngc', action='store_true', help='不生成指令')
-    args_parser.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
-    args_parser.add_argument('--recursion', action='store_true', help='启用递归(需后端支持)')
-    args_parser.add_argument('--same-name-function-nesting', action='store_true', help='启用同名函数嵌套')
-    args_parser.add_argument('--disable-deprecated-function', action='store_true', help='禁用已弃用函数编译')
-    # args_parser.add_argument('--first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
-    args_parser.add_argument('--experimental', action='store_true', help='启用扩展模式(测试性功能)')
-    args_parser.add_argument('--disable-names-normalize', action='store_true', help='禁用命名规范化')
-    args_parser.add_argument('--disable-plugins', action='store_true', help='禁用插件加载')
-    args_parser.add_argument('--debug', action='store_true', help='启用调试模式')
-    args_parser.add_argument('--version', action='store_true', help='显示版本后退出')
+    args = argparse.ArgumentParser(description="dovetail")
+    args.add_argument('input', type=str, help='输入文件路径')
+    args.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本', default="1.21.5")
+    args.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
+    args.add_argument('--lib-path', '-l', metavar='path', type=str, help='强制指定标准库路径')
+    args.add_argument('--backend', '-b', metavar='name', type=str, help='强制指定后端名称', default="")
+    args.add_argument('--namespace', '-n', metavar='namespace', type=str, help='输出数据包命名空间')
+    args.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')
+    args.add_argument('--no-generate-commands', '-ngc', action='store_true', help='不生成指令')
+    args.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
+    args.add_argument('--recursion', action='store_true', help='启用递归(需后端支持)')
+    args.add_argument('--disable-deprecated-function', action='store_true', help='禁用已弃用函数编译')
+    # args.add_argument('--first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
+    args.add_argument('--experimental', action='store_true', help='启用扩展模式(测试性功能)')
+    args.add_argument('--disable-names-normalize', action='store_true', help='禁用命名规范化')
+    args.add_argument('--disable-plugins', action='store_true', help='禁用插件加载')
+    args.add_argument('--debug', action='store_true', help='启用调试模式')
+    args.add_argument('--version', action='store_true', help='显示版本后退出')
 
-    parsed_args = args_parser.parse_args()
+    parsed_args = args.parse_args()
 
     # 加载插件
     if not parsed_args.disable_plugins:
@@ -302,8 +311,8 @@ def main():
     else:
         lib_path = Path("lib").resolve()
 
-    if not lib_path.exists():
-        logger.critical(f"The path '{lib_path}' is not valid.")
+    if not lib_path.exists() or not lib_path.is_dir():
+        logger.critical(f"标准库路径 '{lib_path}' 不存在或不是一个目录")
         return
 
     compiler = Compiler(
@@ -313,7 +322,6 @@ def main():
             MinecraftVersion.instance(parsed_args.minecraft_version),
             parsed_args.debug,
             parsed_args.recursion,
-            parsed_args.same_name_function_nesting,
             False,
             parsed_args.disable_deprecated_function,
             parsed_args.experimental,

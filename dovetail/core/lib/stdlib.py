@@ -1,39 +1,16 @@
 # coding=utf-8
-from typing import Optional, Callable
 
-from dovetail.core.enums import PrimitiveDataType, FunctionType
-from dovetail.core.enums.datatypes import UnionType, ArrayType, ListType
-from dovetail.core.lib.library import Library
-from dovetail.core.symbols import Function, Variable, Literal, Parameter
+from dovetail.core.enums.datatypes import ArrayType, ListType
+from dovetail.core.lib.lib_factory import builtin_func, LibraryBase
 
 
-class Stdlib(Library):
+class Stdlib(LibraryBase):
     def __init__(self, context):
         self.context = context
+        self._init(context)
 
-    def get_functions(self) -> dict[Function, Optional[Callable[..., Variable | Literal | None]]]:
-        return {
-            Function(
-                "malloc",
-                [
-                    Parameter(
-                        Variable(
-                            "array",
-                            UnionType(ArrayType, ListType)
-                        )
-                    ),
-                    Parameter(
-                        Variable(
-                            "size",
-                            PrimitiveDataType.INT
-                        )
-                    ),
-                ],
-                PrimitiveDataType.VOID,
-                FunctionType.BUILTIN,
-                {}
-            ): None
-        }
+    @builtin_func()
+    def malloc(self, array: ArrayType | ListType, size: int): ...
 
     def __str__(self) -> str:
         return "stdlib"

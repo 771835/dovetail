@@ -1,58 +1,29 @@
 # coding=utf-8
-from dovetail.core.enums import PrimitiveDataType, BinaryOps, FunctionType
-from dovetail.core.lib.library import Library
-from dovetail.core.symbols import Reference, Function, Variable, Literal, Parameter
-from dovetail.utils.naming import NameNormalizer
+from dovetail.core.enums import PrimitiveDataType, BinaryOps
+from dovetail.core.lib.lib_factory import LibraryBase, library_func, builtin_func
+from dovetail.core.symbols import Reference, Variable, Literal
 
 
-class Strlib(Library):
+class Strlib(LibraryBase):
     def __init__(self, context):
         self.error_reporter = context.error_reporter
         self.emitter = context.emitter
+        self._init(context)
 
     def __str__(self) -> str:
         return "strlib"
 
-    def get_functions(self):
-        return {
-            Function(
-                "strcat",
-                [
-                    Parameter(Variable("dest", PrimitiveDataType.STRING)),
-                    Parameter(Variable("src", PrimitiveDataType.STRING))
-                ],
-                PrimitiveDataType.STRING,
-                FunctionType.LIBRARY
-            ): self._strcat,
-            Function(
-                NameNormalizer.normalize("strcat_fast"),
-                [
-                    Parameter(Variable("dest", PrimitiveDataType.STRING)),
-                    Parameter(Variable("src", PrimitiveDataType.STRING))
-                ],
-                PrimitiveDataType.STRING,
-                FunctionType.BUILTIN
-            ): None,
-            Function(
-                "strlen",
-                [
-                    Parameter(Variable("s", PrimitiveDataType.STRING))
-                ],
-                PrimitiveDataType.INT,
-                FunctionType.BUILTIN
-            ): None,
-            Function(
-                "substring",
-                [
-                    Parameter(Variable("s", PrimitiveDataType.STRING)),
-                    Parameter(Variable("start", PrimitiveDataType.INT)),
-                    Parameter(Variable("end", PrimitiveDataType.INT))
-                ],
-                PrimitiveDataType.STRING,
-                FunctionType.BUILTIN
-            ): None
-        }
+    @library_func(returns=str, name="strcat")
+    def _strcat(self, a: str, b: str):
+        a: Reference[Variable | Literal]
+        b: Reference[Variable | Literal]
+        return self.emitter.emit_binary_calc(a, BinaryOps.ADD, b, PrimitiveDataType.STRING, "strcat")
 
-    def _strcat(self, dest: Reference[Variable | Literal],
-                src: Reference[Variable | Literal]) -> Variable:
-        return self.emitter.emit_binary_calc(dest, BinaryOps.ADD, src, PrimitiveDataType.STRING, "strcat")
+    @builtin_func(name="strcat_fast")
+    def _strcat_fast(self, a: str, b: str) -> str: ...
+
+    @builtin_func(name="strlen")
+    def _strlen(self, s: str) -> int: ...
+
+    @builtin_func(name="substring")
+    def _substring(self, s: str, start: int, end: int) -> str: ...

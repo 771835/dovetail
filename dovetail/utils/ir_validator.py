@@ -35,9 +35,6 @@ def validate_ir(builder: IRBuilder) -> list[str]:
 
     Returns:
         错误消息列表，如果为空则说明验证通过。
-
-    Notes:
-        定义清理后意外的提示是正常的，死代码清理会修正所有未被定义但被使用的操作
     """
     errors: list[str] = []
     stack: STACK_TYPE = []
@@ -189,6 +186,6 @@ def assert_ir(builder: IRBuilder) -> None:
 
     若存在错误，则抛出 IRValidationError。
     """
-    errors = validate_ir_scope_structure(builder)
+    errors = validate_ir(builder)
     if errors:
         raise IRValidationError("IR 作用域结构验证失败:\n" + "\n".join(errors))

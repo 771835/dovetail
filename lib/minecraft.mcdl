@@ -78,14 +78,6 @@ fn attribute_base_set(target: string, attribute: string, value: string) {
     exec(f"attribute {target} {attribute} base set {value}")
 }
 
-fn attribute_get(target: string, attribute: string, scale: string = "") {
-    if (scale == "") {
-        exec(f"attribute {target} {attribute} get")
-    } else {
-        exec(f"attribute {target} {attribute} get {scale}")
-    }
-}
-
 fn attribute_modifier_add_add_multiplied_base(target: string, attribute: string, id: string, value: string) {
     exec(f"attribute {target} {attribute} modifier add {id} {value} add_multiplied_base")
 }
@@ -100,14 +92,6 @@ fn attribute_modifier_add_add_value(target: string, attribute: string, id: strin
 
 fn attribute_modifier_remove(target: string, attribute: string, id: string) {
     exec(f"attribute {target} {attribute} modifier remove {id}")
-}
-
-fn attribute_modifier_value_get(target: string, attribute: string, id: string, scale: string = "") {
-    if (scale == "") {
-        exec(f"attribute {target} {attribute} modifier value get {id}")
-    } else {
-        exec(f"attribute {target} {attribute} modifier value get {id} {scale}")
-    }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -152,22 +136,6 @@ fn banlist_players() {
 
 fn bossbar_add(id: string, name: string) {
     exec(f"bossbar add {id} {name}")
-}
-
-fn bossbar_get_max(id: string) {
-    exec(f"bossbar get {id} max")
-}
-
-fn bossbar_get_players(id: string) {
-    exec(f"bossbar get {id} players")
-}
-
-fn bossbar_get_value(id: string) {
-    exec(f"bossbar get {id} value")
-}
-
-fn bossbar_get_visible(id: string) {
-    exec(f"bossbar get {id} visible")
 }
 
 fn bossbar_list() {

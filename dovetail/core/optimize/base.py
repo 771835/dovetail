@@ -103,11 +103,7 @@ class IROptimizationPass(ABC):
         # 统一取 .value 比较（OptimizationLevel 是 SafeEnum，value 为 tuple 首元素或整数）
         config_val = config_level.value if isinstance(config_level, OptimizationLevel) else int(config_level)
         pass_val = pass_level.value if isinstance(pass_level, OptimizationLevel) else int(pass_level)
-        # SafeEnum 的 value 可能是 tuple（如 (1, "O1")），取第一个元素
-        if isinstance(config_val, tuple):
-            config_val = config_val[0]
-        if isinstance(pass_val, tuple):
-            pass_val = pass_val[0]
+
         if config_val < pass_val:
             return False
 

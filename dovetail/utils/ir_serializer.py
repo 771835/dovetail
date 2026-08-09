@@ -3,7 +3,7 @@
 import time
 import uuid
 from enum import Enum
-from typing import Any, Dict, NoReturn
+from typing import Any, NoReturn
 
 from dovetail.core.annotations.base import AnnotationCategory
 from dovetail.core.config import PROJECT_VERSION
@@ -47,7 +47,7 @@ class IRSymbolSerializer:
             builder (IRBuilder): 要被序列化的 IRBuilder 实例。
         """
         self.builder = builder
-        self.symbol_id_map: Dict[int, Any] = {}
+        self.symbol_id_map: dict[int, Any] = {}
 
     @staticmethod
     def _extract_metadata(

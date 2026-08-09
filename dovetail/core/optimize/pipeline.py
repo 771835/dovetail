@@ -40,14 +40,6 @@ def _phase_priority(pass_class: type[IROptimizationPass]) -> int:
     return _PHASE_PRIORITY.get(phase, 1)
 
 
-def _level_value(level) -> int:
-    """将 OptimizationLevel 统一转换为可比较的整数"""
-    val = level.value if isinstance(level, OptimizationLevel) else int(level)
-    if isinstance(val, tuple):
-        return val[0]
-    return val
-
-
 class OptimizationPipeline:
     """
     优化管道
@@ -66,25 +58,13 @@ class OptimizationPipeline:
 
     def _build_pipeline(self) -> None:
         """构建优化管道的完整流程"""
-        candidates = self._collect_candidates()
+        # 收集所有满足优化级别要求的 Pass
+        candidates = self.registry.get_by_level(self.config.optimization_level)
         self._validate_cross_phase_dependencies(candidates)
         self._pipeline = self._resolve_dependencies(candidates)
 
         if self.config.debug:
             self._log_pipeline()
-
-    def _collect_candidates(self) -> list[type[IROptimizationPass]]:
-        """
-        收集所有满足优化级别要求的 Pass。
-
-        Pass 的 level 不超过当前配置的 optimization_level 时才纳入候选。
-        """
-        config_val = _level_value(self.config.optimization_level)
-        candidates = []
-        for pass_class in self.registry.get_all().values():
-            if _level_value(pass_class.get_metadata().level) <= config_val:
-                candidates.append(pass_class)
-        return candidates
 
     def _validate_cross_phase_dependencies(
             self,
@@ -220,7 +200,7 @@ class OptimizationPipeline:
         if self.config.optimization_level == OptimizationLevel.O0:
             return builder
 
-        max_iter = 5 * _level_value(self.config.optimization_level)
+        max_iter = 5 * self.config.optimization_level
 
         context = OptimizationContext(
             max_iterations=max_iter,

@@ -3,6 +3,7 @@ from dovetail.plugins.plugin_api import Plugin, registry_backend
 from dovetail.utils.logger import get_logger
 from .backend.backend import JE1215Backend
 from .backend.processors import *  # NOQA
+import optimize  # NOQA: 加载优化管道
 
 
 class PluginMain(Plugin):

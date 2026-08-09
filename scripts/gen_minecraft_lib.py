@@ -428,7 +428,9 @@ def generate(commands_json: dict) -> str:
 
         for desc in descs:
             fn_name: str = desc["fn_name"]
-            if SKIP_GETTING_COMMANDS and fn_name.startswith(("data_get", "scoreboard_players_get")):
+            if SKIP_GETTING_COMMANDS and fn_name.startswith(
+                    ("data_get", "scoreboard_players_get", "bossbar_get", "attribute_get",
+                     "attribute_modifier_value_get")):
                 continue
             all_lines.extend(emit_fn(desc))
 

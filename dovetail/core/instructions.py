@@ -541,14 +541,14 @@ def _declare_repr(instr: IRInstruction) -> str:
 @validate_instruction
 def IRAssign(
         target: Variable,
-        source: Union[Reference, Variable, Literal]
+        source: Reference
 ) -> IRInstruction:
     """
     赋值指令
 
     Args:
         target: 目标变量
-        source: 赋值来源（可以是 Reference、Variable 或 Literal）
+        source: 赋值来源（Reference）
 
     Returns:
         赋值指令

@@ -80,12 +80,13 @@ class ColoredFormatter(logging.Formatter):
 
 class ThreadSafeLogger:
     """线程安全的日志记录器"""
+    DISABLED = False
 
     _lock = threading.Lock()
     _instances = {}
     _translator = MessageTranslator()
 
-    def __new__(cls, name: str, level: Union[str, int] = logging.INFO):
+    def __new__(cls, name: str, console_level: Union[str, int] = logging.INFO):
         # 单例模式，确保同一名字的logger只有一个实例
         with cls._lock:
             if name not in cls._instances:
@@ -123,6 +124,8 @@ class ThreadSafeLogger:
 
     def _log(self, level: int, message: str, *args, **kwargs):
         """线程安全的日志记录方法"""
+        if self.DISABLED:
+            return
         with self._lock:
             self.logger.log(level, message, *args, **kwargs)
 

@@ -50,7 +50,8 @@ class LibraryMapping:
     @lru_cache(maxsize=None)  # 无限缓存
     def get(cls, name: str, symbol_resolver: SymbolResolver, emitter: IREmitter,
             error_reporter: ErrorReporter, config: CompileConfig) -> Library | None:
-        lib: type[Library] | None = cls.builtin_map.get(name, None)
-        if lib is not None:
-            return lib(LibraryContext(symbol_resolver, emitter, error_reporter, config))
-        return None
+        with cls._lock:
+            lib: type[Library] | None = cls.builtin_map.get(name, None)
+            if lib is not None:
+                return lib(LibraryContext(symbol_resolver, emitter, error_reporter, config))
+            return None

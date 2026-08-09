@@ -41,7 +41,9 @@ _𝓣𝓱𝓲𝓼 𝓪𝓻𝓽𝓲𝓬𝓵𝓮 𝔀𝓪𝓼 𝓽𝓻𝓪𝓷𝓼
 - [x] Optimize error display
 - [x] Unified log output
 - [ ] Improve plugin functionality
+
 <!-- - [ ] Stack implementation methods that save performance -->
+
 - [ ] Compiler internationalization support
 - [ ] Allow declaration and invocation of other datapacks through simple syntax
 - [ ] Predicates, custom data, and other features

@@ -18,9 +18,9 @@ def register_builtin_templates():
 
         CommandTemplate(
             name="strcat_fast",
-            template="data modify storage $(target) $(path) set value '$(dest)$(src)'",
+            template="data modify storage $(target) $(path) set value '$(a)$(b)'",
             function_path="builtins/strcat_fast",
-            param_names=["target", "path", "dest", "src"],
+            param_names=["target", "path", "a", "b"],
             description="快速字符串拼接(不支持特殊字符的拼接，面对特殊字符容易出现未知的错误)",
             tags=["data", "string", "fast", "storage"]
         ),

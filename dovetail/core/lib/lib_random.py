@@ -1,28 +1,12 @@
 # coding=utf-8
-from typing import Callable, Optional
+from dovetail.core.lib.lib_factory import LibraryBase, builtin_func
 
-from dovetail.core.enums import PrimitiveDataType
-from dovetail.core.enums.types import FunctionType
-from dovetail.core.lib.library import Library
-from dovetail.core.symbols import Function, Variable, Literal, Parameter
-
-
-class Random(Library):
-    def __init__(self, _):
-        self._functions: dict[Function, Optional[Callable[..., Variable | Literal | None]]] = {
-            Function(
-                "randint",
-                [
-                    Parameter(Variable("min", PrimitiveDataType.INT)),
-                    Parameter(Variable("max", PrimitiveDataType.INT)),
-                ],
-                PrimitiveDataType.INT,
-                FunctionType.BUILTIN
-            ): None,
-        }
+class Random(LibraryBase):
+    def __init__(self, context):
+        self._init(context)
 
     def __str__(self) -> str:
         return "random"
 
-    def get_functions(self):
-        return self._functions
+    @builtin_func(returns=int)
+    def randint(self, min: int, max: int): ...

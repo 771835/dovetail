@@ -1,39 +1,28 @@
 # coding=utf-8
-from typing import Callable, Optional
 
-from dovetail.core.enums import PrimitiveDataType, FunctionType, StructureType
+from dovetail.core.enums import StructureType
 from dovetail.core.errors import Errors
 from dovetail.core.instructions import IRCall, IRCondJump
-from dovetail.core.lib.library import Library
-from dovetail.core.symbols import Function, Variable, Literal, Parameter, Reference, Symbol
+from dovetail.core.lib.lib_factory import LibraryBase, library_func
+from dovetail.core.symbols import Function, Variable, Literal, Reference, Symbol
 
 
-class Assertion(Library):
+class Assertion(LibraryBase):
     def __init__(self, context):
-        self.symbol_resolver = context.symbol_resolver
         self.emitter = context.emitter
         self.error_reporter = context.error_reporter
         self.config = context.config
+        self._init(context)
 
-    def get_functions(self) -> dict[Function, Optional[Callable[..., Variable | Literal | None]]]:
-        return {
-            Function(
-                "assert",
-                [
-                    Parameter(Variable("condition", PrimitiveDataType.BOOLEAN)),
-                    Parameter(Variable("message", PrimitiveDataType.STRING)),
-                ],
-                PrimitiveDataType.VOID,
-                FunctionType.LIBRARY
-            ): self._assert
-        }
-
-    def _assert(self, condition: Reference[Variable | Literal], message: Reference[Variable | Literal]):
+    @library_func(name="assert")
+    def _assert(self, condition: bool, message: str | int | bool):
+        condition: Reference[Variable | Literal]
+        message: Reference[Variable | Literal]
         if not self.config.debug:
             return
 
-        tellraw_text: Symbol | None = self.symbol_resolver.resolve_symbol("tellraw_text", expected_type=Function)
-        _exec: Symbol | None = self.symbol_resolver.resolve_symbol("exec", expected_type=Function)
+        tellraw_text: Symbol | None = self._get_function("tellraw_text")
+        _exec: Symbol | None = self._get_function("exec")
         if not isinstance(tellraw_text, Function):
             self.error_reporter.report(
                 Errors.SymbolResolution,
@@ -67,7 +56,7 @@ class Assertion(Library):
                     }
                 )
             )
-        self.emitter.emit(IRCondJump(condition, None, scope_name))
+        self.emitter.emit(IRCondJump(condition, false_scope=scope_name))
 
     def __str__(self) -> str:
         return "Assertion"

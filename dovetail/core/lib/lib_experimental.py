@@ -1,11 +1,9 @@
 # coding=utf-8
+from dovetail.core.lib.lib_factory import LibraryBase
 
-from dovetail.core.lib.library import Library
-
-
-class Experimental(Library):
+class Experimental(LibraryBase):
     def __init__(self, context):
-        pass
+        self._init(context)
 
     def __str__(self) -> str:
         return "experimental"

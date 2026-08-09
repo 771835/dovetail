@@ -3,7 +3,7 @@
 二进制序列化工具
 
 提供将Python复杂数据结构（字典、列表、元组等）序列化为二进制格式的功能，
-支持数据压缩、完整性校验和防篡改检测。
+支持数据压缩和简单的完整性校验。
 """
 
 import gzip
@@ -18,25 +18,20 @@ class BinarySerializer:
     支持字典、列表、元组、字符串、整数、浮点数、布尔值、None、字节串
 
     Attributes:
-        padding_factor (float): 填充因子，用于控制序列化时的填充比例 (0.0-1.0)
         enable_compression (bool): 是否启用数据压缩
         MAGIC_HEADER (int): 魔数头部标识
         VERSION (int): 协议版本号
-        MAX_PADDING (int): 最大填充字节数
     """
 
     MAGIC_HEADER = 0x0F5E2F3D
-    VERSION = 5
-    MAX_PADDING = 256
+    VERSION = 6
 
-    def __init__(self, padding_factor: float = 0.3, enable_compression: bool = True):
+    def __init__(self, enable_compression: bool = True):
         """初始化 BinarySerializer 实例
 
         Args:
-            padding_factor (float): 填充因子，控制序列化时的填充比例，范围0.0-1.0
             enable_compression (bool): 是否启用数据压缩功能
         """
-        self.padding_factor = max(0.0, min(1.0, padding_factor))
         self.enable_compression = enable_compression
 
     def _encode_key(self, key: Any) -> bytes:
@@ -378,69 +373,3 @@ class BinarySerializer:
         """
         with open(file_path, 'rb') as f:
             return self.thaw(f.read())
-
-
-def main():
-    """测试BinarySerializer的各种功能
-
-    包括多类型键测试、复杂嵌套测试和篡改检测测试
-    """
-    # 测试各种类型键的字典
-    print("===== 多类型键测试 =====")
-
-    # 整数字典键测试
-    test1 = {1: "value1", 2: "value2"}
-    serializer = BinarySerializer()
-    binary1 = serializer.freeze(test1)
-    restored1 = serializer.thaw(binary1)
-    print(f"整数字典键测试: {test1}")
-    print(f"恢复结果: {restored1}")
-    print(f"完整性验证: {test1 == restored1}")
-
-    # 混合类型键测试
-    test2 = {
-        1: "integer key",
-        2 ** 63 - 1: "long long key",
-        "string_key": "string value",
-        3.14: "float key",
-        float('inf'): "positive_inf",
-        float('-inf'): "negative_inf",
-        True: "boolean key",
-        None: "none key",
-        b"binary": "bytes key"
-    }
-    binary2 = serializer.freeze(test2)
-    restored2 = serializer.thaw(binary2)
-    print(f"\n混合类型键测试: {test2}")
-    print(f"恢复结果: {restored2}")
-    print(f"完整性验证: {test2 == restored2}")
-
-    # 复杂嵌套测试
-    test3 = {
-        1: {"nested": [1, 2, 3], "key": (4, 5, 6)},
-        (7, 8): {"another": "value"},
-        3.14: [{"list_item": True}, {"another": False}]
-    }
-    binary3 = serializer.freeze(test3)
-    restored3 = serializer.thaw(binary3)
-    print(f"\n复杂嵌套测试: {test3}")
-    print(f"恢复结果: {restored3}")
-    print(f"完整性验证: {test3 == restored3}")
-    # 篡改检测测试
-    print("\n===== 篡改检测测试 =====")
-    tampered_data = bytearray(binary1)
-    for i in range(5, len(tampered_data)):
-        tampered_data[i] ^= 0xFF
-
-    try:
-        serializer.thaw(bytes(tampered_data))
-        print("❌ 篡改未检测到!")
-    except ValueError as e:
-        print(f"✅ 篡改成功拦截: {e}")
-
-    print("\n✅ 所有测试完成!")
-
-
-# ===== 测试代码 =====
-if __name__ == "__main__":
-    main()

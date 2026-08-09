@@ -115,7 +115,7 @@ class ConstantFoldingPass(IROptimizationPass):
 
     def _prescan_branches(self):
         """预扫描，识别所有条件分支及其父作用域"""
-        self.conditional_branches = {}  # {branch_name: parent_scope}
+        self.conditional_branches: dict[str, str | None] = {}  # {branch_name: parent_scope}
         self.branch_groups = {}  # {parent_scope: [branch1, branch2]}
 
         scope_stack = []
@@ -642,6 +642,8 @@ class ConstantFoldingPass(IROptimizationPass):
         resolved = self._resolve_ref(value_ref)
         if not self._is_literal(resolved):
             return False
+
+        resolved: Reference[Literal]
 
         # 用字面量替换 return 的操作数
         new_instr = IRReturn(resolved)

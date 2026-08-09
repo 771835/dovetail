@@ -1,6 +1,5 @@
 # coding=utf-8
-from dovetail.core.backend import GenerationContext
-from dovetail.core.symbols import Variable, Reference, Literal
+from dovetail.core.symbols import Variable, Literal
 from ..base import CommandRegistry, CommandHandler, TemplateCommandHandler
 from ..template import TemplateParameter, ParameterBuilder
 from ...copy import Copy
@@ -17,7 +16,7 @@ class StrcatFastCommand(TemplateCommandHandler):
     def build_params(self, result, context, args, template):
         assert result is not None
         builder = ParameterBuilder(context.current_scope, context.objective)
-        params = builder.build_all(args, ["dest", "src"])
+        params = builder.build_all(args, ["a", "b"])
         params["target"] = TemplateParameter.literal("target", context.objective)
         params["path"] = TemplateParameter.literal("path", context.current_scope.get_symbol_path(result))
         return params
@@ -27,8 +26,7 @@ class StrcatFastCommand(TemplateCommandHandler):
 class StrlenCommand(CommandHandler):
     no_size_effects = True
 
-    def handle(self, result: Variable | None, context: GenerationContext,
-               args: dict[str, Reference]) -> None:
+    def handle(self, result, context,args) -> None:
         assert result is not None
         s: Variable | Literal = args["s"].value
         result_path = DataPath.from_symbol(context, result)
