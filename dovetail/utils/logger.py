@@ -122,7 +122,7 @@ class ThreadSafeLogger:
         console_handler.setFormatter(console_formatter)
         self.logger.addHandler(console_handler)
 
-    def _log(self, level: int, message: str, *args, **kwargs):
+    def log(self, level: int, message: str, *args, **kwargs):
         """线程安全的日志记录方法"""
         if self.DISABLED:
             return
@@ -132,7 +132,7 @@ class ThreadSafeLogger:
     def _translate_and_log(self, level: int, key: str, *args, **kwargs):
         """翻译消息并记录日志"""
         translated_message = self._translator.translate(key, *args)
-        self._log(level, translated_message, **kwargs)
+        self.log(level, translated_message, **kwargs)
 
     def debug_t(self, key: str, *args, **kwargs):
         """翻译调试消息"""
@@ -156,23 +156,23 @@ class ThreadSafeLogger:
 
     def debug(self, message: str, *args, **kwargs):
         """普通调试消息"""
-        self._log(logging.DEBUG, message, *args, **kwargs)
+        self.log(logging.DEBUG, message, *args, **kwargs)
 
     def info(self, message: str, *args, **kwargs):
         """普通信息消息"""
-        self._log(logging.INFO, message, *args, **kwargs)
+        self.log(logging.INFO, message, *args, **kwargs)
 
     def warning(self, message: str, *args, **kwargs):
         """普通警告消息"""
-        self._log(logging.WARNING, message, *args, **kwargs)
+        self.log(logging.WARNING, message, *args, **kwargs)
 
     def error(self, message: str, *args, **kwargs):
         """普通错误消息"""
-        self._log(logging.ERROR, message, *args, **kwargs)
+        self.log(logging.ERROR, message, *args, **kwargs)
 
     def critical(self, message: str, *args, **kwargs):
         """普通严重错误消息"""
-        self._log(logging.CRITICAL, message, *args, **kwargs)
+        self.log(logging.CRITICAL, message, *args, **kwargs)
 
     def exception_t(self, key: str, *args, **kwargs):
         """记录翻译的异常信息"""

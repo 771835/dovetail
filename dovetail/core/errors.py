@@ -2,6 +2,7 @@
 """
 编译期错误定义和报告模块
 """
+import logging
 import os
 import random
 import sys
@@ -10,9 +11,11 @@ from typing import Optional
 
 from dovetail.core.config import DEFAULT_SUGGESTIONS
 from dovetail.utils.itertools import PeekableCounter
+from dovetail.utils.logger import get_logger
 from dovetail.utils.safe_enum import SafeEnum
 
 report_count = PeekableCounter()
+_error_logger = get_logger(__name__)
 
 
 class ErrorType(SafeEnum):
@@ -250,6 +253,17 @@ class CompilationError(Exception):
         return f"CompilationError: {self}"
 
 
+# 错误类型 → 日志级别的映射
+_ERROR_TYPE_LEVEL = {
+    ErrorType.SyntaxError: logging.ERROR,
+    ErrorType.SemanticError: logging.ERROR,
+    ErrorType.InternalError: logging.CRITICAL,
+    ErrorType.RuntimeError: logging.ERROR,
+    ErrorType.SystemError: logging.WARNING,
+    ErrorType.FatalError: logging.CRITICAL,
+}
+
+
 def print_error_message(msg: str):
     """
     向终端输出错误信息，当stderr不可用时自动退回error.log
@@ -318,7 +332,23 @@ def report(
     original_error_name = error.name
     filepath = Path(filepath)
 
-    # 尝试读取相关代码
+    # 结构化日志
+    level = _ERROR_TYPE_LEVEL.get(error_type, logging.ERROR)
+    _error_logger.log(
+        level,
+        "[E%04X] %s(%s): %s — %s:%d:%d",
+        error_code, error_name, error_type.name,
+        error_details % tuple(args) if args else error_details,
+        filepath, line, column,
+        extra={
+            "error_code": f"E{error_code:04X}",
+            "error_type": error_type.name,
+            "filepath": str(filepath),
+            "line": line,
+            "column": column,
+        }
+    )
+
     code = None
     if line != -1 and filepath.exists() and filepath.is_file():
         code = read_lines_from_file(filepath, max(line - 1, 1), line + 1)

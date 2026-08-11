@@ -90,4 +90,5 @@ DEFAULT_SUGGESTIONS: list[str] = [
     "或许你更需要的是换一门语言而不是来这里受虐。",
     "Avada Kedavra",
     ":wq!",
+     "审判开始"
 ]

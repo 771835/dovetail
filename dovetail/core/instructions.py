@@ -116,18 +116,18 @@ def validate_instruction(func):
     根据函数签名的类型注解自动验证参数
     """
 
+    if not FAST_MODE and ENABLE_INSTRUCTION_VALIDATION:
+        # 获取函数签名的类型注解
+        _type_hints = get_type_hints(func)
+        _sig_keys = list(func.__annotations__.keys())
+    else:
+        return func
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        if FAST_MODE or not ENABLE_INSTRUCTION_VALIDATION:
-            return func(*args, **kwargs)
-
-        # 获取函数签名的类型注解
-        type_hints = get_type_hints(func)
-        sig = func.__annotations__
-
         # 验证参数
-        for i, (param_name, arg) in enumerate(zip(sig.keys(), args)):
-            expected_type = type_hints.get(param_name)
+        for i, (param_name, arg) in enumerate(zip(_sig_keys, args)):
+            expected_type = _type_hints.get(param_name)
 
             # 检查参数类型
             if expected_type is None:

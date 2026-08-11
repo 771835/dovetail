@@ -1,14 +1,24 @@
+// strlib.mcdl - Dovetail 字符串工具库
+// 依赖: __strlib__ (内置字符串原语)
 include "__strlib__"
 
 /**
  * 查找 needle 在 haystack 中第一次出现的位置
- * 返回索引，如果未找到返回 -1
+ *
+ * 参数:
+ *   haystack - 被搜索的字符串
+ *   needle   - 要查找的子串
+ *
+ * 返回值:
+ *   needle 首次出现的起始索引（0-based）
+ *   未找到时返回 -1
+ *   needle 为空串时返回 0
  */
 fn strstr(haystack: string, needle: string) -> int {
     let h_len = strlen(haystack)
     let n_len = strlen(needle)
 
-    // 1. 边界检查
+    // 边界检查
     if (n_len == 0) {
         return 0
     }
@@ -16,7 +26,7 @@ fn strstr(haystack: string, needle: string) -> int {
         return -1
     }
 
-    // 2. 遍历
+    // 遍历
     let i: int = 0
     // 最多遍历到 h_len - n_len
     while (i <= h_len - n_len) {
@@ -31,9 +41,15 @@ fn strstr(haystack: string, needle: string) -> int {
     return -1
 }
 
-
 /**
- * 判断 s 是否包含 sub
+ * 判断 s 是否包含子串 sub
+ *
+ * 参数:
+ *   s   - 被搜索的字符串
+ *   sub - 要查找的子串
+ *
+ * 返回值:
+ *   包含返回 true，否则返回 false
  */
 fn str_contains(s: string, sub: string) -> boolean {
     return strstr(s, sub) != -1
@@ -41,6 +57,14 @@ fn str_contains(s: string, sub: string) -> boolean {
 
 /**
  * 判断 s 是否以 prefix 开头
+ *
+ * 参数:
+ *   s      - 目标字符串
+ *   prefix - 前缀字符串
+ *
+ * 返回值:
+ *   是则返回 true，否则返回 false
+ *   prefix 为空串时始终返回 true
  */
 fn str_starts_with(s: string, prefix: string) -> boolean {
     let p_len = strlen(prefix)
@@ -52,6 +76,14 @@ fn str_starts_with(s: string, prefix: string) -> boolean {
 
 /**
  * 判断 s 是否以 suffix 结尾
+ *
+ * 参数:
+ *   s      - 目标字符串
+ *   suffix - 后缀字符串
+ *
+ * 返回值:
+ *   是则返回 true，否则返回 false
+ *   suffix 为空串时始终返回 true
  */
 fn str_ends_with(s: string, suffix: string) -> boolean {
     let s_len = strlen(s)
@@ -64,6 +96,15 @@ fn str_ends_with(s: string, suffix: string) -> boolean {
 
 /**
  * 将 haystack 中所有 needle 替换为 replacement
+ *
+ * 参数:
+ *   haystack    - 原始字符串
+ *   needle      - 要被替换的子串
+ *   replacement - 替换后的内容
+ *
+ * 返回值:
+ *   替换后的新字符串，不修改原字符串
+ *   needle 为空串时直接返回原字符串
  */
 fn str_replace(haystack: string, needle: string, replacement: string) -> string {
     let n_len = strlen(needle)
@@ -87,6 +128,13 @@ fn str_replace(haystack: string, needle: string, replacement: string) -> string 
 
 /**
  * 统计 needle 在 haystack 中出现的次数
+ *
+ * 参数:
+ *   haystack - 被搜索的字符串
+ *   needle   - 要统计的子串
+ *
+ * 返回值:
+ *   出现次数，needle 为空串时返回 0
  */
 fn str_count(haystack: string, needle: string) -> int {
     let n_len = strlen(needle)
@@ -105,4 +153,56 @@ fn str_count(haystack: string, needle: string) -> int {
     }
 
     return count
+}
+
+/**
+ * 去除字符串右侧空格
+ *
+ * 参数:
+ *   s - 目标字符串
+ *
+ * 返回值:
+ *   去除右侧空格后的新字符串
+ *   纯空格字符串返回空串
+ */
+fn str_rtrim(s: string) -> string {
+    let len = strlen(s)
+    let i = len - 1
+    while (i >= 0 and substring(s, i, i + 1) == " ") {
+        i -= 1
+    }
+    return substring(s, 0, i + 1)
+}
+
+/**
+ * 去除字符串左侧空格
+ *
+ * 参数:
+ *   s - 目标字符串
+ *
+ * 返回值:
+ *   去除左侧空格后的新字符串
+ *   纯空格字符串返回空串
+ */
+fn str_ltrim(s: string) -> string {
+    let i = 0
+    let len = strlen(s)
+    while (i < len and substring(s, i, i + 1) == " ") {
+        i += 1
+    }
+    return substring(s, i, len)
+}
+
+/**
+ * 去除字符串首尾空格
+ *
+ * 参数:
+ *   s - 目标字符串
+ *
+ * 返回值:
+ *   去除首尾空格后的新字符串
+ *   等价于先 str_rtrim 再 str_ltrim
+ */
+fn str_trim(s: string) -> string {
+    return str_ltrim(str_rtrim(s))
 }
