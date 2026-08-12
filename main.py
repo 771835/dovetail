@@ -28,7 +28,7 @@ from dovetail.plugins.plugin_loader.loader import plugin_loader
 from dovetail.utils.annotations import timed
 from dovetail.utils.ir_serializer import IRSymbolSerializer
 from dovetail.utils.logger import get_logger, ThreadSafeLogger
-from dovetail.utils.naming import NameNormalizer
+from dovetail.utils.naming import NameDecorator
 
 logger = get_logger(__name__)
 
@@ -285,7 +285,7 @@ def main():
     args.add_argument('--disable-deprecated-function', action='store_true', help='禁用已弃用函数编译')
     # args.add_argument('--first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
     args.add_argument('--experimental', action='store_true', help='启用扩展模式(测试性功能)')
-    args.add_argument('--disable-names-normalize', action='store_true', help='禁用命名规范化')
+    args.add_argument('--disable-names-decorator', action='store_true', help='禁用命名修饰')
     args.add_argument('--disable-plugins', action='store_true', help='禁用插件加载')
     args.add_argument('--debug', action='store_true', help='启用调试模式')
     args.add_argument('--version', action='store_true', help='显示版本后退出')
@@ -300,8 +300,8 @@ def main():
     entry = Path(parsed_args.input)
     target_path = Path(parsed_args.output or "target")
 
-    # 开启或关闭命名归一化
-    NameNormalizer.enable = not parsed_args.disable_names_normalize
+    # 开启或关闭命名修饰
+    NameDecorator.enable = not parsed_args.disable_names_decorator
 
     # 处理标准库路径
     if parsed_args.lib_path:

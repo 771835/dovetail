@@ -21,7 +21,7 @@ from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
-from dovetail.utils.constants_operator import COMPARE_OP_HANDLERS, BINARY_OP_HANDLERS, UNARY_OP_HANDLERS, \
+from dovetail.utils.constant_operator_handlers import COMPARE_OP_HANDLERS, BINARY_OP_HANDLERS, UNARY_OP_HANDLERS, \
     number_to_int32
 
 

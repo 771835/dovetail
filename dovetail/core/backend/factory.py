@@ -83,7 +83,7 @@ class BackendFactory:
             raise BackendNotFoundError("没有找到适合该配置的合适后端")
         else:
             for name, backend in cls._backends.items():
-                if backend.is_support(config):
+                if backend.supports(config):
                     logger.info(f"选择后端 '{name}' ({id(backend)}).")
                     return backend
 

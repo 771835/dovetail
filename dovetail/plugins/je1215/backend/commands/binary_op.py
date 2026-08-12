@@ -2,7 +2,7 @@
 from math import floor
 
 from dovetail.core.enums import BinaryOps
-from dovetail.utils.constants_operator import BINARY_OP_HANDLERS, number_to_int32
+from dovetail.utils.constant_operator_handlers import BINARY_OP_HANDLERS, number_to_int32
 from ._scoreboard import ScoreboardBuilder
 from .copy import Copy
 from .tools import DataPath, LiteralPoolTools

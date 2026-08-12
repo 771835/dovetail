@@ -4,7 +4,7 @@ IRBuilder — Unrolled Linked List 实现
 
 接口与原 list 实现完全兼容：
   - IRBuilder.get_instructions() 仍返回内部扁平 list 的直接引用（通过 _flat 缓存维护）
-  - IRBuilderIterator / IRBuilderReversibleIterator 接口签名不变
+  - IRBuilderIterator / IRBuilderReverseIterator 接口签名不变
   - _last_index / index 语义不变，外部 optimize pass 零改动
 
 底层结构：

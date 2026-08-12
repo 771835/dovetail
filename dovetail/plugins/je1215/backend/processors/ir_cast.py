@@ -7,7 +7,7 @@ from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable, Class, Reference, Literal
 from dovetail.utils.logger import get_logger
-from dovetail.utils.naming import NameNormalizer
+from dovetail.utils.naming import NameDecorator
 from ..backend import JE1215Backend
 from ..commands import CommandRegistry
 from ..commands.strlib import to_str
@@ -34,6 +34,6 @@ class IRCastProcessor(IRProcessor):
         elif value.dtype == PrimitiveDataType.STRING and dtype.is_subclass_of(PrimitiveDataType.INT):
             # str -> int
             assert isinstance(value_path, (DataPath, str))
-            CommandRegistry.get(NameNormalizer.normalize("to_integer")).call(result, context, {"value": value})
+            CommandRegistry.get(NameDecorator.normalize("to_integer")).call(result, context, {"value": value})
         else:
             logger.error(f"未知的类型转换: 从 '{value.dtype}' 转换为 '{dtype}'")

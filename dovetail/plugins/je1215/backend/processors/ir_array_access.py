@@ -7,7 +7,7 @@ from typing import cast
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
 from dovetail.core.instructions import IRInstruction, IROpCode
 from dovetail.core.symbols import Variable, Reference
-from dovetail.utils.naming import NameNormalizer
+from dovetail.utils.naming import NameDecorator
 from ..backend import JE1215Backend
 from ..commands import Copy, DataPath, StorageLocation
 from ..commands.builtins import CommandRegistry
@@ -32,7 +32,7 @@ class IRArrayAccessProcessor(IRProcessor):
             return
         else:  # 调用宏函数
             if StorageLocation.get_storage(result.dtype) == StorageLocation.STORAGE:  # (string等数据)
-                CommandRegistry.get(NameNormalizer.normalize("array_access_to_storage")).call(
+                CommandRegistry.get(NameDecorator.normalize("array_access_to_storage")).call(
                     result,
                     context,
                     {
@@ -41,7 +41,7 @@ class IRArrayAccessProcessor(IRProcessor):
                     }
                 )
             else:  # SCORE (int, bool等值)
-                CommandRegistry.get(NameNormalizer.normalize("array_access_to_score")).call(
+                CommandRegistry.get(NameDecorator.normalize("array_access_to_score")).call(
                     result,
                     context,
                     {

@@ -40,7 +40,7 @@ class JE1215Backend(Backend):
         self._write_outputs(context)
 
     @staticmethod
-    def is_support(config: CompileConfig) -> bool:
+    def supports(config: CompileConfig) -> bool:
         version = config.version
         if version.display_version != "1.21.5" or version.is_bedrock_edition():
             return False

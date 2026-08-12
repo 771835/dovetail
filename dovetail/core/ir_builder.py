@@ -30,7 +30,7 @@ else:
 
         def __reversed__(self):
             """返回可反转迭代器"""
-            return IRBuilderReversibleIterator(self._instructions)
+            return IRBuilderReverseIterator(self._instructions)
 
         def __len__(self):
             return len(self._instructions)
@@ -75,7 +75,7 @@ else:
                 reverse_start_index = self.index - 1
             else:
                 reverse_start_index = -1
-            return IRBuilderReversibleIterator(self.instructions, reverse_start_index)
+            return IRBuilderReverseIterator(self.instructions, reverse_start_index)
 
         def peek(self) -> IRInstruction:
             """
@@ -171,7 +171,7 @@ else:
             self.insert_here(instruction)
             self.rollback()
 
-    class IRBuilderReversibleIterator:
+    class IRBuilderReverseIterator:
         """反向迭代器类"""
 
         def __init__(self, instructions: list[IRInstruction], index: Optional[int] = None):
@@ -203,4 +203,4 @@ else:
                 forward_start_index = len(self.instructions)
             return IRBuilderIterator(self.instructions, forward_start_index)
 
-__all__ = ["IRBuilder", "IRBuilderIterator", "IRBuilderReversibleIterator"]
+__all__ = ["IRBuilder", "IRBuilderIterator", "IRBuilderReverseIterator"]

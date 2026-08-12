@@ -23,7 +23,7 @@ from dovetail.core.symbols import Function, Reference
 
 # ─── 常量 ────────────────────────────────────────────────────────────────────
 
-_TCO_SCOPE_SUFFIX = "_1_tco_loop"  # _1是为了保证不会与其他函数命名重复，关闭命名归一化无效
+_TCO_SCOPE_SUFFIX = "_1_tco_loop"  # _1是为了保证不会与其他函数命名重复，关闭命名修饰无效
 
 
 # ─── Pass 注册 ────────────────────────────────────────────────────────────────
@@ -56,12 +56,6 @@ class TailCallOptimizationPass(IROptimizationPass):
     def __init__(self, builder: IRBuilder, config: CompileConfig):
         super().__init__(builder, config)
         self._changed = False
-
-    def should_run(self, context: OptimizationContext) -> bool:
-        if self.config.recursion:
-            return super().should_run(context)
-        else:  # 当不支持递归时直接拒绝运行
-            return False
 
     # ── 分析阶段 ──────────────────────────────────────────────────────────────
 

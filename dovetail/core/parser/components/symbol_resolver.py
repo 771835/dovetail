@@ -14,7 +14,7 @@ from dovetail.core.errors import Errors
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.parser.scope import Scope
 from dovetail.core.symbols import Symbol
-from dovetail.utils.naming import NameNormalizer
+from dovetail.utils.naming import NameDecorator
 from dovetail.utils.string_similarity import suggest_similar
 
 
@@ -52,7 +52,7 @@ class SymbolResolver:
         if symbol is None:
             # 生成相似名称建议
             all_names = list(self.current_scope.get_all_symbols().keys())
-            suggestion = suggest_similar(NameNormalizer.denormalize(name), all_names)
+            suggestion = suggest_similar(NameDecorator.denormalize(name), all_names)
 
             hint = f"你的意思是 '{suggestion}'？" if suggestion else None
 

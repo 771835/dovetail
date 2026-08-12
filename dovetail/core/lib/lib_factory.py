@@ -35,7 +35,7 @@ from dovetail.core.enums.datatypes import DataTypeBase, UnionType
 from dovetail.core.enums.types import FunctionType
 from dovetail.core.lib.library import Library, LibraryContext
 from dovetail.core.symbols import Function, Parameter, Variable, Reference
-from dovetail.utils.naming import NameNormalizer
+from dovetail.utils.naming import NameDecorator
 
 # ── 类型快捷别名 ──────────────────────────────────────────────────
 INT = PrimitiveDataType.INT
@@ -69,7 +69,7 @@ def builtin_func(
 
     Args:
         returns:  返回类型，默认 VOID
-        name:     覆盖函数名（默认用方法名，传入原始函数名即可，无需归一化名称）
+        name:     覆盖函数名（默认用方法名，传入原始函数名即可，无需修饰名称）
         defaults: 可选参数的默认字面量值 {param_name: value}
     """
     return _make_decorator(
@@ -219,7 +219,7 @@ class LibraryBase(Library):
             if meta is None:
                 continue
 
-            func_name: str = NameNormalizer.normalize(meta["name"] or attr_name)
+            func_name: str = NameDecorator.normalize(meta["name"] or attr_name)
             returns: DataTypeBase = meta["returns"]
 
             if meta["returns"] == VOID:
@@ -285,7 +285,7 @@ class LibraryBase(Library):
             descriptor = getattr(type(self), attr_name, None)
             if not isinstance(descriptor, _LibVarDescriptor):
                 continue
-            var_name = NameNormalizer.normalize(descriptor.override_name or attr_name)
+            var_name = NameDecorator.normalize(descriptor.override_name or attr_name)
             var = Variable(var_name, descriptor.dtype, mutable=descriptor.mutable)
             self._variables[var] = Reference.literal(descriptor.value)
 
@@ -304,12 +304,12 @@ class LibraryBase(Library):
         根据名字获得 Function 实例，优先搜索自身
 
         Args:
-            func_name: 原始函数名(归一化前)
+            func_name: 原始函数名(修饰前)
 
         Returns:
             Function or None
         """
-        func_name_n = NameNormalizer.normalize(func_name)
+        func_name_n = NameDecorator.normalize(func_name)
         try:
             return next(func for func in self._functions.keys() if func.name == func_name_n)
         except StopIteration:

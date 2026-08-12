@@ -16,14 +16,14 @@ from dovetail.core.optimize.pass_registry import register_pass
 
 
 @register_pass(PassMetadata(
-    name="useless_scope_removal",
+    name="unreachable_scope_elimination",
     display_name="无用作用域移除",
     description="移除不可达的作用域及其内容",
     level=OptimizationLevel.O2,
     phase=PassPhase.CLEANUP,
     provided_features=("removed_useless_scopes",)
 ))
-class UselessScopeRemovalPass(IROptimizationPass):
+class UselessScopeEliminationPass(IROptimizationPass):
     """无用作用域移除优化 Pass"""
 
     def __init__(self, builder: IRBuilder, config: CompileConfig):

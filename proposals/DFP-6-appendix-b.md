@@ -21,7 +21,7 @@ flags 是附加在符号上的字符串集合。优化器和后端在做决策�
 | `allow_recursion` | `@recursive`                        | 后端   | 允许递归调用，后端须为局部变量生成栈式存储 |
 | `load_hook`       | `@init`                             | 后端   | 此函数须被注册到数据包 `#load` tag         |
 | `tick_hook`       | `@tick`                             | 后端   | 此函数须被注册到数据包 `#tick` tag         |
-| `preserve_name`   | `@export`                           | 前端   | 禁止对此函数名执行归一化处理               |
+| `preserve_name`   | `@export`                           | 前端   | 禁止对此函数名执行修饰处理                 |
 | `extern`          | `@extern`                           | 后端   | 生成对外部的访问指令                       |
 | `export`          | `@export`                           | 后端   | 生成供外部访问的接口                       |
 

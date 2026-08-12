@@ -10,8 +10,8 @@ from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.enums import OptimizationLevel, ValueType, FunctionType
 from dovetail.core.instructions import IROpCode, IRAssign
 from dovetail.core.symbols import Reference, Function, Variable
-from dovetail.utils.constants_operator import number_to_int32
-from dovetail.utils.naming import NameNormalizer
+from dovetail.utils.constant_operator_handlers import number_to_int32
+from dovetail.utils.naming import NameDecorator
 
 
 @register_pass(PassMetadata(
@@ -60,7 +60,7 @@ class BuiltinConstantFoldingPass(IROptimizationPass):
 
             optimized = True
             try:
-                match NameNormalizer.denormalize(func.name):
+                match NameDecorator.denormalize(func.name):
                     case "abs":
                         if result:
                             new_val = number_to_int32(abs(arg_values["value"]))

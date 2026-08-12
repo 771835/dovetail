@@ -5,7 +5,7 @@ from dovetail.core.instructions import IRCast, IRCall, IRJump
 from dovetail.core.lib.lib_factory import LibraryBase, library_func, builtin_func
 from dovetail.core.lib.library import LibraryContext
 from dovetail.core.symbols import Reference, Variable, Literal
-from dovetail.utils.naming import NameNormalizer
+from dovetail.utils.naming import NameDecorator
 
 
 class Builtins(LibraryBase):
@@ -96,7 +96,7 @@ class Builtins(LibraryBase):
         return "built-in"
 
     def get_variables(self):
-        _n = NameNormalizer.normalize
+        _n = NameDecorator.normalize
         return {
             Variable(_n("__namespace__"), PrimitiveDataType.STRING, mutable=False):
                 Reference.literal(self.context.config.namespace),

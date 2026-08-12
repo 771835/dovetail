@@ -2,7 +2,7 @@
 import uuid
 
 from dovetail.core.enums import CompareOps
-from dovetail.utils.constants_operator import COMPARE_OP_HANDLERS
+from dovetail.utils.constant_operator_handlers import COMPARE_OP_HANDLERS
 from ._execute import Execute
 from ._scoreboard import ScoreboardBuilder
 from .copy import Copy

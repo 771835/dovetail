@@ -22,7 +22,7 @@ from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.parser.components.symbol_resolver import SymbolResolver
 from dovetail.core.parser.components.type_checker import TypeChecker
 from dovetail.core.symbols import Variable, Reference, Function
-from dovetail.utils.naming import NameNormalizer
+from dovetail.utils.naming import NameDecorator
 
 
 class IREmitter:
@@ -121,7 +121,7 @@ class IREmitter:
             return None
 
         # 创建并注册符号
-        variable = Variable(NameNormalizer.normalize(name), dtype, mutable=mutable)
+        variable = Variable(NameDecorator.normalize(name), dtype, mutable=mutable)
         if not self.symbol_resolver.add_symbol(variable, meta=meta):
             return None
 

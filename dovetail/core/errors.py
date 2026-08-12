@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from dovetail.core.config import DEFAULT_SUGGESTIONS
-from dovetail.utils.itertools import PeekableCounter
+from dovetail.utils.peekable_counter import PeekableCounter
 from dovetail.utils.logger import get_logger
 from dovetail.utils.safe_enum import SafeEnum
 

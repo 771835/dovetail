@@ -26,7 +26,7 @@ INLINE_THRESHOLD = 15
     name="function_inlining",
     display_name="函数内联",
     description="将短小的非递归函数调用展开到调用点",
-    level=OptimizationLevel.O3,  # O2即可，但是由于这个优化属于实验性的，故暂时设为O3
+    level=OptimizationLevel.O2,  # O2即可，但是由于这个优化属于实验性的，故暂时设为O3
     phase=PassPhase.TRANSFORM,
     provided_features=("inlined_functions",)
 ))

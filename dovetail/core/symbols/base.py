@@ -73,7 +73,25 @@ class MethodHost(ABC):
         ...
 
     def get_method(self, name: str) -> Function | None:
+        """
+        根据方法名获得方法
+
+        Args:
+            name: 命名修饰后的方法名
+
+        Returns:
+            对应方法的函数
+        """
         return self.methods.get(name)
 
     def has_method(self, name: str) -> bool:
+        """
+        判断是否有方法
+
+        Args:
+            name: 命名修饰后的方法名
+
+        Returns:
+            存在时返回 True
+        """
         return name in self.methods

@@ -1,12 +1,12 @@
 # coding=utf-8
 """
-命名规范化工具模块。
+命名修饰工具模块。
 """
 import functools
 import sys
 
 
-class NameNormalizer:
+class NameDecorator:
     enable = False
 
     @staticmethod
@@ -22,33 +22,33 @@ class NameNormalizer:
     @staticmethod
     def _to_base36_fixed(n: int) -> tuple[str, str]:
         """返回 (长度前缀数字字符, base36字符串)"""
-        b36 = NameNormalizer._to_base36(n)
+        b36 = NameDecorator._to_base36(n)
         return str(len(b36)), b36  # 长度前缀 + 内容
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
     def normalize(name: str) -> str:
         """
-        将原始字符串规范化为兼容格式。
+        将原始字符串修饰为兼容格式。
 
-        规范化规则如下：
+        修饰规则如下：
         - 大写字母替换为 "_小写形式"
         - 连续下划线 "__" 表示原始的下划线
         - 非字母数字或下划线的字符替换为 "_{后面编码的长度}{36进制编码的字符}"
 
-        在 Windows 平台下，对于aux、com1、com2、prn、con、nul等会返回"_0_{对应字符}"，不受命名归一化是否开启影响。
+        在 Windows 平台下，对于aux、com1、com2、prn、con、nul等会返回"_0_{对应字符}"，不受命名修饰是否开启影响。
 
         Args:
             name (str): 原始字符串名称
 
         Returns:
-            str: 规范化后的字符串
+            str: 修饰后的字符串
         """
 
         if sys.platform.startswith("win") and name in ("aux", "com1", "com2", "prn", "con", "nul"):
             return f"_0_{name}"
 
-        if not NameNormalizer.enable:
+        if not NameDecorator.enable:
             return name
         new_name = ""
         for char in name:
@@ -59,7 +59,7 @@ class NameNormalizer:
             elif char.isdigit() or char.islower():
                 new_name += char
             else:
-                prefix, b36 = NameNormalizer._to_base36_fixed(ord(char))
+                prefix, b36 = NameDecorator._to_base36_fixed(ord(char))
                 new_name += f"_{prefix}{b36}"
         return new_name
 
@@ -67,12 +67,12 @@ class NameNormalizer:
     @functools.lru_cache(maxsize=None)
     def denormalize(normalized_name: str) -> str:
         """
-        将规范化后的名称还原为原始字符串。
+        将修饰后的名称还原为原始字符串。
 
-        该方法会反向解析规范化后的字符串
+        该方法会反向解析修饰后的字符串
 
         Args:
-            normalized_name (str): 已规范化的字符串名称
+            normalized_name (str): 已修饰的字符串名称
 
         Returns:
             str: 还原后的原始字符串
@@ -80,7 +80,7 @@ class NameNormalizer:
         if normalized_name.startswith('_0_'):
             return normalized_name[3:]
 
-        if not NameNormalizer.enable:
+        if not NameDecorator.enable:
             return normalized_name
         original = ""
         i = 0

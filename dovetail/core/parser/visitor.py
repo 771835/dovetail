@@ -21,6 +21,7 @@ AST 转换器模块 - Dovetail 编译器前端
 """
 import ast
 import itertools
+import re
 import typing
 from contextlib import contextmanager
 from functools import lru_cache
@@ -61,12 +62,10 @@ from dovetail.core.symbols import Variable, Reference, Literal, Function, Class,
 from dovetail.core.symbols.base import MethodHost
 from dovetail.core.symbols.structure import Structure
 from dovetail.core.symbols.typedef import Typedef
-from dovetail.utils.naming import NameNormalizer
+from dovetail.utils.naming import NameDecorator
 
-_n = NameNormalizer.normalize
-_dn = NameNormalizer.denormalize
-
-import re
+_n = NameDecorator.normalize
+_dn = NameDecorator.denormalize
 
 _SIMPLE_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 

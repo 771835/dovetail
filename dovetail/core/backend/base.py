@@ -44,7 +44,7 @@ class Backend(ABC, metaclass=BackendMeta):
 
     @staticmethod
     @abstractmethod
-    def is_support(config: CompileConfig) -> bool:
+    def supports(config: CompileConfig) -> bool:
         """判断是否支持该配置"""
         raise NotImplementedError()
 
