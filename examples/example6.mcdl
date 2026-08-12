@@ -1,5 +1,376 @@
-# hello world
+# test_data_get.mcdl
+# data_get 系列函数集成测试
+include "minecraft.mcdl"
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 1: data_get_storage (str) — 读取各种 NBT 类型
+// ═══════════════════════════════════════════════════════════════
 @init
-fn main() {
-    print("hello world")
+fn test_data_get_storage_str() {
+    // --- 准备测试数据 ---
+    // 写入一个包含多种类型的 compound
+    exec("data merge storage test:data {my_int:42,my_str:\"hello\",my_double:3.14d,my_byte:7b,my_list:[1,2,3],my_nested:{inner:99}}")
+
+    // --- 读取整数字段 (str 返回) ---
+    let int_val = data_get_storage("test:data", "my_int")
+    print(f"[storage.str] my_int = {int_val}")   // 期望: "42"
+
+    // --- 读取字符串字段 ---
+    let str_val = data_get_storage("test:data", "my_str")
+    print(f"[storage.str] my_str = {str_val}")   // 期望: "hello"
+
+    // --- 读取 double 字段 ---
+    let dbl_val = data_get_storage("test:data", "my_double")
+    print(f"[storage.str] my_double = {dbl_val}") // 期望: "3.14d"
+
+    // --- 读取 byte 字段 ---
+    let byte_val = data_get_storage("test:data", "my_byte")
+    print(f"[storage.str] my_byte = {byte_val}")  // 期望: "7b"
+
+    // --- 读取 list ---
+    let list_val = data_get_storage("test:data", "my_list")
+    print(f"[storage.str] my_list = {list_val}")  // 期望: "[1,2,3]"
+
+    // --- 读取嵌套 compound ---
+    let nested_val = data_get_storage("test:data", "my_nested")
+    print(f"[storage.str] my_nested = {nested_val}") // 期望: "{inner:99}"
+
+    // --- 读取嵌套内字段 ---
+    let inner_val = data_get_storage("test:data", "my_nested.inner")
+    print(f"[storage.str] my_nested.inner = {inner_val}") // 期望: "99"
+
+    // --- 读取根 compound (无 path) ---
+    let root_val = data_get_storage("test:data")
+    print(f"[storage.str] root = {root_val}")
+
+    print("--- test_data_get_storage_str DONE ---")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 2: data_get_storage_int — 数值型读取，返回 int
+// ═══════════════════════════════════════════════════════════════
+@init
+fn test_data_get_storage_int() {
+    // --- 准备测试数据 ---
+    exec("data merge storage test:ints {val_int:100,val_byte:5b,val_short:32000s,val_long:999999999l,val_float:2.5f,val_double:7.25d}")
+
+    // --- 读取 int 字段 ---
+    let i = data_get_storage_int("test:ints", "val_int")
+    print(f"[storage.int] val_int = {i}")        // 期望: 100
+
+    // --- 读取 byte 字段 (自动提升为 int) ---
+    let b = data_get_storage_int("test:ints", "val_byte")
+    print(f"[storage.int] val_byte = {b}")        // 期望: 5
+
+    // --- 读取 short 字段 ---
+    let s = data_get_storage_int("test:ints", "val_short")
+    print(f"[storage.int] val_short = {s}")       // 期望: 32000
+
+    // --- 读取 long 字段 (截断为 32-bit int) ---
+    let l = data_get_storage_int("test:ints", "val_long")
+    print(f"[storage.int] val_long = {l}")        // 期望: 999999999 (在 int 范围内)
+
+    // --- 读取 float 字段 (scale=1 → floor(2.5) = 2) ---
+    let f1 = data_get_storage_int("test:ints", "val_float", 1)
+    print(f"[storage.int] val_float scale=1 = {f1}")  // 期望: 2
+
+    // --- 读取 float 字段 (scale=10 → floor(2.5*10) = 25) ---
+    let f10 = data_get_storage_int("test:ints", "val_float", 10)
+    print(f"[storage.int] val_float scale=10 = {f10}") // 期望: 25
+
+    // --- 读取 double 字段 (scale=100 → floor(7.25*100) = 725) ---
+    let d100 = data_get_storage_int("test:ints", "val_double", 100)
+    print(f"[storage.int] val_double scale=100 = {d100}") // 期望: 725
+
+    // --- 读取 double 字段 (scale=1 → floor(7.25) = 7) ---
+    let d1 = data_get_storage_int("test:ints", "val_double", 1)
+    print(f"[storage.int] val_double scale=1 = {d1}") // 期望: 7
+
+    print("--- test_data_get_storage_int DONE ---")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 3: data_get_entity (str) — 读取实体 NBT
+// ═══════════════════════════════════════════════════════════════
+@init
+fn test_data_get_entity_str() {
+    // --- 准备: 召唤一个带自定义 NBT 的盔甲架 ---
+    exec("summon armor_stand ~ ~ ~ {Tags:[\"test_entity\"],CustomName:'{\"text\":\"Bob\"}',Health:20f,Invisible:1b}")
+
+    // --- 读取 Health (str 返回) ---
+    let health = data_get_entity("@e[tag=test_entity,limit=1]", "Health")
+    print(f"[entity.str] Health = {health}")      // 期望: "20.0f"
+
+    // --- 读取 Invisible ---
+    let invis = data_get_entity("@e[tag=test_entity,limit=1]", "Invisible")
+    print(f"[entity.str] Invisible = {invis}")    // 期望: "1b"
+
+    // --- 读取 CustomName ---
+    let name = data_get_entity("@e[tag=test_entity,limit=1]", "CustomName")
+    print(f"[entity.str] CustomName = {name}")    // 期望: '{"text":"Bob"}'
+
+    // --- 读取 Tags 列表 ---
+    let tags = data_get_entity("@e[tag=test_entity,limit=1]", "Tags")
+    print(f"[entity.str] Tags = {tags}")          // 期望: ["test_entity"]
+
+    // --- 清理 ---
+    exec("kill @e[tag=test_entity]")
+
+    print("--- test_data_get_entity_str DONE ---")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 4: data_get_entity_int — 数值型实体 NBT
+// ═══════════════════════════════════════════════════════════════
+@init
+fn test_data_get_entity_int() {
+    // --- 准备: 召唤一个爬行者，Fuse=30 ---
+    exec("summon creeper ~ ~ ~ {Tags:[\"test_creeper\"],Fuse:30,ExplosionRadius:8b}")
+
+    // --- 读取 Fuse (int) ---
+    let fuse = data_get_entity_int("@e[tag=test_creeper,limit=1]", "Fuse")
+    print(f"[entity.int] Fuse = {fuse}")          // 期望: 30
+
+    // --- 读取 ExplosionRadius (byte → int) ---
+    let radius = data_get_entity_int("@e[tag=test_creeper,limit=1]", "ExplosionRadius")
+    print(f"[entity.int] ExplosionRadius = {radius}") // 期望: 8
+
+    // --- 读取 Health (float, scale=1 → floor(20.0)=20) ---
+    let hp = data_get_entity_int("@e[tag=test_creeper,limit=1]", "Health", 1)
+    print(f"[entity.int] Health scale=1 = {hp}")  // 期望: 20
+
+    // --- 读取 Health (float, scale=10 → floor(20.0*10)=200) ---
+    let hp10 = data_get_entity_int("@e[tag=test_creeper,limit=1]", "Health", 10)
+    print(f"[entity.int] Health scale=10 = {hp10}") // 期望: 200
+
+    // --- 清理 ---
+    exec("kill @e[tag=test_creeper]")
+
+    print("--- test_data_get_entity_int DONE ---")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 5: data_get_block (str) — 读取方块实体 NBT
+// ═══════════════════════════════════════════════════════════════
+@init
+fn test_data_get_block_str() {
+    // --- 准备: 放一个箱子并写入物品 ---
+    exec("tp @s 0 0 0") // 用于保证0 0 0被加载
+    exec("setblock 0 0 0 chest")
+    exec("data merge block 0 0 0 {Items:[{id:\"minecraft:diamond\",Count:1,Slot:0}]}")
+
+    // --- 读取 Items 列表 ---
+    let items = data_get_block(0, 0, 0, "Items")
+    print(f"[block.str] Items = {items}")
+
+    // --- 读取第一个物品的 id ---
+    let item_id = data_get_block(0, 0, 0, "Items[0].id")
+    print(f"[block.str] Items[0].id = {item_id}")  // 期望: "minecraft:diamond"
+
+    // --- 读取 Count ---
+    let count = data_get_block(0, 0, 0, "Items[0].Count")
+    print(f"[block.str] Items[0].Count = {count}")  // 期望: "1b"
+
+    // --- 清理 ---
+    exec("setblock 0 0 0 air")
+
+    print("--- test_data_get_block_str DONE ---")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 6: data_get_block_int — 数值型方块 NBT
+// ═══════════════════════════════════════════════════════════════
+@init
+fn test_data_get_block_int() {
+    // --- 准备: 放一个发射器并写入数据 ---
+    exec("tp @s 0 0 0") // 用于保证0 0 0被加载
+    exec("setblock 0 0 0 dispenser")
+    exec("data merge block 0 0 0 {Items:[{id:\"minecraft:arrow\",Count:64b,Slot:0b}]}")
+
+    // --- 读取 Count (byte → int) ---
+    let count = data_get_block_int(0, 0, 0, "Items[0].Count")
+    print(f"[block.int] Items[0].Count = {count}")  // 期望: 64
+
+    // --- 读取 Slot ---
+    let slot = data_get_block_int(0, 0, 0, "Items[0].Slot")
+    print(f"[block.int] Items[0].Slot = {slot}")    // 期望: 0
+
+    // --- 清理 ---
+    exec("setblock 0 0 0 air")
+
+    print("--- test_data_get_block_int DONE ---")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 7: scoreboard_players_get — int 返回
+// ═══════════════════════════════════════════════════════════════
+//@init
+fn test_scoreboard_players_get() {
+    // --- 准备: 创建计分板并设置分数 ---
+    exec("scoreboard objectives add test_obj dummy")
+    exec("scoreboard players set #test_target test_obj 42")
+
+    // --- 读取 ---
+    let score = scoreboard_players_get("#test_target", "test_obj")
+    print(f"[scoreboard] score = {score}")        // 期望: 42
+
+    // --- 算术验证 ---
+    let doubled = score * 2
+    print(f"[scoreboard] doubled = {doubled}")    // 期望: 84
+
+    // --- 清理 ---
+    exec("scoreboard objectives remove test_obj")
+
+    print("--- test_scoreboard_players_get DONE ---")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 8: bossbar_get_* — int 返回
+// ═══════════════════════════════════════════════════════════════
+//@init
+fn test_bossbar_get() {
+    // --- 准备 ---
+    exec("bossbar add test:bar \"Test Bar\"")
+    exec("bossbar set test:bar max 100")
+    exec("bossbar set test:bar value 42")
+    exec("bossbar set test:bar visible true")
+
+    // --- 读取各属性 ---
+    let max_val = bossbar_get_max("test:bar")
+    print(f"[bossbar] max = {max_val}")           // 期望: 100
+
+    let cur_val = bossbar_get_value("test:bar")
+    print(f"[bossbar] value = {cur_val}")          // 期望: 42
+
+    let vis = bossbar_get_visible("test:bar")
+    print(f"[bossbar] visible = {vis}")            // 期望: 1
+
+    // --- 清理 ---
+    exec("bossbar remove test:bar")
+
+    print("--- test_bossbar_get DONE ---")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 9: data_get_storage_int + 算术 — 验证返回值可参与运算
+// ═══════════════════════════════════════════════════════════════
+@init
+fn test_get_int_arithmetic() {
+    // 写入两个数值
+    exec("data merge storage test:math {a:10,b:3}")
+
+    let a = data_get_storage_int("test:math", "a")
+    let b = data_get_storage_int("test:math", "b")
+
+    let sum = a + b
+    let diff = a - b
+    let prod = a * b
+    let quot = a / b
+    let mod = a % b
+
+    print(f"[math] a={a}, b={b}")
+    print(f"[math] a+b = {sum}")     // 期望: 13
+    print(f"[math] a-b = {diff}")    // 期望: 7
+    print(f"[math] a*b = {prod}")    // 期望: 30
+    print(f"[math] a/b = {quot}")    // 期望: 3
+    print(f"[math] a%b = {mod}")     // 期望: 1
+
+    // 条件判断
+    if (a > b) {
+        print("[math] a > b ✓")       // 期望执行
+    } else {
+        print("[math] a > b ✗")
+    }
+
+    print("--- test_get_int_arithmetic DONE ---")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 10: data_get_storage_int 精度 — float/double scale 放大
+// ═══════════════════════════════════════════════════════════════
+@init
+fn test_float_precision() {
+    // 模拟实体坐标 Pos，Minecraft 内部用 double 存储
+    // 实际坐标 12.345 → 内部 12.345d
+    exec("data merge storage test:pos {x:12.345d,y:64.0d,z:-3.7d}")
+
+    // scale=1: 直接取整
+    let x1 = data_get_storage_int("test:pos", "x", 1)
+    print(f"[precision] x scale=1 = {x1}")      // 期望: 12
+
+    // scale=100: 保留两位小数
+    let x100 = data_get_storage_int("test:pos", "x", 100)
+    print(f"[precision] x scale=100 = {x100}")   // 期望: 1234
+
+    // scale=1000: 保留三位小数
+    let x1000 = data_get_storage_int("test:pos", "x", 1000)
+    print(f"[precision] x scale=1000 = {x1000}") // 期望: 12345
+
+    // y=64.0 精确值
+    let y1 = data_get_storage_int("test:pos", "y", 1)
+    print(f"[precision] y scale=1 = {y1}")       // 期望: 64
+
+    // 负数 z=-3.7
+    let z1 = data_get_storage_int("test:pos", "z", 1)
+    print(f"[precision] z scale=1 = {z1}")       // 期望: -4 (floor)
+
+    let z10 = data_get_storage_int("test:pos", "z", 10)
+    print(f"[precision] z scale=10 = {z10}")     // 期望: -37
+
+    print("--- test_float_precision DONE ---")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 11: data_get_storage list 索引 — NBT 路径访问列表元素
+// ═══════════════════════════════════════════════════════════════
+@init
+fn test_list_path_access() {
+    exec("data merge storage test:list {nums:[10,20,30,40,50]}")
+
+    // str 版本: 取单个元素
+    let elem0 = data_get_storage("test:list", "nums[0]")
+    print(f"[list] nums[0] = {elem0}")            // 期望: "10"
+
+    let elem4 = data_get_storage("test:list", "nums[4]")
+    print(f"[list] nums[4] = {elem4}")            // 期望: "50"
+
+    // int 版本: 取单个元素
+    let val0 = data_get_storage_int("test:list", "nums[0]")
+    let val2 = data_get_storage_int("test:list", "nums[2]")
+    print(f"[list.int] nums[0] = {val0}")         // 期望: 10
+    print(f"[list.int] nums[2] = {val2}")         // 期望: 30
+
+    // int 版本: 列表元素参与运算
+    let sum_first_last = val0 + data_get_storage_int("test:list", "nums[4]")
+    print(f"[list.int] nums[0]+nums[4] = {sum_first_last}") // 期望: 60
+
+    print("--- test_list_path_access DONE ---")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试 12: data_get_storage 空 path / 不存在的 path
+// ═══════════════════════════════════════════════════════════════
+@init
+fn test_edge_cases() {
+    exec("data merge storage test:edge {exists:1}")
+
+    // 读取整个 storage (无 path)
+    let root = data_get_storage("test:edge")
+    print(f"[edge] root = {root}")
+
+    // 读取存在的字段
+    let exists = data_get_storage("test:edge", "exists")
+    print(f"[edge] exists = {exists}")            // 期望: "1"
+
+    // 不存在的路径 — Minecraft 会报错/无输出
+    // 这里只验证不崩溃
+    let missing_str = data_get_storage("test:edge", "no_such_key")
+    print(f"[edge] missing(str) = {missing_str}")
+
+    // data_get_storage_int 对非数值路径 (Minecraft 会失败)
+    // 这里也只验证不崩溃
+    let bad_int = data_get_storage_int("test:edge", "no_such_key")
+    print(f"[edge] missing(int) = {bad_int}")
+
+    print("--- test_edge_cases DONE ---")
 }

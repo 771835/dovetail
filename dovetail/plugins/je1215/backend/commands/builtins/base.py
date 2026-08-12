@@ -78,7 +78,7 @@ class TemplateCommandHandler(CommandHandler):
     引擎自动内联字面量，自动注册烘焙模板，子类不用管。
     """
 
-    template_name: str = None
+    template_name: str
 
     def handle(
             self,
@@ -86,9 +86,13 @@ class TemplateCommandHandler(CommandHandler):
             context: GenerationContext,
             args: dict[str, Reference]
     ) -> None:
-        template = TemplateRegistry.get(self.template_name)
+        template_name: Optional[str] = getattr(self, "template_name", None)
+        if template_name is not None:
+            template = TemplateRegistry.get(template_name)
+        else:
+            raise ValueError(f"{self.__class__.__name__} 未设置宏命令模板")
         if not template:
-            raise ValueError(f"找不到宏命令模板: {self.template_name}")
+            raise ValueError(f"找不到宏命令模板: {template_name}")
 
         params = self.build_params(result, context, args, template)
         engine = TemplateEngine(context.namespace, context.objective)

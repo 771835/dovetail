@@ -1,4 +1,7 @@
 # coding=utf-8
-from .integer import ToIntegerCommand
-from .mc_array import ArrayAccessToStorageCommand, ArrayAccessToScoreCommand
-from .string import StrlenCommand, SubstringCommand, StrcatFastCommand
+from .integer import *
+from .mc_array import *
+from .string import *
+from .data_getter import *
+
+__all__ = []

@@ -87,6 +87,11 @@ fn main() {
     - 待社区讨论达成共识后，克隆新分支进行代码修改。
     - 进行测试，确保功能正确。
     - 合并代码至主分支。
+- 如何验证数据包是否正确运行以及项目接受哪些运行报告
+    - Minecraft 实机运行
+    - 使用[Datapack Sandbox](https://github.com/Alumopper/DatapackSandbox)模拟运行
+  
+
 
 ### 关于AI工具使用
 
@@ -118,7 +123,7 @@ A: 请尝试使用`gamerule`指令适当提高`maxCommandChainLength`规则的�
 Q: 找不到可用后端怎么办?  
 A: 安装对应后端插件  
 Q: 如何调试错误  
-A: 可以参考[调试指南](docs/zh-cn/debugging-guide.md)  
+A: 可以参考[调试指南](docs/zh-cn/debugging-guide.md)
 
 ## 已知特性 (长期内不会修复)
 
@@ -163,6 +168,7 @@ A: 可以参考[调试指南](docs/zh-cn/debugging-guide.md)
 
 - [《Feature》](https://vanillalibrary.mcfpp.top/datapack-index/feature/_index.html)
   是由香草图书馆团队主办的，面向原版模组（数据包+资源包）开发的短文收集与展示的平台，用于开发者之间的交流，每月更新。
+- [Datapack-Sandbox](https://github.com/Alumopper/DatapackSandbox) 一个轻量、洁净室实现的 Minecraft Java 数据包沙盒。
 
 ### 思路来源/大佬鸣谢
 

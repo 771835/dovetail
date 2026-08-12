@@ -215,11 +215,73 @@ def register_builtin_templates():
         CommandTemplate(
             name="array_assign",
             template="data modify storage $(target) $(path)[$(index)] set value $(value)",
-            function_path="builtins/data/list_setitem_value",
+            function_path="builtins/array_assign",
             param_names=["target", "path", "index", "value"],
             description="给数组赋值",
             tags=["data", "array"]
         ),
+
+        # ============ Data 读取操作 ============
+        CommandTemplate(
+            name="data_get_block",
+            template="data modify storage $(target) $(target_path) set string block $(x) $(y) $(z) $(path)",
+            function_path="builtins/data/get_block",
+            param_names=["target", "target_path", "x", "y", "z"],
+            optional_params={"path": ""},
+            description="从方块中读取数据并转换为字符串",
+            tags=["data", "getting", "block"]
+        ),
+
+        CommandTemplate(
+            name="data_get_entity",
+            template="data modify storage $(target) $(target_path) set string entity $(source) $(path)",
+            function_path="builtins/data/get_entity",
+            param_names=["target", "target_path", "source"],
+            optional_params={"path": ""},
+            description="从实体中读取数据并转换为字符串",
+            tags=["data", "getting", "entity"]
+        ),
+
+        CommandTemplate(
+            name="data_get_storage",
+            template="data modify storage $(target) $(target_path) set string storage $(source) $(path)",
+            function_path="builtins/data/get_storage",
+            param_names=["target", "target_path", "source"],
+            optional_params={"path": ""},
+            description="从存储中读取数据并转换为字符串",
+            tags=["data", "getting", "storage"]
+        ),
+
+        CommandTemplate(
+            name="data_get_block_int",
+            template="execute store result score $(target) $(objective) run data get block $(x) $(y) $(z) $(path) $(scale)",
+            function_path="builtins/data/get_block_int",
+            param_names=["target", "objective", "x", "y", "z"],
+            optional_params={"path": "", "scale": 1},
+            description="从方块中读取数据并转换为整数类型",
+            tags=["data", "getting", "block"]
+        ),
+
+        CommandTemplate(
+            name="data_get_entity_int",
+            template="execute store result score $(target) $(objective) run data get entity $(source) $(path) $(scale)",
+            function_path="builtins/data/get_entity_int",
+            param_names=["target", "objective", "source"],
+            optional_params={"path": "", "scale": 1},
+            description="从实体中读取数据并转换为整数类型",
+            tags=["data", "getting", "entity"]
+        ),
+
+        CommandTemplate(
+            name="data_get_storage_int",
+            template="execute store result score $(target) $(objective) run data get storage $(source) $(path) $(scale)",
+            function_path="builtins/data/get_storage_int",
+            param_names=["target", "objective", "source"],
+            optional_params={"path": "", "scale": 1},
+            description="从存储中读取数据并转换为整数类型",
+            tags=["data", "getting", "storage"]
+        ),
+
     ]
 
     # 批量注册
