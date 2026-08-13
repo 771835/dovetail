@@ -218,6 +218,7 @@ class OptimizationPipeline:
 
             for pass_class in self._pipeline:
                 pass_instance = pass_class(builder, self.config)
+                pass_changed = False
 
                 if not pass_instance.should_run(context):
                     if self.config.debug:
@@ -235,7 +236,7 @@ class OptimizationPipeline:
 
                 # 执行优化（修改 IR）
                 if pass_instance.execute():
-                    changed = True
+                    pass_changed = True
                     context = context.with_updates(
                         executed_passes={pass_class.get_metadata().name},
                         ir_features=set(pass_class.get_metadata().provided_features),
@@ -246,11 +247,12 @@ class OptimizationPipeline:
                     logger.debug(
                         f"  执行：{pass_class.get_metadata().display_name}，"
                         f"用时{time.time() - s_t:1f}，"
-                        f"期间{'' if changed else '不'}存在修改。")
+                        f"期间{'' if pass_changed else '不'}存在修改。")
                     if not FAST_MODE:
                         from dovetail.utils.ir_validator import assert_ir
                         assert_ir(builder)
                     # builder.print()
+                changed = changed or pass_changed
 
             if not changed:
                 logger.debug(f"  第 {iteration} 轮无变化，提前退出")

@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import functools
-from typing import TypeVar, Generic
+import weakref
+from typing import TypeVar, Generic, ClassVar
 
 from attrs import define
 
@@ -30,7 +31,27 @@ class Reference(Symbol, Generic[T]):
     Attributes:
         value (T): 被引用的对象
     """
+    _cache: ClassVar[weakref.WeakValueDictionary[Symbol, Reference[Symbol]]] = weakref.WeakValueDictionary()
+
     value: T
+
+    def __new__(cls, value: T):
+        # 1. 尝试从缓存获取
+        if value in cls._cache:
+            return cls._cache[value]
+
+        # 2. 如果没有，则创建新实例
+        instance = super().__new__(cls)
+        object.__setattr__(instance, 'value', value)
+
+        # 3. 存入弱引用缓存
+        cls._cache[value] = instance
+        return instance
+
+    def __deepcopy__(self, memo):
+        # 直接返回 self，不进行任何深拷贝操作
+        # 因为它是不可变的，且在内存中是唯一的
+        return self
 
     if not FAST_MODE:
         def __attrs_post_init__(self):

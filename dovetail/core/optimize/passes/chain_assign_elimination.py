@@ -512,7 +512,8 @@ class ChainAssignEliminationPass(IROptimizationPass):
                     and arg_ref.value_type == ValueType.VARIABLE
             ):
                 alias = aliases.get(arg_ref.get_name())
-                if alias is not None and alias is not arg_ref:
+                # 因为包装数据的类不同，而其中的数据相同，因此比较数据而非引用
+                if alias is not None and alias.value is not arg_ref.value:
                     new_args[param_name] = alias  # noqa
                     changed = True
                     continue

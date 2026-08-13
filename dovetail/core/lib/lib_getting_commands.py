@@ -8,7 +8,8 @@ class GettingCommands(LibraryBase):
         self.context = context
         self._init(context)
 
-    # 任何 NBT 类型都能用，但结果是字符串，需要手动解析
+    # 仅数值类型(字符串或数字类型)类型能用，但结果是字符串，需要手动解析
+    # 传奇 ojang 史山王，data string 竟然不支持列表和字典的 str 形式
 
     @builtin_func()
     def data_get_block(self, x: int, y: int, z: int, path: str = "") -> str: ...
