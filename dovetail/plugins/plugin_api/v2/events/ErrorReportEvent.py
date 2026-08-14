@@ -6,7 +6,7 @@ from lark.tree import Meta
 
 from dovetail.core.errors import Errors
 from dovetail.core.parser.components.error_reporter import ErrorReporter
-from dovetail.plugins.plugin_api.v2.event import Event
+from .event import Event
 from dovetail.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
 
 

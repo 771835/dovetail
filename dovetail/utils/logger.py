@@ -282,8 +282,13 @@ def get_logger(name: str = 'default',
         ThreadSafeLogger实例
     """
     if level is None:
-        new_level = logging.DEBUG if "--debug" in sys.argv else logging.INFO
-        return LoggerFactory.get_logger(name, new_level, LOG_FILE)
+        if "--disable-info-logger" in sys.argv:
+            level = logging.WARNING
+        elif "--debug" in sys.argv:
+            level = logging.DEBUG
+        else:
+            level = logging.INFO
+        return LoggerFactory.get_logger(name, level, LOG_FILE)
     else:
         return LoggerFactory.get_logger(name, level, LOG_FILE)
 

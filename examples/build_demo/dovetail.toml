@@ -1,0 +1,27 @@
+[package]
+name = "build_demo"
+version = "1.0.0"
+authors = ["771835 <2790834181@qq.com>"]
+description = "Demo project for dovetail-build"
+license = "MIT"
+
+[build]
+tool = "default"
+entry = "src/main.mcdl"
+output = "build/datapack"
+
+[paths]
+sources = ["src"]
+libraries = ["lib"]
+includes = []
+docs = ["docs"]
+hooks = ["hook"]
+
+[compiler]
+lib_path = ""
+optimization = 2
+backend = ""
+
+[hooks]
+pre_build = "hook/pre_build.py"
+post_build = "hook/post_build.py"

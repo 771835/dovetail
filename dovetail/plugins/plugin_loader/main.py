@@ -9,16 +9,17 @@ from pathlib import Path
 
 from dovetail.plugins.plugin_api.plugin import Plugin
 from dovetail.plugins.plugin_api.v2 import plugin_manager
+from dovetail.utils.resource import resolve_project_path
 
 
-class LoaderPlugin(Plugin):
+class PluginMain(Plugin):
     """插件加载器插件
 
     负责自动发现和加载其他插件的核心插件。
     """
 
     def __init__(self):
-        """初始化 LoaderPlugin 实例"""
+        """初始化实例"""
         super().__init__()
 
     def load(self):
@@ -30,7 +31,7 @@ class LoaderPlugin(Plugin):
         # 首先尝试加载 plugin_api
         plugin_manager.load_plugin("plugin_api")
         for plugins_dir in loader_instance.plugins_paths:
-            plugins_path = Path(plugins_dir)
+            plugins_path = resolve_project_path(plugins_dir)
             if plugins_path.exists() and plugins_path.is_dir():
                 for plugin_dir in plugins_path.iterdir():
                     plugin_name = plugin_dir.name
@@ -40,7 +41,7 @@ class LoaderPlugin(Plugin):
                         continue
 
                     if plugin_dir.is_dir():
-                        plugin_manager.load_plugin(plugin_name)
+                        plugin_manager.load_plugin(plugin_dir)
 
     def unload(self):
         """卸载插件

@@ -24,11 +24,13 @@ from dovetail.core.optimize.optimizer import Optimizer
 from dovetail.core.optimize.pass_registry import get_registry
 from dovetail.core.parser.parser import parser_file
 from dovetail.core.parser.visitor import ASTVisitor
+from dovetail.plugins.plugin_api import find_build_plugin
 from dovetail.plugins.plugin_loader.loader import plugin_loader
 from dovetail.utils.annotations import timed
 from dovetail.utils.ir_serializer import IRSymbolSerializer
 from dovetail.utils.logger import get_logger, ThreadSafeLogger
 from dovetail.utils.naming import NameDecorator
+from dovetail.utils.resource import resolve_project_path
 
 logger = get_logger(__name__)
 
@@ -244,7 +246,6 @@ class Compiler:
         """
         return Optimizer(builder, self.config).optimize()
 
-
 def main():
     """
     主函数，负责解析参数并执行基本编译任务
@@ -271,30 +272,57 @@ def main():
 
         return
 
-    args = argparse.ArgumentParser(description="dovetail")
-    args.add_argument('input', type=str, help='输入文件路径')
-    args.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本', default="1.21.5")
-    args.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
-    args.add_argument('--lib-path', '-l', metavar='path', type=str, help='强制指定标准库路径')
-    args.add_argument('--backend', '-b', metavar='name', type=str, help='强制指定后端名称', default="")
-    args.add_argument('--namespace', '-n', metavar='namespace', type=str, help='输出数据包命名空间')
-    args.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')
-    args.add_argument('--no-generate-commands', '-ngc', action='store_true', help='不生成指令')
-    args.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
-    args.add_argument('--recursion', action='store_true', help='启用递归(需后端支持)')
-    args.add_argument('--disable-deprecated-function', action='store_true', help='禁用已弃用函数编译')
-    # args.add_argument('--first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
-    args.add_argument('--experimental', action='store_true', help='启用扩展模式(测试性功能)')
-    args.add_argument('--disable-names-decorator', action='store_true', help='禁用命名修饰')
-    args.add_argument('--disable-plugins', action='store_true', help='禁用插件加载')
-    args.add_argument('--debug', action='store_true', help='启用调试模式')
-    args.add_argument('--version', action='store_true', help='显示版本后退出')
+    parser = argparse.ArgumentParser(description="dovetail")
+    parser.add_argument('command', nargs='?', choices=['build'], default=None,
+                        help='子命令 (build: 通过 dovetail.toml 构建项目)')
 
-    parsed_args = args.parse_args()
+    # ── build 子命令 ──────────────────────────────────────
+    parser.add_argument('--build-tool', type=str, default="", help='指定构建插件名 (仅 build 子命令)')
+
+    # ── 直接编译模式 ────────────────────────────────────────
+    parser.add_argument('input', type=str, help='输入文件路径')
+    parser.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本', default="1.21.5")
+    parser.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
+    parser.add_argument('--lib-path', '-l', metavar='path', type=str, help='强制指定标准库路径')
+    parser.add_argument('--backend', '-b', metavar='name', type=str, help='强制指定后端名称', default="")
+    parser.add_argument('--namespace', '-n', metavar='namespace', type=str, help='输出数据包命名空间')
+    parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')
+    parser.add_argument('--no-generate-commands', '-ngc', action='store_true', help='不生成指令')
+    parser.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
+    parser.add_argument('--recursion', action='store_true', help='启用递归(需后端支持)')
+    parser.add_argument('--disable-deprecated-function', action='store_true', help='禁用已弃用函数编译')
+    # args.add_argument('--first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
+    parser.add_argument('--experimental', action='store_true', help='启用扩展模式(测试性功能)')
+    parser.add_argument('--disable-names-decorator', action='store_true', help='禁用命名修饰')
+    parser.add_argument('--disable-plugins', action='store_true', help='禁用插件加载')
+    parser.add_argument('--disable-info-logger', action='store_true', help='仅输出 warring 及以上的日志信息')
+    parser.add_argument('--debug', action='store_true', help='启用调试模式')
+    parser.add_argument('--version', action='store_true', help='显示版本后退出')
+
+    parsed_args = parser.parse_args()
 
     # 加载插件
     if not parsed_args.disable_plugins:
         plugin_loader.load_plugin("plugin_loader")
+
+    # 调用 build 插件
+    if parsed_args.command == 'build':
+        build_plugin = find_build_plugin(parsed_args.build_tool)
+
+        if build_plugin is None:
+            logger.error(
+                "未找到构建插件。请确认已安装构建插件（如 dovetail_build），"
+                "或在 dovetail.toml 的 [build].tool 中指定。"
+            )
+            sys.exit(1)
+
+            # 委托给构建插件
+        logger.info(f"使用构建插件: {build_plugin._name}")
+        result = build_plugin.handle_message(None, {
+            "action": "build",
+            "project_root": parsed_args.input,
+        })
+        sys.exit(result if isinstance(result, int) else (0 if result else 1))
 
     # 解析路径
     entry = Path(parsed_args.input)
@@ -309,7 +337,7 @@ def main():
     elif os.environ.get("DOVETAIL_LIB_PATH"):
         lib_path = Path(os.environ["DOVETAIL_LIB_PATH"]).resolve()
     else:
-        lib_path = Path("lib").resolve()
+        lib_path = resolve_project_path("lib")
 
     if not lib_path.exists() or not lib_path.is_dir():
         logger.critical(f"标准库路径 '{lib_path}' 不存在或不是一个目录")

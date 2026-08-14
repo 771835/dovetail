@@ -5,9 +5,10 @@ import functools
 import weakref
 from typing import TypeVar, Generic, ClassVar
 
-from attrs import define
+from attrs import define, field
 
-from . import Class
+from .class_ import Class
+from .function import Function
 from .base import Symbol
 from .literal import Literal
 from .variable import Variable
@@ -34,17 +35,30 @@ class Reference(Symbol, Generic[T]):
     _cache: ClassVar[weakref.WeakValueDictionary[Symbol, Reference[Symbol]]] = weakref.WeakValueDictionary()
 
     value: T
+    _value_type: ValueType = field(init=False, repr=False)
 
     def __new__(cls, value: T):
-        # 1. 尝试从缓存获取
+        # 尝试从缓存获取
         if value in cls._cache:
             return cls._cache[value]
 
-        # 2. 如果没有，则创建新实例
+        if isinstance(value, Function):
+            v_type = ValueType.FUNCTION
+        elif isinstance(value, Class):
+            v_type = ValueType.CLASS
+        elif isinstance(value, Literal):
+            v_type = ValueType.LITERAL
+        else:
+            v_type = ValueType.VARIABLE
+
+        # 如果没有，则创建新实例
         instance = super().__new__(cls)
         object.__setattr__(instance, 'value', value)
+        object.__setattr__(instance, '_value_type', v_type)
 
-        # 3. 存入弱引用缓存
+        if not FAST_MODE and isinstance(value, Reference):
+            logger.error(f"多重引用: {value}")
+        # 存入弱引用缓存
         cls._cache[value] = instance
         return instance
 
@@ -53,22 +67,9 @@ class Reference(Symbol, Generic[T]):
         # 因为它是不可变的，且在内存中是唯一的
         return self
 
-    if not FAST_MODE:
-        def __attrs_post_init__(self):
-            if isinstance(self.value, Reference):
-                logger.error(f"多重引用: {self.value}")
-
     @property
     def value_type(self) -> ValueType:
-        from . import Class, Function
-        if isinstance(self.value, Function):
-            return ValueType.FUNCTION
-        elif isinstance(self.value, Class):
-            return ValueType.CLASS
-        elif isinstance(self.value, Literal):
-            return ValueType.LITERAL
-        else:
-            return ValueType.VARIABLE
+        return self._value_type
 
     @property
     def dtype(self) -> DataTypeBase:
@@ -87,17 +88,17 @@ class Reference(Symbol, Generic[T]):
         return self.value.get_dtype()
 
     @classmethod
-    def literal(cls: type[Reference[Literal]], value: bool | int | str | None) -> Reference[Literal]:
-        return cls(Literal(PrimitiveDataType.from_literal(value), value))
+    def literal(cls: type[Reference], value: bool | int | str | None) -> Reference[Literal]:
+        return cls(Literal(PrimitiveDataType.from_literal(value), value))  # noqa
 
     @classmethod
-    def variable(cls: type[Reference[Variable]], var_name: str, dtype: PrimitiveDataType,
+    def variable(cls: type[Reference], var_name: str, dtype: PrimitiveDataType,
                  var_type: VariableType = VariableType.COMMON,
                  mutable: bool = True) -> Reference[Variable]:
-        return cls(Variable(var_name, dtype, var_type, mutable))
+        return cls(Variable(var_name, dtype, var_type, mutable))  # noqa
 
     def is_literal(self) -> bool:
-        return self.value_type == ValueType.LITERAL
+        return isinstance(self.value, Literal)
 
     def get_display_value(self) -> str:
         from . import Literal

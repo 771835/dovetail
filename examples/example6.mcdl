@@ -114,7 +114,7 @@ fn test_data_get_entity_str() {
     print(f"[entity.str] Tags = {tags}")          // 期望: ["test_entity"]
 
     // --- 清理 ---
-    exec("kill @e[tag=test_entity]")
+    kill("@e[tag=test_entity]")
 
     print("--- test_data_get_entity_str DONE ---")
 }
@@ -144,7 +144,7 @@ fn test_data_get_entity_int() {
     print(f"[entity.int] Health scale=10 = {hp10}") // 期望: 200
 
     // --- 清理 ---
-    exec("kill @e[tag=test_creeper]")
+    kill("@e[tag=test_creeper]")
 
     print("--- test_data_get_entity_int DONE ---")
 }
@@ -246,7 +246,7 @@ fn test_bossbar_get() {
     print(f"[bossbar] visible = {vis}")            // 期望: 1
 
     // --- 清理 ---
-    exec("bossbar remove test:bar")
+    bossbar_remove("test:bar")
 
     print("--- test_bossbar_get DONE ---")
 }

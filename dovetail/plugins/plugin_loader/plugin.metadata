@@ -1,8 +1,0 @@
-{
-  "display_name": "LoaderPlugin",
-  "plugin_main": "main.py",
-  "plugin_version": "1.0.0",
-  "plugin_type": "loader",
-  "main_class": "LoaderPlugin",
-  "plugin_author": ["771835"]
-}

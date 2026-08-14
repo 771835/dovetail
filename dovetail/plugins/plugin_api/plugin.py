@@ -2,16 +2,17 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
-from typing import Any
+from typing import Any, Optional
 
 
 class Plugin(ABC):
     """
         插件基类
     """
+    _name: str
+    _version: str
 
-    def __init__(self):
-        pass
+    def __init__(self): ...
 
     @abstractmethod
     def load(self):
@@ -36,14 +37,18 @@ class Plugin(ABC):
         """获取插件内存占用（字节）"""
         return -1
 
-    def handle_message(self, sender: Plugin, message: Any) -> Any:
+    def handle_message(self, sender: Optional[Plugin], message: Any) -> Any:
         """处理来自其他插件的消息"""
         pass
 
     def send_message(self, target: str | Plugin, message: Any) -> bool:
         """发送消息给指定插件"""
         from dovetail.plugins.plugin_api.v2.plugin_manager import get_plugin
-        if plugin := get_plugin(target):
-            plugin.handle_message(self, message)
-            return True
-        return False
+        if isinstance(target, str):
+            if plugin := get_plugin(target) is None:
+                return False
+        else:
+            plugin = target
+
+        plugin.handle_message(self, message)
+        return True

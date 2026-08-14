@@ -1,0 +1,14 @@
+[plugin]
+name = "dovetail_build"
+version = "1.0.0"
+api_version = "2.1"
+entry = "main"
+type = "plugin"
+
+[metadata]
+author = "771835"
+description = "Build tool: reads dovetail.toml and orchestrates compilation"
+license = "Apache 2.0"
+
+[compatibility]
+dovetail_min = "1.0.0"

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from dovetail.core.lib.library import Library
 from dovetail.core.parser.visitor import ASTVisitor
-from dovetail.plugins.plugin_api.v2.event import Event
+from .event import Event
 from dovetail.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
 
 

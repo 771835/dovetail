@@ -13,9 +13,10 @@ from dovetail.core.config import MAX_FILE_SIZE, CACHE_FILE_PREFIX
 from dovetail.core.errors import report, Errors
 from dovetail.core.parser.components import ErrorReporter
 from dovetail.utils.logger import get_logger
+from dovetail.utils.resource import resolve_project_path
 
 # 初始化 Lark 解析器
-_LARK_GRAMMAR_PATH = Path(r"lark/dovetail.lark")
+_LARK_GRAMMAR_PATH = Path(resolve_project_path("lark/dovetail.lark"))
 _lark_grammar_text = _LARK_GRAMMAR_PATH.read_text(encoding='utf-8')
 
 lark_parser = Lark(

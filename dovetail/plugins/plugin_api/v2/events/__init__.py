@@ -4,5 +4,6 @@ from .IncludeEvent import IncludeEvent
 
 __all__ = [
     'IncludeEvent',
-    'ErrorReportEvent'
+    'ErrorReportEvent',
+    "event"
 ]

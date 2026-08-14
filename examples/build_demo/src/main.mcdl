@@ -1,0 +1,11 @@
+include "minecraft.mcdl"
+include "utils/helpers.mcdl"
+
+@init
+fn main() {
+    say("Build demo started!")
+    greet("World")
+    let result = add(3, 7)
+    print(f"3 + 7 = {result}")
+    say("Build demo finished!")
+}

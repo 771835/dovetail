@@ -7,7 +7,7 @@ import fastjsonschema
 # 项目信息
 PROJECT_NAME = "Dovetail"
 PROJECT_WEBSITE = "https://github.com/771835/dovetail"
-PROJECT_VERSION = "dev20260812"
+PROJECT_VERSION = "dev202608014"
 PROJECT_LICENSE = "Apache 2.0"
 
 # 文件后缀
@@ -91,5 +91,6 @@ DEFAULT_SUGGESTIONS: list[str] = [
     "Avada Kedavra",
     ":wq!",
      "审判开始",
-    # "冷知识: 对着泽渡可可的照片干任何事情她都能看到，但是呢~她在魔女岛"
+    # "冷知识: 对着泽渡可可的照片干任何事情她都能看到，但是呢~她在魔女岛",
+    # "都是汉娜干的!",
 ]

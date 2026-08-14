@@ -1,0 +1,11 @@
+[plugin]
+name = "LoaderPlugin"
+version = "1.0.1"
+api_version = "~"
+entry = "main"
+type = "loader"
+
+[metadata]
+author = "771835"
+description = "A plugin to load other plugins"
+license = "Apache 2.0"

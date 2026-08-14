@@ -2,7 +2,7 @@
 from dovetail.plugins.plugin_api.plugin import Plugin
 
 
-class PluginApi(Plugin):
+class PluginMain(Plugin):
     def __init__(self):
         super().__init__()
 
