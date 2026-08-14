@@ -8,6 +8,8 @@ from dovetail.utils.logger import get_logger
 from .config import DovetailConfig
 from .hooks import run_hook
 
+logger = get_logger("dovetail-build")
+
 
 class PluginMain(Plugin):
     """dovetail-build 默认构建工具插件 (DFP-401 §3)"""
@@ -18,13 +20,12 @@ class PluginMain(Plugin):
     def __init__(self):
         super().__init__()
         self._name = "dovetail_build"
-        self.logger = get_logger("dovetail-build")
 
     def validate(self) -> tuple[bool, str | None]:
         return True, None
 
     def load(self) -> None:
-        self.logger.info("dovetail-build 插件已加载")
+        logger.info("dovetail-build 插件已加载")
 
     def unload(self) -> bool:
         return True
@@ -37,7 +38,7 @@ class PluginMain(Plugin):
 
         # pre_build 钩子
         if config.pre_build and not run_hook(config.pre_build, project_root):
-            self.logger.error("pre_build hook 失败，中止构建")
+            logger.error("pre_build hook 失败，中止构建")
             return -1
 
         # 拼命令行，调用编译器
@@ -47,9 +48,90 @@ class PluginMain(Plugin):
         # post_build 钩子
         if config.post_build:
             if not run_hook(config.post_build, project_root):
-                self.logger.warning("post_build hook 失败（构建已完成）")
+                logger.warning("post_build hook 失败（构建已完成）")
 
         return ret
+
+    def init_project(self, project_root: "Path") -> int:
+        """初始化项目骨架"""
+        project_root.mkdir(parents=True, exist_ok=True)
+
+        # dovetail.toml
+        toml_path = project_root / "dovetail.toml"
+        toml_path.write_text(
+            '[package]\n'
+            f'name = "{project_root.name}"\n'
+            'version = "0.1.0"\n'
+            'authors = []\n'
+            'description = ""\n'
+            'license = "MIT"\n'
+            '\n'
+            '[build]\n'
+            'tool = "default"\n'
+            'entry = "src/main.mcdl"\n'
+            'output = "target"\n'
+            '\n'
+            '[paths]\n'
+            'sources = ["src"]\n'
+            'libraries = ["lib"]\n'
+            'includes = []\n'
+            '\n'
+            '[compiler]\n'
+            'lib_path = ""\n'
+            'optimization = 2\n'
+            'backend = ""\n'
+            '\n'
+            '[hooks]\n'
+            'pre_build = "hook/pre_build.py"\n'
+            'post_build = "hook/post_build.py"\n',
+            encoding="utf-8",
+        )
+        logger.info(f"创建文件 {toml_path}")
+
+        # src/main.mcdl
+        main_mcdl = project_root / "src" / "main.mcdl"
+        main_mcdl.parent.mkdir(parents=True, exist_ok=True)
+        main_mcdl.write_text(
+            '@init\n'
+            'fn main() {\n'
+            '    print("Hello, Dovetail!")\n'
+            '}\n',
+            encoding="utf-8",
+        )
+        logger.info(f"创建文件 {main_mcdl}")
+
+        # hook/
+        hook_dir = project_root / "hook"
+        hook_dir.mkdir(parents=True, exist_ok=True)
+
+        pre_hook = hook_dir / "pre_build.py"
+        pre_hook.write_text(
+            '#!/usr/bin/env python3\n'
+            'print("[pre_build] Ready.")\n',
+            encoding="utf-8",
+        )
+        logger.info(f"创建文件 {pre_hook}")
+
+        post_hook = hook_dir / "post_build.py"
+        post_hook.write_text(
+            '#!/usr/bin/env python3\n'
+            'print("[post_build] Done.")\n',
+            encoding="utf-8",
+        )
+        logger.info(f"创建文件 {post_hook}")
+
+        # .gitignore
+        gitignore = project_root / ".gitignore"
+        gitignore.write_text(
+            'target/\n'
+            'build/\n'
+            '*.mcdc\n',
+            encoding="utf-8",
+        )
+        logger.info(f"创建文件 {gitignore}")
+
+        logger.info(f"项目初始化完成: {project_root}")
+        return 0
 
     # ── 命令行构建 ────────────────────────────────────────────
 
@@ -90,12 +172,12 @@ class PluginMain(Plugin):
 
     def _invoke_compiler(self, args: list[str]) -> int:
         """以子进程调用编译器"""
-        self.logger.info(f"调用编译器: {' '.join(args)}")
+        logger.info(f"调用编译器: {' '.join(args)}")
         try:
             result = subprocess.run(args)
             return result.returncode
         except Exception as e:
-            self.logger.error(f"编译器调用失败: {e}")
+            logger.error(f"编译器调用失败: {e}")
             return -1
 
     # ── 插件间通信 ────────────────────────────────────────────
@@ -104,4 +186,14 @@ class PluginMain(Plugin):
         if isinstance(message, dict) and message.get("action") == "build":
             root = message.get("project_root", ".")
             return self.build(Path(root).resolve())
+        elif isinstance(message, dict) and message.get("action") == "init":
+            root = Path(message.get("project_root", ".")).resolve()
+            if root.exists() and any(root.iterdir()):
+                logger.error(
+                    f"'{root}' 已存在且非空，无法初始化。\n"
+                    f"  提示：请在空目录中运行 dovetail init，或指定新目录。"
+                )
+                sys.exit(1)
+
+            return self.init_project(root)
         return None

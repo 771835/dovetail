@@ -273,7 +273,7 @@ def main():
         return
 
     parser = argparse.ArgumentParser(description="dovetail")
-    parser.add_argument('command', nargs='?', choices=['build'], default=None,
+    parser.add_argument('command', nargs='?', choices=['init', 'build'], default=None,
                         help='子命令 (build: 通过 dovetail.toml 构建项目)')
 
     # ── build 子命令 ──────────────────────────────────────
@@ -305,8 +305,8 @@ def main():
     if not parsed_args.disable_plugins:
         plugin_loader.load_plugin("plugin_loader")
 
-    # 调用 build 插件
-    if parsed_args.command == 'build':
+    # 调用构建插件
+    if parsed_args.command in ('build', "init"):
         build_plugin = find_build_plugin(parsed_args.build_tool)
 
         if build_plugin is None:
@@ -319,7 +319,7 @@ def main():
             # 委托给构建插件
         logger.info(f"使用构建插件: {build_plugin._name}")
         result = build_plugin.handle_message(None, {
-            "action": "build",
+            "action": parsed_args.command,
             "project_root": parsed_args.input,
         })
         sys.exit(result if isinstance(result, int) else (0 if result else 1))
