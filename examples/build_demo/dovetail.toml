@@ -19,7 +19,7 @@ hooks = ["hook"]
 
 [compiler]
 lib_path = ""
-optimization = 2
+optimization = 3
 backend = ""
 
 [hooks]

@@ -13,8 +13,8 @@ import fastjsonschema
 
 from dovetail.core.backend import BackendFactory
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.config import CACHE_FILE_PREFIX, PACK_CONFIG_VALIDATOR, PROJECT_NAME, PROJECT_VERSION, \
-    PROJECT_WEBSITE, PROJECT_LICENSE
+from dovetail.core.config import PACK_CONFIG_VALIDATOR, PROJECT_NAME, PROJECT_VERSION, \
+    PROJECT_WEBSITE, PROJECT_LICENSE, IR_CACHE_FILE_PREFIX
 from dovetail.core.enums.minecraft import MinecraftVersion
 from dovetail.core.enums.optimization import OptimizationLevel
 from dovetail.core.errors import CompilationError, report_count
@@ -103,6 +103,10 @@ class Compiler:
         Returns:
             int: 编译结果状态码，0表示成功，非0表示失败
         """
+        logger.warning(
+            "pack.config 已经被弃用了，请使用 dovetail.toml 和 'dovetail build .' 代替。"
+            "参见 DFP-401 §3.3.1",
+        )
         pack_config_path = source_path / "pack.config"
         if not pack_config_path.exists() or not pack_config_path.is_file():
             report(
@@ -194,7 +198,7 @@ class Compiler:
                     builder.print()
 
                 if self.output_temp_file:
-                    self._write_temp_file(builder, target_dir_path)
+                    self._write_ir(builder, target_dir_path)
 
                 if self.generate:
                     self._generate_backend_code(builder, target_dir_path)
@@ -213,15 +217,15 @@ class Compiler:
         return 0
 
     @timed("写入临时文件用时{:.3f}s")
-    def _write_temp_file(self, builder: IRBuilder, target_dir_path: Path):
+    def _write_ir(self, builder: IRBuilder, target_dir_path: Path):
         """
-        写入临时文件
+        写入 IR 序列
 
         Args:
             builder (IRBuilder): IR构建器
             target_dir_path (Path): 目标目录路径
         """
-        temp_file = target_dir_path / f"{self.config.namespace}{CACHE_FILE_PREFIX}"
+        temp_file = target_dir_path / f"{self.config.namespace}{IR_CACHE_FILE_PREFIX}"
         with open(temp_file, "wb") as f:
             f.write(IRSymbolSerializer.dump(builder))
 
@@ -301,6 +305,10 @@ def main():
 
     parsed_args = parser.parse_args()
 
+    # 解析路径
+    entry = Path(parsed_args.input)
+    target_path = Path(parsed_args.output or "target")
+
     # 加载插件
     if not parsed_args.disable_plugins:
         plugin_loader.load_plugin("plugin_loader")
@@ -316,17 +324,13 @@ def main():
             )
             sys.exit(1)
 
-            # 委托给构建插件
+        # 委托给构建插件
         logger.info(f"使用构建插件: {build_plugin._name}")
         result = build_plugin.handle_message(None, {
             "action": parsed_args.command,
             "project_root": parsed_args.input,
         })
         sys.exit(result if isinstance(result, int) else (0 if result else 1))
-
-    # 解析路径
-    entry = Path(parsed_args.input)
-    target_path = Path(parsed_args.output or "target")
 
     # 开启或关闭命名修饰
     NameDecorator.enable = not parsed_args.disable_names_decorator

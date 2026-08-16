@@ -84,14 +84,14 @@ python main.py your_code.mcdl --output-temp-file
 
 会在输出目录生成一个 `.mcdc` 临时文件，里面是序列化后的 IR 数据（二进制格式）。 如果你在提 Issue，把这个文件附上有助于开发者快速复现。
 
-#### 5. 禁用插件（⚠️ 注意副作用）
+#### 5. 禁用插件（注意副作用）
 
 ```bash
 python main.py your_code.mcdl --disable-plugins
 ```
 
-**重要**：`--disable-plugins` 不仅禁用第三方插件，还会禁用内置插件—— **包括 `je1215` 后端，以及加载插件的插件
-`plugin_loader` ~何意味~**。后端是作为插件加载的（位于`dovetail/plugins/je1215/`）， 禁用后编译器会报
+**重要**：`--disable-plugins` 不仅禁用第三方插件，还会禁用内置插件—— **包括编译器的后端，以及加载插件的插件
+`plugin_loader` ~何意味~**。后端是作为插件加载的（如`dovetail/plugins/je1215/`）， 禁用后编译器会报
 "没有找到适合该配置的合适后端"。
 
 所以 `--disable-plugins` 的正确用法是：
@@ -164,6 +164,7 @@ python main.py your_code.mcdl -o target -O 2 -mcv 1.21.5
 - **检查最近的改动**：如果你刚改了某段代码，先看那里
 - **简化重现**：把问题代码块单独拿出来，用最小用例确认
 - **一个错误只改一处**：不要一次改五处然后不知道哪个修复了问题（或者哪个引入了新问题）
+- **及时回滚**：使用如`git`等工具进行版本控制，通过回滚代码的方式判断是否是因为环境引起的错误
 
 ---
 
@@ -175,7 +176,7 @@ python main.py your_code.mcdl -o target -O 2 -mcv 1.21.5
 2. **换后端**：如果你有多个后端可用，用 `--backend <名称>` 指定其他后端
 3. **调整写法**：如果某段特定写法触发 bug，尝试换一种等价写法
 4. **清除缓存**：删除源文件同目录下的 `.mcdc` 文件（如果存在），排除缓存导致旧代码生效
-5. **拆分文件**：如果是大型文件触发的问题，尝试拆分成多个 `include` 文件
+5. **拆分文件**：如果是大型文件触发的问题，尝试拆分成多个文件
 
 ### 提交 Bug 报告
 
@@ -183,7 +184,7 @@ python main.py your_code.mcdl -o target -O 2 -mcv 1.21.5
 
 - **最小复现用例**：删掉一切无关代码，只保留能触发问题的最小 `.mcdl` 文件
 - **完整编译命令**：你用的完整命令行参数（包括 `-O`、`-mcv`、`--backend` 等）
-- **编译器版本**：运行 `python main.py --version` 获取
+- **编译器版本**：运行 `python main.py --version` 获取，如果你知道，也可以给出所用编译器最近的一次`git提交`的哈希
 - **错误输出**：完整的错误信息或异常堆栈
 - **期望行为**：你觉得正确的输出应该是什么
 - **调试日志**（如有）：附上 `--debug` 模式下生成的 `logs/dovetail.log`
@@ -199,7 +200,7 @@ python main.py your_code.mcdl -o target -O 2 -mcv 1.21.5
 
 ### 标准库路径
 
-编译器默认在 `./lib` 目录下查找标准库。如果找不到会直接报错。
+编译器默认在编译器同目录的 `lib` 目录下查找标准库。如果找不到会直接报错。
 
 ```bash
 # 方式一：命令行指定
@@ -222,6 +223,8 @@ python main.py your_code.mcdl -mcv 1.21.5
 
 ### 目录编译配置
 
+#### 通过 `pack.config` 配置并直接构建的
+
 如果是编译整个目录，目录下必须有 `pack.config` 文件，格式如下：
 
 ```json
@@ -232,6 +235,52 @@ python main.py your_code.mcdl -mcv 1.21.5
 ```
 
 格式不正确会报配置错误。
+
+#### 通过 `dovetail.toml` 配置并使用构建插件构建的
+
+通常构建插件会按推荐规范使用如下格式的`dovetail.toml`：
+
+```toml
+# dovetail.toml（由构建工具解析，非编译器）
+[package]
+name = "my_project"
+version = "1.0.0"
+authors = ["Your Name <your.email@example.com>"]
+description = "A Minecraft datapack written in Dovetail"
+license = "MIT"
+
+[build]
+tool = "default"               # 使用的构建工具名称
+entry = "src/main.mcdl"        # 入口文件
+output = "target"              # 输出目录
+
+[paths]
+sources = ["src"]              # 源码目录
+libraries = ["lib"]            # 库目录
+includes = ["../shared"]       # 额外搜索路径（传递给 -I，未来）
+docs = ["docs"]                # 文档目录
+hooks = ["hook"]               # 钨子目录
+
+[compiler]
+lib_path = "/usr/local/lib/dovetail"  # 标准库路径（传递给 --lib-path，空则由编译器指定）
+optimization = 2                      # 优化级别（传递给 -O）
+backend = ""                          # 后端名称（空则自动选择）
+
+[hooks]
+# 钩子配置（可选）
+pre_build = "hook/pre_build.sh"
+post_build = "hook/post_build.sh"
+
+[dependencies]
+# 未来扩展：依赖管理
+# example_lib = { path = "../example_lib" }
+# remote_lib = { git = "https://github.com/user/lib.git", tag = "v1.0.0" }
+```
+
+格式不正确会报配置错误，同时，需要检查构建插件，判断是否是由于构建插件引起的错误。  
+对于构建插件来说，其一般会有其给出的报错日志。
+同时编译钩子也有引起错误的可能性，此时需要根据构建插件的提示具体检查。
+
 
 ---
 

@@ -13,6 +13,8 @@ PROJECT_LICENSE = "Apache 2.0"
 # 文件后缀
 FILE_PREFIX = ".mcdl"
 CACHE_FILE_PREFIX = ".mcdc"
+IR_CACHE_FILE_PREFIX = ".mcdo"
+
 
 # 杂项
 MAX_FILE_SIZE = 1024 * 1024 * 1024  # 最大允许单个文件1GB大小

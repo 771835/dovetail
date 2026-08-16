@@ -1,4 +1,5 @@
 # coding=utf-8
+import hashlib
 from enum import auto
 
 from attrs import define
@@ -55,22 +56,17 @@ class LiteralPoolTools:
     @staticmethod
     def get_literal_path_str(literal):
         if isinstance(literal, str):
-            return f"literal_pool.str.{hash(literal)}"
+            return f"literal_pool.str.{hashlib.md5(literal.encode()).hexdigest()}"
         elif isinstance(literal, bool):
             return f"literal_pool.bool.{str(literal).lower()}"
         elif isinstance(literal, int):
             return f"literal_pool.int.{'n' if literal < 0 else ''}{abs(literal)}"
+        elif literal is None:
+            return f"null"
         else:
             raise TypeError(f"literal type {type(literal)} is not supported")
 
     @staticmethod
     def get_literal_path(literal: int | bool | str | None, target: str) -> DataPath:
-        assert isinstance(literal, (int, bool, str)), f"literal type {type(literal)} is not supported"
-        if isinstance(literal, str):
-            return DataPath(f"literal_pool.str.{hash(literal)}", target, StorageLocation.STORAGE)
-        elif isinstance(literal, bool):
-            return DataPath(f"literal_pool.bool.{str(literal).lower()}", target)
-        elif isinstance(literal, int):
-            return DataPath(f"literal_pool.int.{'n' if literal < 0 else ''}{abs(literal)}", target)
-        else:
-            return DataPath(f"null", target)
+        path_str = LiteralPoolTools.get_literal_path_str(literal)
+        return DataPath(path_str, target, StorageLocation.STORAGE if isinstance(literal, str) else StorageLocation.SCORE)

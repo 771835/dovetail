@@ -90,8 +90,6 @@ fn main() {
 - 如何验证数据包是否正确运行以及项目接受哪些运行报告
     - Minecraft 实机运行
     - 使用[Datapack Sandbox](https://github.com/Alumopper/DatapackSandbox)模拟运行
-  
-
 
 ### 关于AI工具使用
 
