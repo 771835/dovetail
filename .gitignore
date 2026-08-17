@@ -9,6 +9,7 @@
 *.mcdci
 *.log
 .lark_cache
+/examples/build_demo/build
 main.build/
 main.dist/
 main.onefile-build/
@@ -21,7 +22,7 @@ venv/
 ENV/
 .env/
 target/
-build/
+/build/
 .git/
 gen/
 .cache/

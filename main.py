@@ -24,7 +24,6 @@ from dovetail.core.optimize.optimizer import Optimizer
 from dovetail.core.optimize.pass_registry import get_registry
 from dovetail.core.parser.parser import parser_file
 from dovetail.core.parser.visitor import ASTVisitor
-from dovetail.plugins.plugin_api import find_build_plugin
 from dovetail.plugins.plugin_loader.loader import plugin_loader
 from dovetail.utils.annotations import timed
 from dovetail.utils.ir_serializer import IRSymbolSerializer
@@ -250,6 +249,7 @@ class Compiler:
         """
         return Optimizer(builder, self.config).optimize()
 
+
 def main():
     """
     主函数，负责解析参数并执行基本编译任务
@@ -277,13 +277,7 @@ def main():
         return
 
     parser = argparse.ArgumentParser(description="dovetail")
-    parser.add_argument('command', nargs='?', choices=['init', 'build'], default=None,
-                        help='子命令 (build: 通过 dovetail.toml 构建项目)')
 
-    # ── build 子命令 ──────────────────────────────────────
-    parser.add_argument('--build-tool', type=str, default="", help='指定构建插件名 (仅 build 子命令)')
-
-    # ── 直接编译模式 ────────────────────────────────────────
     parser.add_argument('input', type=str, help='输入文件路径')
     parser.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本', default="1.21.5")
     parser.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
@@ -313,25 +307,6 @@ def main():
     if not parsed_args.disable_plugins:
         plugin_loader.load_plugin("plugin_loader")
 
-    # 调用构建插件
-    if parsed_args.command in ('build', "init"):
-        build_plugin = find_build_plugin(parsed_args.build_tool)
-
-        if build_plugin is None:
-            logger.error(
-                "未找到构建插件。请确认已安装构建插件（如 dovetail_build），"
-                "或在 dovetail.toml 的 [build].tool 中指定。"
-            )
-            sys.exit(1)
-
-        # 委托给构建插件
-        logger.info(f"使用构建插件: {build_plugin._name}")
-        result = build_plugin.handle_message(None, {
-            "action": parsed_args.command,
-            "project_root": parsed_args.input,
-        })
-        sys.exit(result if isinstance(result, int) else (0 if result else 1))
-
     # 开启或关闭命名修饰
     NameDecorator.enable = not parsed_args.disable_names_decorator
 
@@ -347,6 +322,9 @@ def main():
         logger.critical(f"标准库路径 '{lib_path}' 不存在或不是一个目录")
         return
 
+    # 读取环境变量获得数据包描述
+    description = os.environ.get("DOVETAIL_DESCRIPTION", "A datapack of Minecraft")
+
     compiler = Compiler(
         CompileConfig(
             parsed_args.namespace or "namespace",
@@ -358,7 +336,7 @@ def main():
             parsed_args.disable_deprecated_function,
             parsed_args.experimental,
             lib_path,
-            "A datapack of Minecraft"
+            description
         ),
         parsed_args.backend,
         generate=not parsed_args.no_generate_commands,

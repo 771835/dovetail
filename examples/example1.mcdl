@@ -1,5 +1,5 @@
 include "minecraft.mcdl"
-include "math"
+include "mathlib.mcdl"
 
 typedef int i32
 

@@ -75,8 +75,22 @@ python main.py your_code.mcdl --debug
 - 在终端输出最终的 IR 指令序列（编译器中间表示），你可以对照检查逻辑是否正确
 - 编译器遇到 `CompilationError` 时会抛出完整堆栈而非静默退出
 - **日志会写入 `logs/dovetail.log` 文件**，包含解析耗时、AST 遍历耗时、IR 优化耗时、 代码生成耗时等详细信息——即使终端输出看不够，日志文件里都有
+-
 
-#### 4. 输出 IR 临时文件
+#### 4. 禁用指令生成
+
+```bash
+python main.py your_code.mcdl -ngc
+```
+
+禁用指令生成后，不会运行后端和生成最终指令文件，编译器在优化 IR 序列后会直接退出。
+
+有什么用：
+
+- 若加上该参数后运行依然出现如编译器堆栈、报错信息，则可初步排除后端问题
+- 若加上该参数后不再报错，则应当重点怀疑后端生成部分
+
+#### 5. 输出 IR 临时文件
 
 ```bash
 python main.py your_code.mcdl --output-temp-file
@@ -84,7 +98,7 @@ python main.py your_code.mcdl --output-temp-file
 
 会在输出目录生成一个 `.mcdc` 临时文件，里面是序列化后的 IR 数据（二进制格式）。 如果你在提 Issue，把这个文件附上有助于开发者快速复现。
 
-#### 5. 禁用插件（注意副作用）
+#### 6. 禁用插件（注意副作用）
 
 ```bash
 python main.py your_code.mcdl --disable-plugins
@@ -100,7 +114,7 @@ python main.py your_code.mcdl --disable-plugins
 - 如果禁用后报"后端不存在"，说明问题是"没有第三方插件干扰"——这反而是好事， 说明问题出在编译器核心或你的代码本身
 - 如果你有多个后端插件，可以改用 `--backend <名称>` 手动指定一个来排查
 
-#### 6. 对照示例
+#### 7. 对照示例
 
 从 `examples/` 目录里找一个最接近你写法的例子：
 
@@ -114,7 +128,7 @@ python main.py your_code.mcdl -o target -O 2 -mcv 1.21.5
 
 逐行对比你的代码和示例的差异。
 
-#### 7. 逐步删减
+#### 8. 逐步删减
 
 把你的代码删到最小可复现版本——删掉一切无关的函数、变量、include， 只保留能触发问题的最小代码块。如果删着删着问题没了，说明是某段特定写法触发的。
 
@@ -236,9 +250,9 @@ python main.py your_code.mcdl -mcv 1.21.5
 
 格式不正确会报配置错误。
 
-#### 通过 `dovetail.toml` 配置并使用构建插件构建的
+#### 通过 `dovetail.toml` 配置并使用构建工具构建的
 
-通常构建插件会按推荐规范使用如下格式的`dovetail.toml`：
+通常构建工具会按推荐规范使用如下格式的`dovetail.toml`：
 
 ```toml
 # dovetail.toml（由构建工具解析，非编译器）
@@ -277,9 +291,8 @@ post_build = "hook/post_build.sh"
 # remote_lib = { git = "https://github.com/user/lib.git", tag = "v1.0.0" }
 ```
 
-格式不正确会报配置错误，同时，需要检查构建插件，判断是否是由于构建插件引起的错误。  
-对于构建插件来说，其一般会有其给出的报错日志。
-同时编译钩子也有引起错误的可能性，此时需要根据构建插件的提示具体检查。
+格式不正确会报配置错误，同时，需要检查构建工具，判断是否是由于构建工具引起的错误。  
+对于构建工具来说，其一般会有其给出的报错日志。 同时编译钩子也有引起错误的可能性，此时需要根据构建工具的提示具体检查。
 
 
 ---
@@ -340,7 +353,7 @@ python main.py your_code.mcdl
 | "未定义的符号" (0x3xxx)  | 检查拼写、作用域、include 顺序                          |
 | 类型不匹配 (0x2xxx)      | 检查变量声明的类型、函数签名                            |
 | 编译器崩溃 / Python 异常 | 加 `--debug` 看完整堆栈，加 `PLUGIN_DEBUG=1` 看插件堆栈 |
-| 生成的命令行为异常       | 逐级降低优化级别（`-O 1` → `-O 0`）排查                 |
+| 生成的命令行为异常       | 逐级降低优化级别（`-O3` → `-O2` → `-O1` → `-O0`）排查   |
 | 改了代码但输出没变       | 删除 `.mcdc` 缓存文件                                   |
 | 循环包含报错             | 检查 include 链，断开环                                 |
 | 标准库找不到             | 用 `--lib-path` 或 `DOVETAIL_LIB_PATH` 指定路径         |
@@ -349,6 +362,7 @@ python main.py your_code.mcdl
 | 插件加载失败             | 设置 `PLUGIN_DEBUG=1` 查看完整堆栈                      |
 | 目录编译报配置错误       | 检查 `pack.config` 是否存在且 JSON 格式正确             |
 | 需要查看详细日志         | 加 `--debug`，查看 `logs/dovetail.log`                  |
+| 编译成功但输出目录为空   | 检查是否未给入口函数添加`@init`或`@tick`注解            |
 
 ---
 

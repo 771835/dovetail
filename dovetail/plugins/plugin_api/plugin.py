@@ -45,7 +45,8 @@ class Plugin(ABC):
         """发送消息给指定插件"""
         from dovetail.plugins.plugin_api.v2.plugin_manager import get_plugin
         if isinstance(target, str):
-            if plugin := get_plugin(target) is None:
+            plugin = get_plugin(target)
+            if plugin is None:
                 return False
         else:
             plugin = target
