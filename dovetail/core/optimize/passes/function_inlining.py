@@ -272,8 +272,15 @@ class FunctionInliningPass(IROptimizationPass):
         """
         rename_map: dict[str, Variable] = {}
 
+        # 只收集函数体内 DECLARE 的变量（局部变量）
+        locally_declared = set()
+        for instr in body:
+            if instr.opcode == IROpCode.DECLARE:
+                var = instr.get_operands()[0]
+                locally_declared.add(var.name)
+
         def _ensure(var: Variable) -> None:
-            if var.name not in rename_map:
+            if var.name in locally_declared and var.name not in rename_map:
                 new_name = f"{var.name}{suffix}"
                 rename_map[var.name] = Variable(
                     name=new_name,
