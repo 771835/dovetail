@@ -8,36 +8,16 @@ dovetail-build — Dovetail 构建工具
 用法：
     dovetail-build build [path]          读取 dovetail.toml 构建项目
     dovetail-build init [path]           初始化新项目骨架
-    dovetail-build script <script_path>  注入环境变量后执行钩子脚本
+    dovetail-build script <script_path>  执行钩子脚本
 """
 import argparse
-import os
 import runpy
 import subprocess
 import sys
 from pathlib import Path
 
-from dovetail.build import BuildConfig, Builder
+from dovetail.build import Builder
 from dovetail.utils.logger import get_logger
-
-
-def _inject_env(config: BuildConfig, project_root: Path) -> None:
-    """
-    注入 DFP-604 §6.2 规定的环境变量
-
-    Args:
-        config: BuildConfig 实例
-        project_root: 项目根目录（绝对路径）
-    """
-    os.environ["DOVETAIL_PROJECT_ROOT"] = str(project_root)
-    os.environ["DOVETAIL_BUILD_DIR"] = str(project_root / config.output)
-    os.environ["DOVETAIL_ENTRY_FILE"] = str(project_root / config.entry)
-    os.environ["DOVETAIL_BACKEND"] = config.backend
-    os.environ["DOVETAIL_OPTIMIZATION"] = str(config.optimization)
-    os.environ["DOVETAIL_NAMESPACE"] = config.namespace or config.name
-    os.environ["DOVETAIL_LIB_PATH"] = config.lib_path
-    os.environ["DOVETAIL_VERSION"] = config.version
-    os.environ["DOVETAIL_DEBUG"] = "1" if config.debug else "0"
 
 
 def main():

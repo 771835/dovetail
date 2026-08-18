@@ -1,7 +1,6 @@
 # coding=utf-8
 """主程序"""
 import argparse
-import json
 import os
 import sys
 import time
@@ -9,11 +8,10 @@ from contextlib import chdir
 from pathlib import Path
 from typing import NoReturn, Optional
 
-import fastjsonschema
 
 from dovetail.core.backend import BackendFactory
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.config import PACK_CONFIG_VALIDATOR, PROJECT_NAME, PROJECT_VERSION, \
+from dovetail.core.config import PROJECT_NAME, PROJECT_VERSION, \
     PROJECT_WEBSITE, PROJECT_LICENSE, IR_CACHE_FILE_PREFIX
 from dovetail.core.enums.minecraft import MinecraftVersion
 from dovetail.core.enums.optimization import OptimizationLevel
@@ -81,7 +79,11 @@ class Compiler:
             if source_path.is_file():
                 return self._compile_file(source_path, target_path)
             else:
-                return self._compile_directory(source_path, target_path)
+                logger.warning(
+                    "使用 pack.config 的目录编译已经被弃用了，请使用 dovetail.toml 和 dovetail-build 工具代替。"
+                    "参见 DFP-604 §4.1",
+                )
+                return -1
         else:
             report(
                 Errors.FileNotFound,
@@ -90,57 +92,6 @@ class Compiler:
                 suggestion="仔细检查你的路径w",
             )
             return -1
-
-    def _compile_directory(self, source_path: Path, target_path: Path) -> int:
-        """
-        编译目录中的所有文件
-
-        Args:
-            source_path (Path): 源目录路径
-            target_path (Path): 目标目录路径
-
-        Returns:
-            int: 编译结果状态码，0表示成功，非0表示失败
-        """
-        logger.warning(
-            "pack.config 已经被弃用了，请使用 dovetail.toml 和 'dovetail build .' 代替。"
-            "参见 DFP-401 §3.3.1",
-        )
-        pack_config_path = source_path / "pack.config"
-        if not pack_config_path.exists() or not pack_config_path.is_file():
-            report(
-                Errors.ConfigurationError,
-                "文件 pack.config 不存在或不是一个文件",
-                filepath=pack_config_path
-            )
-            raise CompilationError.from_error(
-                Errors.ConfigurationError,
-                "文件 pack.config 不存在或不是一个文件",
-                filepath=pack_config_path
-            )
-        # 尝试解析配置文件
-        try:
-            with open(pack_config_path, encoding='utf-8') as config_file:
-                pack_config_data: dict = json.load(config_file)
-            # 检查配置文件格式是否正确
-            PACK_CONFIG_VALIDATOR(pack_config_data)
-        except (json.JSONDecodeError, fastjsonschema.JsonSchemaException):
-            report(
-                Errors.ConfigurationError,
-                "文件 pack.config 格式无效",
-                filepath=pack_config_path,
-                suggestion="确认编译配置正确吗?"
-            )
-            raise CompilationError.from_error(
-                Errors.ConfigurationError,
-                "文件 pack.config 格式无效",
-                filepath=pack_config_path
-            )
-
-        if pack_config_data.get("description"):
-            self.config.description = pack_config_data["description"]
-
-        return self._compile_file(Path(source_path / pack_config_data["main"]).resolve(), target_path, source_path)
 
     @timed("编译总用时: {:.3f}s")
     def _compile_file(

@@ -115,6 +115,16 @@ class BuildConfig:
         """输出目录，对应编译器 -o"""
         return self._data.get("build", {}).get("output", "build")
 
+    @property
+    def tool(self) -> str:
+        """构建工具名称"""
+        return self._data.get("build", {}).get("tool", "default")
+
+    @property
+    def minecraft_version(self) -> str:
+        """构建游戏版本"""
+        return self._data.get("build", {}).get("minecraft_version", "")
+
     # ── [paths] ───────────────────────────────────────────────
 
     @property

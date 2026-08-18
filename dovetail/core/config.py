@@ -2,7 +2,6 @@
 """
 项目全局配置/常量
 """
-import fastjsonschema
 
 # 项目信息
 PROJECT_NAME = "Dovetail"
@@ -15,67 +14,11 @@ FILE_PREFIX = ".mcdl"
 CACHE_FILE_PREFIX = ".mcdc"
 IR_CACHE_FILE_PREFIX = ".mcdo"
 
-
 # 杂项
 MAX_FILE_SIZE = 1024 * 1024 * 1024  # 最大允许单个文件1GB大小
 FAST_MODE = True  # 禁用一些编译器的内部类型检查以加速代码运行
 ENABLE_INSTRUCTION_VALIDATION = True  # 启用IR指令类型效验，当 FAST_MODE 开启时无效
 USE_FUTURE_IR_BUILDER = False
-
-# 目录编译配置文件
-PACK_CONFIG_VALIDATOR = fastjsonschema.compile({
-    "type": "object",
-    "title": "目录配置文件",
-    "properties": {
-        "main": {
-            "type": "string",
-        },
-        "description": {
-            "type": "string",
-        }
-    },
-    "required": ["main"]
-})
-
-# 插件元数据
-PLUGIN_METADATA_VALIDATOR = fastjsonschema.compile({
-    "type": "object",
-    "properties": {
-        "display_name": {
-            "type": "string"
-        },
-        "description": {
-            "type": "string"
-        },
-        "plugin_main": {
-            "type": "string"
-        },
-        "plugin_version": {
-            "type": "string"
-        },
-        "plugin_type": {
-            "type": "string",
-            "enum": ["plugin", "library", "loader"]
-        },
-        "main_class": {
-            "type": "string"
-        },
-        "plugin_author": {
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        }
-    },
-    "required": [  # 必需的字段
-        "display_name",
-        "plugin_main",
-        "plugin_version",
-        "plugin_type",
-        "main_class",
-    ],
-    "additionalProperties": False  # 不允许额外属性
-})
 
 # 默认错误建议列表
 DEFAULT_SUGGESTIONS: list[str] = [
@@ -92,7 +35,7 @@ DEFAULT_SUGGESTIONS: list[str] = [
     "或许你更需要的是换一门语言而不是来这里受虐。",
     "Avada Kedavra",
     ":wq!",
-     "审判开始",
+    "审判开始",
     # "冷知识: 对着泽渡可可的照片干任何事情她都能看到，但是呢~她在魔女岛",
     # "都是汉娜干的!",
 ]

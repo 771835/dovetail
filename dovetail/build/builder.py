@@ -55,6 +55,10 @@ class Builder:
             logger.error(str(e))
             return 2  # DFP-604 §5.3: 配置错误
 
+        if config.tool not in ("dovetail", "dovetail-build", "default"):
+            logger.error(f"项目需要使用构建工具 {config.tool}。")
+            return 2  # DFP-604 §5.3: 配置错误
+
         logger.info(f"构建项目: {config.name} v{config.version}")
 
         # pre_build hook
@@ -206,6 +210,8 @@ class Builder:
             "[build]\n"
             'entry = "src/main.mcdl"\n'
             'output = "build"\n'
+            'tool = "default"\n'
+            'minecraft_version = ""\n'
             "\n"
             "[paths]\n"
             'sources = ["src"]\n'

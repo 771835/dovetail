@@ -135,6 +135,13 @@ class CallbackInfo:
         """
         self.return_value = initial_value
         self.cancelled = False
+        self._modified_args = None
+        self._modified_kwargs = None
+
+    def set_args(self, *args, **kwargs):
+        """修改传递给原始方法的参数。"""
+        self._modified_args = args
+        self._modified_kwargs = kwargs
 
     def cancel(self) -> None:
         """
@@ -359,9 +366,13 @@ class MixinManager:
                             if ci.cancelled and is_cancellable:
                                 return ci.return_value
 
+                    # HEAD 阶段执行完之后
+                    call_args = ci._modified_args if ci._modified_args is not None else args
+                    call_kwargs = ci._modified_kwargs if ci._modified_kwargs is not None else kwargs
+
                     # 执行原始方法（如果未被取消）
                     if not ci.cancelled:
-                        result = original_method(*args, **kwargs)
+                        result = original_method(*call_args, **call_kwargs)
                         if is_cancellable:
                             ci.return_value = result
                     else:

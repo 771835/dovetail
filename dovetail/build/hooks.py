@@ -37,6 +37,7 @@ def _build_env(config: BuildConfig, project_root: Path, hook_stage: str) -> dict
     env = os.environ.copy()
     env.update({
         "DOVETAIL_PROJECT_ROOT": str(project_root),
+        "DOVETAIL_PROJECT_CONFIG": str(config.root / "dovetail.toml"),
         "DOVETAIL_PROJECT_NAME": config.name,
         "DOVETAIL_BUILD_DIR": str(project_root / config.output),
         "DOVETAIL_ENTRY_FILE": str(project_root / config.entry),
@@ -45,7 +46,9 @@ def _build_env(config: BuildConfig, project_root: Path, hook_stage: str) -> dict
         "DOVETAIL_NAMESPACE": config.namespace or config.name,
         "DOVETAIL_LIB_PATH": config.lib_path,
         "DOVETAIL_VERSION": config.version,
+        "DOVETAIL_MINECRAFT_VERSION": config.minecraft_version,
         "DOVETAIL_DEBUG": "1" if config.debug else "0",
+        "DOVETAIL_EXPERIMENTAL": "1" if config.experimental else "0",
         "DOVETAIL_HOOK_STAGE": hook_stage,
     })
     return env
