@@ -25,6 +25,7 @@ import re
 import typing
 from contextlib import contextmanager
 from functools import lru_cache
+from itertools import batched
 from pathlib import Path
 from typing import Callable, Any, Optional
 
@@ -45,7 +46,7 @@ from dovetail.core.enums.datatypes import DataTypeBase, ListType, ArrayType, Dic
 from dovetail.core.errors import Errors
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp,
-    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRCast, IRIndexGet, IROpCode
+    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRIndexGet, IROpCode, IRStructDef, IRStructNew
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
@@ -57,7 +58,6 @@ from dovetail.core.parser.components.symbol_resolver import SymbolResolver
 from dovetail.core.parser.components.type_checker import TypeChecker
 from dovetail.core.parser.parser import parser_file, parse_fstring_iter, parser_code
 from dovetail.core.parser.scope import Scope
-from dovetail.core.scope.protocols import ScopeCore
 from dovetail.core.symbols import Variable, Reference, Literal, Function, Class, Parameter
 from dovetail.core.symbols.base import MethodHost
 from dovetail.core.symbols.structure import Structure
@@ -127,7 +127,7 @@ class ASTVisitor(Interpreter):
             self.symbol_resolver
         )
 
-        self.include_manager = IncludeManager(self.error_reporter, entry_file)
+        self.include_manager = IncludeManager(self.error_reporter, entry_file, self.config.lib_path)
 
         self.counter = itertools.count()
 
@@ -191,52 +191,6 @@ class ASTVisitor(Interpreter):
                 library.get_name(),
                 e.__repr__()
             )
-
-    def _get_loop_check_scope_type(self) -> ScopeCore | None:
-        """
-        向上查找最近的 LOOP_CHECK 作用域
-
-        遇到条件作用域和循环体作用域继续查找，遇到其他类型停止
-
-        Returns:
-            找到的循环作用域，未找到则返回 None
-        """
-        for scope in reversed(self.symbol_resolver.scope_stack):
-            if scope.stype == StructureType.LOOP_CHECK:
-                return scope
-            elif scope.stype not in (StructureType.CONDITIONAL, StructureType.LOOP_BODY):
-                break
-        return None
-
-    def _search_include_path(self, filepath: Path, meta: Meta) -> Path | None:
-        """
-        搜索导入文件的实际路径
-
-        Args:
-            filepath: 待搜索的文件路径
-            meta: 代码元信息（用于错误报告）
-
-        Returns:
-            找到的完整路径，未找到则返回 None
-        """
-        if filepath.is_absolute():
-            return filepath
-
-        search_paths: list[Path] = [self.config.lib_path, Path.cwd()]
-        include_path = next(
-            (d / filepath for d in search_paths if (Path(d) / filepath).exists()),
-            None
-        )
-
-        if include_path:
-            return include_path
-        else:
-            self.error_reporter.report(
-                Errors.IncludePathError,
-                str(filepath),
-                meta=meta
-            )
-            return None
 
     def _process_annotations(self, children: list[Tree | Token]) -> dict[Annotation, dict[str, Any]]:
         """
@@ -377,6 +331,7 @@ class ASTVisitor(Interpreter):
 
         # 添加符号
         self.symbol_resolver.add_symbol(symbol, meta=meta)
+        self.ir_emitter.emit(IRStructDef(symbol))
 
     def struct_field(self, tree: Tree) -> tuple[str, DataTypeBase]:
         """处理结构体字段"""
@@ -691,7 +646,7 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def break_stmt(self, meta: Meta, _: list[Tree | Token]):
         """处理 break 语句"""
-        loop_scope = self._get_loop_check_scope_type()
+        loop_scope = self.symbol_resolver.resolve_scope(StructureType.LOOP_BODY)
 
         if loop_scope is None:
             self.error_reporter.report(
@@ -705,7 +660,7 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def continue_stmt(self, meta: Meta, _: list[Tree | Token]):
         """处理 continue 语句"""
-        loop_scope = self._get_loop_check_scope_type()
+        loop_scope = self.symbol_resolver.resolve_scope(StructureType.LOOP_BODY)
 
         if loop_scope is None:
             self.error_reporter.report(
@@ -728,7 +683,7 @@ class ASTVisitor(Interpreter):
             return
 
         # 搜索文件路径
-        filepath = self._search_include_path(
+        filepath = self.include_manager.search_include_path(
             Path(original_filepath),
             meta
         )
@@ -940,13 +895,7 @@ class ASTVisitor(Interpreter):
 
         # 计算左侧数据的值
         left: Reference = self.visit(children.pop(0))
-        if not PrimitiveDataType.BOOLEAN.is_subclass_of(left.get_dtype()):
-            self.error_reporter.report(
-                Errors.TypeMismatch,
-                "boolean",
-                left.get_dtype().get_name(),
-                meta=meta
-            )
+        if not self.type_checker.check_boolean_type(left.dtype, meta):
             return Reference.literal(False)
 
         with self._push_scope(f"and_{and_id}", StructureType.CONDITIONAL):  # NOQA
@@ -956,13 +905,7 @@ class ASTVisitor(Interpreter):
         with self._push_scope(f"and_{and_id}_2", StructureType.CONDITIONAL):  # NOQA
             # 短路计算，仅第一个条件为真时调用此处
             right: Reference = self.visit(children.pop(0))
-            if not PrimitiveDataType.BOOLEAN.is_subclass_of(right.get_dtype()):
-                self.error_reporter.report(
-                    Errors.TypeMismatch,
-                    "boolean",
-                    f"{right.get_dtype()}",
-                    meta=meta
-                )
+            if not self.type_checker.check_boolean_type(right.dtype, meta):
                 return Reference.literal(False)
             self.ir_emitter.emit(IRAssign(result_var, right))
 
@@ -1184,27 +1127,11 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def fstring(self, meta: Meta, children: list[Token | Tree]):
         """处理f-string"""
-        result = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.STRING, "fstring")
-        self.ir_emitter.emit(IRAssign(result, Reference.literal("")))
+        result = self.ir_emitter.emit_fstring_init()
         for index, (data_type, data) in enumerate(parse_fstring_iter(children.pop().value)):
             if data_type == 'literal':
-                # 直接赋值或将字面量加到结果变量末尾
-                if index == 0:
-                    self.ir_emitter.emit(
-                        IRAssign(
-                            result,
-                            Reference.literal(data)
-                        )
-                    )
-                else:
-                    self.ir_emitter.emit(
-                        IRBinaryOp(
-                            result,
-                            BinaryOps.ADD,
-                            Reference(result),
-                            Reference.literal(data)
-                        )
-                    )
+                if data_type == 'literal':
+                    self.ir_emitter.emit_fstring_append_literal(result, data, index == 0)
             else:
                 try:
                     with self.error_reporter.context(f"格式化字符串 {meta.line}:{meta.column}"):
@@ -1218,39 +1145,46 @@ class ASTVisitor(Interpreter):
                         if expr is None:
                             expr: Reference = self.visit(parser_code(data, "expr"))
                 except LarkError as e:
-                    self.error_reporter.report(
-                        Errors.FStringExpressionError,
-                        data,
-                        e.__repr__(),
-                        meta=meta
-                    )
+                    self.error_reporter.report(Errors.FStringExpressionError,
+                                               data,
+                                               e.__repr__(),
+                                               meta=meta
+                                               )
                     break
 
-                expr_str: Variable
-                if expr.get_dtype() == PrimitiveDataType.STRING:
-                    expr_str = expr.value
-                elif expr.get_dtype().is_definable() and isinstance(expr.get_dtype(), PrimitiveDataType):
-                    expr_str = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.STRING, "fstring")
-                    self.ir_emitter.emit(IRCast(expr_str, PrimitiveDataType.STRING, expr))
-                else:
-                    self.error_reporter.report(
-                        Errors.FStringExpressionError,
-                        data,
-                        "不支持的字符串转换",
-                        meta=meta
-                    )
+                appended = self.ir_emitter.emit_fstring_append_expr(result, expr)
+                if appended is None:
+                    self.error_reporter.report(Errors.FStringExpressionError, data, "不支持的字符串转换", meta=meta)
                     break
-
-                # 进行拼接
-                self.ir_emitter.emit(
-                    IRBinaryOp(
-                        result,
-                        BinaryOps.ADD,
-                        Reference(result),
-                        Reference(expr_str)
-                    )
-                )
         return Reference(result)
+
+    @v_args(meta=True)
+    def struct_init(self, meta, children: list):
+        """处理结构体实例化: Point{x: 1, y: 2}"""
+        struct_name = _n(children.pop(0).value)
+        symbol = self.symbol_resolver.resolve_symbol(struct_name, meta)
+
+        if not isinstance(symbol, Structure):
+            self.error_reporter.report(Errors.UndefinedType, struct_name, meta=meta)
+            return Reference.undefined()
+
+        # 验证字段并收集初始值
+        field_values: dict[str, Reference] = {}
+        for fname, fvalue_tree in batched(children, 2):
+            fvalue: Reference = self.visit(fvalue_tree)
+            if fname not in symbol.fields:
+                self.error_reporter.report(Errors.InvalidMemberAccess, fname, meta=meta)
+                continue
+            self.type_checker.check_type_match(
+                symbol.fields[fname], fvalue.get_dtype(),
+                f"结构体 {struct_name} 字段 {fname}", meta
+            )
+            field_values[fname] = fvalue
+
+        # 生成 IR
+        var = self.ir_emitter.create_temp_var_declared(symbol, "struct")
+        self.ir_emitter.emit(IRStructNew(var, symbol, field_values))
+        return Reference(var)
 
     @v_args(meta=True)
     def identifier(self, meta: Meta, children: list[str]) -> Reference:

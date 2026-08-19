@@ -40,6 +40,7 @@ class InstructionCategory(SafeEnum):
     CONTROL_FLOW = "控制流"
     DATA_OP = "数据运算"
     OOP = "面向对象"
+    STRUCT = "结构体"
     OWNERSHIP = "所有权"
     SPECIAL = "特殊指令"
 
@@ -84,6 +85,14 @@ class IROpCode(SafeEnum):
     LIST_APPEND = (0x83, "追加元素", InstructionCategory.DATA_OP)  # 仅 list
     DICT_HAS = (0x84, "检查键", InstructionCategory.DATA_OP)  # k in dict
     DICT_REMOVE = (0x85, "删除键", InstructionCategory.DATA_OP)  # dict.remove(k)
+
+    # STRUCT (0xA0-0xBF) — 结构体操作（值类型，区别于 class 的引用类型）
+    STRUCT_DEF = (0xA0, "结构体定义", InstructionCategory.STRUCT)
+    STRUCT_NEW = (0xA1, "结构体实例化", InstructionCategory.STRUCT)
+    STRUCT_GET = (0xA2, "字段读取", InstructionCategory.STRUCT)
+    STRUCT_SET = (0xA3, "字段写入", InstructionCategory.STRUCT)
+    STRUCT_CALL = (0xA4, "结构体方法调用", InstructionCategory.STRUCT)
+    STRUCT_FREE = (0xA5, "结构体释放", InstructionCategory.STRUCT)
 
     def __init__(self, code: int, desc: str, category: InstructionCategory):
         self.code = code
@@ -1091,3 +1100,164 @@ def _dict_remove_repr(instr: IRInstruction) -> str:
     container: Reference = instr.operands[0]
     key: Reference = instr.operands[1]
     return f"{container}.remove({key!r})"
+
+
+# ==================== 结构体指令 ====================
+
+@validate_instruction
+def IRStructDef(structure: Structure) -> IRInstruction:
+    """
+    结构体定义指令
+
+    Args:
+        structure: 结构体符号对象（含 fields + methods）
+
+    Returns:
+        结构体定义指令
+    """
+    return IRInstruction(IROpCode.STRUCT_DEF, structure)
+
+
+@register_repr(IROpCode.STRUCT_DEF)
+def _struct_def_repr(instr: IRInstruction) -> str:
+    s: Structure = instr.operands[0]
+    fields_str = ", ".join(f"{dtype.get_name()} {name}" for name, dtype in s.fields.items())
+    return f"struct {s.get_name()} {{ {fields_str} }}"
+
+
+@validate_instruction
+def IRStructNew(
+        result: Variable,
+        structure: Structure,
+        field_values: dict[str, Reference]
+) -> IRInstruction:
+    """
+    结构体实例化指令
+
+    Args:
+        result:       存储实例的变量（类型为 Structure）
+        structure:    结构体类型
+        field_values: 字段初始值 {字段名: 引用}
+
+    Returns:
+        结构体实例化指令
+    """
+    return IRInstruction(IROpCode.STRUCT_NEW, result, structure, field_values)
+
+
+@register_repr(IROpCode.STRUCT_NEW)
+def _struct_new_repr(instr: IRInstruction) -> str:
+    result = instr.operands[0]
+    s: Structure = instr.operands[1]
+    vals: dict = instr.operands[2]
+    fields_str = ", ".join(f".{name}={val}" for name, val in vals.items())
+    return f"{result.get_name()} = {s.get_name()}{{{fields_str}}}"
+
+
+@validate_instruction
+def IRStructGet(
+        result: Variable,
+        instance: Reference,
+        field: str
+) -> IRInstruction:
+    """
+    结构体字段读取指令
+
+    Args:
+        result:   存储字段值的变量
+        instance: 结构体实例引用
+        field:    字段名
+
+    Returns:
+        字段读取指令
+    """
+    return IRInstruction(IROpCode.STRUCT_GET, result, instance, field)
+
+
+@register_repr(IROpCode.STRUCT_GET)
+def _struct_get_repr(instr: IRInstruction) -> str:
+    result = instr.operands[0]
+    instance = instr.operands[1]
+    field = instr.operands[2]
+    return f"{result.get_name()} = {instance}.{field}"
+
+
+@validate_instruction
+def IRStructSet(
+        instance: Reference,
+        field: str,
+        value: Reference
+) -> IRInstruction:
+    """
+    结构体字段写入指令
+
+    Args:
+        instance: 结构体实例引用
+        field:    字段名
+        value:    写入值
+
+    Returns:
+        字段写入指令
+    """
+    return IRInstruction(IROpCode.STRUCT_SET, instance, field, value)
+
+
+@register_repr(IROpCode.STRUCT_SET)
+def _struct_set_repr(instr: IRInstruction) -> str:
+    instance = instr.operands[0]
+    field = instr.operands[1]
+    value = instr.operands[2]
+    return f"{instance}.{field} = {value}"
+
+
+@validate_instruction
+def IRStructCall(
+        result: Optional[Variable],
+        instance: Reference,
+        method: Function,
+        arguments: dict[str, Reference]
+) -> IRInstruction:
+    """
+    结构体方法调用指令
+
+    Args:
+        result:    返回值变量（void 方法为 None）
+        instance:  结构体实例引用（作为 self 传入）
+        method:    方法函数对象
+        arguments: 实参字典
+
+    Returns:
+        方法调用指令
+    """
+    return IRInstruction(IROpCode.STRUCT_CALL, result, instance, method, arguments)
+
+
+@register_repr(IROpCode.STRUCT_CALL)
+def _struct_call_repr(instr: IRInstruction) -> str:
+    result = instr.operands[0]
+    instance = instr.operands[1]
+    method: Function = instr.operands[2]
+    args: dict = instr.operands[3]
+    args_str = ", ".join(f"{name}={val}" for name, val in args.items())
+    if result:
+        return f"{result.get_name()} = {instance}.{method.get_name()}({args_str})"
+    return f"{instance}.{method.get_name()}({args_str})"
+
+
+@validate_instruction
+def IRStructFree(instance: Reference) -> IRInstruction:
+    """
+    结构体释放指令
+
+    Args:
+        instance: 要释放的结构体实例引用
+
+    Returns:
+        释放指令
+    """
+    return IRInstruction(IROpCode.STRUCT_FREE, instance)
+
+
+@register_repr(IROpCode.STRUCT_FREE)
+def _struct_free_repr(instr: IRInstruction) -> str:
+    return f"free {instr.operands[0]}"

@@ -200,6 +200,28 @@ class TypeChecker:
         # 其他情况返回左操作数类型
         return left
 
+    def check_boolean_type(self, dtype:DataTypeBase, meta: Meta) -> bool:
+        """
+        检查传入类型是否为布尔值或整数，并报错
+
+        Args:
+            dtype: 传入类型
+            meta: 元数据
+
+        Returns:
+            True 表示兼容，False 表示不兼容
+        """
+
+        if not PrimitiveDataType.BOOLEAN.is_subclass_of(dtype):
+            self.error_reporter.report(
+                Errors.TypeMismatch,
+                "boolean",
+                f"{dtype}",
+                meta=meta
+            )
+            return False
+        return True
+
     def check_function_type(
             self,
             func: Function,

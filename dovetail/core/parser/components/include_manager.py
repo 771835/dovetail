@@ -39,16 +39,19 @@ class IncludeManager:
         _include_stack (list): 当前包含栈，用于检测循环依赖。
     """
 
-    def __init__(self, error_reporter: ErrorReporter, entry_file: Optional[Path] = None):
+    def __init__(self, error_reporter: ErrorReporter, entry_file: Path,
+                 lib_path: Path):
         """
         初始化包含管理器
 
         Args:
             error_reporter (ErrorReporter): 错误报告器
-            entry_file (Optional[Path]): 编译入口文件路径，如果提供则会自动添加到包含栈底部
+            entry_file (Path): 编译入口文件路径，如果提供则会自动添加到包含栈底部
+            lib_path (Path): 标准库路径
         """
         self.error_reporter = error_reporter
         self.entry_file = entry_file.resolve() if entry_file else None
+        self.lib_path = lib_path
         self._included_paths = set()  # 存储已包含的路径
         self._include_history = []  # 包含历史记录
         self._include_stack = []  # 包含栈，用于循环依赖检测
@@ -164,6 +167,36 @@ class IncludeManager:
         if not isinstance(include_path, Path):
             return False
         return str(include_path.resolve()) in self._included_paths
+
+    def search_include_path(self, filepath: Path, meta: Meta) -> Path | None:
+        """
+        搜索导入文件的实际路径
+
+        Args:
+            filepath: 待搜索的文件路径
+            meta: 代码元信息（用于错误报告）
+
+        Returns:
+            找到的完整路径，未找到则返回 None
+        """
+        if filepath.is_absolute():
+            return filepath
+
+        search_paths: list[Path] = [self.lib_path, Path.cwd()]
+        include_path = next(
+            (d / filepath for d in search_paths if (Path(d) / filepath).exists()),
+            None
+        )
+
+        if include_path:
+            return include_path
+        else:
+            self.error_reporter.report(
+                Errors.IncludePathError,
+                str(filepath),
+                meta=meta
+            )
+            return None
 
     def get_included_paths(self) -> list[str]:
         """

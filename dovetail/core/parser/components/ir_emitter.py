@@ -15,13 +15,13 @@ from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.core.errors import Errors
 from dovetail.core.instructions import (
     IRInstruction, IRDeclare, IRScopeBegin, IRScopeEnd,
-    IRBinaryOp, IRCompare, IRAssign
+    IRBinaryOp, IRCompare, IRAssign, IRCast
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.parser.components.symbol_resolver import SymbolResolver
 from dovetail.core.parser.components.type_checker import TypeChecker
-from dovetail.core.symbols import Variable, Reference, Function
+from dovetail.core.symbols import Variable, Reference
 from dovetail.utils.naming import NameDecorator
 
 
@@ -253,10 +253,27 @@ class IREmitter:
         self.emit(IRCompare(result_var, op, left, right))
         return result_var
 
-    def emit_call_function(
-            self,
-            func: Function,
-            args: list[tuple[Reference, bool]],
-            meta: Meta
-    ):
-        ...
+    def emit_fstring_init(self, prefix: str = "fstring") -> Variable:
+        """创建 f-string 结果变量并初始化为空串"""
+        result = self.create_temp_var_declared(PrimitiveDataType.STRING, prefix)
+        self.emit(IRAssign(result, Reference.literal("")))
+        return result
+
+    def emit_fstring_append_literal(self, result: Variable, literal: str, is_first: bool):
+        """向 f-string 追加字面量片段"""
+        if is_first:
+            self.emit(IRAssign(result, Reference.literal(literal)))
+        else:
+            self.emit(IRBinaryOp(result, BinaryOps.ADD, Reference(result), Reference.literal(literal)))
+
+    def emit_fstring_append_expr(self, result: Variable, expr_ref: Reference):
+        """向 f-string 追加表达式值（自动类型转换）"""
+        if expr_ref.get_dtype() == PrimitiveDataType.STRING:
+            expr_var = expr_ref.value
+        elif expr_ref.get_dtype().is_definable() and isinstance(expr_ref.get_dtype(), PrimitiveDataType):
+            expr_var = self.create_temp_var_declared(PrimitiveDataType.STRING, "fstring")
+            self.emit(IRCast(expr_var, PrimitiveDataType.STRING, expr_ref))
+        else:
+            return None  # 调用方据此报错
+        self.emit(IRBinaryOp(result, BinaryOps.ADD, Reference(result), Reference(expr_var)))
+        return expr_var

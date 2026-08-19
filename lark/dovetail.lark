@@ -12,7 +12,7 @@ class: annotation* "class" ID ("(" identifier ("," identifier)* ")")? "{" (class
 class_property: "let" ID ":" type
 
 // 结构体
-struct: annotation* "struct" ID "{" struct_field* "}"
+struct: annotation* "struct" ID "{" struct_field* method*"}"
 
 struct_field: ID ":" type
 
@@ -107,7 +107,7 @@ let: "let" ID "=" expr // 自动推导类型
 
 
 // 字面量、标识符（变量、函数、类）、括号
-?primary: literal | identifier | paren
+?primary: literal | identifier | paren | ID "{" (ID ":" expr ("," ID ":" expr)*)? "}" -> struct_init
 ?paren: "(" expr ")"
 
 

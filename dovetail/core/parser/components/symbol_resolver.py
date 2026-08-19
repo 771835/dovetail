@@ -158,3 +158,20 @@ class SymbolResolver:
             if scope.stype in scope_types:
                 return scope
         return None
+
+    def resolve_scope(self, stype: StructureType,
+                      continue_stype: tuple[StructureType, ...] = (StructureType.CONDITIONAL, StructureType.LOOP_BODY)) -> Scope | None:
+        """
+        向上查找最近的指定类型的作用域
+
+        遇到条件作用域和循环体作用域继续查找，遇到其他类型停止
+
+        Returns:
+            找到的循环作用域，未找到则返回 None
+        """
+        for scope in reversed(self.scope_stack):
+            if scope.stype == stype:
+                return scope
+            elif scope.stype not in continue_stype:
+                break
+        return None
