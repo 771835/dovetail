@@ -68,10 +68,10 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
             if opcode == IROpCode.FUNCTION:
                 func: Function = instr.get_operands()[0]
                 existing = self.function_declarations.get(func.name)
-                if existing is None or func.function_type != FunctionType.FUNCTION_UNIMPLEMENTED:
+                if existing is None or func.func_type != FunctionType.FUNCTION_UNIMPLEMENTED:
                     self.function_declarations[func.name] = func
 
-                if func.function_type != FunctionType.FUNCTION_UNIMPLEMENTED:
+                if func.func_type != FunctionType.FUNCTION_UNIMPLEMENTED:
                     # 进入函数体
                     current_func = func.name
                     scope_depth = 0
@@ -147,7 +147,7 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
                 if func.name not in reachable:
                     keep_flags[i] = False
                     self._changed = True
-                    if func.function_type != FunctionType.FUNCTION_UNIMPLEMENTED:
+                    if func.func_type != FunctionType.FUNCTION_UNIMPLEMENTED:
                         remove_mode = True
                 continue
 

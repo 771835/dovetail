@@ -115,15 +115,15 @@ class AnnotationContext:
 class AnnotationProcessor(ABC):
     """注解处理器基类"""
 
-    annotation_name: str = None
+    annotation_name: str
     applicable_targets: list[AnnotationTarget] | None = None  # None = 不限
     repeatable: bool = False
     experimental: bool = False
     timing: AnnotationTiming = AnnotationTiming.PRE_SYMBOL
 
-    def validate(self, args: dict[str, Any], ctx: AnnotationContext) -> bool:
+    def validate(self, args: dict[str, Any], context: AnnotationContext) -> bool:
         """
-        参数校验。校验失败时自行调用 ctx.error_reporter.report()，返回 False。
+        参数校验。校验失败时自行调用 context.error_reporter.report()，返回 False。
         默认实现：直接通过。
         """
         return True
@@ -132,7 +132,7 @@ class AnnotationProcessor(ABC):
     def process(
             self,
             args: dict[str, Any],
-            ctx: AnnotationContext,
+            context: AnnotationContext,
     ) -> AnnotationResult:
         """执行注解语义，返回结构化结果。"""
         raise NotImplementedError

@@ -20,7 +20,7 @@ class Function(Symbol, Annotatable):
     name: str
     params: list[Parameter]
     return_type: DataTypeBase
-    function_type: FunctionType = FunctionType.FUNCTION
+    func_type: FunctionType = FunctionType.FUNCTION
     annotations: dict[str, AnnotationAttachment] = field(factory=dict)
 
     def get_name(self) -> str:

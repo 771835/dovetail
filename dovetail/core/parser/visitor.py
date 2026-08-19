@@ -33,10 +33,8 @@ from lark import Tree, v_args, Token, LarkError
 from lark.tree import Meta
 from lark.visitors import Interpreter
 
-from dovetail.core.annotations import get_registry, AnnotationContext
-from dovetail.core.annotations.base import AnnotationTarget, \
-    AnnotationCategory
-from dovetail.core.annotations.spec import get_annotation_spec, Annotation
+from dovetail.core.annotations.base import AnnotationTarget
+from dovetail.core.annotations.spec import Annotation
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import (
     StructureType, PrimitiveDataType, VariableType, FunctionType,
@@ -51,6 +49,7 @@ from dovetail.core.instructions import (
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
 from dovetail.core.lib.library_mapping import LibraryMapping
+from dovetail.core.parser.components.annotation_processor import AnnotationProcessor
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.parser.components.include_manager import IncludeManager, CircularIncludeException
 from dovetail.core.parser.components.ir_emitter import IREmitter
@@ -119,6 +118,8 @@ class ASTVisitor(Interpreter):
             Scope("top", None, StructureType.GLOBAL),
             self.error_reporter
         )
+
+        self.annotation_processor = AnnotationProcessor(config, self.error_reporter, self.symbol_resolver)
 
         self.ir_emitter = IREmitter(
             self.builder,
@@ -211,12 +212,8 @@ class ASTVisitor(Interpreter):
 
         return annotations
 
-    def _process_call_arguments(
-            self,
-            symbol: Function,
-            args: list[tuple[Reference, bool]],
-            meta: Meta
-    ) -> dict[str, Reference]:
+    def _process_call_arguments(self, symbol: Function, args: list[tuple[Reference, bool]], meta: Meta)\
+            -> dict[str, Reference]:
         """
         处理函数/方法调用的参数
 
@@ -275,26 +272,40 @@ class ASTVisitor(Interpreter):
 
         return args_dict
 
-    def _make_annotation_ctx(self, name, symbol, target, meta) -> AnnotationContext:
-        return AnnotationContext(
-            config=self.config,
-            error_reporter=self.error_reporter,
-            meta=meta,
-            symbol_name=name,
-            symbol=symbol,
-            symbol_target=target,
-            symbol_resolver=self.symbol_resolver,
-        )
+    def _emit_logical_op(self, op: typing.Literal["and", "or"], meta: Meta, children: list) -> Reference:
+        """短路逻辑运算的统一实现"""
+        result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
+        op_id = next(self.counter)
 
-    @staticmethod
-    def _undefined_annotation() -> tuple[Annotation, dict]:
-        """返回一个未定义的注解占位符"""
-        return Annotation("undefined", None, AnnotationCategory.METADATA), {}
+        # 计算左操作数
+        left: Reference = self.visit(children.pop(0))
+        if not self.type_checker.check_boolean_type(left.dtype, meta):
+            return Reference.literal(False)
+
+        # scope_1: 短路分支 —— and 时赋值 False, or 时赋值 True
+        with self._push_scope(f"{op}_{op_id}", StructureType.CONDITIONAL):
+            self.ir_emitter.emit(IRAssign(result_var, Reference.literal(op == "or")))
+
+        # scope_2: 求值分支 —— 访问右操作数并赋值
+        with self._push_scope(f"{op}_{op_id}_2", StructureType.CONDITIONAL):
+            right: Reference = self.visit(children.pop(0))
+            if not self.type_checker.check_boolean_type(right.dtype, meta):
+                return Reference.literal(False)
+            self.ir_emitter.emit(IRAssign(result_var, right))
+
+        # and: 左真→求右(scope_2), 左假→短路(scope_1)
+        # or:  左真→短路(scope_1), 左假→求右(scope_2)
+        if op == "and":
+            self.ir_emitter.emit(IRCondJump(left, f"{op}_{op_id}_2", f"{op}_{op_id}"))
+        else:
+            self.ir_emitter.emit(IRCondJump(left, f"{op}_{op_id}", f"{op}_{op_id}_2"))
+
+        return Reference(result_var)
 
     # ==================== 访问器方法 ====================
 
     @v_args(meta=True)
-    def struct(self, meta: Meta, children: list[Tree | Token]):
+    def struct(self, meta: Meta, children: list):
         """处理结构体定义"""
         # 处理注解
         raw_annotations = self._process_annotations(children)
@@ -303,14 +314,8 @@ class ASTVisitor(Interpreter):
         name = _n(children.pop(0).value)
 
         # PRE_SYMBOL 阶段处理注解
-        ctx = self._make_annotation_ctx(
-            name=name,
-            symbol=None,  # 符号还不存在
-            target=AnnotationTarget.FUNCTION,
-            meta=meta,
-        )
-        pre = get_registry().process_pre(raw_annotations, ctx)
-        if pre.skip:
+        pre, ctx = self.annotation_processor.process_pre(raw_annotations, name, AnnotationTarget.STRUCT, meta)
+        if pre and pre.skip:
             return
 
         # 处理结构体字段
@@ -323,11 +328,7 @@ class ASTVisitor(Interpreter):
         symbol = Structure(_n(name), fields, {})
 
         # POST_SYMBOL阶段处理注解
-        ctx.symbol = symbol  # 补充符号引用
-        post = get_registry().process_post(raw_annotations, ctx)
-
-        # 写入 AnnotationAttachment
-        symbol.annotations.update(post.attachments)
+        self.annotation_processor.process_post(raw_annotations, ctx, symbol)
 
         # 添加符号
         self.symbol_resolver.add_symbol(symbol, meta=meta)
@@ -352,17 +353,10 @@ class ASTVisitor(Interpreter):
         params: list[Parameter]
         name: str = _n(children.pop(0).value)
 
-        if raw_annotations:
-            # PRE_SYMBOL阶段处理注解
-            ctx = self._make_annotation_ctx(
-                name=name, symbol=None,
-                target=AnnotationTarget.FUNCTION, meta=meta,
-            )
-            pre = get_registry().process_pre(raw_annotations, ctx)
-            if pre.skip:
-                return
-        else:
-            pre = None
+        # PRE_SYMBOL阶段处理注解
+        pre, ctx = self.annotation_processor.process_pre(raw_annotations, name, AnnotationTarget.FUNCTION, meta)
+        if pre and pre.skip:
+            return
 
         # 处理形参
         params = self.visit(children.pop(0))  # noqa
@@ -385,13 +379,8 @@ class ASTVisitor(Interpreter):
         # 生成 IR
         self.ir_emitter.emit(IRFunction(function))
 
-        if pre:
-            # POST_SYMBOL 阶段处理注解
-            ctx.symbol = function  # noqa
-            post = get_registry().process_post(raw_annotations, ctx)
-            if post.merged.type_override:
-                function.function_type = post.merged.type_override
-            function.annotations.update(post.attachments)
+        # POST_SYMBOL 阶段处理注解
+        self.annotation_processor.process_post(raw_annotations, ctx, function)
 
         # 处理函数体
         if children:
@@ -889,65 +878,11 @@ class ASTVisitor(Interpreter):
 
     @v_args(meta=True)
     def logical_and(self, meta: Meta, children: list):
-        # 生成唯一结果变量
-        result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
-        and_id = next(self.counter)
-
-        # 计算左侧数据的值
-        left: Reference = self.visit(children.pop(0))
-        if not self.type_checker.check_boolean_type(left.dtype, meta):
-            return Reference.literal(False)
-
-        with self._push_scope(f"and_{and_id}", StructureType.CONDITIONAL):  # NOQA
-            # 当第一个条件为假时调用
-            self.ir_emitter.emit(IRAssign(result_var, Reference.literal(False)))
-
-        with self._push_scope(f"and_{and_id}_2", StructureType.CONDITIONAL):  # NOQA
-            # 短路计算，仅第一个条件为真时调用此处
-            right: Reference = self.visit(children.pop(0))
-            if not self.type_checker.check_boolean_type(right.dtype, meta):
-                return Reference.literal(False)
-            self.ir_emitter.emit(IRAssign(result_var, right))
-
-        self.ir_emitter.emit(IRCondJump(left, f"and_{and_id}_2", f"and_{and_id}"))
-        return Reference(result_var)
+        return self._emit_logical_op("and", meta, children)
 
     @v_args(meta=True)
     def logical_or(self, meta: Meta, children: list):
-        # 生成唯一结果变量
-        result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
-        or_id = next(self.counter)
-
-        # 计算左侧数据的值
-        left: Reference = self.visit(children.pop(0))
-        if not PrimitiveDataType.BOOLEAN.is_subclass_of(left.get_dtype()):
-            self.error_reporter.report(
-                Errors.TypeMismatch,
-                "boolean",
-                f"{left.get_dtype()}",
-                meta=meta
-            )
-            return Reference.literal(False)
-
-        with self._push_scope(f"or_{or_id}", StructureType.CONDITIONAL):  # NOQA
-            # 当第一个条件为真时调用
-            self.ir_emitter.emit(IRAssign(result_var, Reference.literal(True)))
-
-        with self._push_scope(f"or_{or_id}_2", StructureType.CONDITIONAL):  # NOQA
-            # 短路计算，仅第一个条件不为真时调用此处
-            right: Reference = self.visit(children.pop(0))
-            if not PrimitiveDataType.BOOLEAN.is_subclass_of(right.get_dtype()):
-                self.error_reporter.report(
-                    Errors.TypeMismatch,
-                    "boolean",
-                    f"{right.get_dtype()}",
-                    meta=meta
-                )
-                return Reference.literal(False)
-            self.ir_emitter.emit(IRAssign(result_var, right))
-
-        self.ir_emitter.emit(IRCondJump(left, f"or_{or_id}", f"or_{or_id}_2"))
-        return Reference(result_var)
+        return self._emit_logical_op("or", meta, children)
 
     @v_args(meta=True)
     def local_assign(self, meta: Meta, children: list):
@@ -1020,7 +955,7 @@ class ASTVisitor(Interpreter):
 
         args_dict = self._process_call_arguments(function, args, meta)
         # 调用函数
-        if function.function_type == FunctionType.LIBRARY:
+        if function.func_type == FunctionType.LIBRARY:
             # 由于对内建函数的调用过程中的错误无行列信息提示，极难调试，故在此记录上下文
             with self.error_reporter.context(f"调用内建函数 {function.name} 位于 {meta.line}:{meta.column}"):
                 result_var = self.builtin_function[function.get_name()](**args_dict)
@@ -1145,11 +1080,7 @@ class ASTVisitor(Interpreter):
                         if expr is None:
                             expr: Reference = self.visit(parser_code(data, "expr"))
                 except LarkError as e:
-                    self.error_reporter.report(Errors.FStringExpressionError,
-                                               data,
-                                               e.__repr__(),
-                                               meta=meta
-                                               )
+                    self.error_reporter.report(Errors.FStringExpressionError, data, e.__repr__(), meta=meta)
                     break
 
                 appended = self.ir_emitter.emit_fstring_append_expr(result, expr)
@@ -1199,11 +1130,7 @@ class ASTVisitor(Interpreter):
         return Reference(symbol)
 
     @v_args(meta=True)
-    def annotation(
-            self,
-            meta: Meta,
-            children: list[Tree | Token]
-    ) -> tuple[Annotation, dict[str, str]]:
+    def annotation(self, meta: Meta, children: list) -> tuple[Annotation, dict[str, Any]]:
         """
         处理注解声明
 
@@ -1214,41 +1141,18 @@ class ASTVisitor(Interpreter):
         Returns:
             (注解对象, 参数字典)，出错时返回未定义注解和空字典
         """
-        name: str = children.pop(0).value
-        annotation = get_annotation_spec(name)
+        name = children.pop(0).value
+        spec, param_dict, ok = self.annotation_processor.validate_and_resolve(name, children, meta)
+        if not ok:
+            return self.annotation_processor.undefined_annotation()
 
-        # 检查注解是否存在
-        if annotation is None:
-            self.error_reporter.report(
-                Errors.InvalidAnnotation,
-                name,
-                meta=meta
-            )
-            return self._undefined_annotation()
+        if spec is None:
+            spec = self.annotation_processor.undefined_annotation()[0]
+            param_dict = {}
 
-        # 处理无参数注解
-        if annotation.params is None:
-            if children:
-                self.error_reporter.report(
-                    Errors.ArgumentNumberMismatch,
-                    name,
-                    "0",
-                    str(len(children)),
-                    meta=meta
-                )
-            return annotation, {}
+        if param_dict is None and spec.params:  # 需要visit填充实参
+            # 访问所有参数值并构建参数字典（参数名 -> 参数值）
+            param_values = [self.visit(child).value.value for child in children]
+            param_dict = dict(zip(spec.params, param_values))
 
-        # 检查参数数量匹配
-        if len(children) != len(annotation.params):
-            self.error_reporter.report(
-                Errors.ArgumentNumberMismatch,
-                name,
-                str(len(annotation.params)),
-                str(len(children)),
-                meta=meta
-            )
-            return self._undefined_annotation()
-
-        # 访问所有参数值并构建参数字典（参数名 -> 参数值）
-        param_values = [self.visit(child).value.value for child in children]  # noqa
-        return annotation, dict(zip(annotation.params, param_values))
+        return spec, param_dict  # noqa

@@ -86,7 +86,7 @@ class IRSymbolSerializer:
         elif isinstance(symbol, Function):
             metadata['params'] = {param_symbol.get_name(): id(param_symbol) for param_symbol in symbol.params}
             metadata['return_type'] = id(symbol.return_type)
-            metadata['function_type'] = id(symbol.function_type)
+            metadata['func_type'] = id(symbol.func_type)
         elif isinstance(symbol, Variable):
             metadata['dtype'] = id(symbol.dtype)
             metadata['var_type'] = id(symbol.var_type)
@@ -124,7 +124,7 @@ class IRSymbolSerializer:
             for param_symbol in symbol.params:
                 self._add_symbol_id_map(param_symbol)
             self._add_symbol_id_map(symbol.return_type)
-            self._add_symbol_id_map(symbol.function_type)
+            self._add_symbol_id_map(symbol.func_type)
         elif isinstance(symbol, Parameter):
             self._add_symbol_id_map(symbol.var)
             self._add_symbol_id_map(symbol.default)
@@ -259,21 +259,21 @@ class IRSymbolSerializer:
                     default=id_to_symbol.get(default_id) if default_id else None
                 )
 
-        # 2.5 构造 Function（依赖 params, return_type, function_type）
+        # 2.5 构造 Function（依赖 params, return_type, func_type）
         for symbol_id_str, metadata in serialized['symbol'].items():
             symbol_id = int(symbol_id_str)
             if metadata['symbol_type'] == 'Function':
                 params = [id_to_symbol[pid] for pid in metadata['params'].values()]
                 return_type_id = metadata.get('return_type')
-                function_type_id = metadata.get('function_type')
+                function_type_id = metadata.get('func_type')
 
                 id_to_symbol[symbol_id] = Function(
                     name=metadata['symbol_name'],
                     params=params,
                     return_type=(id_to_symbol.get(return_type_id) if return_type_id else None)
                                 or PrimitiveDataType.VOID,
-                    function_type=(id_to_symbol.get(function_type_id) if function_type_id else None)
-                                  or FunctionType.FUNCTION,
+                    func_type=(id_to_symbol.get(function_type_id) if function_type_id else None)
+                              or FunctionType.FUNCTION,
                     annotations={}  # 注解信息需要单独处理
                 )
 

@@ -19,10 +19,10 @@ class IRCallProcessor(IRProcessor):
         func: Function = instruction.get_operands()[1]
         args: dict[str, Reference[Variable | Literal]] = instruction.get_operands()[2]
 
-        if func.function_type == FunctionType.BUILTIN:
+        if func.func_type == FunctionType.BUILTIN:
             CommandRegistry.get(func.name).call(result, context, args)
             return
-        elif func.function_type == FunctionType.EXTERN:
+        elif func.func_type == FunctionType.EXTERN:
             self._handle_ffi(result, func, args, func.all_metadata(), context)
             return
 
@@ -39,7 +39,7 @@ class IRCallProcessor(IRProcessor):
 
     def _resolve_func_path(self, func: Function, context: GenerationContext) -> str:
         """解析函数的作用域路径"""
-        if func.function_type == FunctionType.FUNCTION_UNIMPLEMENTED:
+        if func.func_type == FunctionType.FUNCTION_UNIMPLEMENTED:
             return f"{context.current_scope.resolve_symbol_scope(func.name).get_absolute_path()}.{func.name}"
         return context.current_scope.resolve_scope(func.name).get_absolute_path()
 

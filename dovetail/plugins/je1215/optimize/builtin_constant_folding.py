@@ -45,7 +45,7 @@ class BuiltinConstantFoldingPass(IROptimizationPass):
             result, func, args = cast(tuple[Optional[Variable], Function, dict[str, Reference]], instr.operands)
 
             # 检查是否为内置函数
-            if func.function_type != FunctionType.BUILTIN:
+            if func.func_type != FunctionType.BUILTIN:
                 continue
 
             # 检查所有参数是否为字面量
