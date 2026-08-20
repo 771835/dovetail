@@ -1,0 +1,15 @@
+# 注意：此文件仅作为项目元信息声明，不能用于实际构建
+# 真正构建请执行 build.bat（通过 Nuitka 编译）
+
+[package]
+name = "dovetail"
+version = "dev"
+authors = ["All contributors of this project"]
+description = "Minecraft Datapack Compilation Language"
+license = "Apache 2.0"
+
+# 以下 [build] 配置仅供参考，dovetail 编译器本身不能编译自身
+[build]
+tool = "python"
+entry = "main.py"
+output = ""

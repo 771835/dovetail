@@ -7,6 +7,9 @@ chcp 65001 >nul
 ::    dovetail-build.exe - Build tool
 :: ═══════════════════════════════════════════════════════════════
 
+:: ── Generate Version ──────────────────────────────────────────
+python .\scripts\gen_version.py
+
 :: ── Compiler core ─────────────────────────────────────────────
 python -m nuitka --standalone --lto=yes --deployment ^
   --include-module=dovetail.utils.escape_processor ^

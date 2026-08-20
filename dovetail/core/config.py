@@ -3,10 +3,16 @@
 项目全局配置/常量
 """
 
+try:
+    from dovetail._version import PROJECT_VERSION, PREV_COMMIT
+except ImportError:
+    # 开发模式下 _version.py 可能不存在
+    PROJECT_VERSION = "dev"
+    PREV_COMMIT = "unknown"
+
 # 项目信息
 PROJECT_NAME = "Dovetail"
 PROJECT_WEBSITE = "https://github.com/771835/dovetail"
-PROJECT_VERSION = "dev202608014"
 PROJECT_LICENSE = "Apache 2.0"
 
 # 文件后缀

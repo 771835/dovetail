@@ -10,6 +10,7 @@
 *.log
 .lark_cache
 /examples/build_demo/build
+dovetail/_version.py
 main.build/
 main.dist/
 main.onefile-build/
