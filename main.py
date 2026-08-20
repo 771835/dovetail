@@ -12,7 +12,7 @@ from typing import NoReturn, Optional
 from dovetail.core.backend import BackendFactory
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.config import PROJECT_NAME, PROJECT_VERSION, \
-    PROJECT_WEBSITE, PROJECT_LICENSE, IR_CACHE_FILE_PREFIX, PREV_COMMIT
+    PROJECT_WEBSITE, PROJECT_LICENSE, IR_CACHE_FILE_PREFIX, COMMIT_HASH
 from dovetail.core.enums.minecraft import MinecraftVersion
 from dovetail.core.enums.optimization import OptimizationLevel
 from dovetail.core.errors import CompilationError, report_count
@@ -212,8 +212,8 @@ def main():
         plugin_loader.load_plugin("plugin_loader")
 
         print(f"The version of {PROJECT_NAME} is {PROJECT_VERSION}")
-        if PREV_COMMIT != "unknown":
-            print(f"Previous commit: {PREV_COMMIT}")
+        if COMMIT_HASH  != "unknown":
+            print(f"Commit: {COMMIT_HASH }")
         print(f"License: {PROJECT_LICENSE}")
         print(f"Repository: {PROJECT_WEBSITE}")
         if get_registry().get_all():

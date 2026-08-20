@@ -4,11 +4,11 @@
 """
 
 try:
-    from dovetail._version import PROJECT_VERSION, PREV_COMMIT
+    from dovetail._version import PROJECT_VERSION, COMMIT_HASH
 except ImportError:
     # 开发模式下 _version.py 可能不存在
     PROJECT_VERSION = "dev"
-    PREV_COMMIT = "unknown"
+    COMMIT_HASH = "unknown"
 
 # 项目信息
 PROJECT_NAME = "Dovetail"

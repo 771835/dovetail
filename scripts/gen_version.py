@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def get_git_last_commit_date() -> str:
-    """获取最后一次提交的年月日"""
+    """获取所在提交的年月日"""
     try:
         return subprocess.check_output(
             ["git", "log", "-1", "--format=%cd", "--date=format:%Y%m%d"],
@@ -43,10 +43,10 @@ def read_project_version() -> str:
     return version
 
 
-def get_git_prev_hash() -> str:
+def get_git_commit_hash() -> str:
     try:
         return subprocess.check_output(
-            ["git", "rev-parse", "HEAD~1"],
+            ["git", "rev-parse", "HEAD"],
             stderr=subprocess.DEVNULL
         ).decode().strip()[:8]
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -55,11 +55,11 @@ def get_git_prev_hash() -> str:
 
 def generate_version_file(output_path: Path):
     version = read_project_version()
-    prev_hash = get_git_prev_hash()
+    prev_hash = get_git_commit_hash()
     content = f'''# coding=utf-8
 # 此文件由构建脚本自动生成，请勿手动修改
 PROJECT_VERSION = "{version}"
-PREV_COMMIT = "{prev_hash}"
+COMMIT_HASH = "{prev_hash}"
 '''
     output_path.write_text(content, encoding='utf-8')
 
