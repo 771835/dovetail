@@ -74,10 +74,6 @@ class IROpCode(SafeEnum):
     CALL_METHOD = (0x44, "调用方法", InstructionCategory.OOP)
     FREE_OBJ = (0x45, "释放对象", InstructionCategory.OOP)
 
-    # OWNERSHIP (0x60-0x7F)
-    MOVE = (0x60, "所有权转移", InstructionCategory.OWNERSHIP)
-    BORROW = (0x61, "借用", InstructionCategory.OWNERSHIP)
-
     # CONTAINER (0x80-0x9F) — 统一容器操作，适用于 ListType 和 DictType
     INDEX_GET = (0x80, "索引读取", InstructionCategory.DATA_OP)  # list[i] / dict[k]
     INDEX_SET = (0x81, "索引写入", InstructionCategory.DATA_OP)  # list[i]=v / dict[k]=v
@@ -890,64 +886,6 @@ def _free_obj_repr(instr: IRInstruction) -> str:
     obj_ref: Reference = instr.operands[0]
     return f"free {obj_ref}"
 
-
-# ==================== 所有权管理指令 ====================
-
-@validate_instruction
-def IRMove(
-        target: Variable,
-        source: Reference
-) -> IRInstruction:
-    """
-    所有权转移指令
-
-    Args:
-        target: 目标变量（接收所有权）
-        source: 源引用（转移所有权）
-
-    Returns:
-        所有权转移指令
-    """
-    return IRInstruction(IROpCode.MOVE, target, source)
-
-
-@register_repr(IROpCode.MOVE)
-def _move_repr(instr: IRInstruction) -> str:
-    target: Variable = instr.operands[0]
-    source: Reference = instr.operands[1]
-
-    return f"{target} = move({source})"
-
-
-@validate_instruction
-def IRBorrow(
-        target: Variable,
-        source: Reference,
-        mutable: bool = False
-) -> IRInstruction:
-    """
-    借用指令
-
-    Args:
-        target: 目标变量（借用引用）
-        source: 源引用（被借用对象）
-        mutable: 是否可变借用
-
-    Returns:
-        借用指令
-    """
-    return IRInstruction(IROpCode.BORROW, target, source, mutable)
-
-
-@register_repr(IROpCode.BORROW)
-def _borrow_repr(instr: IRInstruction) -> str:
-    target: Variable = instr.operands[0]
-    source: Reference = instr.operands[1]
-    mutable: bool = instr.operands[2]
-
-    borrow_type = "borrow_mut" if mutable else "borrow"
-
-    return f"{target.get_name()} = {borrow_type}({source})"
 
 
 @validate_instruction

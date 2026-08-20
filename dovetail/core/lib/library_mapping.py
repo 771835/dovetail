@@ -55,3 +55,8 @@ class LibraryMapping:
             if lib is not None:
                 return lib(LibraryContext(symbol_resolver, emitter, error_reporter, config))
             return None
+
+    @classmethod
+    def has(cls, name: str) -> bool:
+        with cls._lock:
+            return name in cls.builtin_map

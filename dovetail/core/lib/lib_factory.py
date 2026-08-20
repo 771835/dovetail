@@ -274,7 +274,7 @@ class LibraryBase(Library):
                     default_ref = None
 
 
-            params.append(Parameter(Variable(param_name, dtype), default=default_ref))
+            params.append(Parameter.new(param_name, dtype,default_ref))
 
         return params
 

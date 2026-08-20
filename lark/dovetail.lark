@@ -32,8 +32,8 @@ method: annotation* "method" ID params [("->"|":") type] (block|pass_stmt)
 params : "(" (param ("," param)*)? ")"
 
 // 强制类型标注
-param: [MUT] ID ":" type ("=" expr)?
-     | [MUT] type ID ("=" expr)?
+param: ID ":" type ("=" expr)?
+     | type ID ("=" expr)?
 
 // 代码块，包含多个语句
 ?block : "{" statement* "}"
@@ -113,8 +113,7 @@ let: "let" ID "=" expr // 自动推导类型
 
 arguments : ("(" (argument ("," argument)*)? ")")
 
-// 当存在mut时代表传入量可变，目前仅对数组有效
-argument : [MUT] expr
+argument : expr
 
 // 数字、普通字符串、布尔值、空值
 literal : INT
@@ -125,7 +124,6 @@ literal : INT
 
 // 常量
 array_literal: "[" (literal ("," literal)*)? "]"
-ARRAY_SIZE: /[1-9][0-9]*/     // 数组大小（正整数）
 INT: /-?[0-9]+/               // 整数（可以为负）
 // FLOAT: /-?[0-9]+\.[0-9]+/     // 浮点数
 
@@ -145,9 +143,6 @@ FALSE: "false"
 
 // 标识符(不适用定义)
 identifier: ID
-
-// 所有权关键字
-MUT.2: "mut" /\s+/
 
 // 可空关键字
 QUESTION: "?"

@@ -37,7 +37,7 @@ from dovetail.core.annotations.base import AnnotationTarget
 from dovetail.core.annotations.spec import Annotation
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import (
-    StructureType, PrimitiveDataType, VariableType, FunctionType,
+    StructureType, PrimitiveDataType, FunctionType,
     ValueType, BinaryOps, UnaryOps, CompareOps
 )
 from dovetail.core.enums.datatypes import DataTypeBase, ListType, ArrayType, DictType
@@ -47,7 +47,6 @@ from dovetail.core.instructions import (
     IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRIndexGet, IROpCode, IRStructDef, IRStructNew
 )
 from dovetail.core.ir_builder import IRBuilder
-from dovetail.core.lib.library import Library
 from dovetail.core.lib.library_mapping import LibraryMapping
 from dovetail.core.parser.components.annotation_processor import AnnotationProcessor
 from dovetail.core.parser.components.error_reporter import ErrorReporter
@@ -133,25 +132,10 @@ class ASTVisitor(Interpreter):
         self.counter = itertools.count()
 
         # 加载内置库
-        self._load_library(
-            LibraryMapping.get(
-                "builtins",
-                self.symbol_resolver,
-                self.ir_emitter,
-                self.error_reporter,
-                self.config
-            )
-        )
+        self._load_library("builtins")
+
         if self.config.experimental:
-            self._load_library(
-                LibraryMapping.get(
-                    "experimental",
-                    self.symbol_resolver,
-                    self.ir_emitter,
-                    self.error_reporter,
-                    self.config
-                )
-            )
+            self._load_library("experimental")
 
     # ==================== 辅助方法 ====================
     @contextmanager
@@ -162,8 +146,10 @@ class ASTVisitor(Interpreter):
         self.ir_emitter.emit(IRScopeEnd(name, scope_type))
 
     @lru_cache(maxsize=None)
-    def _load_library(self, library: Library | None):
+    def _load_library(self, library_name: str):
         """加载库并注册符号和处理器"""
+        library = LibraryMapping.get(library_name, self.symbol_resolver, self.ir_emitter, self.error_reporter,
+                                     self.config)
         if library is None:
             return
         try:
@@ -187,11 +173,7 @@ class ASTVisitor(Interpreter):
                     self.builtin_function[f"{class_.name}::{method_name}"] = handler
 
         except Exception as e:
-            self.error_reporter.report(
-                Errors.LibraryLoad,
-                library.get_name(),
-                e.__repr__()
-            )
+            self.error_reporter.report(Errors.LibraryLoad, library.get_name(), e.__repr__())
 
     def _process_annotations(self, children: list[Tree | Token]) -> dict[Annotation, dict[str, Any]]:
         """
@@ -212,7 +194,7 @@ class ASTVisitor(Interpreter):
 
         return annotations
 
-    def _process_call_arguments(self, symbol: Function, args: list[tuple[Reference, bool]], meta: Meta)\
+    def _process_call_arguments(self, symbol: Function, args: list[Reference], meta: Meta) \
             -> dict[str, Reference]:
         """
         处理函数/方法调用的参数
@@ -247,28 +229,20 @@ class ASTVisitor(Interpreter):
         # 效验数据并记录参数字典
         for i, (arg, param) in enumerate(itertools.zip_longest(args, symbol.params)):
             assert isinstance(param, Parameter)
-            arg_value: Reference
+            arg_ref: Reference
             if arg is not None:
-                arg_value, is_mutable = arg
+                arg_ref = arg
             else:
                 # 形参和缺省值必然存在一个，因此void()不可能被调用
-                arg_value = param.default or Reference.void()
-                is_mutable = param.mutable
-            args_dict[param.get_name()] = arg_value
+                arg_ref = param.default or Reference.void()
+            args_dict[param.get_name()] = arg_ref
             # 类型检查
             self.type_checker.check_type_match(
-                param.get_dtype(),
-                arg_value.get_dtype(),
+                param.dtype,
+                arg_ref.dtype,
                 f"函数 {symbol.name} 的参数 '{param.var.name}' 类型不匹配",
                 meta
             )
-
-            if param.mutable != is_mutable:
-                self.error_reporter.report(
-                    Errors.MutArgumentMismatch,
-                    param.get_name(),
-                    meta=meta
-                )
 
         return args_dict
 
@@ -448,10 +422,9 @@ class ASTVisitor(Interpreter):
         """处理单个参数定义"""
         name: str
         dtype: DataTypeBase
-        is_mutable: bool = children.pop(0) is not None
 
         # 解析参数类型和名称
-        # [MUT] ID ":" type ("=" expr)?
+        # ID ":" type ("=" expr)?
         name = _n(children.pop(0).value)  # noqa
         dtype = self.visit(children.pop(0))  # noqa
 
@@ -468,14 +441,11 @@ class ASTVisitor(Interpreter):
                     meta=meta
                 )
                 # 错误时返回无默认值的参数
-                return Parameter(Variable(name, dtype, VariableType.PARAMETER))
+                return Parameter.new(name, dtype, Reference.default(dtype))
 
-            return Parameter(Variable(name, dtype, VariableType.PARAMETER), is_mutable, default_value)
+            return Parameter.new(name, dtype, default_value)
 
-        return Parameter(
-            Variable(name, dtype, VariableType.PARAMETER),
-            is_mutable
-        )
+        return Parameter.new(name, dtype)
 
     @v_args(meta=True)
     def for_loop(self, meta: Meta, children: list[Tree | Token]):
@@ -621,10 +591,10 @@ class ASTVisitor(Interpreter):
                 self.ir_emitter.emit(IRReturn())
                 return
 
-            if func.return_type != value.get_dtype():
+            if func.return_type != value.dtype:
                 self.error_reporter.report(
                     Errors.ReturnTypeMismatch,
-                    value.get_dtype().get_name(),
+                    value.dtype.get_name(),
                     func.return_type.get_name(),
                     meta=meta
                 )
@@ -638,10 +608,7 @@ class ASTVisitor(Interpreter):
         loop_scope = self.symbol_resolver.resolve_scope(StructureType.LOOP_BODY)
 
         if loop_scope is None:
-            self.error_reporter.report(
-                Errors.BreakOutsideLoop,
-                meta=meta
-            )
+            self.error_reporter.report(Errors.BreakOutsideLoop, meta=meta)
             return
 
         self.ir_emitter.emit(IRBreak(loop_scope.name))
@@ -652,10 +619,7 @@ class ASTVisitor(Interpreter):
         loop_scope = self.symbol_resolver.resolve_scope(StructureType.LOOP_BODY)
 
         if loop_scope is None:
-            self.error_reporter.report(
-                Errors.ContinueOutsideLoop,
-                meta=meta
-            )
+            self.error_reporter.report(Errors.ContinueOutsideLoop, meta=meta)
             return
 
         self.ir_emitter.emit(IRContinue(loop_scope.name))
@@ -666,16 +630,12 @@ class ASTVisitor(Interpreter):
         original_filepath: str = self.visit(children.pop(0)).value.value
 
         # 检查是否为内置库
-        if library := LibraryMapping.get(original_filepath, self.symbol_resolver, self.ir_emitter, self.error_reporter,
-                                         self.config):
-            self._load_library(library)
+        if LibraryMapping.has(original_filepath):
+            self._load_library(original_filepath)
             return
 
         # 搜索文件路径
-        filepath = self.include_manager.search_include_path(
-            Path(original_filepath),
-            meta
-        )
+        filepath = self.include_manager.search_include_path(Path(original_filepath), meta)
 
         if filepath is None or filepath in self.include_manager:
             return
@@ -783,11 +743,8 @@ class ASTVisitor(Interpreter):
 
         new_type = Typedef(new_name, original_type)
         if not self.symbol_resolver.add_symbol(new_type):
-            self.error_reporter.report(  # 将会报两个错误
-                Errors.TypedefRedefinition,
-                new_name,
-                meta=meta
-            )
+            # 将会报两个错误
+            self.error_reporter.report(Errors.TypedefRedefinition, new_name, meta=meta)
 
     @v_args(meta=True)
     def factor(self, meta: Meta, children: list):
@@ -798,9 +755,7 @@ class ASTVisitor(Interpreter):
             return Reference.literal(-1)
 
         # 生成结果变量
-        result_type = self.type_checker.infer_binary_op_type(left.get_dtype(), right.get_dtype())
-
-        result_var = self.ir_emitter.emit_binary_calc(left, BinaryOps(op), right, result_type)
+        result_var = self.ir_emitter.emit_binary_calc(left, BinaryOps(op), right)
         return Reference(result_var)
 
     term = factor
@@ -843,12 +798,7 @@ class ASTVisitor(Interpreter):
         if value.is_literal():
             return Reference.literal(value.value.value * -1)
         else:
-            result_var = self.ir_emitter.emit_binary_calc(
-                value,
-                BinaryOps.MUL,
-                Reference.literal(-1),
-                PrimitiveDataType.INT
-            )
+            result_var = self.ir_emitter.emit_binary_calc(value, BinaryOps.MUL, Reference.literal(-1))
             return Reference(result_var)
 
     @v_args(meta=True)
@@ -856,24 +806,14 @@ class ASTVisitor(Interpreter):
         value: Reference = self.visit(children.pop(0))
 
         if value.get_dtype() not in [PrimitiveDataType.BOOLEAN, PrimitiveDataType.INT]:
-            self.error_reporter.report(
-                Errors.InvalidOperator,
-                "not",
-                meta=meta
-            )
+            self.error_reporter.report(Errors.InvalidOperator, "not", meta=meta)
             return value
 
         if value.is_literal():
             return Reference.literal(not value.value.value)
         else:
             result_var = self.ir_emitter.create_temp_var_declared(PrimitiveDataType.BOOLEAN, "boolean")
-            self.ir_emitter.emit(
-                IRUnaryOp(
-                    result_var,
-                    UnaryOps.NOT,
-                    value
-                )
-            )
+            self.ir_emitter.emit(IRUnaryOp(result_var, UnaryOps.NOT, value))
             return Reference(result_var)
 
     @v_args(meta=True)
@@ -897,9 +837,9 @@ class ASTVisitor(Interpreter):
             )
             return None
         variable: Variable = variable_ref.value
-        if not variable.is_mutable():
+        if not variable.mutable:
             self.error_reporter.report(
-                Errors.MutabilityViolation,
+                Errors.ConstantReassignment,
                 variable.name,
                 meta=meta
             )
@@ -928,7 +868,7 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def function_call(self, meta: Meta, children: list):
         function: Function = self.visit(children.pop(0)).value
-        args: list[tuple[Reference, bool]] = self.visit(children.pop(0))
+        args: list[Reference] = self.visit(children.pop(0))
 
         # 检查符号类型
         if not isinstance(function, Function):
@@ -973,14 +913,13 @@ class ASTVisitor(Interpreter):
                 return Reference.void()
 
     @v_args(meta=True)
-    def arguments(self, _: Meta, children: list[Tree]) -> list[tuple[Reference, bool]]:
+    def arguments(self, _: Meta, children: list[Tree]) -> list[Reference]:
         return [self.visit(child) for child in children]
 
     @v_args(meta=True)
-    def argument(self, _: Meta, children: list) -> tuple[Reference, bool]:
-        is_mutable = bool(children.pop(0))
+    def argument(self, _: Meta, children: list) -> Reference:
         value = self.visit(children.pop(0))
-        return value, is_mutable
+        return value
 
     @v_args(meta=True)
     def index_get(self, meta: Meta, children: list):
@@ -1048,8 +987,6 @@ class ASTVisitor(Interpreter):
         match token.type:
             case "STRING":
                 return Reference.literal(ast.literal_eval(token))
-            case "ARRAY_SIZE":
-                return Reference.literal(int(token))
             case "INT":
                 return Reference.literal(int(token))
             case "TRUE":

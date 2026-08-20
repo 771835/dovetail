@@ -82,11 +82,6 @@ class Errors(SafeEnum):
                            ErrorType.SemanticError)
     TypeArgumentNumberMismatch = (0x2008, "类型参数数量不匹配", "实例化 '%s' 参数数量不匹配", ErrorType.SemanticError)
 
-    # 所有权与可变性错误
-    MutabilityViolation = (0x2009, "可变性冲突", "尝试修改不可变变量 '%s'。", ErrorType.SemanticError)
-    InvalidMutUsage = (0x200A, "无效 mut 使用", "'mut' 关键字不能应用于类型 '%s'。", ErrorType.SemanticError)
-    MutArgumentMismatch = (0x200B, "mut 参数不匹配", "参数 '%s' 需要 'mut' 修饰但未提供。", ErrorType.SemanticError)
-
     # 容器类型错误 (list / dict)
     InvalidContainerLiteral = (0x200C, "无效容器字面量", "容器字面量类型不一致: %s。", ErrorType.SemanticError)
     InvalidIndexAccess = (0x200D, "无效索引访问", "索引类型无效: '%s' 不能作为 '%s' 的索引，期望 %s。",
@@ -129,7 +124,8 @@ class Errors(SafeEnum):
     # ==================== 控制流错误 (0x4xxx) ====================
     InvalidControlFlow = (0x4001, "无效控制流", "控制流错误: %s。", ErrorType.SemanticError)
     RecursionError = (0x4002, "递归错误", "递归错误: %s。", ErrorType.SemanticError)
-    RecursionLimit = (0x4003, "递归限制错误", "函数 '%s' 超过最大递归深度限制 (%s)。", ErrorType.SemanticError)
+    # 递归深度编译期无法判断
+    # RecursionLimit = (0x4003, "递归限制错误", "函数 '%s' 超过最大递归深度限制 (%s)。", ErrorType.SemanticError)
     BreakOutsideLoop = (0x4004, "break 在循环外", "'break' 语句只能在循环内使用。", ErrorType.SemanticError)
     ContinueOutsideLoop = (0x4005, "continue 在循环外", "'continue' 语句只能在循环内使用。", ErrorType.SemanticError)
     ReturnTypeMismatch = (0x4006, "返回类型不匹配", "返回值类型 '%s' 与声明类型 '%s' 不匹配。", ErrorType.SemanticError)

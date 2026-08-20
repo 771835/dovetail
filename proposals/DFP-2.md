@@ -289,8 +289,10 @@ _以下枚举仅供参考，不保证编译器稳定支持内容，不做强制�
 **FunctionType 枚举：**
 
 - `FUNCTION`: 用户定义的函数
+- `FUNCTION_UNIMPLEMENTED`: 声明但未实现的函数
 - `BUILTIN`: 后端内建函数
 - `METHOD`: 类方法函数
+- `EXTERN`: 从外部导入方法
 - `LIBRARY`: 从库加载的函数
 
 **ClassType 枚举：**

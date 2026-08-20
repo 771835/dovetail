@@ -113,11 +113,7 @@ class IREmitter:
 
         # 检查常量必须初始化
         if not mutable and value is None:
-            self.error_reporter.report(
-                Errors.ConstantRequiresInitialization,
-                name,
-                meta=meta
-            )
+            self.error_reporter.report(Errors.ConstantRequiresInitialization,name,meta=meta)
             return None
 
         # 创建并注册符号
@@ -210,7 +206,6 @@ class IREmitter:
             left: Reference,
             op: BinaryOps,
             right: Reference,
-            result_type: DataTypeBase,
             result_prefix: str = "calc"
     ) -> Variable:
         """
@@ -220,12 +215,12 @@ class IREmitter:
             left: 左操作数
             op: 运算符
             right: 右操作数
-            result_type: 结果类型
             result_prefix: 结果变量名前缀
 
         Returns:
             包含运算结果的临时变量（已声明和赋值）
         """
+        result_type = self.type_checker.infer_binary_op_type(left.dtype, right.dtype)
         result_var = self.create_temp_var_declared(result_type, result_prefix)
         self.emit(IRBinaryOp(result_var, op, left, right))
         return result_var

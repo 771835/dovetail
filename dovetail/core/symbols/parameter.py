@@ -9,14 +9,33 @@ from .base import Symbol
 from .literal import Literal
 from .reference import Reference
 from .variable import Variable
+from ..enums import VariableType
 from ..enums.datatypes import DataTypeBase
 
 
 @define(slots=True, repr=False, frozen=True)
 class Parameter(Symbol):
     var: Variable
-    mutable: bool = False
     default: Optional[Reference[Variable | Literal]] = None
+
+    @property
+    def dtype(self) -> DataTypeBase:
+        return self.var.dtype
+
+    @classmethod
+    def new(cls, name: str, dtype: DataTypeBase, default: Optional[Reference] = None) -> Parameter:
+        """
+        快速构建参数
+
+        Args:
+            name: 参数名
+            dtype: 参数类型
+            default: 参数默认值
+
+        Returns:
+            参数实例
+        """
+        return Parameter(Variable(name, dtype, VariableType.PARAMETER), default)
 
     def is_optional(self) -> bool:
         """

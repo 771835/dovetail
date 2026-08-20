@@ -18,15 +18,6 @@ class Variable(Symbol):
     var_type: VariableType = VariableType.COMMON
     mutable: bool = True
 
-    def is_mutable(self):
-        """
-        符号是否可变
-
-        Returns:
-            一个bool类型的数值，表示符号是否可变
-        """
-        return self.mutable
-
     def get_name(self) -> str:
         """
         获取变量名

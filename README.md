@@ -41,6 +41,8 @@
 
 - [ ] 简易事件系统及注解功能
 - [ ] 完善内置库
+<!-- 也许会做一个类似 dovetail-api 的东西，和编译器分开，分成多个仓库，类似 fabric 和 fabric api -->
+<!-- dovetail-api 再由 git 和 dovetail-build 拉取 -->
 
 ## 快速开始
 
