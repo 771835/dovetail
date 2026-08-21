@@ -107,9 +107,9 @@ let: "let" ID "=" expr // 自动推导类型
 
 
 // 字面量、标识符（变量、函数、类）、括号
-?primary: literal | identifier | paren | ID "{" (ID ":" expr ("," ID ":" expr)*)? "}" -> struct_init
+?primary: literal | identifier | paren | struct_init
 ?paren: "(" expr ")"
-
+struct_init: ID "{" (ID ":" expr ("," ID ":" expr)*)? "}"
 
 arguments : ("(" (argument ("," argument)*)? ")")
 

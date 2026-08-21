@@ -3,12 +3,12 @@
 
 [package]
 name = "dovetail"
-version = "dev"
+version = "1.0.2"
 authors = ["All contributors of this project"]
 description = "Minecraft Datapack Compilation Language"
 license = "Apache 2.0"
 
-# 以下 [build] 配置仅供参考，dovetail 编译器本身不能编译自身
+# 以下 [build] 配置仅供参考，dovetail 编译器本身不能编译自身谢谢喵
 [build]
 tool = "python"
 entry = "main.py"

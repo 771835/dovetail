@@ -17,7 +17,7 @@ class Strlib(LibraryBase):
     def _strcat(self, a: str, b: str):
         a: Reference[Variable | Literal]
         b: Reference[Variable | Literal]
-        return self.emitter.emit_binary_calc(a, BinaryOps.ADD, b, PrimitiveDataType.STRING, "strcat")
+        return self.emitter.emit_binary_calc(a, BinaryOps.ADD, b, "strcat")
 
     @builtin_func(name="strcat_fast")
     def _strcat_fast(self, a: str, b: str) -> str: ...

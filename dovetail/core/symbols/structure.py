@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .function import Function
 
 
-@define(slots=True, frozen=True)
+@define(slots=True, frozen=True, hash=False)
 class Structure(Symbol, DataTypeBase, Annotatable, MethodHost):
     name: str
     fields: dict[str, DataTypeBase]
@@ -25,3 +25,6 @@ class Structure(Symbol, DataTypeBase, Annotatable, MethodHost):
 
     def get_dtype(self) -> DataTypeBase:
         return self
+
+    def __hash__(self):
+        return hash((self.name, id(self.fields), id(self.methods), id(self.annotations)))

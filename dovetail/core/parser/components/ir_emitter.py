@@ -6,7 +6,7 @@ IR 发射器模块
 """
 import itertools
 from contextlib import contextmanager
-from typing import Optional
+from typing import Optional, Iterator
 
 from lark.tree import Meta
 
@@ -65,14 +65,14 @@ class IREmitter:
         for instr in instrs:
             self.builder.insert(instr)
 
-    def emit_list(self, instrs: list[IRInstruction]) -> None:
+    def emits(self, instrs: Iterator[IRInstruction]) -> None:
         """
-        发射指令列表
+        发射指令迭代器
 
         Args:
-            instrs: IR 指令列表
+            instrs: IR 指令迭代器
         """
-        self.emit(*instrs)
+        self.builder.extend(instrs)
 
     # ==================== 高频模式封装 ====================
 

@@ -85,7 +85,6 @@ def _try_fast_path_expr(
         return None
     return Reference(symbol)
 
-
 class ASTVisitor(Interpreter):
     """
     AST 访问器 - 遍历语法树并生成中间表示（IR）
@@ -299,7 +298,7 @@ class ASTVisitor(Interpreter):
             assert isinstance(field, Tree)
             field_name, field_type = self.visit(field)
             fields[field_name] = field_type
-        symbol = Structure(_n(name), fields, {})
+        symbol = Structure(name, fields, {})
 
         # POST_SYMBOL阶段处理注解
         self.annotation_processor.process_post(raw_annotations, ctx, symbol)
@@ -358,13 +357,13 @@ class ASTVisitor(Interpreter):
 
         # 处理函数体
         if children:
+
             with self._push_scope(name, StructureType.FUNCTION):  # NOQA
                 with self.error_reporter.context(f"函数 {_dn(name)}"):
-                    # 添加参数到作用域
-                    scope = self.symbol_resolver.current_scope
-                    for param in params:
-                        scope.symbols[param.get_name()] = param.var  # 直接写入
-                        self.ir_emitter.emit(IRDeclare(param.var))
+                    # 添加参数到作用域，批量写入以减少性能损耗(虽然经过我的测试，耗时更长了，代码还跟史一样)
+                    param_vars = [param.var for param in params]
+                    self.symbol_resolver.current_scope.symbols.update((v.name, v) for v in param_vars)
+                    self.ir_emitter.emits(IRDeclare(v) for v in param_vars)
                     # 访问函数体
                     self.visit(children.pop(0))  # noqa
 
@@ -958,23 +957,18 @@ class ASTVisitor(Interpreter):
             # TODO: 调用具体方法
             ...
         elif isinstance(dtype, PrimitiveDataType):
-            self.error_reporter.report(
-                Errors.PrimitiveTypeOperation,
-                "数组访问",
-                dtype.get_name(),
-                meta=meta
-            )
+            self.error_reporter.report(Errors.PrimitiveTypeOperation, "数组访问", dtype.get_name(), meta=meta)
         else:
-            self.error_reporter.report(
-                Errors.InvalidOperator,
-                f"[{index!r}]",
-                meta=meta
-            )
+            self.error_reporter.report(Errors.InvalidOperator, f"[{index!r}]", meta=meta)
         return Reference.void()
 
     @v_args(meta=True)
     def index_set(self, meta: Meta, children: list[Tree | Token]):
         pass  # TODO: 实现索引写入
+
+    @v_args(meta=True)
+    def member_access(self, meta: Meta, children: list[Tree]):
+        expr_ref: Reference = self.visit(children.pop(0))
 
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""

@@ -193,6 +193,9 @@ class TypeChecker:
         Returns:
             运算结果类型
         """
+        if left == right == PrimitiveDataType.STRING:
+            return PrimitiveDataType.STRING
+
         # 布尔类型参与运算时提升为 int
         if left == PrimitiveDataType.BOOLEAN or right == PrimitiveDataType.BOOLEAN:
             return PrimitiveDataType.INT

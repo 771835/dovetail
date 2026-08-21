@@ -24,7 +24,8 @@ IR_CACHE_FILE_PREFIX = ".mcdo"
 MAX_FILE_SIZE = 1024 * 1024 * 1024  # 最大允许单个文件1GB大小
 FAST_MODE = True  # 禁用一些编译器的内部类型检查以加速代码运行
 ENABLE_INSTRUCTION_VALIDATION = True  # 启用IR指令类型效验，当 FAST_MODE 开启时无效
-USE_FUTURE_IR_BUILDER = False
+USE_FUTURE_IR_BUILDER = False # 启用基于链表的 IR 指令构建器，实测速度没有提高，不值得开启
+USE_FUTURE_IR_OP_CODE = False # 启用新版 IROpCode 实现
 
 # 默认错误建议列表
 DEFAULT_SUGGESTIONS: list[str] = [

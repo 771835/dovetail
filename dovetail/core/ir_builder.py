@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import SupportsIndex, Optional
+from typing import SupportsIndex, Optional, Iterator
 
 from dovetail.core.config import USE_FUTURE_IR_BUILDER
 from dovetail.core.instructions import IRInstruction, IROpCode
@@ -11,13 +11,15 @@ else:
         def __init__(self):
             self._instructions: list[IRInstruction] = []
 
-        def insert(self, instruction: IRInstruction, index: SupportsIndex = None):
+        def insert(self, instr: IRInstruction, index: Optional[SupportsIndex] = None):
             if index is None:
                 # 默认插入到末尾
-                self._instructions.append(instruction)
+                self._instructions.append(instr)
             else:
                 # 使用整数索引插入
-                self._instructions.insert(index, instruction)
+                self._instructions.insert(index, instr)
+        def extend(self, instrs: Iterator[IRInstruction]):
+            self._instructions.extend(instrs)
 
         def get_instructions(self):
             return self._instructions
@@ -170,6 +172,7 @@ else:
             """插入指令并让迭代器继续从该指令开始"""
             self.insert_here(instruction)
             self.rollback()
+
 
     class IRBuilderReverseIterator:
         """反向迭代器类"""
