@@ -15,6 +15,7 @@ from dovetail.core.instructions import (
     IROpCode,
 )
 from dovetail.core.ir_builder import IRBuilder
+from dovetail.core.ir_code import IROpDescriptor
 from dovetail.core.optimize.passes.tail_call_optimization import (
     TailCallOptimizationPass,
     _TCO_SCOPE_SUFFIX,
@@ -40,12 +41,12 @@ def _make_function(name: str, params: list[Variable], return_type=PrimitiveDataT
     return Function(name, func_params, return_type)
 
 
-def _opcodes(builder: IRBuilder) -> list[IROpCode]:
+def _opcodes(builder: IRBuilder) -> list[IROpDescriptor]:
     """提取 IRBuilder 中所有指令的 opcode，方便断言"""
     return [instr.opcode for instr in builder.get_instructions()]
 
 
-def _find_all(builder: IRBuilder, opcode: IROpCode) -> list[int]:
+def _find_all(builder: IRBuilder, opcode: IROpDescriptor) -> list[int]:
     """找出指定 opcode 的所有位置索引"""
     return [i for i, instr in enumerate(builder.get_instructions())
             if instr.opcode is opcode]

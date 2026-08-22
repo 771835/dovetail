@@ -13,13 +13,13 @@ from __future__ import annotations
 import functools
 from typing import Any, Optional, Union, get_type_hints, Callable
 
-from dovetail.core.config import ENABLE_INSTRUCTION_VALIDATION, FAST_MODE, USE_FUTURE_IR_OP_CODE
+from dovetail.core.config import ENABLE_INSTRUCTION_VALIDATION, FAST_MODE
 from dovetail.core.enums import PrimitiveDataType, StructureType, BinaryOps, CompareOps, UnaryOps
 from dovetail.core.symbols import Variable, Literal, Reference, Function
 from dovetail.core.symbols.class_ import Class
 from dovetail.core.symbols.enumeration import Enumeration
 from dovetail.core.symbols.structure import Structure
-from dovetail.utils.safe_enum import SafeEnum
+from dovetail.core.ir_code import InstructionFlag, InstructionCategory, IROpCode, IROpDescriptor  # noqa
 
 _DefinableDataTypes = Union[
     PrimitiveDataType,
@@ -32,75 +32,6 @@ _CastableDataTypes = Union[
     PrimitiveDataType,
     Class,
 ]
-
-
-# ==================== 操作码定义 ====================
-if USE_FUTURE_IR_OP_CODE:
-    from dovetail.core.__future__.ir_code import InstructionFlag,InstructionCategory,IROpCode,OpDescriptor # noqa
-else:
-    class InstructionCategory(SafeEnum):
-        CONTROL_FLOW = "控制流"
-        DATA_OP = "数据运算"
-        OOP = "面向对象"
-        STRUCT = "结构体"
-        OWNERSHIP = "所有权"
-        SPECIAL = "特殊指令"
-
-
-    class IROpCode(SafeEnum):
-        # CONTROL_FLOW (0x00-0x1F)
-        JUMP = (0x00, "跳转", InstructionCategory.CONTROL_FLOW)
-        COND_JUMP = (0x01, "条件跳转", InstructionCategory.CONTROL_FLOW)
-        FUNCTION = (0x02, "函数定义", InstructionCategory.CONTROL_FLOW)
-        CALL = (0x03, "函数调用", InstructionCategory.CONTROL_FLOW)
-        RETURN = (0x04, "返回", InstructionCategory.CONTROL_FLOW)
-        SCOPE_BEGIN = (0x05, "作用域开始", InstructionCategory.CONTROL_FLOW)
-        SCOPE_END = (0x06, "作用域结束", InstructionCategory.CONTROL_FLOW)
-        BREAK = (0x07, "中断", InstructionCategory.CONTROL_FLOW)
-        CONTINUE = (0x08, "继续", InstructionCategory.CONTROL_FLOW)
-
-        # DATA_OP (0x20-0x3F)
-        DECLARE = (0x20, "变量声明", InstructionCategory.DATA_OP)
-        ASSIGN = (0x21, "赋值", InstructionCategory.DATA_OP)
-        UNARY_OP = (0x22, "一元运算", InstructionCategory.DATA_OP)
-        BINARY_OP = (0x23, "二元运算", InstructionCategory.DATA_OP)
-        COMPARE = (0x24, "比较", InstructionCategory.DATA_OP)
-        CAST = (0x25, "类型转换", InstructionCategory.DATA_OP)
-        FREE = (0x26, "释放变量", InstructionCategory.DATA_OP)
-
-        # OOP (0x40-0x5F)
-        CLASS = (0x40, "类定义", InstructionCategory.OOP)
-        NEW_OBJ = (0x41, "新建对象", InstructionCategory.OOP)
-        GET_PROPERTY = (0x42, "获取属性", InstructionCategory.OOP)
-        SET_PROPERTY = (0x43, "设置属性", InstructionCategory.OOP)
-        CALL_METHOD = (0x44, "调用方法", InstructionCategory.OOP)
-        FREE_OBJ = (0x45, "释放对象", InstructionCategory.OOP)
-
-        # CONTAINER (0x80-0x9F) — 统一容器操作，适用于 ListType 和 DictType
-        INDEX_GET = (0x80, "索引读取", InstructionCategory.DATA_OP)  # list[i] / dict[k]
-        INDEX_SET = (0x81, "索引写入", InstructionCategory.DATA_OP)  # list[i]=v / dict[k]=v
-        CONTAINER_LEN = (0x82, "获取长度", InstructionCategory.DATA_OP)  # len(list) / len(dict)
-        LIST_APPEND = (0x83, "追加元素", InstructionCategory.DATA_OP)  # 仅 list
-        DICT_HAS = (0x84, "检查键", InstructionCategory.DATA_OP)  # k in dict
-        DICT_REMOVE = (0x85, "删除键", InstructionCategory.DATA_OP)  # dict.remove(k)
-
-        # STRUCT (0xA0-0xBF) — 结构体操作（值类型，区别于 class 的引用类型）
-        STRUCT_DEF = (0xA0, "结构体定义", InstructionCategory.STRUCT)
-        STRUCT_NEW = (0xA1, "结构体实例化", InstructionCategory.STRUCT)
-        STRUCT_GET = (0xA2, "字段读取", InstructionCategory.STRUCT)
-        STRUCT_SET = (0xA3, "字段写入", InstructionCategory.STRUCT)
-        STRUCT_CALL = (0xA4, "结构体方法调用", InstructionCategory.STRUCT)
-        STRUCT_FREE = (0xA5, "结构体释放", InstructionCategory.STRUCT)
-
-        @classmethod
-        def find(cls, code: int):
-            for name, val in zip(cls.names(), cls.values()):
-                if val[0] == code:
-                    return cls[name]
-            return -0x01, "未知指令", InstructionCategory.SPECIAL
-
-        def __hash__(self):
-            return hash(self.value)
 
 
 # ==================== 验证系统 ====================
@@ -178,9 +109,8 @@ class IRInstruction:
 
     def __init__(
             self,
-            opcode: IROpCode,
+            opcode: IROpDescriptor,
             *operands: Any,
-            **named_operands: Any
     ):
         """
         创建 IR 指令
@@ -188,15 +118,10 @@ class IRInstruction:
         Args:
             opcode: 操作码
             operands(list[Any]: 位置操作数
-            named_operands: 命名操作数（可选，用于复杂指令）
         """
         self.opcode = opcode
 
-        # 合并位置参数和命名参数
-        if named_operands:
-            self.operands = list(operands) + [named_operands]
-        else:
-            self.operands = list(operands)
+        self.operands = list(operands)
 
         self._hash_cache = None
 
@@ -212,7 +137,7 @@ class IRInstruction:
 
         # 默认格式
         operands_str = ", ".join(str(op) for op in self.operands)
-        return f"{self.opcode.name}({operands_str})"
+        return f"{self.opcode.desc}({operands_str})"
 
     def __hash__(self):
         if self._hash_cache is None:
@@ -262,17 +187,17 @@ class IRInstruction:
         """获取操作数列表"""
         return self.operands
 
-    def get_opcode(self) -> IROpCode:
+    def get_opcode(self) -> IROpDescriptor:
         """获取操作码"""
         return self.opcode
 
 
 # ==================== Repr 注册系统 ====================
 
-_repr_registry: dict[IROpCode, Callable] = {}
+_repr_registry: dict[IROpDescriptor, Callable] = {}
 
 
-def register_repr(opcode: IROpCode):
+def register_repr(opcode: IROpDescriptor):
     """
     注册自定义 repr 函数的装饰器
 

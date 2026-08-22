@@ -5,13 +5,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict, Type, TYPE_CHECKING, TypeVar
+from typing import  Type, TYPE_CHECKING, TypeVar
 
+from dovetail.core.ir_code import IROpDescriptor
 from dovetail.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from dovetail.core.backend import Backend
-from dovetail.core.instructions import IROpCode, IRInstruction
+from dovetail.core.instructions import IRInstruction
 from dovetail.core.backend.context import GenerationContext
 
 logger = get_logger(__name__)
@@ -21,7 +22,7 @@ _IRInstructionType = TypeVar("_IRInstructionType", bound="IRInstruction")
 class IRProcessor(ABC):
     """IR指令处理器基类"""
 
-    opcode: IROpCode = None  # 子类必须指定
+    opcode: IROpDescriptor | None = None  # 子类必须指定
 
     @abstractmethod
     def process(self, instruction: _IRInstructionType, context: GenerationContext):
@@ -45,17 +46,17 @@ class DefaultProcessor(IRProcessor):
     opcode = None
 
     def process(self, instruction: _IRInstructionType, context: GenerationContext):
-        opcode_name = instruction.opcode.name
-        opcode_display_name = instruction.opcode.value[1]
-        context.add_command(f"# WARNING: No processor for {opcode_name}({opcode_display_name})")
-        logger.warning(f"No processor registered for opcode: {opcode_name}({opcode_display_name})")
+        opcode_name = instruction.opcode.desc
+        ir_code = instruction.opcode.code
+        context.add_command(f"# WARNING: No processor for {opcode_name}({ir_code})")
+        logger.warning(f"No processor registered for opcode: {opcode_name}({ir_code})")
 
 
 class ProcessorRegistry:
     """处理器注册表"""
 
     def __init__(self):
-        self._processors: Dict[IROpCode, IRProcessor] = {}
+        self._processors: dict[IROpDescriptor, IRProcessor] = {}
         self._default_processor = DefaultProcessor()
 
     def register(self, processor: IRProcessor):
@@ -69,7 +70,7 @@ class ProcessorRegistry:
             raise ValueError(f"Processor {processor.__class__.__name__} must specify opcode")
 
         if processor.opcode in self._processors:
-            logger.warning(f"Overwriting processor for {processor.opcode.name}")
+            logger.warning(f"Overwriting processor for {processor.opcode.desc}")
 
         self._processors[processor.opcode] = processor
 
@@ -88,7 +89,7 @@ class ProcessorRegistry:
         for processor in processors:
             self.register(processor)
 
-    def get_processor(self, opcode: IROpCode) -> IRProcessor:
+    def get_processor(self, opcode: IROpDescriptor) -> IRProcessor:
         """
         获取指令对应的处理器
 
@@ -100,11 +101,11 @@ class ProcessorRegistry:
         """
         return self._processors.get(opcode, self._default_processor)
 
-    def has_processor(self, opcode: IROpCode) -> bool:
+    def has_processor(self, opcode: IROpDescriptor) -> bool:
         """检查是否注册了指定指令的处理器"""
         return opcode in self._processors
 
-    def get_all_opcodes(self) -> list[IROpCode]:
+    def get_all_opcodes(self) -> list[IROpDescriptor]:
         """获取所有已注册的操作码"""
         return list(self._processors.keys())
 
@@ -113,7 +114,7 @@ class ProcessorRegistry:
         self._processors.clear()
 
 
-def ir_processor(target: type[Backend] | ProcessorRegistry, opcode: IROpCode):
+def ir_processor(target: type[Backend] | ProcessorRegistry, opcode: IROpDescriptor):
     """
     装饰器：自动注册处理器到指定后端
 

@@ -41,6 +41,18 @@ Dovetail 的错误信息通常包含：错误类型、错误位置（文件名+�
 - 修改代码中无关的部分，错误突然消失或变化
 - 同一段代码换个优化级别就出问题
 
+### 编译通过了，但数据包加载失败或运行效果不对
+
+- 编译没有任何报错，但把数据包放进 Minecraft 后：
+    - `/datapack list` 里根本看不到你的数据包
+    - 数据包存在但函数不执行
+    - 行为和预期不一致
+
+这种情况既可能是你的代码问题（如缺少 `@init` 注解），也可能是编译器的问题 （如优化引入 bug），还可能是环境配置问题（如
+`pack_format` 不匹配）。
+
+→ 直接跳到 [第四步：数据包加载失败或运行效果不符合预期](#第四步数据包加载失败或运行效果不符合预期)
+
 ### 排查工具箱
 
 按以下顺序逐个尝试，每一步都可能帮你定位或绕过问题：
@@ -208,7 +220,173 @@ python main.py your_code.mcdl -o target -O 2 -mcv 1.21.5
 
 ---
 
-## 第四步：环境与配置问题
+## 第四步：数据包加载失败或运行效果不符合预期
+
+编译通过了，不代表万事大吉。数据包在 Minecraft 中加载失败或行为异常，通常属于以下几类原因：
+
+### 一、数据包根本无法加载
+
+Minecraft 加载数据包时，首先读取 `pack.mcmeta`。如果这一步就失败，整个数据包都会被忽略。
+
+#### 1. `pack_format` 版本号不匹配
+
+这是最常见的原因。每个 Minecraft 版本对应一个固定的 `pack_format` 值，不匹配则 Minecraft 拒绝加载。
+
+```bash
+# 编译时用 -mcv 指定正确的 Minecraft 版本
+python main.py your_code.mcdl -mcv 1.21.5
+```
+
+排查方法：
+
+- 打开输出目录中的 `pack.mcmeta`，检查 `pack_format` / `supported_formats` 字段
+- 对照 [Minecraft 中文Wiki 数据包版本](https://zh.minecraft.wiki/w/Template:Data_pack_format) 中的版本映射表，确认你用的
+  `-mcv` 参数与实际 Minecraft 版本一致
+- 如果映射表中没有你的版本（如快照版），编译器会尝试爬取 Minecraft Wiki 获取最新映射；若网络不通，将回退到表中最后一个已知值——这可能不正确
+
+> 特别注意：`1.21.9` 及更高版本使用了新的 `min_format`/`max_format`
+> 字段格式，而非旧版的 `pack_format` + `supported_formats`
+> 。如果你的 Minecraft 版本跨越了这个分界线，格式不对会导致加载失败。
+
+#### 2. 输出目录结构不正确
+
+Minecraft 要求数据包遵循严格的目录结构：
+
+```
+<输出目录>/
+  pack.mcmeta
+  <命名空间>/
+    data/
+      <命名空间>/
+        function/
+          *.mcfunction
+```
+
+排查方法：
+
+- 检查输出目录下是否存在 `pack.mcmeta`
+- 检查函数文件是否在 `data/<命名空间>/function/` 下
+- 如果用了 `--output-temp-file` 输出的 `.mcdc` 二进制文件，那不是最终产物，不能直接放进 Minecraft
+
+#### 3. 命名空间问题
+
+命名空间由编译配置决定。命名空间必须全部小写，且只能包含 `a-z`、`0-9`、`_` 和 `.`。 如果命名空间包含大写字母或特殊字符，Minecraft
+可能拒绝加载。
+
+#### 4. 依赖数据包下载失败
+
+- **后端本身**可能依赖如数学库、字符串拼接库，由于开源许可证等原因，通常后端不会包含这些库，而是在编译时下载。
+- 对于 **使用构建工具链**的项目，如果你的项目声明了外部依赖，构建工具会尝试下载并解压到如库目录，输出目录等。 下载失败时，日志中会出现
+  `Download dependence failed for <url>`之类的内容。
+
+排查方法：
+
+- 开启调试并检查 `logs/dovetail.log` 是否有下载失败的记录
+- 设置代理环境变量（`HTTPS_PROXY`）或镜像（`USED_MIRROR_GITHUB_CN=1`）
+- 重新编译，依赖会重新下载
+
+---
+
+### 二、数据包加载成功但函数不执行
+
+数据包被 Minecraft 识别了，但你的逻辑没跑起来。最可能的原因：
+
+#### 1. 缺少 `@init` 或 `@tick` 注解
+
+这是 **最最常见**的原因。Dovetail 不会自动调用你写的函数——必须用 `@init` 或 `@tick` 注解标记入口点：
+
+- `@init`：数据包加载/重载时执行一次（对应 `#minecraft:load`）
+- `@tick`：每个游戏刻执行一次（对应 `#minecraft:tick`）
+
+如果你忘了加注解，函数虽然编译出来了，但没有任何东西会调用它。编译器 **不会为此报错**，因为它在语法和语义上都是合法的。
+
+排查方法：
+
+- 打开输出目录，检查 `data/minecraft/tags/function/` 下是否有 `load.json` 和 `tick.json`，并且其是否存在内容。
+- 如果没有，说明没有任何函数被 `@init`/`@tick` 标记
+- 回到源码，给入口函数加上注解
+
+#### 2. `@init` 函数执行顺序问题
+
+多个 `@init` 函数的执行顺序取决于 Minecraft 的加载顺序，不一定是源码中定义的顺序。如果你的初始化逻辑有先后依赖，考虑合并到一个
+`@init` 函数中，或手动用函数调用显式控制顺序。
+
+#### 3. 计分板未初始化
+
+Dovetail 生成的代码依赖一个名为 `dovetail`（默认）的计分板目标（objective）。初始化函数负责创建它。如果你跳过了初始化（比如手动修改了
+`load.json`），计分板操作会静默失败。
+
+排查方法：
+
+- 在游戏中执行 `scoreboard objectives list`，确认 `dovetail` 目标存在
+- 确认 `initializer.mcfunction` 被包含在 `load.json` 中
+
+---
+
+### 三、运行效果与预期不符
+
+数据包跑起来了，但行为不对。这类问题最棘手，因为编译器不会报错。
+
+> 如果以下所有步骤都排查过了问题依旧，那就带上 `--debug` 日志和最小复现用例去提 Issue。
+
+#### 1. 优化引入的错误
+
+优化 Pass 可能改变 IR 的语义（虽然理论上不应该）。如果生成的命令行为异常：
+
+```bash
+# 逐级降低优化级别
+python main.py your_code.mcdl -O 1   # 先降到 1
+python main.py your_code.mcdl -O 0   # 再降到 0（关闭所有优化）
+```
+
+如果 `-O 0` 下行为正确而 `-O 2` 下不正确，说明某个优化 Pass 有 bug。这是编译器的问题，提 Issue 时附上最小复现用例和所用优化级别。
+
+#### 2. IR 指令未被正确翻译
+
+如果某个 IR 操作码没有对应的处理器，会在生成的`.mcfunction` 中写入一行注释 `# WARNING: No processor for ...`
+，并输出警告日志。这条命令在 Minecraft 中会被忽略，导致对应逻辑"消失"。
+
+排查方法：
+
+- 加 `--debug` 编译，在生成的 `.mcfunction` 文件中搜索 `# WARNING`
+- 检查 `logs/dovetail.log` 中是否有 `No processor registered for opcode` 的记录
+- 如果有，说明当前后端不支持该指令——可能需要更新后端插件或更换后端。
+
+#### 3. Minecraft 版本功能差异
+
+不同 Minecraft 版本的命令语法不同。例如：
+
+- `1.20.2` 之前没有宏，`1.20.5+` 改了 NBT 存储格式
+
+如果编译时指定的 `-mcv` 与实际 Minecraft 版本不一致，生成的命令可能语法错误或语义不同。
+
+排查方法：
+
+- 确保编译时的 `-mcv` 与运行时的 Minecraft 版本严格一致
+- 在游戏中手动执行可疑的命令，看是否报错
+
+#### 4. 手动检查生成的 `.mcfunction`
+
+有时候最快的方法就是直接看生成的命令：
+
+```bash
+# 用 --debug 编译，.mcfunction 中会包含注释信息
+python main.py your_code.mcdl --debug -o target
+
+# 然后打开 target/<命名空间>/data/<命名空间>/function/ 下的 .mcfunction 文件
+# 逐条检查命令是否合理
+```
+
+`--debug` 模式会在每个 `.mcfunction` 文件头部写入作用域名称、命令数量、编译器版本和目标 Minecraft 版本，方便对照。
+
+#### 5. 游戏内调试技巧
+
+- `/function <命名空间>:<函数路径>` ——手动执行某个函数，观察效果
+- `/datapack list` ——确认数据包已启用
+- `/datapack disable "<数据包名>"` 再 `/datapack enable "<数据包名>"` ——重新加载
+- 开启命令方块游戏规则：`/gamerule commandBlockOutput true`
+
+## 第五步：环境与配置问题
 
 有时候 bug 既不是你的也不是编译器的——是环境没配对。
 
@@ -297,7 +475,7 @@ post_build = "hook/post_build.sh"
 
 ---
 
-## 第五步：环境变量参考
+## 第六步：环境变量参考
 
 以下是编译器会读取的环境变量，在排查问题时可能用得上：
 
@@ -347,24 +525,25 @@ python main.py your_code.mcdl
 
 ## 速查表
 
-| 症状                     | 先试什么                                                |
-|--------------------------|---------------------------------------------------------|
-| 语法解析报错 (0x1xxx)    | 检查括号匹配、类型注解、include 路径                    |
-| "未定义的符号" (0x3xxx)  | 检查拼写、作用域、include 顺序                          |
-| 类型不匹配 (0x2xxx)      | 检查变量声明的类型、函数签名                            |
-| 编译器崩溃 / Python 异常 | 加 `--debug` 看完整堆栈，加 `PLUGIN_DEBUG=1` 看插件堆栈 |
-| 生成的命令行为异常       | 逐级降低优化级别（`-O3` → `-O2` → `-O1` → `-O0`）排查   |
-| 改了代码但输出没变       | 删除 `.mcdc` 缓存文件                                   |
-| 循环包含报错             | 检查 include 链，断开环                                 |
-| 标准库找不到             | 用 `--lib-path` 或 `DOVETAIL_LIB_PATH` 指定路径         |
-| "没有找到合适后端"       | 检查是否错误设置了`mcv`等参数；用 `--backend` 手动指定  |
-| 库文件下载失败           | 设置 `USED_MIRROR_GITHUB_CN=1` 或检查代理环境变量       |
-| 插件加载失败             | 设置 `PLUGIN_DEBUG=1` 查看完整堆栈                      |
-| 目录编译报配置错误       | 检查 `pack.config` 是否存在且 JSON 格式正确             |
-| 需要查看详细日志         | 加 `--debug`，查看 `logs/dovetail.log`                  |
-| 编译成功但输出目录为空   | 检查是否未给入口函数添加`@init`或`@tick`注解            |
-
----
-
-> *"It works on my machine!" — 这句话从来不是解决方案。*
-> 但如果你开了 `--debug` 还是 works on your machine，那可能真的是环境问题。
+| 症状                            | 先试什么                                                                             |
+|---------------------------------|--------------------------------------------------------------------------------------|
+| 语法解析报错 (0x1xxx)           | 检查括号匹配、类型注解、include 路径                                                 |
+| "未定义的符号" (0x3xxx)         | 检查拼写、作用域、include 顺序                                                       |
+| 类型不匹配 (0x2xxx)             | 检查变量声明的类型、函数签名                                                         |
+| 编译器崩溃 / Python 异常        | 加 `--debug` 看完整堆栈，加 `PLUGIN_DEBUG=1` 看插件堆栈                              |
+| 改了代码但输出没变              | 删除 `.mcdc` 缓存文件                                                                |
+| 循环包含报错                    | 检查 include 链，断开环                                                              |
+| 标准库找不到                    | 用 `--lib-path` 或 `DOVETAIL_LIB_PATH` 指定路径                                      |
+| "没有找到合适后端"              | 检查是否错误设置了`mcv`等参数；用 `--backend` 手动指定                               |
+| 库文件下载失败                  | 设置 `USED_MIRROR_GITHUB_CN=1` 或检查代理环境变量                                    |
+| 插件加载失败                    | 设置 `PLUGIN_DEBUG=1` 查看完整堆栈                                                   |
+| 目录编译报配置错误              | 检查 `pack.config` 是否存在且 JSON 格式正确                                          |
+| 需要查看详细日志                | 加 `--debug`，查看 `logs/dovetail.log`                                               |
+| 编译成功但输出目录为空          | 检查是否未给入口函数添加`@init`或`@tick`注解                                         |
+| 数据包未出现在 `/datapack list` | 检查 `pack.mcmeta` 的 `pack_format` 是否与 Minecraft 版本匹配；检查目录结构          |
+| 数据包已加载但函数不执行        | 检查是否添加了 `@init`/`@tick` 注解；检查 `load.json`/`tick.json` 是否存在           |
+| 初始化后计分板/变量状态不对     | 检查 `initializer.mcfunction` 是否被调用；在游戏内 `scoreboard objectives list` 确认 |
+| 某段逻辑"消失"了                | 搜索 `.mcfunction` 中的 `# WARNING`；检查是否有 IR 指令无处理器                      |
+| 命令执行报语法错误              | 确认 `-mcv` 与实际 Minecraft 版本一致；手动执行报错命令定位问题                      |
+| 优化级别高时行为异常，低时正常  | 确认是优化 Pass bug，用 `-O 0` 临时绕行，提 Issue                                    |
+| 依赖数据包未生效                | 检查 `logs/dovetail.log` 是否有下载失败记录；检查 overlays 配置                      |

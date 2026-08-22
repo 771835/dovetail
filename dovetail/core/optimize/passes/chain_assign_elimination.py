@@ -7,21 +7,24 @@
 """
 from __future__ import annotations
 
+from copy import copy
 from typing import Optional
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel
 from dovetail.core.enums.types import ValueType, StructureType
-from dovetail.core.instructions import (
-    IRAssign, IRBinaryOp, IRCompare, IRUnaryOp, IRCall,
+from dovetail.core.instructions import (IRCall,
     IRCondJump, IRCallMethod, IROpCode, IRInstruction,
-    PrimitiveDataType, IRCast
+    PrimitiveDataType
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.symbols import Variable, Reference
+from dovetail.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # ---- 类型别名 ----
 _AliasMap = dict[str, Reference]  # {var_name: canonical_ref}
@@ -200,10 +203,10 @@ class ChainAssignEliminationPass(IROptimizationPass):
                                 )
                 continue
 
-            # ── 普通指令：① 先替换，② 再更新 alias_map ──────────────── #
+            # ── 普通指令：先替换，再更新 alias_map ──────────────── #
             aliases = alias_maps[current_scope]
 
-            # ① 替换：使用当前（指令执行前）的 alias_map 状态
+            # 替换：使用当前（指令执行前）的 alias_map 状态
             new_instr = self._substitute(instr, aliases)
             if new_instr is not instr:
                 iterator.set_current(new_instr)
@@ -212,7 +215,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 # （new_instr 与 instr 的操作数可能已被替换为字面量，
                 #   但 _process_assign 内部会自行 resolve，传原始 instr 不影响结果）
 
-            # ② 更新 alias_map
+            # 更新 alias_map
             if instr.opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
                 aliases[var.get_name()] = Reference(var)
@@ -428,31 +431,21 @@ class ChainAssignEliminationPass(IROptimizationPass):
         """
         对单条指令应用别名替换，返回新指令（无变化则返回原指令）。
         """
-        if instr.opcode == IROpCode.ASSIGN:
-            target, source = instr.get_operands()
-            new_source = self._resolve_ref(source, aliases)
-            if new_source is not source:
-                return IRAssign(target, new_source)
+        opcode = instr.opcode
+        if opcode.use_indices and not opcode.use_extractor:
+            new_operands = copy(instr.operands)
+            changed = False
+            for i in opcode.use_indices:
+                operand = instr.operands[i]
+                if isinstance(operand, Reference):
+                    new_operand = self._resolve_ref(operand, aliases)
+                    if operand is not new_operand:
+                        changed = True
+                        new_operands[i] = new_operand
 
-        elif instr.opcode == IROpCode.BINARY_OP:
-            result, op, left, right = instr.get_operands()
-            new_left = self._resolve_ref(left, aliases)
-            new_right = self._resolve_ref(right, aliases)
-            if new_left is not left or new_right is not right:
-                return IRBinaryOp(result, op, new_left, new_right)
-
-        elif instr.opcode == IROpCode.COMPARE:
-            result, op, left, right = instr.get_operands()
-            new_left = self._resolve_ref(left, aliases)
-            new_right = self._resolve_ref(right, aliases)
-            if new_left is not left or new_right is not right:
-                return IRCompare(result, op, new_left, new_right)
-
-        elif instr.opcode == IROpCode.UNARY_OP:
-            result, op, operand = instr.get_operands()
-            new_operand = self._resolve_ref(operand, aliases)
-            if new_operand is not operand:
-                return IRUnaryOp(result, op, new_operand)
+            if changed:
+                return IRInstruction(opcode, *new_operands)
+            return instr
 
         elif instr.opcode == IROpCode.COND_JUMP:
             cond, true_scope, false_scope = instr.get_operands()
@@ -472,12 +465,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
             if changed:
                 return IRCallMethod(result, obj, func, new_args)
 
-        elif instr.opcode == IROpCode.CAST:
-            result, target_type, source = instr.get_operands()
-            new_source = self._resolve_ref(source, aliases)
-            if new_source is not source:
-                return IRCast(result, target_type, new_source)
-
+        logger.debug(f"指令 {opcode.desc}({opcode.code}) 缺少对应的别名替换，已返回原始指令。")
         return instr
 
     def _resolve_ref(self, ref: Reference, aliases: _AliasMap) -> Reference:

@@ -27,7 +27,7 @@ else:
         def peek(self) -> IRInstruction:
             return self._instructions[-1]
 
-        def __iter__(self):
+        def __iter__(self) -> "IRBuilderIterator":
             return IRBuilderIterator(self._instructions)
 
         def __reversed__(self):

@@ -162,7 +162,7 @@ A: 可以参考[调试指南](docs/zh-cn/debugging-guide.md)
 
 ### 数据使用
 
-- [中文wiki数据包版本](https://zh.minecraft.wiki/w/Template:Data_pack_format) 动态更新`Minecraft`与`数据包版本`之间的对应关系
+- [Minecraft 中文Wiki 数据包版本](https://zh.minecraft.wiki/w/Template:Data_pack_format) 动态更新`Minecraft`与`数据包版本`之间的对应关系
 
 ### 其他推荐
 

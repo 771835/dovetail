@@ -34,8 +34,8 @@ class Backend(ABC, metaclass=BackendMeta):
     """后端基类"""
 
     # 核心组件
-    processor_registry: ProcessorRegistry = None
-    output_manager: OutputManager = None
+    processor_registry: ProcessorRegistry
+    output_manager: OutputManager
 
     def __init__(self, ir_builder: IRBuilder, target: Path, config: CompileConfig):
         self.ir_builder = ir_builder
@@ -67,15 +67,15 @@ class Backend(ABC, metaclass=BackendMeta):
 
     def _process_instructions(self, context: GenerationContext):
         """处理所有IR指令"""
-        for instruction in self.ir_builder:
-            if context.config.debug and instruction.opcode:
-                context.add_commands([f"# {_}" for _ in f"{instruction.opcode.value[1]}:{instruction!r}".split("\n")])
-            processor = self.processor_registry.get_processor(instruction.opcode)
+        for instr in self.ir_builder:
+            if context.config.debug and instr.opcode:
+                context.add_commands([f"# {_}" for _ in f"{instr.opcode.desc}:{instr!r}".split("\n")])
+            processor = self.processor_registry.get_processor(instr.opcode)
 
             try:
-                processor.process(instruction, context)
+                processor.process(instr, context)
             except Exception as e:
-                logger.error(f"Failed to process {instruction.opcode.name}: {e.__repr__()}")
+                logger.error(f"Failed to process {instr.opcode.name}: {e.__repr__()}")
                 if self.config.debug:
                     raise
 

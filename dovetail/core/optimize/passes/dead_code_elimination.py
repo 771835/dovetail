@@ -16,8 +16,8 @@
     标记所有可达的活跃变量。
 
   第三遍（_remove_dead_code）：
-    删除结果变量不在活跃集中的纯计算指令。
-    删除变量不在活跃集中的 DECLARE 指令（PARAMETER/RETURN 除外）。
+    删除结果变量不在活跃集中的无副作用指令。
+    删除变量不在活跃集中的 DECLARE 指令（PARAMETER 除外）。
 
 Key 一致性原则：
   所有变量的 key 统一通过 _lookup_key 构造，
@@ -136,92 +136,30 @@ class DeadCodeEliminationPass(IROptimizationPass):
                 var = instr.get_operands()[0]
                 key = _make_key(current_scope, var.get_name())
                 self._declared.add(key)
-                if var.var_type == VariableType.PARAMETER:
+                if var.var_type != VariableType.COMMON:
                     roots.add(key)
                 continue
 
-            # ------ ASSIGN ------
-            if opcode == IROpCode.ASSIGN:
-                target, source = instr.get_operands()
-                target_key = self._lookup_key(target.get_name(), current_scope, scope_stack)
-                self._ensure_def(target_key)
-                if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
-                    src_key = self._lookup_key(source.get_name(), current_scope, scope_stack)
-                    self._add_edge(target_key, src_key)
-                continue
-
-            # ------ BINARY_OP / COMPARE ------
-            if opcode in (IROpCode.BINARY_OP, IROpCode.COMPARE):
-                operands = instr.get_operands()
-                result, _op, left, right = operands[0], operands[1], operands[2], operands[3]
-                result_key = self._lookup_key(result.get_name(), current_scope, scope_stack)
+            # 拥有结果变量且无副作用的指令
+            if opcode.produces_result and not opcode.has_side_effect:
+                result_key = self._lookup_key(opcode.get_result_var(instr.operands).get_name(), current_scope,
+                                              scope_stack)
                 self._ensure_def(result_key)
-                for ref in (left, right):
+                for ref in opcode.get_used_refs(instr.operands):
                     if isinstance(ref, Reference) and ref.value_type == ValueType.VARIABLE:
                         op_key = self._lookup_key(ref.get_name(), current_scope, scope_stack)
                         self._add_edge(result_key, op_key)
                 continue
 
-            # ------ UNARY_OP ------
-            if opcode == IROpCode.UNARY_OP:
-                result, _op, operand = instr.get_operands()
-                result_key = self._lookup_key(result.get_name(), current_scope, scope_stack)
-                self._ensure_def(result_key)
-                if isinstance(operand, Reference) and operand.value_type == ValueType.VARIABLE:
-                    op_key = self._lookup_key(operand.get_name(), current_scope, scope_stack)
-                    self._add_edge(result_key, op_key)
-                continue
-
-            # ------ CAST ------
-            if opcode == IROpCode.CAST:
-                result, _dtype, source = instr.get_operands()
-                result_key = self._lookup_key(result.get_name(), current_scope, scope_stack)
-                self._ensure_def(result_key)
-                if isinstance(source, Reference) and source.value_type == ValueType.VARIABLE:
-                    src_key = self._lookup_key(source.get_name(), current_scope, scope_stack)
-                    self._add_edge(result_key, src_key)
-                continue
-
-            # ------ CALL ------
-            if opcode == IROpCode.CALL:
-                result, _func, args = instr.get_operands()
-                if result is not None:
-                    result_key = self._lookup_key(result.get_name(), current_scope, scope_stack)
+            if opcode.has_side_effect:
+                if result_var := opcode.get_result_var(instr.operands):
+                    result_key = self._lookup_key(result_var.get_name(), current_scope, scope_stack)
                     self._ensure_def(result_key)
                     roots.add(result_key)
-                for arg_ref in args.values():
-                    if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
-                        roots.add(self._lookup_key(arg_ref.get_name(), current_scope, scope_stack))
-                continue
 
-            # ------ CALL_METHOD ------
-            if opcode == IROpCode.CALL_METHOD:
-                result, obj_ref, _method, args = instr.get_operands()
-                if result is not None:
-                    result_key = self._lookup_key(result.get_name(), current_scope, scope_stack)
-                    self._ensure_def(result_key)
-                    roots.add(result_key)
-                if isinstance(obj_ref, Reference) and obj_ref.value_type == ValueType.VARIABLE:
-                    roots.add(self._lookup_key(obj_ref.get_name(), current_scope, scope_stack))
-                for arg_ref in args.values():
-                    if isinstance(arg_ref, Reference) and arg_ref.value_type == ValueType.VARIABLE:
-                        roots.add(self._lookup_key(arg_ref.get_name(), current_scope, scope_stack))
-                continue
-
-            # ------ RETURN ------
-            if opcode == IROpCode.RETURN:
-                operands = instr.get_operands()
-                value_ref = operands[0] if operands else None
-                if isinstance(value_ref, Reference) and value_ref.value_type == ValueType.VARIABLE:
-                    roots.add(self._lookup_key(value_ref.get_name(), current_scope, scope_stack))
-                continue
-
-            # ------ COND_JUMP ------
-            if opcode == IROpCode.COND_JUMP:
-                cond_ref, _true_scope, _false_scope = instr.get_operands()
-                if isinstance(cond_ref, Reference) and cond_ref.value_type == ValueType.VARIABLE:
-                    roots.add(self._lookup_key(cond_ref.get_name(), current_scope, scope_stack))
-                continue
+                for ref in opcode.get_used_refs(instr.operands):
+                    if isinstance(ref, Reference) and ref.value_type == ValueType.VARIABLE:
+                        roots.add(self._lookup_key(ref.get_name(), current_scope, scope_stack))
 
         return roots
 
@@ -276,9 +214,13 @@ class DeadCodeEliminationPass(IROptimizationPass):
 
             current_scope = scope_stack[-1]
 
+            # 跳过有副作用的指令指令
+            if opcode.has_side_effect:
+                continue
+
             if opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
-                if var.var_type == VariableType.PARAMETER:
+                if var.var_type != VariableType.COMMON:
                     continue
                 key = self._lookup_key(var.get_name(), current_scope, scope_stack)
                 if key not in self._live:
@@ -286,19 +228,10 @@ class DeadCodeEliminationPass(IROptimizationPass):
                     self._changed = True
                 continue
 
-            if opcode == IROpCode.ASSIGN:
-                target, _source = instr.get_operands()
-                key = self._lookup_key(target.get_name(), current_scope, scope_stack)
-                if key not in self._live:
-                    iterator.remove_current()
-                    self._changed = True
-                continue
-
-            if opcode in (IROpCode.BINARY_OP, IROpCode.COMPARE,
-                          IROpCode.UNARY_OP, IROpCode.CAST):
-                result = instr.get_operands()[0]
-                key = self._lookup_key(result.get_name(), current_scope, scope_stack)
-                if key not in self._live:
+            if opcode.produces_result:
+                result_var = opcode.get_result_var(instr.operands).get_name()
+                result_key = self._lookup_key(result_var, current_scope, scope_stack)
+                if result_key not in self._live:
                     iterator.remove_current()
                     self._changed = True
                 continue

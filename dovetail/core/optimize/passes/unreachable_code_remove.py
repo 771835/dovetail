@@ -16,7 +16,7 @@ from dovetail.core.optimize.pass_registry import register_pass
 
 
 @register_pass(PassMetadata(
-    name="unreachable_code_removal",
+    name="unreachable_code_remove",
     display_name="不可达代码移除",
     description="移除 return/break/continue 之后的不可达代码",
     level=OptimizationLevel.O1,
@@ -56,7 +56,7 @@ class UnreachableCodeRemovalPass(IROptimizationPass):
                 self._changed = True
                 continue
 
-            if instr.opcode in (IROpCode.RETURN, IROpCode.BREAK, IROpCode.CONTINUE):
+            if instr.opcode.is_terminator:
                 in_unreachable = True
 
         return self._changed

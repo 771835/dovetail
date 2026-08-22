@@ -31,7 +31,7 @@ class InstructionFlag(Flag):
     CALL = auto()  # 函数/方法调用
 
 @define(frozen=True, eq=False)
-class OpDescriptor:
+class IROpDescriptor:
     """
     指令操作码描述符。
 
@@ -51,7 +51,7 @@ class OpDescriptor:
 
     # ---- 比较与哈希：仅看 code ----
     def __eq__(self, other: Any) -> bool:
-        if isinstance(other, OpDescriptor):
+        if isinstance(other, IROpDescriptor):
             return self.code == other.code
         if isinstance(other, int):
             return self.code == other
@@ -135,71 +135,71 @@ def _struct_call_uses(operands) -> list:
 
 
 class IROpCode:
-    """指令操作码。每个成员是自描述的 OpDescriptor，比较/哈希的金标准是 code。"""
+    """指令操作码。每个成员是自描述的 IROpDescriptor，比较/哈希的金标准是 code属性。"""
 
     # ==================== CONTROL_FLOW (0x00-0x1F) ====================
 
-    JUMP = OpDescriptor(
+    JUMP = IROpDescriptor(
         0x00, "跳转", InstructionCategory.CONTROL_FLOW,
         flags=InstructionFlag.JUMP,
     )
 
-    COND_JUMP = OpDescriptor(
+    COND_JUMP = IROpDescriptor(
         0x01, "条件跳转", InstructionCategory.CONTROL_FLOW,
         flags=InstructionFlag.JUMP,
         use_indices=(0,),  # operands[0] = condition: Reference
     )
 
-    FUNCTION = OpDescriptor(
+    FUNCTION = IROpDescriptor(
         0x02, "函数定义", InstructionCategory.CONTROL_FLOW,
         flags=InstructionFlag.SIDE_EFFECT,
     )
 
-    CALL = OpDescriptor(
+    CALL = IROpDescriptor(
         0x03, "函数调用", InstructionCategory.CONTROL_FLOW,
         flags=InstructionFlag.SIDE_EFFECT | InstructionFlag.CALL | InstructionFlag.PRODUCES_RESULT,
         result_index=0,
         use_extractor=_call_uses,
     )
 
-    RETURN = OpDescriptor(
+    RETURN = IROpDescriptor(
         0x04, "返回", InstructionCategory.CONTROL_FLOW,
         flags=InstructionFlag.SIDE_EFFECT | InstructionFlag.TERMINATOR,
         use_indices=(0,),  # operands[0] = return value: Reference | None
     )
 
-    SCOPE_BEGIN = OpDescriptor(
+    SCOPE_BEGIN = IROpDescriptor(
         0x05, "作用域开始", InstructionCategory.CONTROL_FLOW,
     )
 
-    SCOPE_END = OpDescriptor(
+    SCOPE_END = IROpDescriptor(
         0x06, "作用域结束", InstructionCategory.CONTROL_FLOW,
     )
 
-    BREAK = OpDescriptor(
+    BREAK = IROpDescriptor(
         0x07, "中断", InstructionCategory.CONTROL_FLOW,
         flags=InstructionFlag.TERMINATOR,
     )
 
-    CONTINUE = OpDescriptor(
+    CONTINUE = IROpDescriptor(
         0x08, "继续", InstructionCategory.CONTROL_FLOW,
         flags=InstructionFlag.TERMINATOR,
     )
 
     # ==================== DATA_OP (0x20-0x3F) ====================
 
-    DECLARE = OpDescriptor(
+    DECLARE = IROpDescriptor(
         0x20, "变量声明", InstructionCategory.DATA_OP,
     )
 
-    ASSIGN = OpDescriptor(
+    ASSIGN = IROpDescriptor(
         0x21, "赋值", InstructionCategory.DATA_OP,
         flags=InstructionFlag.PRODUCES_RESULT,
         result_index=0,  # target: Variable
         use_indices=(1,),  # source: Reference
     )
 
-    UNARY_OP = OpDescriptor(
+    UNARY_OP = IROpDescriptor(
         0x22, "一元运算", InstructionCategory.DATA_OP,
         flags=InstructionFlag.PURE_COMPUTE | InstructionFlag.PRODUCES_RESULT,
         result_index=0,  # result: Variable
@@ -207,7 +207,7 @@ class IROpCode:
         fold_handler=UNARY_OP_HANDLERS,
     )
 
-    BINARY_OP = OpDescriptor(
+    BINARY_OP = IROpDescriptor(
         0x23, "二元运算", InstructionCategory.DATA_OP,
         flags=InstructionFlag.PURE_COMPUTE | InstructionFlag.PRODUCES_RESULT,
         result_index=0,  # result: Variable
@@ -215,7 +215,7 @@ class IROpCode:
         fold_handler=BINARY_OP_HANDLERS,
     )
 
-    COMPARE = OpDescriptor(
+    COMPARE = IROpDescriptor(
         0x24, "比较", InstructionCategory.DATA_OP,
         flags=InstructionFlag.PURE_COMPUTE | InstructionFlag.PRODUCES_RESULT,
         result_index=0,  # result: Variable
@@ -223,14 +223,14 @@ class IROpCode:
         fold_handler=COMPARE_OP_HANDLERS,
     )
 
-    CAST = OpDescriptor(
+    CAST = IROpDescriptor(
         0x25, "类型转换", InstructionCategory.DATA_OP,
         flags=InstructionFlag.PURE_COMPUTE | InstructionFlag.PRODUCES_RESULT,
         result_index=0,  # result: Variable
         use_indices=(2,),  # source: Reference
     )
 
-    FREE = OpDescriptor(
+    FREE = IROpDescriptor(
         0x26, "释放变量", InstructionCategory.DATA_OP,
         flags=InstructionFlag.SIDE_EFFECT,
         use_indices=(0,),  # variable: Variable
@@ -238,39 +238,39 @@ class IROpCode:
 
     # ==================== OOP (0x40-0x5F) ====================
 
-    CLASS = OpDescriptor(
+    CLASS = IROpDescriptor(
         0x40, "类定义", InstructionCategory.OOP,
         flags=InstructionFlag.SIDE_EFFECT,
     )
 
-    NEW_OBJ = OpDescriptor(
+    NEW_OBJ = IROpDescriptor(
         0x41, "新建对象", InstructionCategory.OOP,
         flags=InstructionFlag.SIDE_EFFECT | InstructionFlag.PRODUCES_RESULT,
         result_index=0,
         use_extractor=_new_obj_uses,
     )
 
-    GET_PROPERTY = OpDescriptor(
+    GET_PROPERTY = IROpDescriptor(
         0x42, "获取属性", InstructionCategory.OOP,
         flags=InstructionFlag.PURE_COMPUTE | InstructionFlag.PRODUCES_RESULT,
         result_index=0,  # result: Variable
         use_indices=(1,),  # object_ref: Reference
     )
 
-    SET_PROPERTY = OpDescriptor(
+    SET_PROPERTY = IROpDescriptor(
         0x43, "设置属性", InstructionCategory.OOP,
         flags=InstructionFlag.SIDE_EFFECT,
         use_indices=(0, 2),  # object_ref: Reference, value: Reference
     )
 
-    CALL_METHOD = OpDescriptor(
+    CALL_METHOD = IROpDescriptor(
         0x44, "调用方法", InstructionCategory.OOP,
         flags=InstructionFlag.SIDE_EFFECT | InstructionFlag.CALL | InstructionFlag.PRODUCES_RESULT,
         result_index=0,
         use_extractor=_call_method_uses,
     )
 
-    FREE_OBJ = OpDescriptor(
+    FREE_OBJ = IROpDescriptor(
         0x45, "释放对象", InstructionCategory.OOP,
         flags=InstructionFlag.SIDE_EFFECT,
         use_indices=(0,),  # object_ref: Reference
@@ -278,40 +278,40 @@ class IROpCode:
 
     # ==================== CONTAINER (0x80-0x9F) ====================
 
-    INDEX_GET = OpDescriptor(
+    INDEX_GET = IROpDescriptor(
         0x80, "索引读取", InstructionCategory.DATA_OP,
         flags=InstructionFlag.PURE_COMPUTE | InstructionFlag.PRODUCES_RESULT,
         result_index=0,  # result: Variable
         use_indices=(1, 2),  # container: Reference, key: Reference
     )
 
-    INDEX_SET = OpDescriptor(
+    INDEX_SET = IROpDescriptor(
         0x81, "索引写入", InstructionCategory.DATA_OP,
         flags=InstructionFlag.SIDE_EFFECT,
         use_indices=(0, 1, 2),  # container, key, value: Reference
     )
 
-    CONTAINER_LEN = OpDescriptor(
+    CONTAINER_LEN = IROpDescriptor(
         0x82, "获取长度", InstructionCategory.DATA_OP,
         flags=InstructionFlag.PURE_COMPUTE | InstructionFlag.PRODUCES_RESULT,
         result_index=0,  # result: Variable
         use_indices=(1,),  # container: Reference
     )
 
-    LIST_APPEND = OpDescriptor(
+    LIST_APPEND = IROpDescriptor(
         0x83, "追加元素", InstructionCategory.DATA_OP,
         flags=InstructionFlag.SIDE_EFFECT,
         use_indices=(0, 1),  # container: Reference, value: Reference
     )
 
-    DICT_HAS = OpDescriptor(
+    DICT_HAS = IROpDescriptor(
         0x84, "检查键", InstructionCategory.DATA_OP,
         flags=InstructionFlag.PURE_COMPUTE | InstructionFlag.PRODUCES_RESULT,
         result_index=0,  # result: Variable
         use_indices=(1, 2),  # container: Reference, key: Reference
     )
 
-    DICT_REMOVE = OpDescriptor(
+    DICT_REMOVE = IROpDescriptor(
         0x85, "删除键", InstructionCategory.DATA_OP,
         flags=InstructionFlag.SIDE_EFFECT,
         use_indices=(0, 1),  # container: Reference, key: Reference
@@ -319,50 +319,50 @@ class IROpCode:
 
     # ==================== STRUCT (0xA0-0xBF) ====================
 
-    STRUCT_DEF = OpDescriptor(
+    STRUCT_DEF = IROpDescriptor(
         0xA0, "结构体定义", InstructionCategory.STRUCT,
         flags=InstructionFlag.SIDE_EFFECT,
     )
 
-    STRUCT_NEW = OpDescriptor(
+    STRUCT_NEW = IROpDescriptor(
         0xA1, "结构体实例化", InstructionCategory.STRUCT,
         flags=InstructionFlag.SIDE_EFFECT | InstructionFlag.PRODUCES_RESULT,
         result_index=0,
         use_extractor=_struct_new_uses,
     )
 
-    STRUCT_GET = OpDescriptor(
+    STRUCT_GET = IROpDescriptor(
         0xA2, "字段读取", InstructionCategory.STRUCT,
         flags=InstructionFlag.PURE_COMPUTE | InstructionFlag.PRODUCES_RESULT,
         result_index=0,  # result: Variable
         use_indices=(1,),  # struct_ref: Reference
     )
 
-    STRUCT_SET = OpDescriptor(
+    STRUCT_SET = IROpDescriptor(
         0xA3, "字段写入", InstructionCategory.STRUCT,
         flags=InstructionFlag.SIDE_EFFECT,
         use_indices=(0, 2),  # struct_ref: Reference, value: Reference
     )
 
-    STRUCT_CALL = OpDescriptor(
+    STRUCT_CALL = IROpDescriptor(
         0xA4, "结构体方法调用", InstructionCategory.STRUCT,
         flags=InstructionFlag.SIDE_EFFECT | InstructionFlag.CALL | InstructionFlag.PRODUCES_RESULT,
         result_index=0,
         use_extractor=_struct_call_uses,
     )
 
-    STRUCT_FREE = OpDescriptor(
+    STRUCT_FREE = IROpDescriptor(
         0xA5, "结构体释放", InstructionCategory.STRUCT,
         flags=InstructionFlag.SIDE_EFFECT,
         use_indices=(0,),  # struct_ref: Reference
     )
 
-    UNKNOWN = OpDescriptor(-0x01, "未知指令", InstructionCategory.SPECIAL,)
+    UNKNOWN = IROpDescriptor(-0x01, "未知指令", InstructionCategory.SPECIAL, )
 
     @classmethod
     def find(cls, code: int):
         for attr in dir(cls):
-            if isinstance(attr, OpDescriptor) and attr.code == code:
+            if isinstance(attr, IROpDescriptor) and attr.code == code:
                 return attr
 
         return cls.UNKNOWN

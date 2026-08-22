@@ -95,7 +95,7 @@ class UselessScopeEliminationPass(IROptimizationPass):
         self.scope_reachability[scope_name] = True
 
         for instr in self.scope_instructions.get(scope_name, []):
-            if instr.opcode in (IROpCode.JUMP, IROpCode.COND_JUMP):
+            if instr.opcode.is_jump:
                 targets = [op for op in instr.get_operands() if isinstance(op, str)]
                 for target in targets:
                     if target in self.scope_instructions:

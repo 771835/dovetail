@@ -163,10 +163,11 @@ class ConstantFoldingPass(IROptimizationPass):
         while True:
             try:
                 instr = next(iterator)
+                opcode = instr.opcode
             except StopIteration:
                 break
 
-            handler = instruction_handlers.get(instr.opcode)
+            handler = instruction_handlers.get(opcode)
             if handler:
                 if handler(iterator, instr):  # NOQA
                     self.changed = True
