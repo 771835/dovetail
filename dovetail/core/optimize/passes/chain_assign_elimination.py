@@ -123,14 +123,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 if len(scope_stack) > 1:
                     scope_stack.pop()
 
-            elif instr.opcode == IROpCode.ASSIGN:
-                target = instr.get_operands()[0]
-                assigned_vars.setdefault(current, set()).add(target.get_name())
-
-            elif instr.opcode in (
-                    IROpCode.BINARY_OP, IROpCode.COMPARE, IROpCode.UNARY_OP
-            ):
-                result = instr.get_operands()[0]
+            elif result := instr.opcode.get_result_var(instr.operands):
                 assigned_vars.setdefault(current, set()).add(result.get_name())
 
         self._scope_tree = scope_tree

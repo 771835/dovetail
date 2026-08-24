@@ -6,8 +6,6 @@
 """
 from __future__ import annotations
 
-from copy import deepcopy
-
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel
 from dovetail.core.enums.types import ValueType, VariableType
@@ -17,6 +15,10 @@ from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.symbols import Reference, Variable, Function
+from dovetail.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 # 内联阈值：函数体指令数超过此值不内联
 INLINE_THRESHOLD = 15
@@ -88,7 +90,7 @@ class FunctionInliningPass(IROptimizationPass):
                     i = end_idx + 1
                     continue
 
-                self._inline_candidates[func_name] = deepcopy(body)
+                self._inline_candidates[func_name] = body
                 i = end_idx + 1
             else:
                 i += 1
@@ -343,60 +345,47 @@ class FunctionInliningPass(IROptimizationPass):
         重建一条指令，把所有操作数里的变量替换为重命名版本。
         直接按 opcode 分发处理，保证指令结构正确。
         """
-        op = instr.opcode
+        opcode = instr.opcode
 
-        if op == IROpCode.ASSIGN:
-            target, source = instr.get_operands()
-            new_target = rename_map.get(target.name, target)
-            new_source = self._remap_ref(source, rename_map)
-            assert isinstance(new_target, Variable)
-            return IRAssign(new_target, new_source)
-
-        elif op in (IROpCode.BINARY_OP, IROpCode.COMPARE):
-            result, operator, left, right = instr.get_operands()
-            new_result = rename_map.get(result.name, result)
-            new_left = self._remap_ref(left, rename_map)
-            new_right = self._remap_ref(right, rename_map)
-            return IRInstruction(op, new_result, operator, new_left, new_right)
-
-        elif op == IROpCode.UNARY_OP:
-            result, operator, operand = instr.get_operands()
-            new_result = rename_map.get(result.name, result)
-            new_operand = self._remap_ref(operand, rename_map)
-            assert isinstance(new_result, Variable)
-            return IRUnaryOp(new_result, operator, new_operand)
-
-        elif op == IROpCode.CAST:
-            result, dtype, value_ref = instr.get_operands()
-            new_result = rename_map.get(result.name, result)
-            new_value_ref = self._remap_ref(value_ref, rename_map)
-            assert isinstance(new_result, Variable)
-            return IRCast(new_result, dtype, new_value_ref)
-
-        elif op == IROpCode.CALL:
-            result, func, args = instr.get_operands()
-            new_result = rename_map.get(result.name, result) if result else None
+        if opcode.is_call:
+            args = instr.operands[-1]
             new_args = {k: self._remap_ref(v, rename_map) for k, v in args.items()}
-            return IRCall(new_result, func, new_args)
+            new_operands = instr.operands[:-1]
+            for i, operand in enumerate(new_operands):
+                if isinstance(operand, Variable):
+                    new_operands[i] = rename_map.get(operand.name, operand)
+                elif isinstance(operand, Reference):
+                    new_operands[i] = self._remap_ref(operand, rename_map)
 
-        elif op in (IROpCode.SCOPE_BEGIN, IROpCode.SCOPE_END):
+            return IRInstruction(opcode, *new_operands, new_args)
+
+        elif opcode.is_jump:
+            new_operands = instr.operands[:]
+            for i, operand in enumerate(new_operands):
+                if isinstance(operand, Reference):
+                    new_operands[i] = self._remap_ref(operand, rename_map)
+                elif isinstance(operand, str):
+                    new_operands[i] = scope_rename.get(operand, operand)
+
+            return IRInstruction(opcode, *new_operands)
+
+        elif opcode.use_indices or opcode.result_index:
+            new_operands = instr.operands[:]
+            # 替换结果变量
+            result = opcode.get_result_var(new_operands)
+            if result:
+                new_operands[opcode.result_index] = rename_map.get(result.name, result)
+
+            # 替换引用
+            for i in opcode.use_indices:
+                new_operands[i] = self._remap_ref(new_operands[i], rename_map)
+
+            return IRInstruction(opcode, *new_operands)
+
+        elif opcode in (IROpCode.SCOPE_BEGIN, IROpCode.SCOPE_END):
             scope_name, scope_type = instr.get_operands()
-            return IRInstruction(op, scope_rename.get(scope_name, scope_name), scope_type)
-
-        elif op == IROpCode.COND_JUMP:
-            cond, true_scope, false_scope = instr.get_operands()
-            if not cond.is_literal():
-                new_cond = rename_map.get(cond.get_name(), cond.value)
-                assert isinstance(new_cond, Variable)
-                return IRCondJump(
-                    Reference(new_cond),
-                    scope_rename.get(true_scope, true_scope),
-                    scope_rename.get(false_scope, false_scope)
-                )
-
-        elif op == IROpCode.JUMP:  # IRJump 对应的 opcode
-            target_scope = instr.get_operands()[0]
-            return IRJump(scope_rename.get(target_scope, target_scope))  # noqa
+            return IRInstruction(opcode, scope_rename.get(scope_name, scope_name), scope_type)
 
         # 其他指令原样返回，保守处理
+        logger.debug(f"指令 {opcode} 无法重建，返回原始指令")
         return instr
