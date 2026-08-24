@@ -26,6 +26,16 @@ class NoinlineProcessor(AnnotationProcessor):
 
 
 @annotation_processor
+class NoinlineProcessor(AnnotationProcessor):
+    annotation_name = "force_inline"
+    applicable_targets = [AnnotationTarget.FUNCTION]
+    timing = AnnotationTiming.POST_SYMBOL
+
+    def process(self, args, ctx):
+        return AnnotationResult(flags={"force_inline"})
+
+
+@annotation_processor
 class RecursiveProcessor(AnnotationProcessor):
     annotation_name = "recursive"
     applicable_targets = [AnnotationTarget.FUNCTION]

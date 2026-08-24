@@ -12,4 +12,4 @@ license = "Apache 2.0"
 [build]
 tool = "python"
 entry = "main.py"
-output = ""
+output = "build"

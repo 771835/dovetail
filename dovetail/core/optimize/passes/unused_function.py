@@ -110,7 +110,7 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
         """
         roots: set[str] = {"__root__"}
         for func_name, func in self.function_declarations.items():
-            if "no_dce" in func.all_flags():
+            if func.has_flag("no_dce"):
                 roots.add(func_name)
 
         visited: set[str] = set()

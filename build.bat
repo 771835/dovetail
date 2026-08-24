@@ -10,6 +10,9 @@ chcp 65001 >nul
 :: ── Generate Version ──────────────────────────────────────────
 python .\scripts\gen_version.py
 
+:: ── Clean cache files ─────────────────────────────────────────
+python .\build_main.py clean
+
 :: ── Compiler core ─────────────────────────────────────────────
 python -m nuitka --standalone --lto=yes --deployment ^
   --include-module=dovetail.utils.escape_processor ^

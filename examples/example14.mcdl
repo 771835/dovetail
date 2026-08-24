@@ -4,6 +4,7 @@
  * 计算 result_matrix = matrix_a × matrix_b
  * 并格式化输出结果矩阵
  */
+@force_inline
 fn matrix16x16_multiply(
     // 矩阵A的256个元素 (按行优先顺序)
     a000 : int, a001 : int, a002 : int, a003 : int, a004 : int, a005 : int, a006 : int, a007 : int, a008 : int, a009 : int, a010 : int, a011 : int, a012 : int, a013 : int, a014 : int, a015 : int,

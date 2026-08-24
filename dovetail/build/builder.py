@@ -115,7 +115,7 @@ class Builder:
         else:
             # 普通 Python 环境
             import sys as _sys
-            _main = Path(_sys.argv[0]).resolve().parent / "main.py" # build_main和main在同目录
+            _main = Path(_sys.argv[0]).resolve().parent / "main.py"  # build_main和main在同目录
             args = [sys.executable, str(_main)]
 
         # 入口文件（必需）
@@ -294,11 +294,11 @@ class Builder:
         # 解析并验证配置
         try:
             config = BuildConfig(self.project_root)
-        except (FileNotFoundError, ValueError) as e:
-            logger.error(str(e))
-            return 2  # DFP-604 §5.3: 配置错误
+            for p in config.output:
+                shutil.rmtree(self.project_root / p, ignore_errors=True)
+        except (FileNotFoundError, ValueError):
+            pass # 跳过以便于清理其他内容
 
-        shutil.rmtree(self.project_root / config.output, ignore_errors=True)
         for file_path in self.project_root.rglob(f"*"):
             if file_path.is_file() and file_path.suffix in (CACHE_FILE_PREFIX, IR_CACHE_FILE_PREFIX):
                 try:
@@ -306,4 +306,10 @@ class Builder:
                     logger.debug(f"删除了文件 {file_path}")
                 except Exception as e:
                     logger.warning(f"删除失败 {file_path}: {e}")
+            elif file_path.is_dir() and file_path.name == "__pycache__":
+                try:
+                    shutil.rmtree(file_path)
+                    logger.debug(f"删除了 Python 缓存目录 {file_path}")
+                except (OSError, FileNotFoundError):
+                    pass
         return 0

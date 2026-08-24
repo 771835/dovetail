@@ -41,8 +41,8 @@ class Annotatable(ABC):
     def has_annotation(self, name: str) -> bool:
         return name in self.annotations
 
-    def get_flags(self, name: str) -> set[str]:
-        a = self.annotations.get(name)
+    def get_flags(self, annotation_name: str) -> set[str]:
+        a = self.annotations.get(annotation_name)
         return a.flags if a else set()
 
     def get_metadata(self, name: str) -> dict[str, Any]:
@@ -55,6 +55,10 @@ class Annotatable(ABC):
         for a in self.annotations.values():
             result |= a.flags
         return result
+
+    def has_flag(self, flag: str) -> bool:
+        """判断是否存在特定 flag"""
+        return flag in self.all_flags()
 
     def all_metadata(self) -> dict[str, Any]:
         """汇总所有注解的 metadata"""

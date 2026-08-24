@@ -62,7 +62,7 @@ class FunctionInliningPass(IROptimizationPass):
         遍历整个 IR，收集每个函数的指令体，
         同时检测递归调用，标记不可内联的函数。
         """
-        instructions = list(self.builder.get_instructions())
+        instructions = self.builder.get_instructions()
 
         # 先收集所有函数体
         # 结构：FUNCTION -> SCOPE_BEGIN(FUNCTION) -> ... -> SCOPE_END
@@ -82,13 +82,13 @@ class FunctionInliningPass(IROptimizationPass):
 
                 # 收集 SCOPE 内的所有指令（不含 SCOPE_BEGIN/SCOPE_END 本身）
                 body, end_idx = self._extract_scope_body(instructions, j)
-                self._inline_candidates[func_name] = deepcopy(body)
+
                 # 指令数超过阈值，不内联
-                if len(body) > INLINE_THRESHOLD:
+                if (len(body) > INLINE_THRESHOLD and not func.has_flag("force_inline")) or func.has_flag("no_inline"):
                     i = end_idx + 1
                     continue
 
-                self._inline_candidates[func_name] = body
+                self._inline_candidates[func_name] = deepcopy(body)
                 i = end_idx + 1
             else:
                 i += 1

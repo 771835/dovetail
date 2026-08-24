@@ -109,7 +109,7 @@ class AnnotationContext:
     symbol_name: str = ""
     symbol: CAN_ANNOTATION_SYMBOLS | None = None
     symbol_target: AnnotationTarget | None = None
-    symbol_resolver: SymbolResolver = None
+    symbol_resolver: SymbolResolver | None = None
 
 
 class AnnotationProcessor(ABC):

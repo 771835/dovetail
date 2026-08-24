@@ -39,6 +39,7 @@ _specs: Final[dict[str, Annotation]] = {
     "tick": Annotation("tick", {"interval": 1}, AnnotationCategory.LIFECYCLE),
     "internal": Annotation("internal", None, AnnotationCategory.VISIBILITY),
     "noinline": Annotation("noinline", None, AnnotationCategory.VISIBILITY),
+    "force_inline": Annotation("force_inline", None, AnnotationCategory.VISIBILITY),
     "export": Annotation("export", {"path": "", "abi": "dovetail", "objective": ""}, AnnotationCategory.LINKAGE),
     "extern": Annotation("extern", {"path": "", "abi": "dovetail", "objective": ""}, AnnotationCategory.LINKAGE),
     "target": Annotation("target", {"edition": "java"}, AnnotationCategory.CONDITION),
