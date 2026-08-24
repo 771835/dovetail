@@ -3,7 +3,7 @@
 后端工厂
 """
 from pathlib import Path
-from typing import Dict, Type, Optional
+from typing import Type, Optional
 
 from dovetail.core.backend.base import Backend
 from dovetail.core.compile_config import CompileConfig
@@ -22,7 +22,7 @@ class BackendNotFoundError(CompilationError):
 class BackendFactory:
     """后端工厂"""
 
-    _backends: Dict[str, Type[Backend]] = {}
+    _backends: dict[str, Type[Backend]] = {}
 
     @classmethod
     def register(cls, backend_class: Type[Backend]):

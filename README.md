@@ -72,6 +72,7 @@ fn main() {
     greet("Bob")
 }
 ```
+详细内容见[快速开始](docs/zh-cn/quick-start.md)
 
 ## 贡献
 

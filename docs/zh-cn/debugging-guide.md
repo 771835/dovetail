@@ -203,6 +203,7 @@ python main.py your_code.mcdl -o target -O 2 -mcv 1.21.5
 3. **调整写法**：如果某段特定写法触发 bug，尝试换一种等价写法
 4. **清除缓存**：删除源文件同目录下的 `.mcdc` 文件（如果存在），排除缓存导致旧代码生效
 5. **拆分文件**：如果是大型文件触发的问题，尝试拆分成多个文件
+6. **局部手写**：如果存在问题的部分主要是实际执行的指令，可以局部使用 `exec` 等函数直接写原始命令
 
 ### 提交 Bug 报告
 
@@ -210,7 +211,7 @@ python main.py your_code.mcdl -o target -O 2 -mcv 1.21.5
 
 - **最小复现用例**：删掉一切无关代码，只保留能触发问题的最小 `.mcdl` 文件
 - **完整编译命令**：你用的完整命令行参数（包括 `-O`、`-mcv`、`--backend` 等）
-- **编译器版本**：运行 `python main.py --version` 获取，如果你知道，也可以给出所用编译器最近的一次`git提交`的哈希
+- **编译器版本**：运行 `python main.py --version` 获取，如果输出内容中存在 `Commit` 字段，请将其值一并给出
 - **错误输出**：完整的错误信息或异常堆栈
 - **期望行为**：你觉得正确的输出应该是什么
 - **调试日志**（如有）：附上 `--debug` 模式下生成的 `logs/dovetail.log`
@@ -439,7 +440,7 @@ name = "my_project"
 version = "1.0.0"
 authors = ["Your Name <your.email@example.com>"]
 description = "A Minecraft datapack written in Dovetail"
-license = "MIT"
+license = "MIT"                # 你的项目的许可证，推荐在项目根目录中放入 LICENSE 文件 
 
 [build]
 tool = "default"               # 使用的构建工具名称
@@ -508,6 +509,11 @@ python main.py your_code.mcdl
 ```
 
 如果不设置此变量，插件加载失败只会输出一行简短错误信息，不包含堆栈。
+
+### `DOVETAIL_DESCRIPTION`
+
+设为任意非空值时，其会作为最终生成的数据包描述，对调试来说**没什么**用qwq  
+如果不设置此变量，最终生成的数据包描述会为`A datapack of Minecraft`。
 
 ### 代理相关环境变量
 

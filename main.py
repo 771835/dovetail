@@ -8,7 +8,6 @@ from contextlib import chdir
 from pathlib import Path
 from typing import NoReturn, Optional
 
-
 from dovetail.core.backend import BackendFactory
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.config import PROJECT_NAME, PROJECT_VERSION, \
@@ -212,8 +211,8 @@ def main():
         plugin_loader.load_plugin("plugin_loader")
 
         print(f"The version of {PROJECT_NAME} is {PROJECT_VERSION}")
-        if COMMIT_HASH  != "unknown":
-            print(f"Commit: {COMMIT_HASH }")
+        if COMMIT_HASH != "unknown":
+            print(f"Commit: {COMMIT_HASH}")
         print(f"License: {PROJECT_LICENSE}")
         print(f"Repository: {PROJECT_WEBSITE}")
         if get_registry().get_all():
@@ -241,7 +240,7 @@ def main():
     parser.add_argument('--no-generate-commands', '-ngc', action='store_true', help='不生成指令')
     parser.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
     parser.add_argument('--recursion', action='store_true', help='启用递归(需后端支持)')
-    parser.add_argument('--disable-deprecated-function', action='store_true', help='禁用已弃用函数编译')
+    parser.add_argument('--disable-deprecated-function', action='store_true', help='禁用对已弃用函数编译')
     # args.add_argument('--first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
     parser.add_argument('--experimental', action='store_true', help='启用扩展模式(测试性功能)')
     parser.add_argument('--disable-names-decorator', action='store_true', help='禁用命名修饰')
