@@ -18,7 +18,9 @@ from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
 from dovetail.core.symbols import Function
+from dovetail.utils.logger import get_logger
 
+logger = get_logger(__name__)
 
 @register_pass(PassMetadata(
     name="unused_function_elimination",
@@ -87,13 +89,15 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
                     current_func = "__root__"
                     scope_depth = 0
 
-            elif opcode == IROpCode.CALL:
-                callee: Function = instr.get_operands()[1]
-                self.call_graph[current_func].add(callee.name)
-
-            elif opcode == IROpCode.CALL_METHOD:
-                callee: Function = instr.get_operands()[2]
-                self.call_graph[current_func].add(callee.name)
+            elif opcode.is_call:
+                callee: Function
+                for operand in instr.operands:
+                    if isinstance(operand, Function):
+                        callee = operand
+                        self.call_graph[current_func].add(callee.name)
+                        break
+                else:
+                    logger.debug("在调用指令的参数中找不到被调用的函数")
 
     # ──────────────────────────────────────────────────────────
     # Phase 2：BFS 计算可达集合

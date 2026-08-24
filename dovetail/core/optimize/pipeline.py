@@ -12,16 +12,16 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from dovetail.core.compile_config import CompileConfig
 from dovetail.core.config import FAST_MODE
 from dovetail.core.enums.optimization import OptimizationLevel
-from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.context import OptimizationContext
 from dovetail.core.optimize.pass_metadata import PassPhase
 from dovetail.core.optimize.pass_registry import get_registry
 from dovetail.utils.logger import get_logger
 
 if TYPE_CHECKING:
+    from dovetail.core.compile_config import CompileConfig
+    from dovetail.core.ir_builder import IRBuilder
     from dovetail.core.optimize.base import IROptimizationPass
 
 logger = get_logger(__name__)
@@ -208,9 +208,9 @@ class OptimizationPipeline:
             debug=self.config.debug,
         )
 
-        for iteration in range(max_iter):
-            # 第 0 轮不调用 next_iteration，避免 iteration 从 1 开始
-            if iteration > 0:
+        for iteration in range(1, max_iter + 1):
+            # 第 1 轮不调用 next_iteration
+            if iteration > 1:
                 context = context.next_iteration()
 
             changed = False
@@ -244,10 +244,12 @@ class OptimizationPipeline:
 
                 # 调试输出
                 if self.config.debug:
+                    yes_str = '\033[31m'
+                    no_str = '\033[32m不'
                     logger.debug(
                         f"  执行：{pass_class.get_metadata().display_name}，"
                         f"用时{time.time() - s_t:1f}，"
-                        f"期间{'' if pass_changed else '不'}存在修改。")
+                        f"期间{yes_str if pass_changed else no_str}存在\033[0m修改。")
                     if not FAST_MODE:
                         from dovetail.utils.ir_validator import assert_ir
                         assert_ir(builder)

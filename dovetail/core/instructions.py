@@ -980,7 +980,7 @@ def IRStructDef(structure: Structure) -> IRInstruction:
 @register_repr(IROpCode.STRUCT_DEF)
 def _struct_def_repr(instr: IRInstruction) -> str:
     s: Structure = instr.operands[0]
-    fields_str = ", ".join(f"{dtype.get_name()} {name}" for name, dtype in s.fields.items())
+    fields_str = ", \n".join(f"{dtype.get_name()} {name}" for name, dtype in s.fields.items())
     return f"struct {s.get_name()} {{ {fields_str} }}"
 
 

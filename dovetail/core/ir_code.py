@@ -22,13 +22,14 @@ class InstructionFlag(Flag):
     """
     指令标识 用于标记某一种指令拥有的特性
     """
-    NONE = 0 # 无任何属性
+    NONE = 0  # 无任何属性
     SIDE_EFFECT = auto()  # 有副作用，不可消除/重排
     PURE_COMPUTE = auto()  # 纯计算，结果仅依赖操作数
     PRODUCES_RESULT = auto()  # 产生结果变量（operands[0]）
     TERMINATOR = auto()  # 终止控制流（return/break/continue）
     JUMP = auto()  # 跳转到其他作用域
     CALL = auto()  # 函数/方法调用
+
 
 @define(frozen=True, eq=False)
 class IROpDescriptor:

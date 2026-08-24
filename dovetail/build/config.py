@@ -142,6 +142,16 @@ class BuildConfig:
         """额外头文件搜索路径"""
         return self._data.get("paths", {}).get("includes", [])
 
+    @property
+    def docs(self) -> list[str]:
+        """文档目录"""
+        return self._data.get("paths", {}).get("docs", ["docs"])
+
+    @property
+    def hooks(self) -> list[str]:
+        """钩子目录"""
+        return self._data.get("paths", {}).get("hooks", ["hooks"])
+
     # ── [compiler] ────────────────────────────────────────────
 
     @property

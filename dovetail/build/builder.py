@@ -7,12 +7,14 @@ Dovetail 构建编排器
 """
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 from dovetail.build.config import BuildConfig
 from dovetail.build.hooks import run_hook
+from dovetail.core.config import CACHE_FILE_PREFIX, IR_CACHE_FILE_PREFIX
 from dovetail.utils.logger import get_logger
 from dovetail.utils.resource import IS_COMPILED
 
@@ -181,27 +183,22 @@ class Builder:
 
     # ── 项目初始化 ────────────────────────────────────────────
 
-    @staticmethod
-    def init_project(project_root: Path) -> int:
+    def init(self) -> int:
         """
         初始化项目骨架
 
         生成标准的 dovetail.toml、src/main.mcdl、hook/ 目录及 .gitignore。
 
-        Args:
-            project_root: 目标项目目录
-
         Returns:
             0 表示成功，非 0 表示失败
         """
-        project_root = project_root.resolve()
-        project_root.mkdir(parents=True, exist_ok=True)
+        self.project_root.mkdir(parents=True, exist_ok=True)
 
         # dovetail.toml
-        toml_path = project_root / "dovetail.toml"
+        toml_path = self.project_root / "dovetail.toml"
         toml_path.write_text(
             "[package]\n"
-            f'name = "{project_root.name}"\n'
+            f'name = "{self.project_root.name}"\n'
             'version = "0.1.0"\n'
             "authors = []\n"
             'description = ""\n'
@@ -234,7 +231,7 @@ class Builder:
         logger.info(f"创建 {toml_path}")
 
         # src/main.mcdl
-        main_mcdl = project_root / "src" / "main.mcdl"
+        main_mcdl = self.project_root / "src" / "main.mcdl"
         main_mcdl.parent.mkdir(parents=True, exist_ok=True)
         main_mcdl.write_text(
             "@init\n"
@@ -246,7 +243,7 @@ class Builder:
         logger.info(f"创建 {main_mcdl}")
 
         # hook/pre_build.py
-        hook_dir = project_root / "hook"
+        hook_dir = self.project_root / "hook"
         hook_dir.mkdir(parents=True, exist_ok=True)
 
         pre_hook = hook_dir / "pre_build.py"
@@ -271,7 +268,7 @@ class Builder:
         logger.info(f"创建 {post_hook}")
 
         # .gitignore
-        gitignore = project_root / ".gitignore"
+        gitignore = self.project_root / ".gitignore"
         gitignore.write_text(
             "/build/\n"
             "/target/\n"
@@ -280,5 +277,33 @@ class Builder:
         )
         logger.info(f"创建 {gitignore}")
 
-        logger.info(f"项目初始化完成: {project_root}")
+        logger.info(f"项目初始化完成: {self.project_root}")
+        return 0
+
+    # ── 清理垃圾文件 ────────────────────────────────────────────
+
+    def clean(self) -> int:
+        """
+        清理垃圾文件
+
+        删除 build 等目录。
+
+        Returns:
+            0 表示成功，非 0 表示失败
+        """
+        # 解析并验证配置
+        try:
+            config = BuildConfig(self.project_root)
+        except (FileNotFoundError, ValueError) as e:
+            logger.error(str(e))
+            return 2  # DFP-604 §5.3: 配置错误
+
+        shutil.rmtree(self.project_root / config.output, ignore_errors=True)
+        for file_path in self.project_root.rglob(f"*"):
+            if file_path.is_file() and file_path.suffix in (CACHE_FILE_PREFIX, IR_CACHE_FILE_PREFIX):
+                try:
+                    file_path.unlink()  # 删除文件
+                    logger.debug(f"删除了文件 {file_path}")
+                except Exception as e:
+                    logger.warning(f"删除失败 {file_path}: {e}")
         return 0

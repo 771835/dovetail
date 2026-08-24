@@ -23,7 +23,7 @@ lark_parser = Lark(
     _lark_grammar_text,
     start=["program", "expr"],
     parser='lalr',
-    cache=".lark_cache",
+    cache=str(resolve_project_path(".lark_cache")),
     propagate_positions=True,
     maybe_placeholders=True
 )

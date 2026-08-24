@@ -13,10 +13,7 @@ from typing import Optional
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel
 from dovetail.core.enums.types import ValueType, StructureType
-from dovetail.core.instructions import (IRCall,
-    IRCondJump, IRCallMethod, IROpCode, IRInstruction,
-    PrimitiveDataType
-)
+from dovetail.core.instructions import IRCondJump, IROpCode, IRInstruction, PrimitiveDataType
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
@@ -226,14 +223,10 @@ class ChainAssignEliminationPass(IROptimizationPass):
             elif instr.opcode == IROpCode.COND_JUMP:
                 self._merge_branch_aliases(instr, current_scope, alias_maps)
 
-            elif instr.opcode in (
-                    IROpCode.BINARY_OP, IROpCode.COMPARE,
-                    IROpCode.UNARY_OP, IROpCode.CALL, IROpCode.CALL_METHOD
-            ):
+            elif instr.opcode.is_pure:
                 # 这些指令产生新值，结果变量不是别名，指向自身
-                result = instr.get_operands()[0]
-                if isinstance(result, Variable):
-                    aliases[result.get_name()] = Reference(result)
+                result = instr.opcode.get_result_var(instr.operands)
+                aliases[result.get_name()] = Reference(result)
 
     # ------------------------------------------------------------------ #
     #  alias_map 更新逻辑                                                  #
@@ -447,25 +440,24 @@ class ChainAssignEliminationPass(IROptimizationPass):
                 return IRInstruction(opcode, *new_operands)
             return instr
 
-        elif instr.opcode == IROpCode.COND_JUMP:
+        elif not opcode.use_indices and not opcode.use_extractor:
+            return instr
+
+        elif opcode == IROpCode.COND_JUMP:
             cond, true_scope, false_scope = instr.get_operands()
             new_cond = self._resolve_ref(cond, aliases)
             if new_cond is not cond:
                 return IRCondJump(new_cond, true_scope, false_scope)
 
-        elif instr.opcode == IROpCode.CALL:
-            result, func, args = instr.get_operands()
+        elif opcode.is_call:
+            args = instr.operands[-1]
             new_args, changed = self._resolve_args(args, aliases)
             if changed:
-                return IRCall(result, func, new_args)
+                return IRInstruction(opcode, *instr.operands[:-1], new_args)
 
-        elif instr.opcode == IROpCode.CALL_METHOD:
-            result, obj, func, args = instr.get_operands()
-            new_args, changed = self._resolve_args(args, aliases)
-            if changed:
-                return IRCallMethod(result, obj, func, new_args)
+        else:
+            logger.debug(f"指令 {opcode.desc}({opcode.code}) 缺少对应的别名替换，已返回原始指令。")
 
-        logger.debug(f"指令 {opcode.desc}({opcode.code}) 缺少对应的别名替换，已返回原始指令。")
         return instr
 
     def _resolve_ref(self, ref: Reference, aliases: _AliasMap) -> Reference:

@@ -8,10 +8,12 @@ dovetail-build — Dovetail 构建工具
 用法：
     dovetail-build build [path]          读取 dovetail.toml 构建项目
     dovetail-build init [path]           初始化新项目骨架
+    dovetail-build clean [path]          清理临时文件和构建文件
     dovetail-build script <script_path>  执行钩子脚本
 """
 import argparse
 import runpy
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -42,6 +44,16 @@ def main():
     # ── init ───────────────────────────────────────────────────
     init_p = sub.add_parser("init", help="初始化新项目骨架")
     init_p.add_argument(
+        "project_root",
+        nargs="?",
+        default=".",
+        metavar="path",
+        help="项目目录，默认当前目录",
+    )
+
+    # ── clean ──────────────────────────────────────────────────
+    clean_p = sub.add_parser("clean", help="清理临时文件和构建文件")
+    clean_p.add_argument(
         "project_root",
         nargs="?",
         default=".",
@@ -84,7 +96,12 @@ def main():
                 f"  提示：请在空目录中运行，或指定新目录名。"
             )
             sys.exit(1)
-        sys.exit(Builder.init_project(root))
+        sys.exit(Builder(root).init())
+
+    # ── 处理 clean ─────────────────────────────────────────────
+    elif args.command == "clean":
+        root = Path(args.project_root).resolve()
+        sys.exit(Builder(root).clean())
 
     # ── 处理 script ────────────────────────────────────────────
     elif args.command == "script":
@@ -104,8 +121,24 @@ def main():
             except Exception as e:
                 logger.error(f"脚本执行异常: {e}")
                 sys.exit(1)
-        elif script.suffix == ".sh":
+        elif script.suffix == ".sh" and "linux" in sys.platform:
             result = subprocess.run(["bash", str(script)])
+            sys.exit(result.returncode)
+        elif script.suffix in (".bat", ".cmd") and "win" in sys.platform:
+            # mac os的用户也会被误判，但是，我相信mac os用户会自适应的
+            result = subprocess.run(["cmd", str(script)])
+            sys.exit(result.returncode)
+        elif script.suffix == ".ps1":
+            # 1. 检查系统是否安装了 pwsh
+            if shutil.which("pwsh"):
+                # 2. 如果有，使用 pwsh 运行
+                result = subprocess.run(["pwsh", str(script)])
+            elif shutil.which("powershell"):
+                # 3. 如果没有，回退到传统的 powershell
+                result = subprocess.run(["powershell", str(script)])
+            else:
+                logger.error(f"不支持的脚本类型: {script.suffix}")
+                sys.exit(1)
             sys.exit(result.returncode)
         else:
             logger.error(f"不支持的脚本类型: {script.suffix}")

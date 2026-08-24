@@ -9,8 +9,7 @@
 > **目前状态：**
 > - **优点:** 语法基本可用，能够编译简单程序。
 > - **已知局限:** 缺乏大量标准库、错误信息不友好、优化器可能引入错误、尚未实现完整的OOP特性和数组借用机制。
-> - **生产环境建议:** 如果您需要用于生产环境，请考虑使用 [MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP)
-    或其他成熟的项目。
+> - **生产环境建议:** 如果您需要用于生产环境，请考虑使用其他成熟的项目。
 > - **性质:** 相较于 **clang-mc**等追求稳定性的项目，本项目会更偏向使用较为激进的特性和优化，以及对一些内容的实验性处理，这些修改可能不会特殊标注且缺少长期的稳定维护。
 > - **语法:** 语法更新迭代较快，因此不保证向后兼容，仅发布正式发行版时保证附带示例语法正确，面对对象具体语法待定，可能存在较大变化
 > - **Minecraft 版本支持:** 相较于其他语言，本项目不会有较为稳定的版本支持，即不会长期停留在特定版本，支持的后端会将主要精力集中于迭代至
@@ -30,9 +29,6 @@
 - [x] 优化错误显示
 - [x] 统一日志输出
 - [ ] 完善插件功能
-
-<!-- - [ ] 节省性能的堆栈实现方法-->
-
 - [ ] 编译器国际化支持
 - [ ] 允许通过简单的语法声明和调用其他数据包
 - [ ] 谓词，自定义数据等功能
@@ -41,6 +37,7 @@
 
 - [ ] 简易事件系统及注解功能
 - [ ] 完善内置库
+
 <!-- 也许会做一个类似 dovetail-api 的东西，和编译器分开，分成多个仓库，类似 fabric 和 fabric api -->
 <!-- dovetail-api 再由 git 和 dovetail-build 拉取 -->
 
@@ -162,7 +159,8 @@ A: 可以参考[调试指南](docs/zh-cn/debugging-guide.md)
 
 ### 数据使用
 
-- [Minecraft 中文Wiki 数据包版本](https://zh.minecraft.wiki/w/Template:Data_pack_format) 动态更新`Minecraft`与`数据包版本`之间的对应关系
+- [Minecraft 中文Wiki 数据包版本](https://zh.minecraft.wiki/w/Template:Data_pack_format) 动态更新`Minecraft`与`数据包版本`
+  之间的对应关系
 
 ### 其他推荐
 
@@ -176,7 +174,9 @@ A: 可以参考[调试指南](docs/zh-cn/debugging-guide.md)
 
 ### 相似项目
 
-- 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 处理堆栈的一个不同技术路线的优秀项目
-- 项目[clang-mc](https://github.com/xia-mc/clang-mc) 十分创新的想法，实现汇编的在mc中的部分支持和 `C` 代码编译到
-  `mcfunction`
-- 项目[Minecraft-Script](https://github.com/SpyC0der77/Minecraft-Script) 简化 Minecraft 数据包创建的编程语言，特点是支持生成较多的版本数据包
+
+- 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 一门类似 Java 的面对对象语言，完整模拟了堆栈，因而支持递归。
+- 项目[clang-mc](https://github.com/xia-mc/clang-mc) 一个编译工具链项目，实现汇编的在mc中的部分支持和 `C` 代码编译到
+  `mcfunction` 语言。
+- 项目[Minecraft-Script](https://github.com/SpyC0der77/Minecraft-Script) 简化 Minecraft 数据包创建的编程语言，支持生成较多的版本数据包
+  (比较简陋，并不是完整的编译器，不过实现思路挺好玩的)。

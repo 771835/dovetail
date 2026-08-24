@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional, Callable
 
 from dovetail.utils.logger import get_logger
+from dovetail.utils.resource import resolve_project_path
 
 # 设置日志
 logger = get_logger(__name__)
@@ -227,7 +228,7 @@ def download_file(
 
         for attempt in range(max_retries):
             if attempt > 0:
-                delay = retry_delay * (2 ** (attempt - 1))  # 真指数退避
+                delay: float = retry_delay * (2 ** (attempt - 1))  # 真指数退避
                 logger.info(f"Retry {attempt + 1}/{max_retries}, waiting {delay:.1f}s...")
                 time.sleep(delay)
 
@@ -350,7 +351,7 @@ def download_dependencies(
     Returns:
         Path: 下载文件的路径，如果下载失败则返回None
     """
-    cache_dir = Path(".cache")
+    cache_dir = resolve_project_path(".cache")
     _ensure_cache_dir(cache_dir)
 
     cache_manager = _CacheManager(cache_dir)
@@ -396,7 +397,7 @@ def cleanup_cache(max_age_days: int = 30, max_size_mb: int = 1024):
         max_age_days: 最大保留天数
         max_size_mb: 最大缓存大小（MB）
     """
-    cache_dir = Path(".cache")
+    cache_dir = resolve_project_path(".cache")
     if not cache_dir.exists() or not cache_dir.is_dir():
         return
 
