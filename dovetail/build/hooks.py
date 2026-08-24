@@ -95,13 +95,17 @@ def run_hook(hook_path: str, project_root: Path, hook_stage: str, config: BuildC
     env = _build_env(config, project_root, hook_stage)
 
     try:
-        result = subprocess.run(cmd, cwd=str(project_root), env=env)
+        result = subprocess.run(cmd, cwd=str(project_root), env=env, timeout=120)
 
         if result.returncode != 0:
             logger.error(f"Hook 执行失败 (exit {result.returncode}): {script}")
             return False
 
         return True
+
+    except subprocess.TimeoutExpired:
+        logger.error(f"Hook 执行超时: {script}")
+        return False
 
     except FileNotFoundError as e:
         logger.error(f"执行器未找到: {e}")

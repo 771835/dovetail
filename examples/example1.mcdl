@@ -1,5 +1,6 @@
+include "builtins"
 include "minecraft.mcdl"
-include "mathlib.mcdl"
+include "math"
 
 typedef int i32
 
@@ -8,10 +9,11 @@ fn foo() -> i32;
 @init
 fn beef(){
     if (foo()==INT_MAX) {
-        say("𝔀𝓪𝔀")
+        say("qwq")
         print("1")
     }else {
         say("2")
+        abs(1)
     }
 }
 

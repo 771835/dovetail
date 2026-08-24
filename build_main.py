@@ -21,6 +21,7 @@ from pathlib import Path
 from dovetail.build import Builder
 from dovetail.utils.logger import get_logger
 
+script_timeout = 75
 
 def main():
     parser = argparse.ArgumentParser(
@@ -121,21 +122,20 @@ def main():
             except Exception as e:
                 logger.error(f"脚本执行异常: {e}")
                 sys.exit(1)
-        elif script.suffix == ".sh" and "linux" in sys.platform:
-            result = subprocess.run(["bash", str(script)])
+        elif script.suffix == ".sh":
+            result = subprocess.run(["bash", str(script)], timeout=script_timeout)
             sys.exit(result.returncode)
-        elif script.suffix in (".bat", ".cmd") and "win" in sys.platform:
-            # mac os的用户也会被误判，但是，我相信mac os用户会自适应的
-            result = subprocess.run(["cmd", str(script)])
+        elif script.suffix in (".bat", ".cmd"):
+            result = subprocess.run(["cmd", str(script)], timeout=script_timeout)
             sys.exit(result.returncode)
         elif script.suffix == ".ps1":
             # 1. 检查系统是否安装了 pwsh
             if shutil.which("pwsh"):
                 # 2. 如果有，使用 pwsh 运行
-                result = subprocess.run(["pwsh", str(script)])
+                result = subprocess.run(["pwsh", str(script)], timeout=script_timeout)
             elif shutil.which("powershell"):
                 # 3. 如果没有，回退到传统的 powershell
-                result = subprocess.run(["powershell", str(script)])
+                result = subprocess.run(["powershell", str(script)], timeout=script_timeout)
             else:
                 logger.error(f"不支持的脚本类型: {script.suffix}")
                 sys.exit(1)

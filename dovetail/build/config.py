@@ -113,7 +113,7 @@ class BuildConfig:
     @property
     def output(self) -> str:
         """输出目录，对应编译器 -o"""
-        return self._data.get("build", {}).get("output", "build")
+        return self._data.get("build", {}).get("output", ["build"])
 
     @property
     def tool(self) -> str:

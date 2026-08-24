@@ -72,6 +72,7 @@ fn main() {
     greet("Bob")
 }
 ```
+
 详细内容见[快速开始](docs/zh-cn/quick-start.md)
 
 ## 贡献
@@ -114,14 +115,15 @@ Q: `UB`行为保证在不同优化管道实现相同效果吗？
 A: 不做保证，尤其是类似`_fast`结尾的函数和一些内置函数，优化管道会猜测其行为并代替调用。  
 Q: 为什么编译器提示未知错误并提供堆栈信息？该如何解决？  
 A: 请在 GitHub 提交一个 issue，报告该问题。  
-Q: 明明我的代码没有错误，生成出的数据包却无法正确执行。    
-A: 请尝试禁用代码优化，若生成的数据包正确执行，请以`代码优化错误`为issue标题前缀,否则以`未知错误`作为标题前缀        
 Q: 为什么生成的数据包在执行时中止?  
 A: 请尝试使用`gamerule`指令适当提高`maxCommandChainLength`规则的数量  
 Q: 找不到可用后端怎么办?  
 A: 安装对应后端插件  
-Q: 如何调试错误  
-A: 可以参考[调试指南](docs/zh-cn/debugging-guide.md)
+Q: 如何调试错误/我的代码报错了，怎么解决?  
+A: 可以参考[调试指南](docs/zh-cn/debugging-guide.md)  
+Q: 项目有没有 lsp 插件?  
+A: 有的有的，过于垃圾，不便于展示 (
+<!-- 其实是 AI 的一坨大的，外表风光靓丽，内里纯纯一坨 -->
 
 ## 已知特性 (长期内不会修复)
 
@@ -174,7 +176,6 @@ A: 可以参考[调试指南](docs/zh-cn/debugging-guide.md)
 - 大佬[zmr-233](https://github.com/zmr-233/) 提出了解决递归问题的思路 (虽然ta推荐的书我都没看，也没实现)
 
 ### 相似项目
-
 
 - 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 一门类似 Java 的面对对象语言，完整模拟了堆栈，因而支持递归。
 - 项目[clang-mc](https://github.com/xia-mc/clang-mc) 一个编译工具链项目，实现汇编的在mc中的部分支持和 `C` 代码编译到

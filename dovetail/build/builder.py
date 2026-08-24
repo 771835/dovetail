@@ -170,10 +170,14 @@ class Builder:
         Returns:
             编译器退出码
         """
-        logger.debug(f"编译器命令: {' '.join(args)}")
+        logger.info(f"编译器命令: {' '.join(args)}")
         try:
-            result = subprocess.run(args)
+            # 我相信 10 分钟已经足以做绝大多数事情了，未来或许需要适当提高这个数字，或是使其可以设置，但不是现在
+            result = subprocess.run(args, timeout=600)
             return result.returncode
+        except subprocess.TimeoutExpired:
+            logger.error("编译器执行超时")
+            return 1
         except FileNotFoundError:
             logger.error("编译器可执行文件未找到")
             return 1
@@ -294,8 +298,7 @@ class Builder:
         # 解析并验证配置
         try:
             config = BuildConfig(self.project_root)
-            for p in config.output:
-                shutil.rmtree(self.project_root / p, ignore_errors=True)
+            shutil.rmtree(self.project_root / config.output, ignore_errors=True)
         except (FileNotFoundError, ValueError):
             pass # 跳过以便于清理其他内容
 
