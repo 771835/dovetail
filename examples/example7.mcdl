@@ -1,4 +1,7 @@
 include "strlib.mcdl"
+include "assert"
+include "math"
+
 
 @init
 fn main() {

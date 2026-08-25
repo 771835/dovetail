@@ -155,6 +155,13 @@ class Builder:
         if config.experimental:
             args.append("--experimental")
 
+        # 第三方库目录和额外搜索路径
+        if config.library:
+            args.extend(["--include-dir", config.library])
+
+        for include_dir in config.includes:
+            args.extend(["--include-dir", include_dir])
+
         # 禁止子进程编译器输出 info 日志（避免双重输出）
         args.append("--disable-info-logger")
 
@@ -216,8 +223,8 @@ class Builder:
             "\n"
             "[paths]\n"
             'sources = ["src"]\n'
-            'libraries = ["lib"]\n'
-            "includes = []\n"
+            'includes = []\n'
+            'library = "lib"\n'
             "\n"
             "[compiler]\n"
             'lib_path = ""\n'

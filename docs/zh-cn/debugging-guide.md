@@ -443,29 +443,30 @@ description = "A Minecraft datapack written in Dovetail"
 license = "MIT"                # 你的项目的许可证，推荐在项目根目录中放入 LICENSE 文件 
 
 [build]
-tool = "default"               # 使用的构建工具名称
-entry = "src/main.mcdl"        # 入口文件
-output = "target"              # 输出目录
+entry = "src/main.mcdl"                       # 必需，入口文件路径（相对于项目根目录）
+output = "build"                              # 可选，输出目录，默认 "build"
+tool = "default"                              # 可选，构建工具名称，默认 "default"
+minecraft_version = "1.21.5"                  # 可选，构建游戏版本，默认由编译器决定
 
 [paths]
-sources = ["src"]              # 源码目录
-libraries = ["lib"]            # 库目录
-includes = ["../shared"]       # 额外搜索路径（传递给 -I，未来）
-docs = ["docs"]                # 文档目录
-hooks = ["hook"]               # 钨子目录
+sources = ["src"]                             # 可选，源码目录列表，默认 ["src"]
+includes = []                                 # 可选，额外搜索路径列表，默认空
+library = "lib"                               # 可选，第三方库目录，默认 "lib"
 
 [compiler]
-lib_path = "/usr/local/lib/dovetail"  # 标准库路径（传递给 --lib-path，空则由编译器指定）
-optimization = 2                      # 优化级别（传递给 -O）
-backend = ""                          # 后端名称（空则自动选择）
+lib_path = ""                                 # 可选，标准库路径（空则使用编译器默认值）
+optimization = 2                              # 可选，优化级别 0-2，默认 2
+backend = ""                                  # 可选，后端名称（空则自动选择）
+namespace = ""                                # 可选，命名空间（空则使用 package.name）
+debug = false                                 # 可选，调试模式，默认 false
+experimental = false                          # 可选，实验性功能，默认 false
 
 [hooks]
-# 钩子配置（可选）
-pre_build = "hook/pre_build.sh"
-post_build = "hook/post_build.sh"
+pre_build = ""                                # 可选，编译前钩子脚本路径
+post_build = ""                               # 可选，编译后钩子脚本路径
 
 [dependencies]
-# 未来扩展：依赖管理
+# 未来扩展，当前为空
 # example_lib = { path = "../example_lib" }
 # remote_lib = { git = "https://github.com/user/lib.git", tag = "v1.0.0" }
 ```

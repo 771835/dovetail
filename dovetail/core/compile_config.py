@@ -38,4 +38,5 @@ class CompileConfig:
     disable_deprecated_function: bool = False
     experimental: bool = False
     lib_path: Path = Path("lib").resolve()
+    includes: frozenset[Path] = frozenset()
     description: str = ""

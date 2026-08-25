@@ -234,6 +234,7 @@ def main():
     parser.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本', default="1.21.5")
     parser.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
     parser.add_argument('--lib-path', '-l', metavar='path', type=str, help='强制指定标准库路径')
+    parser.add_argument('--include-dir','-I', metavar='path', action='append', help='添加搜索路径')
     parser.add_argument('--backend', '-b', metavar='name', type=str, help='强制指定后端名称', default="")
     parser.add_argument('--namespace', '-n', metavar='namespace', type=str, help='输出数据包命名空间')
     parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')
@@ -288,6 +289,7 @@ def main():
             parsed_args.disable_deprecated_function,
             parsed_args.experimental,
             lib_path,
+            frozenset(Path(i).resolve() for i in parsed_args.include_dir) if parsed_args.include_dir else frozenset(),
             description
         ),
         parsed_args.backend,

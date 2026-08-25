@@ -133,24 +133,14 @@ class BuildConfig:
         return self._data.get("paths", {}).get("sources", ["src"])
 
     @property
-    def libraries(self) -> list[str]:
+    def library(self) -> str:
         """库目录列表"""
-        return self._data.get("paths", {}).get("libraries", ["lib"])
+        return self._data.get("paths", {}).get("library", "")
 
     @property
     def includes(self) -> list[str]:
         """额外头文件搜索路径"""
         return self._data.get("paths", {}).get("includes", [])
-
-    @property
-    def docs(self) -> list[str]:
-        """文档目录"""
-        return self._data.get("paths", {}).get("docs", ["docs"])
-
-    @property
-    def hooks(self) -> list[str]:
-        """钩子目录"""
-        return self._data.get("paths", {}).get("hooks", ["hooks"])
 
     # ── [compiler] ────────────────────────────────────────────
 

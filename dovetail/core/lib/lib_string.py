@@ -1,5 +1,5 @@
 # coding=utf-8
-from dovetail.core.enums import PrimitiveDataType, BinaryOps
+from dovetail.core.enums import BinaryOps
 from dovetail.core.lib.lib_factory import LibraryBase, library_func, builtin_func
 from dovetail.core.symbols import Reference, Variable, Literal
 

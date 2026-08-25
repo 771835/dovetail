@@ -126,7 +126,7 @@ class ASTVisitor(Interpreter):
             self.symbol_resolver
         )
 
-        self.include_manager = IncludeManager(self.error_reporter, entry_file, self.config.lib_path)
+        self.include_manager = IncludeManager(self.error_reporter, entry_file, self.config)
 
         self.counter = itertools.count()
 
@@ -298,6 +298,7 @@ class ASTVisitor(Interpreter):
             assert isinstance(field, Tree)
             field_name, field_type = self.visit(field)
             fields[field_name] = field_type
+
         symbol = Structure(name, fields, {})
 
         # POST_SYMBOL阶段处理注解
@@ -307,12 +308,15 @@ class ASTVisitor(Interpreter):
         self.symbol_resolver.add_symbol(symbol, meta=meta)
         self.ir_emitter.emit(IRStructDef(symbol))
 
-    def struct_field(self, tree: Tree) -> tuple[str, DataTypeBase]:
+    @v_args(meta=True)
+    def struct_field(self, meta: Meta, children: list[Tree | Token]) -> tuple[str, DataTypeBase]:
         """处理结构体字段"""
-        name_token: Token = tree.children.pop(0)  # NOQA
-        dtype_tree: Tree = tree.children.pop(0)  # NOQA
+        name_token: Token = children.pop(0)  # NOQA
+        dtype_tree: Tree = children.pop(0)  # NOQA
         name: str = name_token.value
         dtype: DataTypeBase = self.visit(dtype_tree)
+        if not self.type_checker.check_definable(dtype, meta):
+            return name, PrimitiveDataType.UNDEFINED
         return name, dtype
 
     @v_args(meta=True)
@@ -357,7 +361,6 @@ class ASTVisitor(Interpreter):
 
         # 处理函数体
         if children:
-
             with self._push_scope(name, StructureType.FUNCTION):  # NOQA
                 with self.error_reporter.context(f"函数 {_dn(name)}"):
                     # 添加参数到作用域，批量写入以减少性能损耗(虽然经过我的测试，耗时更长了，代码还跟史一样)
@@ -426,6 +429,8 @@ class ASTVisitor(Interpreter):
         # ID ":" type ("=" expr)?
         name = _n(children.pop(0).value)  # noqa
         dtype = self.visit(children.pop(0))  # noqa
+        if not self.type_checker.check_definable(dtype, meta):
+            dtype = PrimitiveDataType.UNDEFINED
 
         # 处理默认值
         default_value: Reference
@@ -728,11 +733,7 @@ class ASTVisitor(Interpreter):
                 )
                 return PrimitiveDataType.UNDEFINED
 
-        # 检查类型是否可定义
-        if self.type_checker.check_definable(dtype, meta):
-            return dtype
-        else:
-            return PrimitiveDataType.UNDEFINED
+        return dtype
 
     @v_args(meta=True)
     def typedef(self, meta: Meta, children: list[Tree]):

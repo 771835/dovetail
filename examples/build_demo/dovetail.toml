@@ -12,10 +12,8 @@ output = "build/datapack"
 
 [paths]
 sources = ["src"]
-libraries = ["lib"]
+library = "lib"
 includes = []
-docs = ["docs"]
-hooks = ["hook"]
 
 [compiler]
 lib_path = ""

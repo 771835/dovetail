@@ -12,6 +12,7 @@ from typing import Optional
 
 from lark.tree import Meta
 
+from dovetail.core.compile_config import CompileConfig
 from dovetail.core.errors import Errors
 from dovetail.core.parser.components import ErrorReporter
 
@@ -39,19 +40,19 @@ class IncludeManager:
         _include_stack (list): 当前包含栈，用于检测循环依赖。
     """
 
-    def __init__(self, error_reporter: ErrorReporter, entry_file: Path,
-                 lib_path: Path):
+    def __init__(self, error_reporter: ErrorReporter, entry_file: Path, config: CompileConfig):
         """
         初始化包含管理器
 
         Args:
             error_reporter (ErrorReporter): 错误报告器
             entry_file (Path): 编译入口文件路径，如果提供则会自动添加到包含栈底部
-            lib_path (Path): 标准库路径
+            config (CompileConfig): 编译配置
         """
         self.error_reporter = error_reporter
         self.entry_file = entry_file.resolve() if entry_file else None
-        self.lib_path = lib_path
+        self.lib_path = config.lib_path
+        self.config = config
         self._included_paths = set()  # 存储已包含的路径
         self._include_history = []  # 包含历史记录
         self._include_stack = []  # 包含栈，用于循环依赖检测
@@ -182,7 +183,7 @@ class IncludeManager:
         if filepath.is_absolute():
             return filepath
 
-        search_paths: list[Path] = [self.lib_path, Path.cwd()]
+        search_paths: list[Path] = [self.config.lib_path, Path.cwd(), *self.config.includes]
         include_path = next(
             (d / filepath for d in search_paths if (Path(d) / filepath).exists()),
             None
