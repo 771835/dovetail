@@ -8,14 +8,14 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Any, Set
+from typing import Any, Set, Optional
 
 from attrs import define, field
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import OptimizationLevel, BinaryOps, CompareOps, UnaryOps, StructureType, PrimitiveDataType
 from dovetail.core.enums.types import ValueType
-from dovetail.core.instructions import IROpCode, IRCall, IRAssign, IRJump, IRInstruction, IRReturn
+from dovetail.core.instructions import IROpCode, IRCall, IRAssign, IRJump, IRInstruction, IRReturn, IRCompute
 from dovetail.core.ir_builder import IRBuilder, IRBuilderIterator
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
@@ -24,6 +24,20 @@ from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
 from dovetail.utils.constant_operator_handlers import COMPARE_OP_HANDLERS, BINARY_OP_HANDLERS, UNARY_OP_HANDLERS, \
     number_to_int32
 
+_NP_OP_EVAL = {
+    "sum": lambda args: sum(args),
+    "product": lambda args: _product(args),
+    "minimum": lambda args: min(args),
+    "maximum": lambda args: max(args),
+    "average": lambda args: sum(args) / len(args) if args else 0,
+}
+
+
+def _product(args):
+    r = 1
+    for a in args:
+        r *= a
+    return r
 
 @register_pass(PassMetadata(
     name="constant_folding",
@@ -154,7 +168,8 @@ class ConstantFoldingPass(IROptimizationPass):
             IROpCode.CALL: self._call,
             IROpCode.CAST: self._cast,
             IROpCode.FUNCTION: self._function,
-            IROpCode.RETURN: self._return
+            IROpCode.RETURN: self._return,
+            IROpCode.COMPUTE: self._compute
         }
 
         # 跟踪当前所在的作用域路径
@@ -650,3 +665,113 @@ class ConstantFoldingPass(IROptimizationPass):
         new_instr = IRReturn(resolved)
         iterator.set_current(new_instr)
         return True
+
+    def _compute(self, iterator: IRBuilderIterator, instr: IRInstruction) -> bool:
+        """
+        处理 COMPUTE 指令的常量折叠。
+
+        两种优化：
+          1. 全常量求值：provider_tree 所有叶节点都是字面量 → 编译时计算
+          2. 部分传播：provider_tree 中的变量叶节点如果已知为常量 → 替换为字面量
+        """
+        result: Variable = instr.get_operands()[0]
+        tree: dict = instr.get_operands()[1]
+        integer: bool = instr.get_operands()[2]
+
+        self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
+
+        # 先尝试部分传播：把已知常量的变量叶替换为字面量
+        new_tree, propagated = self._propagate_tree(tree)
+
+        # 再尝试全常量求值
+        value = self._try_eval_tree(new_tree)
+        if value is not None:
+            try:
+                folded = number_to_int32(value) if integer else value
+                new_instr = IRAssign(result, Reference.literal(folded))
+                iterator.set_current(new_instr)
+                self._assign(iterator, new_instr)
+                return True
+            except (TypeError, ValueError):
+                pass
+
+        # 没全折叠，但做了传播 → 更新指令
+        if propagated:
+            iterator.set_current(IRCompute(result, new_tree, integer))
+            return True
+
+        return False
+
+    def _propagate_tree(
+            self,
+            node,
+    ) -> tuple[Any, bool]:
+        """
+        递归传播 provider_tree 中已知为常量的变量叶节点。
+
+        Returns:
+            (new_node, changed)
+        """
+        if isinstance(node, (int, float)):
+            return node, False
+
+        if isinstance(node, Reference):
+            if node.value_type == ValueType.LITERAL:
+                return node, False
+            # 变量 → 查符号表
+            value = self._resolve_ref(node)
+            if self._is_literal(value):
+                # 替换为字面量 Reference
+                return value, True
+            return node, False
+
+        if isinstance(node, dict):
+            new_args = []
+            changed = False
+            for arg in node.get("args", []):
+                new_arg, c = self._propagate_tree(arg)
+                new_args.append(new_arg)
+                changed = changed or c
+            if changed:
+                return {"op": node["op"], "args": new_args}, True
+            return node, False
+
+        return node, False
+
+    def _try_eval_tree(
+            self,
+            node,
+    ) -> Optional[int | float]:
+        """
+        尝试对整棵 provider_tree 求值。
+        所有叶节点必须是字面量，否则返回 None。
+        """
+        if isinstance(node, (int, float)):
+            return node
+
+        if isinstance(node, Reference):
+            if node.value_type == ValueType.LITERAL:
+                try:
+                    return node.value.value
+                except AttributeError:
+                    return None
+            return None
+
+        if isinstance(node, dict):
+            op = node.get("op")
+            args = node.get("args", [])
+            handler = _NP_OP_EVAL.get(op)
+            if handler is None:
+                return None
+            evaluated = []
+            for arg in args:
+                v = self._try_eval_tree(arg)
+                if v is None:
+                    return None
+                evaluated.append(v)
+            try:
+                return handler(evaluated)
+            except (ZeroDivisionError, ValueError, TypeError):
+                return None
+
+        return None

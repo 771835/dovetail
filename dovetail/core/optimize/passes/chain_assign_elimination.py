@@ -15,6 +15,7 @@ from dovetail.core.enums import OptimizationLevel
 from dovetail.core.enums.types import ValueType, StructureType
 from dovetail.core.instructions import IRCondJump, IROpCode, IRInstruction, PrimitiveDataType
 from dovetail.core.ir_builder import IRBuilder
+from dovetail.core.ir_code import deep_remap
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
@@ -447,6 +448,13 @@ class ChainAssignEliminationPass(IROptimizationPass):
             new_args, changed = self._resolve_args(args, aliases)
             if changed:
                 return IRInstruction(opcode, *instr.operands[:-1], new_args)
+
+        elif opcode == IROpCode.COMPUTE:
+            new_tree = deep_remap(instr.operands[1], {k: v.value for k, v in aliases.items()})
+            if instr.operands[1] != new_tree:
+                return IRInstruction(opcode, instr.operands[0],new_tree,instr.operands[2])
+            else:
+                return instr
 
         else:
             logger.debug(f"指令 {opcode.desc}({opcode.code}) 缺少对应的别名替换，已返回原始指令。")

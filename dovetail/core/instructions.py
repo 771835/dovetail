@@ -639,6 +639,46 @@ def _free_repr(instr: IRInstruction) -> str:
     return f"free {var.get_name()}"
 
 
+@validate_instruction
+def IRCompute(result: Variable, provider_tree: dict, integer: bool = True) -> IRInstruction:
+    """
+    数值提供器计算指令
+
+    Args:
+        result:        结果存储变量
+        provider_tree: 语义化表达式树，例如:
+            {"op": "sum", "args": [ref_a, ref_b, {"op": "product", "args": [ref_c, 3]}]}
+            Reference 叶节点 = 变量/常量引用
+            int/float    = 内部常量（如 -1）
+            dict         = 嵌套子表达式
+        integer:       整数模式（True = 每步截断，False = 浮点模式）
+                       当前 Dovetail 只有整数，默认 True
+    """
+    return IRInstruction(IROpCode.COMPUTE, result, provider_tree, integer)
+
+
+@register_repr(IROpCode.COMPUTE)
+def _compute_repr(instr: IRInstruction) -> str:
+    result = instr.operands[0].get_name()
+    tree = instr.operands[1]
+    integer = instr.operands[2]
+    mode = "int" if integer else "float"
+    return f"{result} = COMPUTE.{mode} -> {_tree_to_str(tree)}"
+
+
+def _tree_to_str(node) -> str:
+    """递归把语义 dict 转成可读伪代码"""
+    if isinstance(node, (int, float)):
+        return str(node)
+    if isinstance(node, Reference):
+        return node.get_name()
+    if isinstance(node, dict):
+        op = node.get("op", "?")
+        args = node.get("args", [])
+        args_str = ", ".join(_tree_to_str(a) for a in args)
+        return f"{op}({args_str})"
+    return str(node)
+
 # ==================== 面向对象指令 ====================
 
 @validate_instruction

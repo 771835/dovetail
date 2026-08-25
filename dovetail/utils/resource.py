@@ -24,8 +24,8 @@ def _get_project_root() -> Path:
             # Nuitka
             return Path(sys.executable).parent
     else:
-        # 普通 Python：入口脚本所在目录
-        return Path(sys.argv[0]).resolve().parent
+        # 普通 Python：入口脚本所在目录，根据此文件所在的位置计算
+        return Path(__file__).resolve().parent.parent.parent
 
 
 project_root = _get_project_root()  # 被导入时计算一次

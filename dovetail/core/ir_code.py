@@ -1,6 +1,6 @@
 # coding=utf-8
 from enum import Flag, auto
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 
 from attrs import define, field
 
@@ -86,7 +86,7 @@ class IROpDescriptor:
     def is_call(self) -> bool:
         return bool(self.flags & InstructionFlag.CALL)
 
-    def get_used_refs(self, operands: list) -> list[Reference]:
+    def get_used_refs(self, operands: list) -> list[Reference | None]:
         """从 operands 中提取所有被读取的 Reference"""
         if self.use_extractor is not None:
             return self.use_extractor(operands)
@@ -98,6 +98,23 @@ class IROpDescriptor:
             return None
         return operands[self.result_index]
 
+def _collect_compute_refs(tree, found_refs):
+    if isinstance(tree, dict):
+        for arg in tree.get("args", []):
+            _collect_compute_refs(arg, found_refs)
+    elif isinstance(tree, list):
+        for item in tree:
+            _collect_compute_refs(item, found_refs)
+    elif isinstance(tree, Reference):
+        found_refs.add(tree)
+
+def _compute_uses(operands) -> list:
+    """COMPUTE: (result, provider_tree, integer) → 提取 args 中所有 Reference"""
+    _, provider_tree, _ = operands
+    refs = set()
+    _collect_compute_refs(provider_tree, refs)
+
+    return list(refs)
 
 def _call_uses(operands) -> list:
     """CALL: (result, func, args_dict) → 提取 args 中所有 Reference"""
@@ -134,6 +151,49 @@ def _struct_call_uses(operands) -> list:
         refs.extend(args.values())
     return refs
 
+
+def deep_remap(
+        operand,
+        rename_map: dict[str, Variable],
+        scope_rename: Optional[dict[str, str]] = None,
+) -> Any:
+    """
+    递归重映射操作数树中的所有 Variable、Reference 和作用域字符串。
+
+    规则：
+      Variable           → rename_map 替换（变量重命名）
+      Reference          → _remap_ref 替换（引用重命名）
+      str                → scope_rename 替换（作用域重命名）
+      dict               → 保留键，递归值（CALL 的 {param_name: ref} 键不动）
+      list/tuple         → 递归每个元素
+      其他（int/float/bool/enum/Function/Class...）→ 原样
+    """
+    if isinstance(operand, Variable):
+        return rename_map.get(operand.name, operand)
+
+    elif isinstance(operand, Reference):
+        new_var = rename_map.get(operand.get_name())
+        if new_var is not None:
+            return Reference(new_var)
+        else:
+            return operand
+
+    elif scope_rename and isinstance(operand, str):
+        return scope_rename.get(operand, operand)
+
+    elif isinstance(operand, dict):
+        return {
+            k: deep_remap(v, rename_map, scope_rename)
+            for k, v in operand.items()
+        }
+
+    elif isinstance(operand, (list, tuple)):
+        remapped = [deep_remap(item, rename_map, scope_rename) for item in operand]
+        return tuple(remapped) if isinstance(operand, tuple) else remapped
+
+
+    # int, float, bool, enum, Function, Class, StructureType, ... → 原样
+    return operand
 
 class IROpCode:
     """指令操作码。每个成员是自描述的 IROpDescriptor，比较/哈希的金标准是 code属性。"""
@@ -235,6 +295,13 @@ class IROpCode:
         0x26, "释放变量", InstructionCategory.DATA_OP,
         flags=InstructionFlag.SIDE_EFFECT,
         use_indices=(0,),  # variable: Variable
+    )
+
+    COMPUTE = IROpDescriptor(
+        0x27, "数值提供器计算", InstructionCategory.DATA_OP,
+        flags=InstructionFlag.PURE_COMPUTE | InstructionFlag.PRODUCES_RESULT,
+        result_index=0,
+        use_extractor=_compute_uses
     )
 
     # ==================== OOP (0x40-0x5F) ====================

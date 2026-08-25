@@ -11,6 +11,7 @@ from dovetail.core.enums import OptimizationLevel
 from dovetail.core.enums.types import ValueType, VariableType
 from dovetail.core.instructions import *
 from dovetail.core.ir_builder import IRBuilder, IRBuilderIterator
+from dovetail.core.ir_code import deep_remap
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
@@ -342,12 +343,33 @@ class FunctionInliningPass(IROptimizationPass):
             scope_rename: dict[str, str]
     ) -> IRInstruction:
         """
+        重建一条指令，递归替换所有操作数中的 Variable/Reference/scope。
+        """
+        new_operands = (
+            deep_remap(op, rename_map, scope_rename)
+            for op in instr.operands
+        )
+        return IRInstruction(instr.opcode, *new_operands)
+'''
+    def _remap_instruction(
+            self,
+            instr: IRInstruction,
+            rename_map: dict[str, Variable],
+            scope_rename: dict[str, str]
+    ) -> IRInstruction:
+        """
         重建一条指令，把所有操作数里的变量替换为重命名版本。
         直接按 opcode 分发处理，保证指令结构正确。
         """
         opcode = instr.opcode
 
-        if opcode.is_call:
+        if opcode == IROpCode.COMPUTE:
+            result, tree, integer = instr.operands[0], instr.operands[1], instr.operands[2]
+            new_result = rename_map.get(result.name, result)
+            new_tree = self._remap_provider_tree(tree, rename_map)
+            return IRInstruction(opcode, new_result, new_tree, integer)
+
+        elif opcode.is_call:
             args = instr.operands[-1]
             new_args = {k: self._remap_ref(v, rename_map) for k, v in args.items()}
             new_operands = instr.operands[:-1]
@@ -389,3 +411,30 @@ class FunctionInliningPass(IROptimizationPass):
         # 其他指令原样返回，保守处理
         logger.debug(f"指令 {opcode} 无法重建，返回原始指令")
         return instr
+
+    def _remap_provider_tree(
+            self,
+            node,
+            rename_map: dict[str, Variable],
+    ) -> Any:
+        """
+        递归重映射 provider_tree 中的变量引用。
+
+        tree 结构：
+          - Reference（叶节点）→ 可能需要重命名
+          - int/float（内部常量如 -1）→ 原样
+          - dict → 递归处理 args
+        """
+        if isinstance(node, (int, float)):
+            return node
+
+        if isinstance(node, Reference):
+            return self._remap_ref(node, rename_map)
+
+        if isinstance(node, dict):
+            new_args = [self._remap_provider_tree(a, rename_map) for a in node.get("args", [])]
+            return {"op": node["op"], "args": new_args}
+
+        return node
+
+'''

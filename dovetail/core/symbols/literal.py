@@ -1,15 +1,38 @@
 # coding=utf-8
+from __future__ import annotations
+
+import weakref
+from typing import ClassVar
 
 from attrs import define
 
 from .base import Symbol
 from ..enums.datatypes import DataTypeBase
 
+_Literal_Type = str | int | bool | None
+
 
 @define(slots=True, frozen=True)
 class Literal(Symbol):
+    _cache: ClassVar[
+        weakref.WeakValueDictionary[tuple[DataTypeBase, _Literal_Type], Literal]] = weakref.WeakValueDictionary()
+
     dtype: DataTypeBase
-    value: str | int | bool | None
+    value: _Literal_Type
+
+    def __new__(cls, dtype: DataTypeBase, value: _Literal_Type):
+        # 尝试从缓存获取
+        if value in cls._cache:
+            return cls._cache[(dtype, value)]
+
+        # 如果没有，则创建新实例
+        instance = super().__new__(cls)
+        object.__setattr__(instance, 'dtype', dtype)
+        object.__setattr__(instance, 'value', value)
+
+        # 存入弱引用缓存
+        cls._cache[(dtype, value)] = instance
+        return instance
 
     def get_name(self):
         """

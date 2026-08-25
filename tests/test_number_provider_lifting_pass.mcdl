@@ -1,0 +1,92 @@
+// number_provider_demo.mcdl
+// 演示数值提供器提升优化的各种模式
+// 编译目标 >= 26.3 时，以下算术链会被提升为 /compute
+
+include "math"
+
+// ──────────────────────────────────────
+// 模式 1：多参数聚合
+// a + b + c + d → sum(a, b, c, d)
+// 4 条 scoreboard → 1 条 /compute
+// ──────────────────────────────────────
+fn total_damage(base: int, bonus: int, buff: int, crit: int) -> int {
+    return base + bonus + buff + crit
+}
+
+// ──────────────────────────────────────
+// 模式 2：减法包装
+// a + b - c → sum(a, b, product(c, -1))
+// ──────────────────────────────────────
+fn net_score(gross: int, bonus: int, penalty: int) -> int {
+    return gross + bonus - penalty
+}
+
+// ──────────────────────────────────────
+// 模式 3：跨类型嵌套
+// min(a + b, c * d) → minimum(sum(a, b), product(c, d))
+// ──────────────────────────────────────
+fn clamped_value(raw: int, offset: int, scale: int, limit: int) -> int {
+    let boosted = raw + offset
+    let scaled = scale * limit
+    return min(boosted, scaled)
+}
+
+// ──────────────────────────────────────
+// 模式 4：average 模式
+// (a + b + c) / 3 → average(a, b, c)
+// ──────────────────────────────────────
+fn avg_stat(hp: int, atk: int, def: int) -> int {
+    return (hp + atk + def) / 3
+}
+
+// ──────────────────────────────────────
+// 模式 5：嵌套的 min/max + sum
+// max(a + b + c, min(d, e + f))
+// → maximum(sum(a,b,c), minimum(d, sum(e,f)))
+// ──────────────────────────────────────
+fn best_of(lo: int, mid: int, hi: int, cap: int, base: int, extra: int) -> int {
+    let total = lo + mid + hi
+    let floor = min(cap, base + extra)
+    return max(total, floor)
+}
+
+// ──────────────────────────────────────
+// 不触发提升的例子
+// ──────────────────────────────────────
+
+// 单条运算，无收益
+fn single_add(a: int, b: int) -> int {
+    return a + b
+}
+
+// 除数不匹配操作数个数，sum 提升但 DIV 保留
+fn weird_avg(a: int, b: int, c: int) -> int {
+    return (a + b + c) / 2
+}
+
+// ──────────────────────────────────────
+// 主函数：调用以上所有，确保编译通过
+// ──────────────────────────────────────
+@init
+fn main() {
+    let r1 = total_damage(10, 5, 3, 2)
+    print(f"total_damage = {r1}")
+
+    let r2 = net_score(100, 20, 15)
+    print(f"net_score = {r2}")
+
+    let r3 = clamped_value(50, 10, 3, 40)
+    print(f"clamped_value = {r3}")
+
+    let r4 = avg_stat(90, 75, 60)
+    print(f"avg_stat = {r4}")
+
+    let r5 = best_of(10, 20, 30, 80, 40, 15)
+    print(f"best_of = {r5}")
+
+    let r6 = single_add(1, 2)
+    print(f"single_add = {r6}")
+
+    let r7 = weird_avg(10, 20, 30)
+    print(f"weird_avg = {r7}")
+}
