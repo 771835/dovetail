@@ -1,7 +1,7 @@
 // 程序结构
 program: include* (enums|class|struct|function|let|const|typedef)*
 
-include: "include" literal               // 包含库文件，如：include "mathlib.mcdl"
+include: annotation* "include" literal               // 包含库文件，如：include "mathlib.mcdl"
 
 // 注解系统(仅允许使用内置注解及插件注解)
 annotation: "@" ID | "@" ID "(" (literal ("," literal)*)? ")"

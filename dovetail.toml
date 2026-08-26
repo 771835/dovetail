@@ -1,6 +1,5 @@
 # 注意：此文件仅作为项目元信息声明，不能用于实际构建
 # 真正构建请执行 build.bat（通过 Nuitka 编译）
-
 [package]
 name = "dovetail"
 version = "1.0.2"

@@ -631,15 +631,25 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def include(self, meta: Meta, children: list):
         """处理包含语句"""
-        original_filepath: str = self.visit(children.pop(0)).value.value
+        # 处理注解
+        raw_annotations = self._process_annotations(children)
+
+
+        include_path: str = self.visit(children.pop(0)).value.value
+
+        pre, ctx = self.annotation_processor.process_pre(
+            raw_annotations, include_path, AnnotationTarget.FUNCTION, meta
+        )
+        if pre and pre.skip:
+            return  # ← 跳过该 include，不解析、不递归、不加入 _included_paths
 
         # 检查是否为内置库
-        if LibraryMapping.has(original_filepath):
-            self._load_library(original_filepath)
+        if LibraryMapping.has(include_path):
+            self._load_library(include_path)
             return
 
         # 搜索文件路径
-        filepath = self.include_manager.search_include_path(Path(original_filepath), meta)
+        filepath = self.include_manager.search_include_path(Path(include_path), meta)
 
         if filepath is None or filepath in self.include_manager:
             return

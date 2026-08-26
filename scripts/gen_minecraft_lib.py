@@ -2,7 +2,7 @@
 # coding=utf-8
 """
 gen_minecraft_lib.py
-根据 Minecraft 生成的命令报告，生成 minecraft.mcdl 库
+根据 Minecraft 生成的命令报告，生成 1.21.5.mcdl 库
 """
 
 import json
@@ -391,7 +391,6 @@ def emit_aliases(
 def generate(commands_json: dict) -> str:
     header = [
         "// ================================================================",
-        "// lib/minecraft.mcdl",
         "// Minecraft Java Edition 原版指令标准库",
         "// 由 gen_minecraft_lib.py 自动生成，请勿手动修改",
         "// ================================================================",

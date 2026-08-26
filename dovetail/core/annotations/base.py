@@ -30,6 +30,7 @@ class AnnotationTarget(SafeEnum):
     CLASS = "class"
     STRUCT = "struct"
     ENUM = "enum"
+    INCLUDE = "include" # 很不合理，但是为了条件编译暂时忍忍？
 
 
 class AnnotationTiming(SafeEnum):
