@@ -27,8 +27,6 @@ class Literal(Symbol):
 
         # 如果没有，则创建新实例
         instance = super().__new__(cls)
-        object.__setattr__(instance, 'dtype', dtype)
-        object.__setattr__(instance, 'value', value)
 
         # 存入弱引用缓存
         cls._cache[(dtype, value)] = instance

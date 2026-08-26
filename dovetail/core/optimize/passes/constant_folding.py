@@ -687,7 +687,7 @@ class ConstantFoldingPass(IROptimizationPass):
         value = self._try_eval_tree(new_tree)
         if value is not None:
             try:
-                folded = number_to_int32(value) if integer else value
+                folded = number_to_int32(int(value)) if integer else value
                 new_instr = IRAssign(result, Reference.literal(folded))
                 iterator.set_current(new_instr)
                 self._assign(iterator, new_instr)

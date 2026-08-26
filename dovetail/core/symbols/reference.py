@@ -53,7 +53,6 @@ class Reference(Symbol, Generic[T]):
 
         # 如果没有，则创建新实例
         instance = super().__new__(cls)
-        object.__setattr__(instance, 'value', value)
         object.__setattr__(instance, '_value_type', v_type)
 
         if not FAST_MODE and isinstance(value, Reference):
@@ -135,7 +134,6 @@ class Reference(Symbol, Generic[T]):
         return cls.variable("_", PrimitiveDataType.UNDEFINED, mutable=False)
 
     @classmethod
-    @functools.lru_cache(maxsize=None)
     def default(cls, dtype: DataTypeBase) -> Reference[Literal] | None:
         """
         根据传入参数的默认值返回一个其类型的默认值

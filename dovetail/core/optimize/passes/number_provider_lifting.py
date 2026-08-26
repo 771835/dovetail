@@ -278,7 +278,7 @@ class NumberProviderLiftingPass(IROptimizationPass):
         if tree is _FAIL:
             return None, [], None
 
-        return tree, subtree, root  # ← 替换目标就是 root 本身
+        return tree, subtree, root
 
     # ━━━━━━━━━━━━━━ 序列化：二元运算 ━━━━━━━━━━━━━━
 
