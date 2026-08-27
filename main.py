@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 import time
+import traceback
 from contextlib import chdir
 from pathlib import Path
 from typing import NoReturn, Optional
@@ -26,7 +27,7 @@ from dovetail.utils.annotations import timed
 from dovetail.utils.ir_serializer import IRSymbolSerializer
 from dovetail.utils.logger import get_logger, ThreadSafeLogger
 from dovetail.utils.naming import NameDecorator
-from dovetail.utils.resource import resolve_project_path
+from dovetail.utils.resource import resolve_project_path, IS_COMPILED
 
 logger = get_logger(__name__)
 
@@ -206,25 +207,39 @@ def main():
     """
 
     if "--version" in sys.argv:
-        import dovetail.core.optimize.passes  # noqa
-        ThreadSafeLogger.DISABLED = True
-        plugin_loader.load_plugin("plugin_loader")
+        import platform
 
         print(f"The version of {PROJECT_NAME} is {PROJECT_VERSION}")
         if COMMIT_HASH != "unknown":
             print(f"Commit: {COMMIT_HASH}")
         print(f"License: {PROJECT_LICENSE}")
         print(f"Repository: {PROJECT_WEBSITE}")
-        if get_registry().get_all():
-            print("OptimizationPass:")
-            for pass_class in get_registry().get_all().values():
-                metadata = pass_class.get_metadata()
-                print(f"\t[{metadata.phase}] {metadata.display_name} ({metadata.name})")
+        print(f"Compiled: {IS_COMPILED}")
+        print(f"Python version: {sys.version}")
+        print(f"Platform:       {platform.platform()}")
+        print(f"Architecture:   {platform.machine()}")
+        print("")
 
-        if not BackendFactory.is_empty():
-            print("Backends:")
-            for backend in BackendFactory.get_available_backends():
-                print(f"\t{backend}")
+        try:
+            # 后加载插件，至少保证基本版本信息能被正常打印出来
+            import dovetail.core.optimize.passes  # noqa
+            ThreadSafeLogger.DISABLED = True
+            plugin_loader.load_plugin("plugin_loader")
+
+            if get_registry().get_all():
+                print("OptimizationPass:")
+                for pass_class in get_registry().get_all().values():
+                    metadata = pass_class.get_metadata()
+                    print(f"\t[{metadata.phase}] {metadata.display_name} ({metadata.name})")
+
+            if not BackendFactory.is_empty():
+                print("Backends:")
+                for backend in BackendFactory.get_available_backends():
+                    print(f"\t{backend}")
+        except Exception as e:
+            print(f"failed: {e}")
+            if "--debug" in sys.argv:
+                raise
 
         return
 

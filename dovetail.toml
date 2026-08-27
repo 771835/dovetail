@@ -2,7 +2,7 @@
 # 真正构建请执行 build.bat（通过 Nuitka 编译）
 [package]
 name = "dovetail"
-version = "1.0.2"
+version = "dev"
 authors = ["All contributors of this project"]
 description = "Minecraft Datapack Compilation Language"
 license = "Apache 2.0"
