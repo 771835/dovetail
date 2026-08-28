@@ -34,7 +34,7 @@ class UselessScopeEliminationPass(IROptimizationPass):
         self.root_scopes = set()
         self._changed = False
 
-    def execute(self) -> bool:
+    def execute(self, context) -> bool:
         """执行无用作用域删除优化"""
         self._changed = False
         self._build_scope_structure()

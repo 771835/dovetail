@@ -96,7 +96,7 @@ class NumberProviderLiftingPass(IROptimizationPass):
 
     # ━━━━━━━━━━━━━━ 主入口 ━━━━━━━━━━━━━━
 
-    def execute(self) -> bool:
+    def execute(self, context) -> bool:
         self.changed = False
 
         def_map = self._build_def_map()

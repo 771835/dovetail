@@ -228,14 +228,14 @@ class OptimizationPipeline:
                 s_t = time.time()
 
                 # 执行分析（不修改 IR）
-                analysis = pass_instance.analyze()
+                analysis = pass_instance.analyze(context)
                 if analysis:
                     context = context.with_updates(
                         analysis_results={pass_class.get_metadata().name: analysis}
                     )
 
                 # 执行优化（修改 IR）
-                if pass_instance.execute():
+                if pass_instance.execute(context):
                     pass_changed = True
                     context = context.with_updates(
                         executed_passes={pass_class.get_metadata().name},

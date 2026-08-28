@@ -50,7 +50,7 @@ class FunctionInliningPass(IROptimizationPass):
         self._inline_counter: int = 0
         self._changed: bool = False
 
-    def execute(self) -> bool:
+    def execute(self, context) -> bool:
         self._changed = False
         self._collect_candidates()
         self._perform_inlining()

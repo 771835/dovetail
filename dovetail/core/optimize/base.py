@@ -8,6 +8,7 @@ IROptimizationPass: 单个优化 Pass 的接口，所有内置/插件 Pass 继�
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums.optimization import OptimizationLevel
@@ -72,7 +73,7 @@ class IROptimizationPass(ABC):
         )
 
     @abstractmethod
-    def execute(self) -> bool:
+    def execute(self, context: Optional[OptimizationContext] = None) -> bool:
         """
         执行优化。
 
@@ -119,7 +120,7 @@ class IROptimizationPass(ABC):
 
         return True
 
-    def analyze(self) -> dict:
+    def analyze(self, context: Optional[OptimizationContext] = None) -> dict:
         """
         分析 IR（可选实现）。
 

@@ -211,7 +211,7 @@ python main.py your_code.mcdl -o target -O 2 -mcv 1.21.5
 
 - **最小复现用例**：删掉一切无关代码，只保留能触发问题的最小 `.mcdl` 文件
 - **完整编译命令**：你用的完整命令行参数（包括 `-O`、`-mcv`、`--backend` 等）
-- **编译器版本**：运行 `python main.py --version` 获取，如果输出内容中存在 `Commit` 字段，请将其值一并给出
+- **编译器版本**：运行 `python main.py --version` 获取，如果输出内容中存在 `commit` 字段，请将其一并给出
 - **错误输出**：完整的错误信息或异常堆栈
 - **期望行为**：你觉得正确的输出应该是什么
 - **调试日志**（如有）：附上 `--debug` 模式下生成的 `logs/dovetail.log`

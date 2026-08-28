@@ -88,7 +88,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
     #  公开接口                                                            #
     # ------------------------------------------------------------------ #
 
-    def execute(self) -> bool:
+    def execute(self, context) -> bool:
         self._changed = False
         self._def_graph.clear()
         self._live.clear()

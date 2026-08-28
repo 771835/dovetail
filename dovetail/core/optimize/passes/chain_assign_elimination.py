@@ -78,7 +78,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
     #  公开接口                                                            #
     # ------------------------------------------------------------------ #
 
-    def execute(self) -> bool:
+    def execute(self, context) -> bool:
         """执行链式赋值消除优化"""
         self._changed = False
         self._written_cache = {}  # 每次 execute 清空缓存，保证跨迭代正确

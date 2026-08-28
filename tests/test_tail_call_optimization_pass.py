@@ -12,6 +12,7 @@ from dovetail.core.enums import OptimizationLevel, PrimitiveDataType, MinecraftV
 from dovetail.core.enums.types import StructureType
 from dovetail.core.instructions import (
     IRFunction, IRCall, IRReturn, IRScopeBegin, IRScopeEnd,
+    IRCondJump, IRAssign, IRDeclare,
     IROpCode,
 )
 from dovetail.core.ir_builder import IRBuilder
@@ -427,6 +428,477 @@ class TestTCOPassEdgeCases(unittest.TestCase):
 
         # 只应有一个 JUMP，且在 fib 的函数体内
         self.assertEqual(len(jumps), 1)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 新增：if-else 条件分支中的尾递归测试
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestTCOPassConditionalAnalyze(unittest.TestCase):
+    """测试 analyze() 对 if-else 条件分支中尾递归的识别"""
+
+    def _build_if_else_tail_recursive_ir(self):
+        """
+        构造 if-else 尾递归 IR，对应用户提出的核心场景：
+
+            fn foo(depth: int) {
+                print(depth)
+                if (depth <= 114) {
+                    return
+                } else {
+                    foo(depth + 1)
+                }
+            }
+
+        IR 结构：
+            FUNCTION foo
+            SCOPE_BEGIN foo (FUNCTION)
+                DECLARE depth
+                [side-effect: print]
+                SCOPE_BEGIN if_0 (CONDITIONAL)
+                    RETURN
+                SCOPE_END if_0
+                SCOPE_BEGIN else_0 (CONDITIONAL)
+                    DECLARE calc_1_
+                    calc_1_ = depth + 1
+                    CALL foo(depth=calc_1_)
+                SCOPE_END else_0
+                COND_JUMP cmp_result_0_ -> if_0, else_0
+                RETURN
+            SCOPE_END foo (FUNCTION)
+        """
+        depth = _make_int_var("depth")
+        calc_1 = _make_int_var("calc_1_")
+        cmp_result = _make_int_var("cmp_result_0_")
+        foo = _make_function("foo", [depth], return_type=PrimitiveDataType.VOID)
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(foo))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        # DECLARE depth
+        builder.insert(IRDeclare(depth))
+        # 模拟 print(depth) —— 用一条有副作用的指令占位即可
+        # 此处用 DECLARE 代替，不影响尾递归识别
+        # if 分支
+        builder.insert(IRScopeBegin("if_0", StructureType.CONDITIONAL))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("if_0", StructureType.CONDITIONAL))
+        # else 分支
+        builder.insert(IRScopeBegin("else_0", StructureType.CONDITIONAL))
+        builder.insert(IRDeclare(calc_1))
+        builder.insert(IRAssign(calc_1, Reference(depth)))  # 简化：calc_1 = depth
+        builder.insert(IRCall(None, foo, {"depth": Reference(calc_1)}))
+        builder.insert(IRScopeEnd("else_0", StructureType.CONDITIONAL))
+        # COND_JUMP
+        builder.insert(IRCondJump(Reference(cmp_result), "if_0", "else_0"))
+        # 函数体末尾 RETURN
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        return builder, foo
+
+    def test_detects_tail_recursion_in_else_branch(self):
+        """if-else 结构中 else 分支的尾递归应被识别"""
+        builder, foo = self._build_if_else_tail_recursive_ir()
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+
+        result = pass_.analyze()
+        candidates = result.get("candidates", {})
+
+        self.assertIn("foo", candidates)
+        self.assertEqual(len(candidates["foo"]), 1)
+
+    def test_call_index_is_in_else_scope(self):
+        """识别到的 CALL 索引应在 else_0 作用域内"""
+        builder, foo = self._build_if_else_tail_recursive_ir()
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+
+        result = pass_.analyze()
+        site = result["candidates"]["foo"][0]
+
+        call_idx = site["call_index"]
+        # 验证 call_idx 处的指令确实是 CALL
+        self.assertEqual(
+            builder.get_instructions()[call_idx].opcode,
+            IROpCode.CALL,
+        )
+
+    def test_return_index_is_func_body_return(self):
+        """识别到的 RETURN 索引应是函数体末尾的 RETURN（非 if 分支内的）"""
+        builder, foo = self._build_if_else_tail_recursive_ir()
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+
+        result = pass_.analyze()
+        site = result["candidates"]["foo"][0]
+
+        ret_idx = site["return_index"]
+        # 该 RETURN 应在 else_0 SCOPE_END 之后
+        instructions = builder.get_instructions()
+        # 找到 else_0 的 SCOPE_END 位置
+        else_end_positions = [
+            i for i, instr in enumerate(instructions)
+            if instr.opcode is IROpCode.SCOPE_END and instr.operands[0] == "else_0"
+        ]
+        self.assertTrue(len(else_end_positions) > 0)
+        self.assertGreater(ret_idx, else_end_positions[0])
+
+    def test_no_false_positive_if_not_tail_in_else(self):
+        """
+        else 分支中 CALL 之后还有非 RETURN 的副作用指令，不应识别为尾递归。
+
+            fn foo(depth: int) {
+                if (cond) {
+                    return
+                } else {
+                    foo(depth + 1)
+                    print("after call")   ← CALL 之后有副作用，非尾调用
+                }
+            }
+        """
+        depth = _make_int_var("depth")
+        calc_1 = _make_int_var("calc_1_")
+        cmp_result = _make_int_var("cmp_result_0_")
+        foo = _make_function("foo", [depth], return_type=PrimitiveDataType.VOID)
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(foo))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        builder.insert(IRDeclare(depth))
+        # if 分支
+        builder.insert(IRScopeBegin("if_0", StructureType.CONDITIONAL))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("if_0", StructureType.CONDITIONAL))
+        # else 分支
+        builder.insert(IRScopeBegin("else_0", StructureType.CONDITIONAL))
+        builder.insert(IRDeclare(calc_1))
+        builder.insert(IRAssign(calc_1, Reference(depth)))
+        builder.insert(IRCall(None, foo, {"depth": Reference(calc_1)}))
+        # CALL 之后有副作用指令——用一条 RETURN(None) 之外的指令模拟
+        # 这里再用一条 DECLARE 模拟副作用
+        builder.insert(IRDeclare(_make_int_var("after_call")))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("else_0", StructureType.CONDITIONAL))
+        # COND_JUMP
+        builder.insert(IRCondJump(Reference(cmp_result), "if_0", "else_0"))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        result = pass_.analyze()
+        candidates = result.get("candidates", {})
+
+        self.assertNotIn("foo", candidates)
+
+    def test_detects_tail_recursion_in_if_branch(self):
+        """
+        对称场景：尾递归在 if 分支而非 else 分支。
+
+            fn foo(depth: int) {
+                if (cond) {
+                    foo(depth + 1)    ← 尾递归
+                } else {
+                    return
+                }
+            }
+        """
+        depth = _make_int_var("depth")
+        calc_1 = _make_int_var("calc_1_")
+        cmp_result = _make_int_var("cmp_result_0_")
+        foo = _make_function("foo", [depth], return_type=PrimitiveDataType.VOID)
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(foo))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        builder.insert(IRDeclare(depth))
+        # if 分支（尾递归）
+        builder.insert(IRScopeBegin("if_0", StructureType.CONDITIONAL))
+        builder.insert(IRDeclare(calc_1))
+        builder.insert(IRAssign(calc_1, Reference(depth)))
+        builder.insert(IRCall(None, foo, {"depth": Reference(calc_1)}))
+        builder.insert(IRScopeEnd("if_0", StructureType.CONDITIONAL))
+        # else 分支（return）
+        builder.insert(IRScopeBegin("else_0", StructureType.CONDITIONAL))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("else_0", StructureType.CONDITIONAL))
+        # COND_JUMP
+        builder.insert(IRCondJump(Reference(cmp_result), "if_0", "else_0"))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        result = pass_.analyze()
+        candidates = result.get("candidates", {})
+
+        self.assertIn("foo", candidates)
+        self.assertEqual(len(candidates["foo"]), 1)
+
+    def test_detects_both_branches_tail_recursive(self):
+        """
+        if 和 else 两个分支都是尾递归，应识别出两个候选。
+
+            fn foo(depth: int) {
+                if (cond) {
+                    foo(depth + 1)     ← site 1
+                } else {
+                    foo(depth + 2)     ← site 2
+                }
+            }
+        """
+        depth = _make_int_var("depth")
+        calc_1 = _make_int_var("calc_1_")
+        calc_2 = _make_int_var("calc_2_")
+        cmp_result = _make_int_var("cmp_result_0_")
+        foo = _make_function("foo", [depth], return_type=PrimitiveDataType.VOID)
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(foo))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        builder.insert(IRDeclare(depth))
+        # if 分支
+        builder.insert(IRScopeBegin("if_0", StructureType.CONDITIONAL))
+        builder.insert(IRDeclare(calc_1))
+        builder.insert(IRAssign(calc_1, Reference(depth)))
+        builder.insert(IRCall(None, foo, {"depth": Reference(calc_1)}))
+        builder.insert(IRScopeEnd("if_0", StructureType.CONDITIONAL))
+        # else 分支
+        builder.insert(IRScopeBegin("else_0", StructureType.CONDITIONAL))
+        builder.insert(IRDeclare(calc_2))
+        builder.insert(IRAssign(calc_2, Reference(depth)))
+        builder.insert(IRCall(None, foo, {"depth": Reference(calc_2)}))
+        builder.insert(IRScopeEnd("else_0", StructureType.CONDITIONAL))
+        # COND_JUMP
+        builder.insert(IRCondJump(Reference(cmp_result), "if_0", "else_0"))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        result = pass_.analyze()
+        candidates = result.get("candidates", {})
+
+        self.assertIn("foo", candidates)
+        self.assertEqual(len(candidates["foo"]), 2)
+
+
+class TestTCOPassConditionalExecute(unittest.TestCase):
+    """测试 execute() 对 if-else 尾递归的变换结果"""
+
+    def _build_if_else_tail_recursive_ir(self):
+        """与 TestTCOPassConditionalAnalyze 相同的 IR 构造"""
+        depth = _make_int_var("depth")
+        calc_1 = _make_int_var("calc_1_")
+        cmp_result = _make_int_var("cmp_result_0_")
+        foo = _make_function("foo", [depth], return_type=PrimitiveDataType.VOID)
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(foo))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        builder.insert(IRDeclare(depth))
+        builder.insert(IRScopeBegin("if_0", StructureType.CONDITIONAL))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("if_0", StructureType.CONDITIONAL))
+        builder.insert(IRScopeBegin("else_0", StructureType.CONDITIONAL))
+        builder.insert(IRDeclare(calc_1))
+        builder.insert(IRAssign(calc_1, Reference(depth)))
+        builder.insert(IRCall(None, foo, {"depth": Reference(calc_1)}))
+        builder.insert(IRScopeEnd("else_0", StructureType.CONDITIONAL))
+        builder.insert(IRCondJump(Reference(cmp_result), "if_0", "else_0"))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        return builder, foo
+
+    def test_execute_returns_true(self):
+        """execute() 对 if-else 尾递归应返回 True"""
+        builder, _ = self._build_if_else_tail_recursive_ir()
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        self.assertTrue(pass_.execute())
+
+    def test_call_eliminated(self):
+        """变换后，原 IRCall 应消失"""
+        builder, _ = self._build_if_else_tail_recursive_ir()
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        pass_.execute()
+
+        opcodes = _opcodes(builder)
+        self.assertNotIn(IROpCode.CALL, opcodes)
+
+    def test_assign_replaces_call(self):
+        """变换后，else 分支中应有 IRAssign 替代原 IRCall"""
+        builder, _ = self._build_if_else_tail_recursive_ir()
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        pass_.execute()
+
+        opcodes = _opcodes(builder)
+        self.assertIn(IROpCode.ASSIGN, opcodes)
+
+    def test_func_body_return_replaced_by_jump(self):
+        """变换后，函数体末尾的 RETURN 应被替换为 JUMP（if 分支内的 RETURN 保留）"""
+        builder, _ = self._build_if_else_tail_recursive_ir()
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        pass_.execute()
+
+        instructions = builder.get_instructions()
+        returns = [i for i, instr in enumerate(instructions) if instr.opcode is IROpCode.RETURN]
+        jumps = [i for i, instr in enumerate(instructions) if instr.opcode is IROpCode.JUMP]
+
+        # if 分支内的 RETURN 应保留
+        self.assertTrue(len(returns) >= 1, "if 分支的 RETURN 应保留")
+        # 应有一个 JUMP 替代函数体末尾的 RETURN
+        self.assertTrue(len(jumps) >= 1, "应有 JUMP 替代尾 RETURN")
+
+    def test_tco_scope_inserted(self):
+        """变换后，应插入 TCO 循环作用域"""
+        builder, foo = self._build_if_else_tail_recursive_ir()
+        loop_name = f"{foo.get_name()}{_TCO_SCOPE_SUFFIX}"
+
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        pass_.execute()
+
+        scope_begins = [
+            instr.operands[0] for instr in builder.get_instructions()
+            if instr.opcode is IROpCode.SCOPE_BEGIN
+        ]
+        self.assertIn(loop_name, scope_begins)
+
+    def test_scope_balance_preserved(self):
+        """变换后，SCOPE_BEGIN 和 SCOPE_END 数量仍应相等"""
+        builder, _ = self._build_if_else_tail_recursive_ir()
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        pass_.execute()
+
+        instructions = builder.get_instructions()
+        begins = sum(1 for i in instructions if i.opcode is IROpCode.SCOPE_BEGIN)
+        ends = sum(1 for i in instructions if i.opcode is IROpCode.SCOPE_END)
+        self.assertEqual(begins, ends)
+
+    def test_idempotent_on_second_run(self):
+        """第二次 execute() 应返回 False"""
+        builder, _ = self._build_if_else_tail_recursive_ir()
+        config = _make_config()
+        pass1 = TailCallOptimizationPass(builder, config)
+        pass1.execute()
+
+        pass2 = TailCallOptimizationPass(builder, config)
+        self.assertFalse(pass2.execute())
+
+    def test_jump_target_is_tco_loop(self):
+        """JUMP 的目标作用域名应与 TCO SCOPE_BEGIN 一致"""
+        builder, foo = self._build_if_else_tail_recursive_ir()
+        loop_name = f"{foo.get_name()}{_TCO_SCOPE_SUFFIX}"
+
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        pass_.execute()
+
+        jumps = [
+            instr for instr in builder.get_instructions()
+            if instr.opcode is IROpCode.JUMP
+        ]
+        # 至少有一个 JUMP 指向 TCO 循环
+        tco_jumps = [j for j in jumps if j.operands[0] == loop_name]
+        self.assertTrue(len(tco_jumps) >= 1, f"应有 JUMP 指向 {loop_name}")
+
+    def test_cond_jump_preserved(self):
+        """变换后，COND_JUMP 指令应保留（控制流仍需分派）"""
+        builder, _ = self._build_if_else_tail_recursive_ir()
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        pass_.execute()
+
+        opcodes = _opcodes(builder)
+        self.assertIn(IROpCode.COND_JUMP, opcodes)
+
+
+class TestTCOPassConditionalNoFalsePositive(unittest.TestCase):
+    """条件分支中的非尾递归场景——不应误识别"""
+
+    def test_cond_jump_to_unrelated_scope(self):
+        """
+        COND_JUMP 跳转到与 CALL 无关的作用域，不应识别为尾递归。
+
+        场景：CALL 之后有 COND_JUMP，其目标不包含 CALL 的任何祖先作用域。
+        """
+        depth = _make_int_var("depth")
+        cmp_result = _make_int_var("cmp_result_0_")
+        foo = _make_function("foo", [depth], return_type=PrimitiveDataType.VOID)
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(foo))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        builder.insert(IRDeclare(depth))
+        builder.insert(IRCall(None, foo, {"depth": Reference(depth)}))
+        # COND_JUMP 跳转到无关作用域 → 不应识别为尾递归
+        builder.insert(IRCondJump(Reference(cmp_result), "scope_a", "scope_b"))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        result = pass_.analyze()
+        candidates = result.get("candidates", {})
+
+        self.assertNotIn("foo", candidates)
+
+    def test_call_with_computation_after(self):
+        """
+        CALL 之后有计算指令（非 SCOPE_END/COND_JUMP），不应识别为尾递归。
+
+            fn foo(depth: int) {
+                foo(depth)
+                depth = depth + 1   ← CALL 之后有计算
+            }
+        """
+        depth = _make_int_var("depth")
+        calc = _make_int_var("calc")
+        foo = _make_function("foo", [depth], return_type=PrimitiveDataType.VOID)
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(foo))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        builder.insert(IRDeclare(depth))
+        builder.insert(IRCall(None, foo, {"depth": Reference(depth)}))
+        # CALL 之后有赋值操作
+        builder.insert(IRAssign(calc, Reference(depth)))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        result = pass_.analyze()
+        candidates = result.get("candidates", {})
+
+        self.assertNotIn("foo", candidates)
+
+    def test_if_else_with_non_terminating_if(self):
+        """
+        if 分支不以 return/尾调用终止，不应被 if 分支内的 CALL 识别为尾递归。
+
+        实际上这个 CALL 不在 if 分支末尾——if 分支内 CALL 后还有其他指令。
+        """
+        depth = _make_int_var("depth")
+        calc_1 = _make_int_var("calc_1_")
+        cmp_result = _make_int_var("cmp_result_0_")
+        foo = _make_function("foo", [depth], return_type=PrimitiveDataType.VOID)
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(foo))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        builder.insert(IRDeclare(depth))
+        # if 分支：CALL 之后还有操作，不是尾调用
+        builder.insert(IRScopeBegin("if_0", StructureType.CONDITIONAL))
+        builder.insert(IRCall(None, foo, {"depth": Reference(depth)}))
+        builder.insert(IRAssign(calc_1, Reference(depth)))  # CALL 后还有操作
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("if_0", StructureType.CONDITIONAL))
+        # else 分支
+        builder.insert(IRScopeBegin("else_0", StructureType.CONDITIONAL))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("else_0", StructureType.CONDITIONAL))
+        builder.insert(IRCondJump(Reference(cmp_result), "if_0", "else_0"))
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        pass_ = TailCallOptimizationPass(builder, _make_config())
+        result = pass_.analyze()
+        candidates = result.get("candidates", {})
+
+        self.assertNotIn("foo", candidates)
 
 
 if __name__ == "__main__":

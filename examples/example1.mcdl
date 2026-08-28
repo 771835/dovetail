@@ -1,28 +1,13 @@
-include "builtins"
-include "minecraft.mcdl"
-include "math"
-
-typedef int i32
-
-fn foo() -> i32;
-
-@init
-fn beef(){
-    if (foo()==INT_MAX) {
-        say("qwq")
-        print("1")
+fn foo(depth: int) {
+    print(depth)
+    if (depth <= 114) {
+        return
     }else {
-        say("2")
-        abs(1)
+        foo(depth + 1)
     }
 }
 
-@target("java")
-fn foo() -> i32{
-    return INT_MAX
-}
-
-@target("be")
-fn foo() -> i32{
-    return INT_MIN
+@init
+fn main() {
+    foo(0)
 }

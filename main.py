@@ -83,7 +83,7 @@ class Compiler:
                     "使用 pack.config 的目录编译已经被弃用了，请使用 dovetail.toml 和 dovetail-build 工具代替。"
                     "参见 DFP-604 §4.1",
                 )
-                return -1
+                return 1
         else:
             report(
                 Errors.FileNotFound,
@@ -91,7 +91,7 @@ class Compiler:
                 filepath=source_path,
                 suggestion="仔细检查你的路径w",
             )
-            return -1
+            return 2
 
     @timed("编译总用时: {:.3f}s")
     def _compile_file(
@@ -113,10 +113,6 @@ class Compiler:
         """
         source_path = source_path.resolve()
 
-        if not source_path.exists():
-            logger.error(f"The path '{source_path}' is not valid.")
-            return -1
-
         generator = ASTVisitor(self.config, source_path)
 
         with chdir(working_directory or source_path.parent):
@@ -131,17 +127,17 @@ class Compiler:
                     generator.visit(ast_tree)
                     logger.info(f"AST遍历总用时: {time.time() - start_time:.3f}s")
                 else:
-                    return -1
+                    return 3
 
                 if report_count.peek() > 0:
                     logger.info("因报错中止编译")
-                    return -1
+                    return 4
 
                 builder = self._optimize_ir(generator.builder)
 
                 if report_count.peek() > 0:
                     logger.info("因报错中止编译")
-                    return -1
+                    return 5
 
                 if self.config.debug:
                     print("最终IR:")
@@ -158,7 +154,7 @@ class Compiler:
                 logger.critical(repr(e))
                 if self.config.debug:
                     raise
-                return -1
+                return 6
 
             except Exception:
                 # 未预期的异常，重新抛出

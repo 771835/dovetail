@@ -30,7 +30,7 @@ class UnreachableCodeRemovalPass(IROptimizationPass):
         super().__init__(builder, config)
         self._changed = False
 
-    def execute(self) -> bool:
+    def execute(self, context) -> bool:
         """执行不可达代码移除优化"""
         self._changed = False
         iterator = self.builder.__iter__()

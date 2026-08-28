@@ -22,6 +22,7 @@ from dovetail.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 @register_pass(PassMetadata(
     name="unused_function_elimination",
     display_name="未使用函数消除",
@@ -42,7 +43,7 @@ class UnusedFunctionEliminationPass(IROptimizationPass):
         # 函数体内的指令属于哪个函数（构建调用图时用）
         self._changed = False
 
-    def execute(self) -> bool:
+    def execute(self, context) -> bool:
         self._changed = False
         self._build_call_graph()
         reachable = self._compute_reachable()

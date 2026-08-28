@@ -32,7 +32,7 @@ class EmptyScopeRemovalPass(IROptimizationPass):
         self.empty_scopes = set()
         self._changed = False
 
-    def execute(self) -> bool:
+    def execute(self, context) -> bool:
         """执行空作用域及跳转指令删除优化"""
         self._changed = False
         self._build_scope_structure()

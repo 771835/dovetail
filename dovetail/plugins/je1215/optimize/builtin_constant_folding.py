@@ -29,7 +29,7 @@ class BuiltinConstantFoldingPass(IROptimizationPass):
         self.builder = builder
         self.config = config
 
-    def execute(self) -> bool:
+    def execute(self, context) -> bool:
         changed = False
         iterator = self.builder.__iter__()
 

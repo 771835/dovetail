@@ -3,6 +3,7 @@
 尾递归优化 Pass
 
 将函数内的直接尾递归调用转换为循环跳转。
+基于作用域感知的前向扫描，正确处理 if-else 等结构化控制流。
 仅处理直接尾递归（函数尾部调用自身），不处理互递归。
 """
 from __future__ import annotations
@@ -22,13 +23,13 @@ from dovetail.core.symbols import Function, Reference
 
 # ─── 常量 ────────────────────────────────────────────────────────────────────
 
-_TCO_SCOPE_SUFFIX = "_1_tco_loop"  # _1是为了保证不会与其他函数命名重复，关闭命名修饰无效
-
+_TCO_SCOPE_SUFFIX = "_1_tco_loop"  # _1 是为了保证不会与其他函数命名重复，关闭命名修饰无效
+PASS_NAME = "tail_call_optimization"
 
 # ─── Pass 注册 ────────────────────────────────────────────────────────────────
 
 @register_pass(PassMetadata(
-    name="tail_call_optimization",
+    name=PASS_NAME,
     display_name="尾递归优化",
     description="将直接尾递归调用转换为循环跳转，消除栈帧增长",
     level=OptimizationLevel.O3,
@@ -40,9 +41,14 @@ class TailCallOptimizationPass(IROptimizationPass):
     """
     尾递归优化 Pass
 
-    识别模式：在函数体内，`IRCall(result, func_self, args)` 之后
-    紧跟 `IRReturn(result)`（中间允许存在 SCOPE_END），且被调用函数
-    与当前函数一致，则为直接尾递归候选。
+    识别模式：在函数体内，IRCall(result, func_self, args) 之后
+    在执行路径上紧随 IRReturn（中间允许存在 SCOPE_END、结构性
+    COND_JUMP 及兄弟作用域定义），且被调用函数与当前函数一致，
+    则为直接尾递归候选。
+
+    "结构性 COND_JUMP"指：该 COND_JUMP 的目标包含 CALL 所在
+    的作用域（即它是分派到 CALL 所在分支的指令），属于 if-else
+    的结构化控制流，而非 CALL 之后的新控制流。
 
     变换策略：
         1. 在函数体入口的 SCOPE_BEGIN 之后，插入一个具名循环作用域
@@ -58,9 +64,13 @@ class TailCallOptimizationPass(IROptimizationPass):
 
     # ── 分析阶段 ──────────────────────────────────────────────────────────────
 
-    def analyze(self) -> dict:
+    def analyze(self, context = None) -> dict:
         """
         扫描 IR，找出所有直接尾递归候选。
+
+        采用作用域感知的前向扫描：从 CALL 向后寻找 RETURN 时，
+        跳过 SCOPE_END、结构性 COND_JUMP 以及兄弟作用域定义，
+        遇到其他指令则判定非尾调用。
 
         Returns:
             {
@@ -75,8 +85,22 @@ class TailCallOptimizationPass(IROptimizationPass):
         instructions = self.builder.get_instructions()
         candidates: dict[str, list[dict]] = {}
 
+        # ── 预处理：建立每条指令的作用域祖先链 ──
+        # instr_ancestors[i] = CALL 所在的所有外层作用域名（从外到内）
+        scope_stack: list[str] = []
+        instr_ancestors: dict[int, list[str]] = {}
+        for idx, instr in enumerate(instructions):
+            if instr.opcode is IROpCode.SCOPE_BEGIN:
+                scope_stack.append(instr.operands[0])
+            elif instr.opcode is IROpCode.SCOPE_END:
+                if scope_stack:
+                    scope_stack.pop()
+            if scope_stack:
+                instr_ancestors[idx] = list(scope_stack)
+
+        # ── 扫描尾递归候选 ──
         current_func: Function | None = None
-        func_scope_depth = 0  # 追踪当前函数体的作用域嵌套深度
+        func_scope_depth = 0
 
         i = 0
         while i < len(instructions):
@@ -89,7 +113,6 @@ class TailCallOptimizationPass(IROptimizationPass):
                 i += 1
                 continue
 
-            # 离开函数（depth 回到 0 之后的 SCOPE_END 意味着函数体结束）
             if instr.opcode is IROpCode.SCOPE_BEGIN:
                 func_scope_depth += 1
                 i += 1
@@ -113,26 +136,16 @@ class TailCallOptimizationPass(IROptimizationPass):
                     i += 1
                     continue
 
-                # 向后扫描，跳过 SCOPE_END，寻找紧随其后的 IRReturn
-                j = i + 1
-                while j < len(instructions) and instructions[j].opcode is IROpCode.SCOPE_END:
-                    j += 1
+                # 找到递归 CALL，向后扫描寻找匹配的 RETURN
+                call_ancestor_set = set(instr_ancestors.get(i, []))
+                ret_idx = self._scan_for_return(
+                    i, call_ancestor_set, instructions
+                )
 
-                if j < len(instructions) and instructions[j].opcode is IROpCode.RETURN:
-                    return_instr = instructions[j]
-                    call_result = instr.operands[0]  # Variable | None
-
-                    # 验证 return 的值就是 call 的返回值（或均为 void）
-                    return_value = return_instr.operands[0]
-                    is_tail = (
-                                      call_result is None and return_value is None
-                              ) or (
-                                      call_result is not None
-                                      and return_value is not None
-                                      and hasattr(return_value, 'get_name')
-                                      and hasattr(call_result, 'get_name')
-                                      and return_value.get_name() == call_result.get_name()
-                              )
+                if ret_idx is not None:
+                    call_result = instr.operands[0]
+                    return_value = instructions[ret_idx].operands[0]
+                    is_tail = self._values_match(call_result, return_value)
 
                     if is_tail:
                         func_name = current_func.get_name()
@@ -140,7 +153,7 @@ class TailCallOptimizationPass(IROptimizationPass):
                             candidates[func_name] = []
                         candidates[func_name].append({
                             "call_index": i,
-                            "return_index": j,
+                            "return_index": ret_idx,
                             "function": current_func,
                             "call_instr": instr,
                         })
@@ -149,9 +162,100 @@ class TailCallOptimizationPass(IROptimizationPass):
 
         return {"candidates": candidates}
 
+    # ── 作用域感知前向扫描 ──────────────────────────────────────────────────
+
+    @staticmethod
+    def _scan_for_return(
+            call_idx: int,
+            call_ancestors: set[str],
+            instructions: list[IRInstruction],
+    ) -> int | None:
+        """
+        从 call_idx 向后扫描，寻找与 CALL 匹配的 RETURN 索引。
+
+        跳过规则：
+          - SCOPE_END：退出作用域，不影响尾调用判断
+          - COND_JUMP：若其任一目标属于 CALL 的祖先作用域，
+            则为结构性跳转（分派到 CALL 所在分支的指令），跳过；
+            否则为 CALL 之后的新控制流，判定非尾调用
+          - JUMP：若其目标属于 CALL 的祖先作用域，跳过；否则非尾调用
+          - SCOPE_BEGIN：若不属于 CALL 的祖先，则为兄弟作用域定义
+            （仅通过 COND_JUMP 进入，不会内联执行），跳过整个作用域体
+
+        遇到 RETURN → 返回其索引
+        遇到其他不可跳过的指令 → 返回 None
+        """
+        j = call_idx + 1
+        while j < len(instructions):
+            op = instructions[j].opcode
+
+            # ── RETURN：找到匹配的返回指令 ──
+            if op is IROpCode.RETURN:
+                return j
+
+            # ── SCOPE_END：退出作用域，直接跳过 ──
+            if op is IROpCode.SCOPE_END:
+                j += 1
+                continue
+
+            # ── SCOPE_BEGIN：兄弟作用域定义，跳过整个作用域体 ──
+            if op is IROpCode.SCOPE_BEGIN:
+                scope_name = instructions[j].operands[0]
+                if scope_name in call_ancestors:
+                    # 重新进入祖先作用域——不合规范 IR，保守拒绝
+                    return None
+                # 兄弟或无关作用域：跳过 SCOPE_BEGIN ... 匹配的 SCOPE_END
+                depth = 1
+                j += 1
+                while j < len(instructions) and depth > 0:
+                    if instructions[j].opcode is IROpCode.SCOPE_BEGIN:
+                        depth += 1
+                    elif instructions[j].opcode is IROpCode.SCOPE_END:
+                        depth -= 1
+                    j += 1
+                continue
+
+            # ── COND_JUMP：判断是否为结构性跳转 ──
+            if op is IROpCode.COND_JUMP:
+                # operands: (condition, true_scope, false_scope)
+                targets = set(instructions[j].operands[1:])
+                if call_ancestors & targets:
+                    # 结构性 COND_JUMP：分派到 CALL 所在的作用域
+                    j += 1
+                    continue
+                # CALL 之后的新控制流：非尾调用
+                return None
+
+            # ── JUMP：判断是否为结构性跳转 ──
+            if op is IROpCode.JUMP:
+                target = instructions[j].operands[0]
+                if target in call_ancestors:
+                    j += 1
+                    continue
+                return None
+
+            # ── 其他指令：CALL 之后还有计算，非尾调用 ──
+            return None
+
+        return None
+
+    @staticmethod
+    def _values_match(call_result, return_value) -> bool:
+        """检查 CALL 结果与 RETURN 值是否匹配（同一变量或均为 void）"""
+        return (
+                (call_result is None and return_value is None)
+                or (
+                        call_result is not None
+                        and return_value is not None
+                        and hasattr(return_value, 'get_name')
+                        and hasattr(call_result, 'get_name')
+                        and return_value.get_name() == call_result.get_name()
+                )
+        )
+
     # ── 执行阶段 ──────────────────────────────────────────────────────────────
 
-    def execute(self) -> bool:
+    def execute(self, context = None) -> bool:
         """
         执行优化。
 
@@ -161,7 +265,7 @@ class TailCallOptimizationPass(IROptimizationPass):
         self._changed = False
 
         # 先收集所有需要处理的函数名（只取名字，不取索引）
-        analysis = self.analyze()
+        analysis = self.analyze(context)
         candidate_func_names = list(analysis.get("candidates", {}).keys())
 
         if not candidate_func_names:
@@ -169,7 +273,7 @@ class TailCallOptimizationPass(IROptimizationPass):
 
         # 逐函数处理：每次处理前重新 analyze 获取当前准确索引
         for func_name in candidate_func_names:
-            fresh = self.analyze()
+            fresh = self.analyze(context)
             sites = fresh.get("candidates", {}).get(func_name)
             if sites:
                 self._transform_function(func_name, sites)

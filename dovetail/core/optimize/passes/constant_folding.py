@@ -116,7 +116,7 @@ class ConstantFoldingPass(IROptimizationPass):
         self.pending_branches: dict[str, list[dict]] = {}  # 等待处理的分支: {jump_target: [branch_states]}
         self.branch_base_state: dict[str, dict] = {}  # 分支开始前的状态
 
-    def execute(self) -> bool:
+    def execute(self, context) -> bool:
         """执行常量折叠优化"""
         self.changed = False
         # 预扫描，识别条件分支结构

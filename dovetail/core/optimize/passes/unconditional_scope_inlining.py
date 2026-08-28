@@ -47,7 +47,7 @@ class UnconditionalScopeInliningPass(IROptimizationPass):
         super().__init__(builder, config)
         self._changed = False
 
-    def execute(self) -> bool:
+    def execute(self, context) -> bool:
         self._changed = False
 
         # 第一遍：收集可内联的作用域

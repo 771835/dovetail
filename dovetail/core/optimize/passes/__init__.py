@@ -10,7 +10,7 @@ from .chain_assign_elimination import ChainAssignEliminationPass
 from .constant_folding import ConstantFoldingPass
 from .dead_code_elimination import DeadCodeEliminationPass
 from .empty_scope import EmptyScopeRemovalPass
-from .function_inlining import FunctionInliningPass
+#from .function_inlining import FunctionInliningPass
 from .tail_call_optimization import TailCallOptimizationPass
 from .unconditional_scope_inlining import UnconditionalScopeInliningPass
 from .unreachable_code_remove import UnreachableCodeRemovalPass

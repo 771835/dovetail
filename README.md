@@ -23,6 +23,8 @@
 - [ ] 低开销数据包
 - [ ] 迭代版本跟上我的世界版本大版本更新
 
+<!-- 生成的指令难以阅读不知道算不算优点（ -->
+
 ## 长期计划
 
 - [x] 通过使用前置数据包以提高安全性
@@ -177,8 +179,10 @@ A: 有的有的，过于垃圾，不便于展示 (
 
 ### 相似项目
 
-- 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 一门类似 Java 的面对对象语言，完整模拟了堆栈，因而支持递归。
+- 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 一门类似 Java 的面对对象语言，完整模拟了堆栈，因而支持递归(似乎死了)。
 - 项目[clang-mc](https://github.com/xia-mc/clang-mc) 一个编译工具链项目，实现汇编的在mc中的部分支持和 `C` 代码编译到
-  `mcfunction` 语言。
+  `mcfunction` 语言(其作者放弃开发了)。
 - 项目[Minecraft-Script](https://github.com/SpyC0der77/Minecraft-Script) 简化 Minecraft 数据包创建的编程语言，支持生成较多的版本数据包
-  (比较简陋，并不是完整的编译器，不过实现思路挺好玩的)。
+  (比较简陋，并不是完整的编译器，不过实现思路挺好玩的)(似乎也死了)。
+- 项目[Kore](https://github.com/Ayfri/Kore) 一个用于生成 Minecraft 数据包的 Kotlin 库(更新较为活跃，但是不是一门独立的编程语言)。
+- 
