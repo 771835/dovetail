@@ -9,8 +9,10 @@
 from __future__ import annotations
 
 import subprocess
-from dataclasses import dataclass, field
+import sys
 from pathlib import Path
+
+from attrs import define, field
 
 from dovetail.build.lockfile import load_lock
 from dovetail.utils.logger import get_logger
@@ -47,7 +49,7 @@ class DependencyResolveError(RuntimeError):
 
 # ── 数据结构 ─────────────────────────────────────────────────
 
-@dataclass
+@define(slots=True, frozen=True)
 class DependencySpec:
     """依赖声明（来自 dovetail.toml [dependencies]）"""
 
@@ -85,7 +87,7 @@ class DependencySpec:
         return "unknown"
 
 
-@dataclass
+@define(slots=True, frozen=True)
 class ResolvedDependency:
     """已解析的依赖（带精确 commit hash）"""
 
@@ -95,7 +97,35 @@ class ResolvedDependency:
     branch: str | None = None
     rev: str | None = None
     resolved: str = ""  # 精确 commit hash
-    local_path: Path = field(default_factory=Path)
+    local_path: Path = field(factory=Path)
+    include_paths: list[Path] = field(factory=list)
+
+    @property
+    def ref(self) -> str:
+        """解析时使用的 git 引用"""
+        if self.rev:
+            return self.rev
+        if self.tag:
+            return self.tag
+        if self.branch:
+            return self.branch
+        return self.resolved  # 兜底：返回 commit hash
+
+    @property
+    def is_mutable(self) -> bool:
+        """是否为可变引用"""
+        return self.branch is not None
+
+    @property
+    def ref_type(self) -> str:
+        """引用类型，用于日志"""
+        if self.rev:
+            return "rev"
+        if self.tag:
+            return "tag"
+        if self.branch:
+            return "branch"
+        return "unknown"
 
     def to_lock_entry(self) -> dict:
         """序列化为 lock 文件条目"""
@@ -181,7 +211,7 @@ def _git(*args: str, cwd: Path | None = None, check: bool = True) -> str:
     return result.stdout.strip()
 
 
-# ── 解析 ─────────────────────────────────────────────────────
+# ── 依赖声明解析 ─────────────────────────────────────────────
 
 def parse_dependencies(deps_data: dict) -> list[DependencySpec]:
     """
@@ -228,6 +258,68 @@ def parse_dependencies(deps_data: dict) -> list[DependencySpec]:
     return specs
 
 
+def _read_dep_dependencies(dep_path: Path) -> list[DependencySpec]:
+    """
+    读取已解析依赖的 dovetail.toml，提取其传递依赖
+
+    没有 dovetail.toml 或没有 [dependencies] 时返回空列表。
+    """
+    toml_path = dep_path / "dovetail.toml"
+    if not toml_path.exists():
+        return []
+
+    try:
+        if sys.version_info >= (3, 11):
+            import tomllib
+        else:
+            import tomli as tomllib
+
+        with open(toml_path, "rb") as f:
+            data = tomllib.load(f)
+    except Exception:
+        return []
+
+    deps_data = data.get("dependencies", {})
+    if not deps_data:
+        return []
+
+    try:
+        return parse_dependencies(deps_data)
+    except DependencyFormatError:
+        # 传递依赖格式错误，记录警告但不中断
+        logger.warning(f"依赖 {dep_path.name} 的 [dependencies] 格式无效，跳过传递解析")
+        return []
+
+
+def _resolve_include_paths(dep_path: Path) -> list[Path]:
+    """
+    读取依赖的 dovetail.toml，获取其源码目录
+
+    如果没有 dovetail.toml 或没有 sources 配置，
+    默认将根目录作为 include 路径。
+    """
+    toml_path = dep_path / "dovetail.toml"
+    if not toml_path.exists():
+        return [dep_path]
+
+    try:
+        if sys.version_info >= (3, 11):
+            import tomllib
+        else:
+            import tomli as tomllib
+
+        with open(toml_path, "rb") as f:
+            data = tomllib.load(f)
+
+        sources = data.get("paths", {}).get("sources", ["src"])
+        return [dep_path / s for s in sources]
+    except Exception:
+        # 读不了就退回根目录
+        return [dep_path]
+
+
+# ── 单依赖解析 ───────────────────────────────────────────────
+
 def resolve_dependency(
         spec: DependencySpec,
         deps_dir: Path,
@@ -238,7 +330,7 @@ def resolve_dependency(
 
     Args:
         spec: 依赖声明
-        deps_dir: 依赖缓存目录（.deps/）
+        deps_dir: 依赖缓存目录
         locked_commit: lock 文件中记录的精确 commit（可选）
 
     Returns:
@@ -266,6 +358,7 @@ def resolve_dependency(
                     rev=spec.rev,
                     resolved=locked_commit,
                     local_path=target,
+                    include_paths=_resolve_include_paths(target),
                 )
 
     # ── 需要网络请求 ──────────────────────────────────────
@@ -284,7 +377,7 @@ def resolve_dependency(
         elif spec.tag:
             _git("checkout", f"tags/{spec.tag}", cwd=target)
         elif spec.branch:
-            _git("checkout", spec.branch, cwd=target)
+            _git("checkout", "-B", spec.branch, f"origin/{spec.branch}", cwd=target)
     except DependencyResolveError as e:
         # checkout 失败多半是引用不存在 → 升为配置错误
         raise DependencyFormatError(
@@ -309,8 +402,11 @@ def resolve_dependency(
         rev=spec.rev,
         resolved=resolved,
         local_path=target,
+        include_paths=_resolve_include_paths(target),
     )
 
+
+# ── 全量解析────────────────────────────────────
 
 def resolve_all(
         specs: list[DependencySpec],
@@ -318,21 +414,21 @@ def resolve_all(
         deps_dir_name: str = "lib",
 ) -> list[ResolvedDependency]:
     """
-    解析全部依赖，结合 lock 文件加速
+    递归解析全部依赖，结合 lock 文件加速
 
     Args:
         specs: 依赖声明列表
         project_root: 项目根目录
-        deps_dir_name: 第三方库存放目录
+        deps_dir_name: 依赖存放目录名
 
     Returns:
         已解析依赖列表
 
     Raises:
+        DependencyFormatError: 声明格式错误 / 引用不存在 / 冲突
         DependencyGitNotFoundError: git 不可用
         DependencyNetworkError: 网络错误
         DependencyRepoError: 仓库错误
-        DependencyFormatError: 引用不存在
         DependencyResolveError: 其他解析错误
     """
     if not specs:
@@ -354,21 +450,59 @@ def resolve_all(
     # 读取 lock 文件
     lock = load_lock(project_root)
 
-    resolved = []
-    for spec in specs:
+    # 已解析的依赖 {name: ResolvedDependency}
+    resolved_map: dict[str, ResolvedDependency] = {}
+    # 待解析队列 [(spec, required_by)]
+    queue: list[tuple[DependencySpec, str]] = [(spec, "<root>") for spec in specs]
+    # 已入队的依赖名（防重复入队）
+    seen: dict[str, DependencySpec] = {spec.name: spec for spec in specs}
+
+    while queue:
+        spec, required_by = queue.pop(0)
+
+        # ── 冲突检测 ──────────────────────────────────────
+        if spec.name in resolved_map:
+            existing = resolved_map[spec.name]
+            if existing.git != spec.git or existing.ref != spec.ref:
+                raise DependencyFormatError(
+                    f"依赖冲突: {spec.name}\n"
+                    f"  {required_by} 需要: {spec.git} ({spec.ref})\n"
+                    f"  已解析为:     {existing.git} ({existing.ref})\n"
+                    f"  提示: 各依赖对 {spec.name} 的版本要求不一致，需手动协调"
+                )
+            # 同名同源同引用 → 跳过
+            continue
+
+        # ── 解析当前依赖 ──────────────────────────────────
         try:
             r = resolve_dependency(spec, deps_dir, locked_commit=lock.get(spec.name))
-            resolved.append(r)
-            logger.debug(f"依赖 {spec.name}: {r.resolved[:12]}")
         except (
                 DependencyNetworkError,
                 DependencyRepoError,
                 DependencyFormatError,
         ):
-            raise  # 直接上抛，已有清晰错误信息
+            raise
         except Exception as e:
-            raise DependencyResolveError(
-                f"依赖 {spec.name} 解析失败: {e}"
-            ) from e
+            raise DependencyResolveError(f"依赖 {spec.name} 解析失败: {e}") from e
 
-    return resolved
+        resolved_map[spec.name] = r
+        logger.debug(f"依赖 {spec.name}: {r.resolved[:12]}")
+
+        # ── 读取传递依赖 ──────────────────────────────────
+        transitive = _read_dep_dependencies(r.local_path)
+        for t_spec in transitive:
+            if t_spec.name in seen:
+                # 已见过 → 检查是否冲突
+                existing_spec = seen[t_spec.name]
+                if existing_spec.git != t_spec.git or existing_spec.ref != t_spec.ref:
+                    raise DependencyFormatError(
+                        f"依赖冲突: {t_spec.name}\n"
+                        f"  {spec.name} 需要: {t_spec.git} ({t_spec.ref})\n"
+                        f"  已解析为:     {existing_spec.git} ({existing_spec.ref})\n"
+                        f"  提示: 各依赖对 {t_spec.name} 的版本要求不一致，需手动协调"
+                    )
+                continue
+            seen[t_spec.name] = t_spec
+            queue.append((t_spec, spec.name))
+
+    return list(resolved_map.values())

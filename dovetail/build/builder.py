@@ -167,7 +167,8 @@ class Builder:
         args.extend(["-O", str(config.optimization)])
 
         # Minecraft 版本 -> -mcv
-        args.extend(["--minecraft-version", str(config.minecraft_version)])
+        if config.minecraft_version:
+            args.extend(["--minecraft-version", config.minecraft_version])
 
         # 后端 -> --backend
         if config.backend:
@@ -340,6 +341,7 @@ class Builder:
         try:
             config = BuildConfig(self.project_root)
             shutil.rmtree(self.project_root / config.output, ignore_errors=True)
+            shutil.rmtree(self.project_root / config.library, ignore_errors=True)
         except (FileNotFoundError, ValueError):
             pass # 跳过以便于清理其他内容
 

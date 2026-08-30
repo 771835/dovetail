@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -19,8 +20,10 @@ else:
     except ImportError:
         raise ImportError("Python < 3.11 环境需安装 tomli: pip install tomli")
 
-from dovetail.build.dependencies import ResolvedDependency
 from dovetail.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from dovetail.build.dependencies import ResolvedDependency
 
 logger = get_logger(__name__)
 

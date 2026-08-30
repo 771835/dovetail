@@ -24,12 +24,16 @@ from dovetail.utils.logger import get_logger
 
 script_run_timeout = 75
 
+# 将 sys.argv[0] 设置为绝对路径
+sys.argv[0] = str(Path(sys.argv[0]).resolve())
 
 def main():
     parser = argparse.ArgumentParser(
         prog="dovetail-build",
         description="Dovetail 构建工具",
     )
+
+    parser.add_argument('--debug', action='store_true', help='启用调试模式')
 
     sub = parser.add_subparsers(dest="command", metavar="command")
     sub.required = True
