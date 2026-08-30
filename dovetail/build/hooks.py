@@ -89,7 +89,7 @@ def run_hook(hook_path: str, project_root: Path, hook_stage: str, config: BuildC
         # 普通 Python 环境
         cmd = [sys.executable, sys.argv[0], "script", str(script)]
 
-    logger.debug(f"执行参数：{cmd}")
+    logger.debug(f"执行命令：{' '.join(cmd)}")
 
     # 注入环境变量
     env = _build_env(config, project_root, hook_stage)

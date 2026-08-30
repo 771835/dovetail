@@ -79,8 +79,7 @@ from dovetail.build.dependencies import (
     parse_dependencies,
     resolve_all,
     resolve_dependency,
-    _read_dep_dependencies,
-    _resolve_include_paths,
+    _read_dep_dependencies
 )
 from dovetail.build.lockfile import load_lock, write_lock, LOCK_FILENAME
 
@@ -175,7 +174,6 @@ class TestResolveTag(unittest.TestCase):
         self.assertTrue((r.local_path / "hello.mcdl").exists())
         self.assertGreater(len(r.resolved), 0)
         self.assertFalse(r.is_mutable)
-        self.assertTrue(len(r.include_paths) > 0)
 
     def test_lock_hit_skip_network(self):
         """lock 命中 + 不可变引用 → 跳过网络请求"""
@@ -326,7 +324,7 @@ class TestTransitiveDependencies(unittest.TestCase):
                 [build]
                 entry = "src/main.mcdl"
                 [paths]
-                sources = ["src"]
+                source = "src"
             """),
             "src/c.mcdl": "fn c_func() {}",
         }, tag="v1.0.0")
@@ -341,7 +339,7 @@ class TestTransitiveDependencies(unittest.TestCase):
                 [build]
                 entry = "src/main.mcdl"
                 [paths]
-                sources = ["src"]
+                source = "src"
                 [dependencies]
                 lib-c = {{ git = "{_git_path(repo_c)}", tag = "v1.0.0" }}
             """),
@@ -358,7 +356,7 @@ class TestTransitiveDependencies(unittest.TestCase):
                 [build]
                 entry = "src/main.mcdl"
                 [paths]
-                sources = ["src"]
+                source = "src"
                 [dependencies]
                 lib-b = {{ git = "{_git_path(repo_b)}", tag = "v1.0.0" }}
             """),
@@ -512,45 +510,6 @@ class TestSameDepDedup(unittest.TestCase):
         c_count = sum(1 for r in resolved if r.name == "lib-c")
         self.assertEqual(c_count, 1)
 
-
-class TestResolveIncludePaths(unittest.TestCase):
-    """_resolve_include_paths — 源码路径"""
-
-    def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp, ignore_errors=True)
-
-    def test_with_toml_and_sources(self):
-        """有 toml → 解析 paths.sources"""
-        repo = self.tmp / "with-toml"
-        repo.mkdir(parents=True)
-        (repo / "dovetail.toml").write_text(textwrap.dedent("""\
-            [package]
-            name = "lib"
-            version = "1.0.0"
-            [build]
-            entry = "src/main.mcdl"
-            [paths]
-            sources = ["src", "lib"]
-        """), encoding="utf-8")
-        (repo / "src").mkdir()
-        (repo / "lib").mkdir()
-
-        paths = _resolve_include_paths(repo)
-        self.assertEqual(len(paths), 2)
-        self.assertIn(repo / "src", paths)
-        self.assertIn(repo / "lib", paths)
-
-    def test_without_toml(self):
-        """无 toml → 退回根目录"""
-        repo = self.tmp / "no-toml"
-        repo.mkdir(parents=True)
-
-        paths = _resolve_include_paths(repo)
-        self.assertEqual(len(paths), 1)
-        self.assertEqual(paths[0], repo)
 
 
 class TestReadDepDependencies(unittest.TestCase):

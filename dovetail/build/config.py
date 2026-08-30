@@ -128,9 +128,9 @@ class BuildConfig:
     # ── [paths] ───────────────────────────────────────────────
 
     @property
-    def sources(self) -> list[str]:
+    def source(self) -> str:
         """源码目录列表"""
-        return self._data.get("paths", {}).get("sources", ["src"])
+        return self._data.get("paths", {}).get("source", "src")
 
     @property
     def library(self) -> str:

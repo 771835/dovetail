@@ -1,6 +1,5 @@
 # coding=utf-8
 import shutil
-import time
 from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent

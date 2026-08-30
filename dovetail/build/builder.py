@@ -138,8 +138,8 @@ class Builder:
             FileNotFoundError: 入口文件不存在
         """
         if IS_COMPILED:
-            # 打包环境：同目录下的 dovetail.exe
-            compiler_exe = Path(sys.executable).parent / "dovetail.exe"
+            # 打包环境：同目录下的 dovetail 文件
+            compiler_exe = install_root / "dovetail"
             args = [str(compiler_exe)]
         else:
             # 普通 Python 环境
@@ -161,7 +161,7 @@ class Builder:
 
         # 标准库路径 -> --lib-path
         if config.lib_path:
-            args.extend(["--lib-path", config.lib_path])
+            args.extend(["--lib-path", str(self.project_root / config.lib_path)])
 
         # 优化级别 -> -O
         args.extend(["-O", str(config.optimization)])
@@ -189,10 +189,10 @@ class Builder:
 
         # 第三方库目录和额外搜索路径
         if config.library:
-            args.extend(["--include-dir", config.library])
+            args.extend(["--include-dir", str(self.project_root / config.library)])
 
         for include_dir in config.includes:
-            args.extend(["--include-dir", include_dir])
+            args.extend(["--include-dir", str(self.project_root / include_dir)])
 
         # 禁止子进程编译器输出 info 日志（避免双重输出）
         args.append("--disable-info-logger")
@@ -254,7 +254,7 @@ class Builder:
             'minecraft_version = ""\n'
             "\n"
             "[paths]\n"
-            'sources = ["src"]\n'
+            'source = "src"\n'
             'includes = []\n'
             'library = "lib"\n'
             "\n"

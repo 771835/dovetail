@@ -27,19 +27,22 @@ script_run_timeout = 75
 # 将 sys.argv[0] 设置为绝对路径
 sys.argv[0] = str(Path(sys.argv[0]).resolve())
 
+
 def main():
+    parent = argparse.ArgumentParser(add_help=False)
+    parent.add_argument('--debug', action='store_true', help='启用调试模式')
+
     parser = argparse.ArgumentParser(
         prog="dovetail-build",
         description="Dovetail 构建工具",
+        parents=[parent]
     )
-
-    parser.add_argument('--debug', action='store_true', help='启用调试模式')
 
     sub = parser.add_subparsers(dest="command", metavar="command")
     sub.required = True
 
     # ── build ──────────────────────────────────────────────────
-    build_p = sub.add_parser("build", help="构建项目（读取 dovetail.toml）")
+    build_p = sub.add_parser("build", help="构建项目（读取 dovetail.toml）", parents=[parent])
     build_p.add_argument(
         "project_root",
         nargs="?",
@@ -49,7 +52,7 @@ def main():
     )
 
     # ── init ───────────────────────────────────────────────────
-    init_p = sub.add_parser("init", help="初始化新项目骨架")
+    init_p = sub.add_parser("init", help="初始化新项目骨架", parents=[parent])
     init_p.add_argument(
         "project_root",
         nargs="?",
@@ -59,7 +62,7 @@ def main():
     )
 
     # ── clean ──────────────────────────────────────────────────
-    clean_p = sub.add_parser("clean", help="清理临时文件和构建文件")
+    clean_p = sub.add_parser("clean", help="清理临时文件和构建文件", parents=[parent])
     clean_p.add_argument(
         "project_root",
         nargs="?",
@@ -69,10 +72,7 @@ def main():
     )
 
     # ── script ─────────────────────────────────────────────────
-    script_p = sub.add_parser(
-        "script",
-        help="注入环境变量后执行钩子脚本（DFP-604 §6.2）",
-    )
+    script_p = sub.add_parser("script", help="注入环境变量后执行钩子脚本（DFP-604 §6.2）", parents=[parent])
     script_p.add_argument(
         "script_path",
         metavar="script",

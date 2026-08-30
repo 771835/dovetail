@@ -11,7 +11,7 @@ entry = "src/main.mcdl"
 output = "build/datapack"
 
 [paths]
-sources = ["src"]
+source = "src"
 library = "lib"
 includes = []
 

@@ -431,45 +431,21 @@ python main.py your_code.mcdl -mcv 1.21.5
 
 #### 通过 `dovetail.toml` 配置并使用构建工具构建的
 
-通常构建工具会按推荐规范使用如下格式的`dovetail.toml`：
+通常构建工具会按推荐规范使用 `dovetail.toml` 作为项目的配置文件。具体文件格式见构建工具实现。
 
-```toml
-# dovetail.toml（由构建工具解析，非编译器）
-[package]
-name = "my_project"
-version = "1.0.0"
-authors = ["Your Name <your.email@example.com>"]
-description = "A Minecraft datapack written in Dovetail"
-license = "MIT"                # 你的项目的许可证，推荐在项目根目录中放入 LICENSE 文件 
+构建工具的错误返回值通常如下：
 
-[build]
-entry = "src/main.mcdl"                       # 必需，入口文件路径（相对于项目根目录）
-output = "build"                              # 可选，输出目录，默认 "build"
-tool = "default"                              # 可选，构建工具名称，默认 "default"
-minecraft_version = "1.21.5"                  # 可选，构建游戏版本，默认由编译器决定
-
-[paths]
-sources = ["src"]                             # 可选，源码目录列表，默认 ["src"]
-includes = []                                 # 可选，额外搜索路径列表，默认空
-library = "lib"                               # 可选，第三方库目录，默认 "lib"
-
-[compiler]
-lib_path = ""                                 # 可选，标准库路径（空则使用编译器默认值）
-optimization = 2                              # 可选，优化级别 0-2，默认 2
-backend = ""                                  # 可选，后端名称（空则自动选择）
-namespace = ""                                # 可选，命名空间（空则使用 package.name）
-debug = false                                 # 可选，调试模式，默认 false
-experimental = false                          # 可选，实验性功能，默认 false
-
-[hooks]
-pre_build = ""                                # 可选，编译前钩子脚本路径
-post_build = ""                               # 可选，编译后钩子脚本路径
-
-[dependencies]
-# 未来扩展，当前为空
-# example_lib = { path = "../example_lib" }
-# remote_lib = { git = "https://github.com/user/lib.git", tag = "v1.0.0" }
-```
+| 退出码 | 含义                             |
+|--------|----------------------------------|
+| `0`    | 构建成功                         |
+| `1`    | 构建失败（编译错误）             |
+| `2`    | 配置错误（`dovetail.toml` 无效） |
+| `3`    | 钩子失败                         |
+| `4`    | 打包失败                         |
+| `5`    | git 不可用                       |
+| `6`    | 依赖网络错误                     |
+| `7`    | 依赖仓库错误                     |
+| 其他   | 由具体构建工具决定               |
 
 格式不正确会报配置错误，同时，需要检查构建工具，判断是否是由于构建工具引起的错误。  
 对于构建工具来说，其一般会有其给出的报错日志。 同时编译钩子也有引起错误的可能性，此时需要根据构建工具的提示具体检查。
@@ -513,7 +489,7 @@ python main.py your_code.mcdl
 
 ### `DOVETAIL_DESCRIPTION`
 
-设为任意非空值时，其会作为最终生成的数据包描述，对调试来说**没什么**用qwq  
+设为任意非空值时，其会作为最终生成的数据包描述，对调试来说 **没什么**用qwq  
 如果不设置此变量，最终生成的数据包描述会为`A datapack of Minecraft`。
 
 ### 代理相关环境变量

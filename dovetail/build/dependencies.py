@@ -98,7 +98,6 @@ class ResolvedDependency:
     rev: str | None = None
     resolved: str = ""  # 精确 commit hash
     local_path: Path = field(factory=Path)
-    include_paths: list[Path] = field(factory=list)
 
     @property
     def ref(self) -> str:
@@ -291,34 +290,7 @@ def _read_dep_dependencies(dep_path: Path) -> list[DependencySpec]:
         return []
 
 
-def _resolve_include_paths(dep_path: Path) -> list[Path]:
-    """
-    读取依赖的 dovetail.toml，获取其源码目录
-
-    如果没有 dovetail.toml 或没有 sources 配置，
-    默认将根目录作为 include 路径。
-    """
-    toml_path = dep_path / "dovetail.toml"
-    if not toml_path.exists():
-        return [dep_path]
-
-    try:
-        if sys.version_info >= (3, 11):
-            import tomllib
-        else:
-            import tomli as tomllib
-
-        with open(toml_path, "rb") as f:
-            data = tomllib.load(f)
-
-        sources = data.get("paths", {}).get("sources", ["src"])
-        return [dep_path / s for s in sources]
-    except Exception:
-        # 读不了就退回根目录
-        return [dep_path]
-
-
-# ── 单依赖解析 ───────────────────────────────────────────────
+# ── 单个依赖解析 ───────────────────────────────────────────────
 
 def resolve_dependency(
         spec: DependencySpec,
@@ -357,8 +329,7 @@ def resolve_dependency(
                     branch=spec.branch,
                     rev=spec.rev,
                     resolved=locked_commit,
-                    local_path=target,
-                    include_paths=_resolve_include_paths(target),
+                    local_path=target
                 )
 
     # ── 需要网络请求 ──────────────────────────────────────
@@ -401,8 +372,7 @@ def resolve_dependency(
         branch=spec.branch,
         rev=spec.rev,
         resolved=resolved,
-        local_path=target,
-        include_paths=_resolve_include_paths(target),
+        local_path=target
     )
 
 
