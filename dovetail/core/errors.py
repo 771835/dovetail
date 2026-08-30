@@ -33,7 +33,7 @@ class Errors(SafeEnum):
 
     # ==================== 语法错误 (0x1xxx) ====================
     # 基础语法错误
-    InvalidSyntax = (0x1001, "无效语法", "无效语法: %s", ErrorType.SyntaxError)
+    InvalidSyntax = (0x1001, "无效语法", "%s", ErrorType.SyntaxError)
     MissingToken = (0x1002, "缺少符号", "语法错误: 缺少必要的 '%s'", ErrorType.SyntaxError)
     InvalidOperator = (0x1003, "无效运算符", "无效运算符 '%s'", ErrorType.SyntaxError)
     DuplicateDefinition = (0x1004, "重复定义", "标识符 '%s' 重复定义", ErrorType.SyntaxError)
@@ -354,7 +354,7 @@ def report(
         filepath = os.path.relpath(filepath, Path.cwd())
 
     print_error_message(f"发生错误: {error_name}({error_type.name})\n")
-    print_error_message(f"文件 '{filepath}', 行 {line}, 纵 {column}\n")
+    print_error_message(f"文件 '{filepath}', 行 {line}, 列 {column}\n")
 
     # 输出错误代码块
     if code:

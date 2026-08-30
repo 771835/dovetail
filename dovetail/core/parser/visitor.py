@@ -60,6 +60,7 @@ from dovetail.core.symbols import Variable, Reference, Literal, Function, Class,
 from dovetail.core.symbols.base import MethodHost
 from dovetail.core.symbols.structure import Structure
 from dovetail.core.symbols.typedef import Typedef
+from dovetail.utils.constant_operator_handlers import number_to_int32
 from dovetail.utils.naming import NameDecorator
 
 _n = NameDecorator.normalize
@@ -84,6 +85,7 @@ def _try_fast_path_expr(
     if symbol is None:
         return None
     return Reference(symbol)
+
 
 class ASTVisitor(Interpreter):
     """
@@ -634,7 +636,6 @@ class ASTVisitor(Interpreter):
         # 处理注解
         raw_annotations = self._process_annotations(children)
 
-
         include_path: str = self.visit(children.pop(0)).value.value
 
         pre, ctx = self.annotation_processor.process_pre(
@@ -980,20 +981,25 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def member_access(self, meta: Meta, children: list[Tree]):
         expr_ref: Reference = self.visit(children.pop(0))
+        pass  # TODO: 实现成员访问
 
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""
         return Reference.literal(None)
 
-    def literal(self, tree: Tree) -> Reference:
+    @v_args(meta=True)
+    def literal(self, meta: Meta, children: list[Token | Tree]) -> Reference:
         """处理字面量"""
-        token: Token = tree.children.pop()  # NOQA
+        token: Token = children.pop()  # NOQA
 
         match token.type:
             case "STRING":
                 return Reference.literal(ast.literal_eval(token))
             case "INT":
-                return Reference.literal(int(token))
+                if len(token) >= 1000:
+                    self.error_reporter.report(Errors.InvalidSyntax, "数字字面量不应过长。", meta=meta)
+                    return Reference.undefined()
+                return Reference.literal(number_to_int32(int(token)))
             case "TRUE":
                 return Reference.literal(True)
             case "FALSE":

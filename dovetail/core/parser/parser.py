@@ -7,7 +7,8 @@ from collections.abc import Generator
 from pathlib import Path
 from typing import Optional
 
-from lark import Lark, Tree
+from lark import Lark, Tree, UnexpectedInput, UnexpectedEOF, UnexpectedToken, UnexpectedCharacters
+from lark.tree import Meta
 
 from dovetail.core.config import MAX_FILE_SIZE, CACHE_FILE_PREFIX
 from dovetail.core.errors import report, Errors
@@ -97,19 +98,97 @@ def _save_ast_cache(cache_path: Path, file_hash: str, start: str, tree: Tree) ->
         pass
 
 
-def parser_code(code: str, start: Optional[str] = None) -> Tree:
+def _translate_syntax_error(exc: UnexpectedInput, source_code: str) -> dict:
+    """
+    将 Lark UnexpectedInput 异常翻译为结构化错误信息。
+
+    Returns:
+        dict with keys: line, column, message, expected, got, suggestion
+    """
+    line = exc.line if exc.line is not None else -1
+    column = exc.column if exc.column is not None else -1
+
+    # ---- 期望什么 ----
+    expected_desc = ""
+    if isinstance(exc, UnexpectedToken):
+        # exc.accepts 是当前状态下可接受的 token 类型集合
+        accepts = getattr(exc, 'accepts', set())
+        if accepts:
+            expected_desc = "期望: " + ", ".join(sorted(accepts))
+    elif isinstance(exc, UnexpectedEOF):
+        expected_desc = "意外的文件结尾"
+
+    # ---- 实际看到了什么 ----
+    got_desc = ""
+    if hasattr(exc, 'token') and exc.token is not None:
+        got_desc = f"实际遇到: {exc.token.type}('{exc.token.value}')"
+    elif isinstance(exc, UnexpectedCharacters):
+        got_desc = "遇到无法识别的字符"
+
+    # ---- 上下文代码片段（Lark 自带） ----
+    context = ""
+    try:
+        context = exc.get_context(source_code)
+    except Exception:
+        context = str(exc)
+
+    # ---- 拼装消息 ----
+    parts = [context.strip()]
+    if expected_desc:
+        parts.append(expected_desc)
+    if got_desc:
+        parts.append(got_desc)
+    message = "\n".join(parts)
+
+    # ---- 修复建议 ----
+    suggestion = None
+    if isinstance(exc, UnexpectedEOF):
+        suggestion = "检查是否缺少闭合括号、end 关键字或语句结尾"
+    elif isinstance(exc, UnexpectedToken):
+        suggestion = "检查此处是否多了符号或拼写有误"
+
+    return {
+        "line": line,
+        "column": column,
+        "message": message,
+        "suggestion": suggestion,
+    }
+
+def parser_code(
+        code: str,
+        start: Optional[str] = None,
+        error_reporter: Optional[ErrorReporter] = None
+) -> Optional[Tree]:
     """
     解析代码生成 AST
 
     Args:
         code: 代码
         start: 语法解析起点（可选）
+        error_reporter: 错误报告器，传入后语法错误走结构化报告而非抛异常
 
     Returns:
-        AST 树
+        AST 树；若 error_reporter 不为 None 且解析失败，返回 None
     """
     parse_start = start if start is not None else "program"
-    return lark_parser.parse(code, start=parse_start)
+    try:
+        return lark_parser.parse(code, start=parse_start)
+    except UnexpectedInput as e:
+        info = _translate_syntax_error(e, code)
+        line = info["line"]
+        column = info["column"]
+        message = "\n" + info["message"]
+        suggestion = info["suggestion"]
+        if error_reporter is not None:
+            # 构造 Meta 桥接位置信息
+            meta = Meta()
+            meta.line = line
+            meta.column = column
+            error_reporter.report(Errors.InvalidSyntax,message,meta=meta,suggestion=suggestion)
+            return None
+        else:
+            report(Errors.InvalidSyntax, message, line=line, column=column, suggestion=suggestion)
+
 
 
 def parser_file(filepath: Path, start: Optional[str] = None, error_reporter: Optional[ErrorReporter] = None) -> \
@@ -160,6 +239,12 @@ def parser_file(filepath: Path, start: Optional[str] = None, error_reporter: Opt
 
     # 缓存未命中，正常解析并写回缓存
     tree = parser_code(code, start=start)
+    if tree is None:
+        # 语法错误已被报告，直接返回
+        elapsed = time.perf_counter() - start_time
+        logger.info(f"解析文件 '{filepath.name}' 遇到语法错误，用时 {elapsed:.3f}s.")
+        return None
+
     _save_ast_cache(cache_path, file_hash, parse_start, tree)
 
     elapsed = time.perf_counter() - start_time

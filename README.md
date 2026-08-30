@@ -185,4 +185,3 @@ A: 有的有的，过于垃圾，不便于展示 (
 - 项目[Minecraft-Script](https://github.com/SpyC0der77/Minecraft-Script) 简化 Minecraft 数据包创建的编程语言，支持生成较多的版本数据包
   (比较简陋，并不是完整的编译器，不过实现思路挺好玩的)(似乎也死了)。
 - 项目[Kore](https://github.com/Ayfri/Kore) 一个用于生成 Minecraft 数据包的 Kotlin 库(更新较为活跃，但是不是一门独立的编程语言)。
-- 
