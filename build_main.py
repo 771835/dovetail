@@ -24,6 +24,7 @@ from dovetail.utils.logger import get_logger
 
 script_run_timeout = 75
 
+
 def main():
     parser = argparse.ArgumentParser(
         prog="dovetail-build",
@@ -74,7 +75,7 @@ def main():
         help="钩子脚本路径（.py 或 .sh）",
     )
     script_p.add_argument(
-        "project-root",
+        "project_root",
         nargs="?",
         default=".",
         metavar="path",
@@ -115,36 +116,51 @@ def main():
             sys.exit(1)
 
         with chdir(args.project_root):
-            # 环境变量已由父进程（run_hook）注入，此处直接执行
-            if script.suffix == ".py":
-                try:
+            try:
+                # 环境变量已由父进程（run_hook）注入，此处直接执行即可
+                if script.suffix == ".py":
+                    # python 脚本这里因为不是一个子进程在跑，所以就不是采用 script_run_timeout 来限时，而是调用这个程序的 timeout 决定
+                    # 因此 python 脚本有着更长的可运行时间
                     runpy.run_path(str(script), run_name="__main__")
                     sys.exit(0)
-                except SystemExit as e:
-                    sys.exit(e.code if e.code is not None else 0)
-                except Exception as e:
-                    logger.error(f"脚本执行异常: {e}")
-                    sys.exit(1)
-            elif script.suffix == ".sh":
-                result = subprocess.run(["bash", str(script)], timeout=script_run_timeout)
-                sys.exit(result.returncode)
-            elif script.suffix in (".bat", ".cmd"):
-                result = subprocess.run(["cmd", str(script)], timeout=script_run_timeout)
-                sys.exit(result.returncode)
-            elif script.suffix == ".ps1":
-                # 1. 检查系统是否安装了 pwsh
-                if shutil.which("pwsh"):
-                    # 2. 如果有，使用 pwsh 运行
-                    result = subprocess.run(["pwsh", str(script)], timeout=script_run_timeout)
-                elif shutil.which("powershell"):
-                    # 3. 如果没有，回退到传统的 powershell
-                    result = subprocess.run(["powershell", str(script)], timeout=script_run_timeout)
+                elif script.suffix == ".sh":
+                    shell_path = shutil.which("bash")
+                    if shell_path:
+                        result = subprocess.run([shell_path, str(script)], timeout=script_run_timeout)
+                        sys.exit(result.returncode)
+                    else:
+                        logger.error("未找到 bash，无法执行 .sh 脚本")
+                        sys.exit(1)
+                elif script.suffix in (".bat", ".cmd"):
+                    shell_path = shutil.which("cmd")
+                    if shell_path:
+                        result = subprocess.run(["cmd", "/c", str(script)], timeout=script_run_timeout)
+                        sys.exit(result.returncode)
+                    else:
+                        logger.error(f"未找到 cmd，无法执行 {script.suffix} 脚本")
+                        sys.exit(1)
+                elif script.suffix == ".ps1":
+                    # 1. 检查系统是否安装了 pwsh
+                    if shell_path := shutil.which("pwsh"):
+                        # 2. 如果有，使用 pwsh 运行
+                        result = subprocess.run([shell_path, str(script)], timeout=script_run_timeout)
+                    elif shell_path := shutil.which("powershell"):
+                        # 3. 如果没有，回退到传统的 powershell
+                        result = subprocess.run([shell_path, str(script)], timeout=script_run_timeout)
+                    else:
+                        logger.error(f"未找到 pwsh/powershell，无法执行 {script.suffix} 脚本")
+                        sys.exit(1)
+                    sys.exit(result.returncode)
                 else:
                     logger.error(f"不支持的脚本类型: {script.suffix}")
                     sys.exit(1)
-                sys.exit(result.returncode)
-            else:
-                logger.error(f"不支持的脚本类型: {script.suffix}")
+            except subprocess.TimeoutExpired:
+                logger.error(f"脚本 '{script}' 运行超时")
+                sys.exit(1)
+            except SystemExit as e:
+                sys.exit(e.code if e.code is not None else 0)
+            except Exception as e:
+                logger.error(f"脚本执行异常: {e}")
                 sys.exit(1)
 
 

@@ -1,13 +1,27 @@
-fn foo(depth: int) {
-    print(depth)
-    if (depth <= 114) {
-        return
+include "math"
+include "minecraft.mcdl"
+
+typedef int i32
+
+fn foo() -> i32;
+
+@init
+fn beef(){
+    if (foo()==INT_MAX) {
+        say("qwq")
+        print("1")
     }else {
-        foo(depth + 1)
+        say("2")
     }
 }
 
-@init
-fn main() {
-    foo(0)
+@target("java")
+fn foo() -> i32{
+    return INT_MAX
 }
+
+@target("be")
+fn foo() -> i32{
+    return INT_MIN
+}
+

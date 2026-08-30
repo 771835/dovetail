@@ -16,7 +16,7 @@ import sys
 
 from dovetail.plugins.plugin_api import Plugin, api_version
 from dovetail.utils.logger import get_logger
-from dovetail.utils.resource import resolve_project_path, project_root
+from dovetail.utils.resource import resolve_project_path, install_root
 
 # 兼容 Python 3.10 及更低版本与 Python 3.11+
 if sys.version_info >= (3, 11):
@@ -282,7 +282,7 @@ class PluginLoader:
 
             # 处理相对路径计算，防止绝对路径加载时 relative_to 报错
             try:
-                package_path = str(plugin_path.relative_to(project_root)).replace(os.sep, ".")
+                package_path = str(plugin_path.relative_to(install_root)).replace(os.sep, ".")
             except ValueError:
                 # 如果绝对路径不在当前工作目录下，则用插件名作为包名
                 package_path = plugin_name

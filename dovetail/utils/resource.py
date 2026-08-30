@@ -3,16 +3,21 @@
 import sys
 from pathlib import Path
 
-__all__ = ["resolve_project_path", "project_root", "IS_COMPILED"]
+__all__ = ["resolve_project_path", "install_root", "IS_COMPILED", "COMPILED_BY", "IS_BROWSER"]
 
 # Nuitka 打包后存在 __compiled__ 属性，不设置 sys.frozen
-# PyInstaller 打包后设置 sys.frozen = True
-try:
-    __compiled__ # noqa
-    IS_COMPILED = True
-except NameError:
-    IS_COMPILED = bool(getattr(sys, "frozen", False))
+if "__compiled__" in globals():
+    COMPILED_BY = "Nuitka"
+elif getattr(sys, "frozen", False):
+    # PyInstaller 打包后设置 sys.frozen = True
+    COMPILED_BY = "PyInstaller"
+else:
+    COMPILED_BY = None
 
+IS_COMPILED = COMPILED_BY is not None
+
+
+IS_BROWSER = sys.platform == 'emscripten'
 
 def _get_project_root() -> Path:
     """获取项目资源根目录，兼容所有部署模式"""
@@ -28,9 +33,9 @@ def _get_project_root() -> Path:
         return Path(__file__).resolve().parent.parent.parent
 
 
-project_root = _get_project_root()  # 被导入时计算一次
+install_root = _get_project_root()  # 被导入时计算一次
 
 
 def resolve_project_path(relative: str | Path) -> Path:
     """将项目相对路径解析为绝对路径"""
-    return project_root / relative
+    return install_root / relative

@@ -4,7 +4,6 @@ import argparse
 import os
 import sys
 import time
-import traceback
 from contextlib import chdir
 from pathlib import Path
 from typing import NoReturn, Optional
@@ -27,7 +26,7 @@ from dovetail.utils.annotations import timed
 from dovetail.utils.ir_serializer import IRSymbolSerializer
 from dovetail.utils.logger import get_logger, ThreadSafeLogger
 from dovetail.utils.naming import NameDecorator
-from dovetail.utils.resource import resolve_project_path, IS_COMPILED
+from dovetail.utils.resource import resolve_project_path, IS_BROWSER, COMPILED_BY
 
 logger = get_logger(__name__)
 
@@ -210,7 +209,8 @@ def main():
             print(f"Commit: {COMMIT_HASH}")
         print(f"License: {PROJECT_LICENSE}")
         print(f"Repository: {PROJECT_WEBSITE}")
-        print(f"Compiled: {IS_COMPILED}")
+        print(f"Compiled: {COMPILED_BY or 'None'}")
+        print(f"Browser: {IS_BROWSER}")
         print(f"Python version: {sys.version}")
         print(f"Platform:       {platform.platform()}")
         print(f"Architecture:   {platform.machine()}")
@@ -245,7 +245,7 @@ def main():
     parser.add_argument('--minecraft-version', '-mcv', metavar='version', type=str, help='游戏版本', default="1.21.5")
     parser.add_argument('--output', '-o', metavar='path', type=str, help='输出文件路径')
     parser.add_argument('--lib-path', '-l', metavar='path', type=str, help='强制指定标准库路径')
-    parser.add_argument('--include-dir','-I', metavar='path', action='append', help='添加搜索路径')
+    parser.add_argument('--include-dir', '-I', metavar='path', action='append', help='添加搜索路径')
     parser.add_argument('--backend', '-b', metavar='name', type=str, help='强制指定后端名称', default="")
     parser.add_argument('--namespace', '-n', metavar='namespace', type=str, help='输出数据包命名空间')
     parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')

@@ -8,6 +8,7 @@
 *.mcdc
 *.mcdci
 *.log
+*.gz
 .lark_cache
 /examples/build_demo/build
 dovetail/_version.py

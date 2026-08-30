@@ -2,7 +2,7 @@
 """
 Dovetail 构建编排器
 
-职责：读取 dovetail.toml → 执行 pre_build hook → 调用编译器 → 执行 post_build hook
+职责：读取 dovetail.toml -> 执行 pre_build hook -> 调用编译器 -> 执行 post_build hook
 编译器本身不读取 dovetail.toml，构建工具负责将配置转换为编译器命令行参数。
 """
 from __future__ import annotations
@@ -13,10 +13,13 @@ import sys
 from pathlib import Path
 
 from dovetail.build.config import BuildConfig
+from dovetail.build.dependencies import parse_dependencies, resolve_all, DependencyFormatError, \
+    DependencyGitNotFoundError, DependencyNetworkError, DependencyRepoError
 from dovetail.build.hooks import run_hook
+from dovetail.build.lockfile import write_lock
 from dovetail.core.config import CACHE_FILE_PREFIX, IR_CACHE_FILE_PREFIX
 from dovetail.utils.logger import get_logger
-from dovetail.utils.resource import IS_COMPILED
+from dovetail.utils.resource import IS_COMPILED, install_root
 
 logger = get_logger(__name__)
 
@@ -26,7 +29,7 @@ class Builder:
     项目构建编排器
 
     负责编排完整的构建流程：
-        pre_build hook → 编译器调用 → post_build hook
+        pre_build hook -> 编译器调用 -> post_build hook
 
     不依赖插件系统，直接作为 CLI 程序 dovetail-build 的实现。
 
@@ -62,6 +65,32 @@ class Builder:
             return 2  # DFP-604 §5.3: 配置错误
 
         logger.info(f"构建项目: {config.name} v{config.version}")
+
+        # ── 依赖解析 ──────────────────────────────────────────
+        if config.dependencies:
+            try:
+                specs = parse_dependencies(config.dependencies)
+            except DependencyFormatError as e:
+                logger.error(str(e))
+                return 2  # DFP-604 §5.3: 配置错误
+
+            try:
+                resolved_deps = resolve_all(specs, self.project_root, config.library)
+            except DependencyGitNotFoundError as e:
+                logger.error(str(e))
+                return 5  # DFP-604 §5.3: git 不可用
+            except DependencyNetworkError as e:
+                logger.error(str(e))
+                return 6  # DFP-604 §5.3: 依赖网络错误
+            except DependencyRepoError as e:
+                logger.error(str(e))
+                return 7  # DFP-604 §5.3: 依赖仓库错误
+            except DependencyFormatError as e:
+                logger.error(str(e))
+                return 2  # DFP-604 §5.3: 配置错误
+
+            # 更新 lock 文件
+            write_lock(self.project_root, resolved_deps)
 
         # pre_build hook
         if config.pre_build:
@@ -114,8 +143,7 @@ class Builder:
             args = [str(compiler_exe)]
         else:
             # 普通 Python 环境
-            import sys as _sys
-            _main = Path(_sys.argv[0]).resolve().parent / "main.py"  # build_main和main在同目录
+            _main = install_root / "main.py"
             args = [sys.executable, str(_main)]
 
         # 入口文件（必需）
@@ -127,31 +155,34 @@ class Builder:
             )
         args.append(str(entry))
 
-        # 输出目录 → -o
+        # 输出目录 -> -o
         if config.output:
             args.extend(["-o", str(self.project_root / config.output)])
 
-        # 标准库路径 → --lib-path
+        # 标准库路径 -> --lib-path
         if config.lib_path:
             args.extend(["--lib-path", config.lib_path])
 
-        # 优化级别 → -O
+        # 优化级别 -> -O
         args.extend(["-O", str(config.optimization)])
 
-        # 后端 → --backend
+        # Minecraft 版本 -> -mcv
+        args.extend(["--minecraft-version", str(config.minecraft_version)])
+
+        # 后端 -> --backend
         if config.backend:
             args.extend(["--backend", config.backend])
 
-        # 命名空间 → --namespace（空则用 package.name）
+        # 命名空间 -> --namespace（空则用 package.name）
         namespace = config.namespace or config.name
         if namespace:
             args.extend(["--namespace", namespace])
 
-        # 调试模式 → --debug
+        # 调试模式 -> --debug
         if config.debug:
             args.append("--debug")
 
-        # 实验性功能 → --experimental
+        # 实验性功能 -> --experimental
         if config.experimental:
             args.append("--experimental")
 
@@ -236,7 +267,9 @@ class Builder:
             "\n"
             "[hooks]\n"
             'pre_build = "hook/pre_build.py"\n'
-            'post_build = "hook/post_build.py"\n',
+            'post_build = "hook/post_build.py"\n'
+            "\n"
+            "[dependencies]\n",
             encoding="utf-8",
         )
         logger.info(f"创建 {toml_path}")
@@ -283,6 +316,7 @@ class Builder:
         gitignore.write_text(
             "/build/\n"
             "/target/\n"
+            "/lib/\n"
             "*.mcdc\n",
             encoding="utf-8",
         )

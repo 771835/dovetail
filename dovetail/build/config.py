@@ -186,6 +186,13 @@ class BuildConfig:
         """post_build 钩子脚本路径（相对项目根目录）"""
         return self._data.get("hooks", {}).get("post_build", "")
 
+    # ── [dependencies] ────────────────────────────────────────
+
+    @property
+    def dependencies(self) -> dict:
+        """依赖声明（原始字典，由 dependencies.py 解析）"""
+        return self._data.get("dependencies", {})
+
     def __repr__(self) -> str:
         return (
             f"BuildConfig(name={self.name!r}, version={self.version!r}, "
