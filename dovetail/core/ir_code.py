@@ -411,13 +411,13 @@ class IROpCode:
         flags=InstructionFlag.SIDE_EFFECT,
         use_indices=(0, 2),  # struct_ref: Reference, value: Reference
     )
-
-    STRUCT_CALL = IROpDescriptor(
-        0xA4, "结构体方法调用", InstructionCategory.STRUCT,
-        flags=InstructionFlag.SIDE_EFFECT | InstructionFlag.CALL | InstructionFlag.PRODUCES_RESULT,
-        result_index=0,
-        use_extractor=_struct_call_uses,
-    )
+    # 合并作为 CALL_METHOD
+    # STRUCT_CALL = IROpDescriptor(
+    #     0xA4, "结构体方法调用", InstructionCategory.STRUCT,
+    #     flags=InstructionFlag.SIDE_EFFECT | InstructionFlag.CALL | InstructionFlag.PRODUCES_RESULT,
+    #     result_index=0,
+    #     use_extractor=_struct_call_uses,
+    # )
 
     STRUCT_FREE = IROpDescriptor(
         0xA5, "结构体释放", InstructionCategory.STRUCT,

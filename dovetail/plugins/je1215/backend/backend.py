@@ -10,6 +10,7 @@ from dovetail.core.ir_builder import IRBuilder
 from .commands.builtins import TemplateRegistry
 from .initializer_function_writer import InitializerFunctionWriter
 from .literal_pool_writer import LiteralPoolWriter
+from .recursive_call_analysis import tag_recursive_calls
 
 
 class JE1215Backend(Backend):
@@ -27,6 +28,9 @@ class JE1215Backend(Backend):
         """生成代码（主流程）"""
         # 创建生成上下文
         context = GenerationContext(self.config, self.target, self.ir_builder)
+
+        # 分析递归代码并标记
+        tag_recursive_calls(self.ir_builder)
 
         # 处理IR指令
         self._process_instructions(context)

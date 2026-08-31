@@ -105,7 +105,7 @@ class IRInstruction:
     所有指令都使用这个类，通过 opcode 区分类型
     """
 
-    __slots__ = ('opcode', 'operands', '_hash_cache')
+    __slots__ = ('opcode', 'operands', '_hash_cache', 'metadata')
 
     def __init__(
             self,
@@ -122,6 +122,7 @@ class IRInstruction:
         self.opcode = opcode
 
         self.operands = list(operands)
+        self.metadata = {}
 
         self._hash_cache = None
 
@@ -1107,41 +1108,6 @@ def _struct_set_repr(instr: IRInstruction) -> str:
     field = instr.operands[1]
     value = instr.operands[2]
     return f"{instance}.{field} = {value}"
-
-
-@validate_instruction
-def IRStructCall(
-        result: Optional[Variable],
-        instance: Reference,
-        method: Function,
-        arguments: dict[str, Reference]
-) -> IRInstruction:
-    """
-    结构体方法调用指令
-
-    Args:
-        result:    返回值变量（void 方法为 None）
-        instance:  结构体实例引用（作为 self 传入）
-        method:    方法函数对象
-        arguments: 实参字典
-
-    Returns:
-        方法调用指令
-    """
-    return IRInstruction(IROpCode.STRUCT_CALL, result, instance, method, arguments)
-
-
-@register_repr(IROpCode.STRUCT_CALL)
-def _struct_call_repr(instr: IRInstruction) -> str:
-    result = instr.operands[0]
-    instance = instr.operands[1]
-    method: Function = instr.operands[2]
-    args: dict = instr.operands[3]
-    args_str = ", ".join(f"{name}={val}" for name, val in args.items())
-    if result:
-        return f"{result.get_name()} = {instance}.{method.get_name()}({args_str})"
-    return f"{instance}.{method.get_name()}({args_str})"
-
 
 @validate_instruction
 def IRStructFree(instance: Reference) -> IRInstruction:

@@ -7,8 +7,10 @@ import threading
 from logging.handlers import RotatingFileHandler
 from typing import Optional, Union
 
+from dovetail.utils.resource import install_root
+
 if "--debug" in sys.argv:
-    LOG_FILE = "logs/dovetail.log"
+    LOG_FILE = install_root / "logs/dovetail.log"
 else:
     LOG_FILE = None
 

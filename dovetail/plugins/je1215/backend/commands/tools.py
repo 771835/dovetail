@@ -2,7 +2,7 @@
 import hashlib
 from enum import auto
 
-from attrs import define
+from attrs import define, evolve
 
 from dovetail.core.backend import GenerationContext
 from dovetail.core.enums import PrimitiveDataType
@@ -50,6 +50,17 @@ class DataPath:
     def __reversed__(self):
         yield self.target
         yield self.path
+
+    def __truediv__(self, other: str) -> 'DataPath':
+        """
+        重载 / 运算符
+        例如: data_path / "sub_field" 会返回一个新的 DataPath，其 path 为 "原path.sub_field"
+        """
+        if not isinstance(other, str):
+            return NotImplemented  # 如果除以的不是字符串，返回 NotImplemented 让 Python 处理报错
+
+        # 使用 attrs.evolve 复制当前对象并更新 path 字段
+        return evolve(self, path=f"{self.path}.{other}")
 
 
 class LiteralPoolTools:

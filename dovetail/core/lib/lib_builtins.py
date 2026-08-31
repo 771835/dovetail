@@ -44,7 +44,7 @@ class Builtins(LibraryBase):
         return result
 
     @library_func(name="print")
-    def _print(self, msg: int | str | bool):
+    def _print(self, msg: str):
         msg: Reference[Variable | Literal]  # 真实类型
         tellraw_text = self._get_function("tellraw_text")
         if tellraw_text is None:

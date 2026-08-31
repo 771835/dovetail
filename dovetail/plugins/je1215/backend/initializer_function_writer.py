@@ -27,6 +27,7 @@ class InitializerFunctionWriter(OutputWriter):
             f.write(ScoreboardBuilder.add_objective(context.objective, "dummy", "Main objective") + "\n")
             f.write(FunctionBuilder.run(f"{context.namespace}:literal_pool_init") + "\n")
             f.write(DataBuilder.modify_storage_set_value("dnt:ram", "in", "['','']") + "\n")
+            f.write(DataBuilder.modify_storage_set_value(context.objective, "__stack_frame__", "[]") + "\n")
 
             # 执行初始化函数
             for init_function in self.init_functions:

@@ -35,7 +35,7 @@ class Copy:
             target: DataPath,
             source: DataPath,
     ):
-        return Execute.execute().store_result_score(*target).run(DataBuilder.get_storage(*source))
+        return Execute.execute().store_result_score(*target).run(DataBuilder.get_storage(*reversed(source)))
 
     @staticmethod
     def copy_score_to_storage(
