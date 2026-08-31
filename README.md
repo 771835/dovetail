@@ -13,7 +13,6 @@
 > - **性质:** 相较于 **clang-mc**等追求稳定性的项目，本项目会更偏向使用较为激进的特性和优化，以及对一些内容的实验性处理，这些修改可能不会特殊标注且缺少长期的稳定维护。
 > - **语法:** 语法更新迭代较快，因此不保证向后兼容，仅发布正式发行版时保证附带示例语法正确，面对对象具体语法待定，可能存在较大变化
 > - **Minecraft 版本支持:** 相较于其他语言，本项目不会有较为稳定的版本支持，即不会长期停留在特定版本
-<!-- 沟槽的ojang，这破语言，老子不做了 ———— 记 26.3 sp 10 计算指令改革 -->
 
 ## 目标
 
@@ -45,12 +44,22 @@
 
 ## 快速开始
 
-### 环境要求
+### 在线体验
+ 
+此项目提供了 [在线编译器](https://771835.github.io/dovetail/) 以供快速体验 Dovetail 语法：
+ 
+![在线编译器截图](images/img.png)
+ 
+> ⚠ 在线编译器仅支持单文件编译，不支持项目模式，且版本可能落后于主线。
+
+### 本地使用
+
+#### 环境要求
 
 - Python 3.11+
 - Minecraft Java Edition 1.21.5
 
-### 安装
+#### 安装
 
 ```bash
 git clone https://github.com/771835/dovetail.git
@@ -59,7 +68,9 @@ pip install -r requirements.txt
 python main.py -O2 xxx.mcdl
 ```
 
-### 代码示例
+详细内容见[快速开始](docs/zh-cn/quick-start.md)
+
+## 代码示例
 
 ```mcdl
 // 定义函数
@@ -74,8 +85,6 @@ fn main() {
     greet("Bob")
 }
 ```
-
-详细内容见[快速开始](docs/zh-cn/quick-start.md)
 
 ## 贡献
 
@@ -179,9 +188,11 @@ A: 有的有的，过于垃圾，不便于展示 (
 
 ### 相似项目
 
-- 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 一门类似 Java 的面对对象语言，完整模拟了堆栈，因而支持递归(似乎死了)。
+- 项目[MCFPP](https://github.com/MinecraftFunctionPlusPlus/MCFPP) 一门类似 Java 的面对对象语言，完整模拟了堆栈，因而支持递归
+  (其作者更新重心不再此)。
 - 项目[clang-mc](https://github.com/xia-mc/clang-mc) 一个编译工具链项目，实现汇编的在mc中的部分支持和 `C` 代码编译到
-  `mcfunction` 语言(其作者放弃开发了)。
+  `mcfunction` 语言 (其作者目前不活跃)。
 - 项目[Minecraft-Script](https://github.com/SpyC0der77/Minecraft-Script) 简化 Minecraft 数据包创建的编程语言，支持生成较多的版本数据包
-  (比较简陋，并不是完整的编译器，不过实现思路挺好玩的)(似乎也死了)。
-- 项目[Kore](https://github.com/Ayfri/Kore) 一个用于生成 Minecraft 数据包的 Kotlin 库(更新较为活跃，但是不是一门独立的编程语言)。
+  (比较简陋，并不是完整的编译器，不过实现思路挺好玩的)(目前不活跃)。
+- 项目[Kore](https://github.com/Ayfri/Kore) 一个用于生成 Minecraft 数据包的 Kotlin 库
+  (更新较为活跃，但是不是一门独立的编程语言)。
