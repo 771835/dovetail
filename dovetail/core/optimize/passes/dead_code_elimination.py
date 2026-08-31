@@ -88,7 +88,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
     #  公开接口                                                            #
     # ------------------------------------------------------------------ #
 
-    def execute(self, context) -> bool:
+    def execute(self, context=None) -> bool:
         self._changed = False
         self._def_graph.clear()
         self._live.clear()
@@ -126,13 +126,13 @@ class DeadCodeEliminationPass(IROptimizationPass):
                 scope_stack.append(instr.get_operands()[0])
                 continue
 
-            if opcode == IROpCode.SCOPE_END:
+            elif opcode == IROpCode.SCOPE_END:
                 if len(scope_stack) > 1:
                     scope_stack.pop()
                 continue
 
             # ------ DECLARE ------
-            if opcode == IROpCode.DECLARE:
+            elif opcode == IROpCode.DECLARE:
                 var = instr.get_operands()[0]
                 key = _make_key(current_scope, var.get_name())
                 self._declared.add(key)
@@ -140,8 +140,14 @@ class DeadCodeEliminationPass(IROptimizationPass):
                     roots.add(key)
                 continue
 
+            # ------ COND_JUMP ------
+            elif opcode == IROpCode.COND_JUMP:
+                var = instr.get_operands()[0]
+                key = self._lookup_key(var.get_name(), current_scope, scope_stack)
+                roots.add(key)
+
             # 拥有结果变量且无副作用的指令
-            if opcode.produces_result and not opcode.has_side_effect:
+            elif opcode.produces_result and not opcode.has_side_effect:
                 result_key = self._lookup_key(opcode.get_result_var(instr.operands).get_name(), current_scope,
                                               scope_stack)
                 self._ensure_def(result_key)
@@ -151,7 +157,7 @@ class DeadCodeEliminationPass(IROptimizationPass):
                         self._add_edge(result_key, op_key)
                 continue
 
-            if opcode.has_side_effect:
+            elif opcode.has_side_effect:
                 if result_var := opcode.get_result_var(instr.operands):
                     result_key = self._lookup_key(result_var.get_name(), current_scope, scope_stack)
                     self._ensure_def(result_key)

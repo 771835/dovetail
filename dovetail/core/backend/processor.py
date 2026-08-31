@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import  Type, TYPE_CHECKING, TypeVar
+from typing import  Type, TYPE_CHECKING
 
 from dovetail.core.ir_code import IROpDescriptor
 from dovetail.utils.logger import get_logger
@@ -16,7 +16,6 @@ from dovetail.core.instructions import IRInstruction
 from dovetail.core.backend.context import GenerationContext
 
 logger = get_logger(__name__)
-_IRInstructionType = TypeVar("_IRInstructionType", bound="IRInstruction")
 
 
 class IRProcessor(ABC):
@@ -25,7 +24,7 @@ class IRProcessor(ABC):
     opcode: IROpDescriptor | None = None  # 子类必须指定
 
     @abstractmethod
-    def process(self, instruction: _IRInstructionType, context: GenerationContext):
+    def process(self, instruction: IRInstruction, context: GenerationContext):
         """
         处理单个IR指令
 
@@ -35,7 +34,7 @@ class IRProcessor(ABC):
         """
         raise NotImplementedError(f"{self.__class__.__name__} must implement process()")
 
-    def can_handle(self, instruction: _IRInstructionType) -> bool:
+    def can_handle(self, instruction: IRInstruction) -> bool:
         """判断是否能处理该指令"""
         return instruction.opcode == self.opcode
 
@@ -45,7 +44,7 @@ class DefaultProcessor(IRProcessor):
 
     opcode = None
 
-    def process(self, instruction: _IRInstructionType, context: GenerationContext):
+    def process(self, instruction: IRInstruction, context: GenerationContext):
         opcode_name = instruction.opcode.desc
         ir_code = instruction.opcode.code
         context.add_command(f"# WARNING: No processor for {opcode_name}({ir_code})")

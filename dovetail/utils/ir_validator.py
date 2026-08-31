@@ -36,9 +36,11 @@ def validate_ir(builder: IRBuilder) -> list[str]:
     Returns:
         错误消息列表，如果为空则说明验证通过。
     """
+    builder.print()
     errors: list[str] = []
-    stack: STACK_TYPE = []
-    current_var_table: Optional[set] = None
+    stack: STACK_TYPE = [("global", StructureType.GLOBAL, -1, set())]
+
+    current_var_table: Optional[set] = stack[0][3]
 
     for idx, instr in enumerate(builder.get_instructions()):
         if instr.opcode == IROpCode.SCOPE_BEGIN:
@@ -65,21 +67,6 @@ def validate_ir(builder: IRBuilder) -> list[str]:
                 continue
             current_var_table.add(var.name)
 
-        elif instr.opcode == IROpCode.FREE:
-            operands = instr.operands
-            if len(operands) < 1:
-                errors.append(f"[{idx}] FREE 缺少操作数: {instr}")
-                continue
-            var: Variable = operands[0]
-
-            _is_has, _table = _validate_has_declared(var.name, stack)
-            if _is_has:
-                assert _table is not None
-                _table.remove(var.name)
-                break
-            else:
-                errors.append(f"[{idx}] FREE 试图释放未被定义的变量 '{var.name}'")
-
         elif instr.opcode == IROpCode.SCOPE_END:
             operands = instr.operands
             if len(operands) < 2:
@@ -105,20 +92,18 @@ def validate_ir(builder: IRBuilder) -> list[str]:
 
         else:
             operands = instr.operands
-            for operand in operands:
+            for operand in instr.opcode.get_used_refs(operands):
                 if isinstance(operand, Reference):
                     operand_val = operand.value
                     if isinstance(operand_val, Variable):
                         _is_has, _table = _validate_has_declared(operand_val.name, stack)
                         if not _is_has:
-                            errors.append(f"[{idx}] {instr.opcode.name} '{operand_val.name}' 未被定义但被使用")
-                elif isinstance(operand, Variable):
-                    _is_has, _table = _validate_has_declared(operand.name, stack)
-                    if not _is_has:
-                        errors.append(f"[{idx}] {instr.opcode.name} '{operand.name}' 未被定义但被使用")
+                            errors.append(f"[{idx}] {instr.opcode.desc} '{operand_val.name}' 未被定义但被使用")
 
-    while stack:
+    while stack :
         scope_name, scope_type, begin_idx, var_table = stack.pop()
+        if scope_type == StructureType.GLOBAL:
+            continue
         errors.append(
             f"[{begin_idx}] 未关闭的 SCOPE_BEGIN: {scope_name} ({getattr(scope_type, 'name', scope_type)})"
         )
@@ -186,6 +171,6 @@ def assert_ir(builder: IRBuilder) -> None:
 
     若存在错误，则抛出 IRValidationError。
     """
-    errors = validate_ir_scope_structure(builder)
+    errors = validate_ir(builder)
     if errors:
         raise IRValidationError("IR 作用域结构验证失败:\n" + "\n".join(errors))
