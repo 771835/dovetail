@@ -1,0 +1,78 @@
+include "minecraft.mcdl"
+
+// ── 直接递归：阶乘 ──────────────────────────────────────────────────────────
+
+fn fact(n: int) -> int {
+    if (n <= 1) {
+        return 1
+    }
+    return n * fact(n - 1)
+}
+
+// ── 直接递归：斐波那契（非尾递归，两次自调用） ─────────────────────────────
+
+fn fib(n: int) -> int {
+    if (n <= 2) {
+        return 1
+    }
+    return fib(n - 1) + fib(n - 2)
+}
+
+/*
+// ── 互递归：even/odd ────────────────────────────────────────────────────────
+fn is_odd(n: int) -> int;
+
+fn is_even(n: int) -> int {
+    if (n == 0) {
+        return 1
+    }
+    return is_odd(n - 1)
+}
+
+fn is_odd(n: int) -> int {
+    if (n == 0) {
+        return 0
+    }
+    return is_even(n - 1)
+}
+*/
+
+// ── 递归函数调用非递归辅助函数 ─────────────────────────────────────────────
+
+fn helper(x: int) -> int {
+    return x + 1
+}
+
+fn recurse_with_helper(n: int) -> int {
+    if (n <= 0) {
+        return 0
+    }
+    let a: int = helper(n)
+    return a + recurse_with_helper(n - 1)
+}
+
+// ── 非递归函数调用链（不应触发栈帧保存） ────────────────────────────────────
+
+fn add_one(x: int) -> int {
+    return x + 1
+}
+
+fn add_two(x: int) -> int {
+    return add_one(add_one(x))
+}
+
+// ── 入口 ────────────────────────────────────────────────────────────────────
+
+@init
+fn main() {
+    let r1: int = fact(5)
+    let r2: int = fib(10)
+    let r3: int = is_even(6)
+    let r4: int = recurse_with_helper(3)
+    let r5: int = add_two(7)
+    say(str(r1))
+    say(str(r2))
+    say(str(r3))
+    say(str(r4))
+    say(str(r5))
+}

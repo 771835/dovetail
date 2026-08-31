@@ -3,7 +3,7 @@
 递归调用分析测试
 
 测试策略：手工构造 IRBuilder（不走完整编译流水线），
-验证调用图构建、SCC 检测和 IRCall 标记逻辑。
+验证调用图构建、SCC 检测、活跃变量分析和 IRCall 标记逻辑。
 """
 import unittest
 
@@ -11,6 +11,7 @@ from dovetail.core.enums import PrimitiveDataType
 from dovetail.core.enums.types import StructureType
 from dovetail.core.instructions import (
     IRFunction, IRCall, IRReturn, IRScopeBegin, IRScopeEnd,
+    IRAssign, IRDeclare,
     IROpCode, IRInstruction,
 )
 from dovetail.core.ir_builder import IRBuilder
@@ -22,7 +23,10 @@ from dovetail.plugins.je1215.backend.recursive_call_analysis import (
     build_call_graph,
     find_recursive_sccs,
     tag_recursive_calls,
+    _get_callees_from_call,
+    _live_vars_at_call,
     META_KEY_NEEDS_STACK_SAVE,
+    META_KEY_LIVE_VARS,
 )
 
 
@@ -142,6 +146,30 @@ class TestBuildCallGraph(unittest.TestCase):
         graph = build_call_graph(builder)
         self.assertEqual(graph.edges, {})
         self.assertEqual(graph.all_functions, set())
+
+
+# ─── _get_callees_from_call 测试 ─────────────────────────────────────────────
+
+class TestGetCalleesFromCall(unittest.TestCase):
+
+    def test_call_returns_singleton_set(self):
+        n = _make_int_var("n")
+        func = _make_function("f", [n])
+        result = _make_int_var("__tmp")
+        instr = IRCall(result, func, {"n": Reference(n)})
+        callees = _get_callees_from_call(instr)
+        self.assertEqual(callees, {"f"})
+
+    def test_non_call_returns_empty(self):
+        n = _make_int_var("n")
+        instr = IRReturn(Reference(n))
+        callees = _get_callees_from_call(instr)
+        self.assertEqual(callees, set())
+
+    def test_non_call_instruction(self):
+        instr = IRScopeBegin("foo", StructureType.FUNCTION)
+        callees = _get_callees_from_call(instr)
+        self.assertEqual(callees, set())
 
 
 # ─── SCC 检测测试 ────────────────────────────────────────────────────────────
@@ -272,6 +300,224 @@ class TestFindRecursiveSCCs(unittest.TestCase):
         self.assertIn(frozenset({"g"}), members)
 
 
+# ─── Tarjan 算法测试 ─────────────────────────────────────────────────────────
+
+class TestTarjanSCC(unittest.TestCase):
+
+    def _tarjan(self, graph: dict[str, set[str]]) -> list[frozenset[str]]:
+        from dovetail.plugins.je1215.backend.recursive_call_analysis import _tarjan_scc
+        return _tarjan_scc(graph)
+
+    def test_single_node_no_self_loop(self):
+        graph = {"a": set()}
+        sccs = self._tarjan(graph)
+        self.assertEqual(len(sccs), 1)
+        self.assertEqual(sccs[0], frozenset({"a"}))
+
+    def test_single_node_self_loop(self):
+        graph = {"a": {"a"}}
+        sccs = self._tarjan(graph)
+        self.assertEqual(len(sccs), 1)
+        self.assertEqual(sccs[0], frozenset({"a"}))
+
+    def test_two_cycles_isolated(self):
+        graph = {"a": {"b"}, "b": {"a"}, "c": {"d"}, "d": {"c"}}
+        sccs = self._tarjan(graph)
+        members = {s for s in sccs}
+        self.assertEqual(len(sccs), 2)
+        self.assertIn(frozenset({"a", "b"}), members)
+        self.assertIn(frozenset({"c", "d"}), members)
+
+    def test_dag(self):
+        graph = {"a": {"b"}, "b": {"c"}, "c": set()}
+        sccs = self._tarjan(graph)
+        self.assertEqual(len(sccs), 3)
+        members = {s for s in sccs}
+        self.assertEqual(members, {frozenset({"a"}), frozenset({"b"}), frozenset({"c"})})
+
+
+# ─── 活跃变量分析测试 ───────────────────────────────────────────────────────
+
+class TestLiveVarsAtCall(unittest.TestCase):
+
+    def test_live_var_used_after_call(self):
+        """
+        calc1 = a + b
+        calc2 = a * b + calc1
+        result = bar(calc2)
+        return calc1       ← calc1 live, calc2 dead
+        """
+        n = _make_int_var("n")
+        a = _make_int_var("a")
+        b = _make_int_var("b")
+        calc1 = _make_int_var("calc1")
+        calc2 = _make_int_var("calc2")
+        bar = _make_function("bar", [n])
+        result = _make_int_var("__tmp")
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(bar))  # dummy
+        builder.insert(IRScopeBegin("bar", StructureType.FUNCTION))
+        builder.insert(IRReturn(Reference(n)))
+        builder.insert(IRScopeEnd("bar", StructureType.FUNCTION))
+
+        builder.insert(IRFunction(_make_function("foo", [n])))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        # calc1 = a + b  (省略，只看 call 后)
+        # calc2 = a * b + calc1
+        # call bar(calc2)
+        call_instr = IRCall(result, bar, {"n": Reference(calc2)})
+        builder.insert(call_instr)
+        # return calc1
+        builder.insert(IRReturn(Reference(calc1)))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        instructions = builder.get_instructions()
+        call_index = next(i for i, instr in enumerate(instructions) if instr.opcode is IROpCode.CALL)
+
+        live = _live_vars_at_call(instructions, call_index, result.get_name())
+        self.assertIn("calc1", live)
+        self.assertNotIn("calc2", live)
+
+    def test_nothing_used_after_call(self):
+        """
+        result = bar(n)
+        return               ← void return, nothing live
+        """
+        n = _make_int_var("n")
+        bar = _make_function("bar", [n])
+        result = _make_int_var("__tmp")
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(bar))
+        builder.insert(IRScopeBegin("bar", StructureType.FUNCTION))
+        builder.insert(IRReturn(Reference(n)))
+        builder.insert(IRScopeEnd("bar", StructureType.FUNCTION))
+
+        builder.insert(IRFunction(_make_function("foo", [n])))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        call_instr = IRCall(result, bar, {"n": Reference(n)})
+        builder.insert(call_instr)
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        instructions = builder.get_instructions()
+        call_index = next(i for i, instr in enumerate(instructions) if instr.opcode is IROpCode.CALL)
+
+        live = _live_vars_at_call(instructions, call_index, result.get_name())
+        self.assertEqual(live, set())
+
+    def test_result_var_excluded(self):
+        """
+        result = bar(n)
+        return result         ← result 是调用返回值，不需要保存旧值
+        """
+        n = _make_int_var("n")
+        bar = _make_function("bar", [n])
+        result = _make_int_var("__tmp")
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(bar))
+        builder.insert(IRScopeBegin("bar", StructureType.FUNCTION))
+        builder.insert(IRReturn(Reference(n)))
+        builder.insert(IRScopeEnd("bar", StructureType.FUNCTION))
+
+        builder.insert(IRFunction(_make_function("foo", [n])))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        call_instr = IRCall(result, bar, {"n": Reference(n)})
+        builder.insert(call_instr)
+        builder.insert(IRReturn(Reference(result)))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        instructions = builder.get_instructions()
+        call_index = next(i for i, instr in enumerate(instructions) if instr.opcode is IROpCode.CALL)
+
+        live = _live_vars_at_call(instructions, call_index, result.get_name())
+        # result 被 return 引用，但它是 call 的返回变量，应被排除
+        self.assertNotIn("__tmp", live)
+
+    def test_multiple_vars_used_after_call(self):
+        """
+        result = bar(n)
+        return x + y          ← x 和 y 都 live
+        """
+        n = _make_int_var("n")
+        x = _make_int_var("x")
+        y = _make_int_var("y")
+        bar = _make_function("bar", [n])
+        result = _make_int_var("__tmp")
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(bar))
+        builder.insert(IRScopeBegin("bar", StructureType.FUNCTION))
+        builder.insert(IRReturn(Reference(n)))
+        builder.insert(IRScopeEnd("bar", StructureType.FUNCTION))
+
+        builder.insert(IRFunction(_make_function("foo", [n])))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        call_instr = IRCall(result, bar, {"n": Reference(n)})
+        builder.insert(call_instr)
+        # 模拟 x + y：用 ASSIGN 让两个变量被引用
+        builder.insert(IRAssign(x, Reference(y)))
+        builder.insert(IRReturn(Reference(x)))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        instructions = builder.get_instructions()
+        call_index = next(i for i, instr in enumerate(instructions) if instr.opcode is IROpCode.CALL)
+
+        live = _live_vars_at_call(instructions, call_index, result.get_name())
+        self.assertIn("y", live)
+
+    def test_stops_at_next_function(self):
+        """
+        函数 A 的 call 后扫描不应进入函数 B 的指令
+        """
+        n = _make_int_var("n")
+        a = _make_function("a", [n])
+        b = _make_function("b", [n])
+        result = _make_int_var("__tmp")
+        other = _make_int_var("other")
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(a))
+        builder.insert(IRScopeBegin("a", StructureType.FUNCTION))
+        call_instr = IRCall(result, b, {"n": Reference(n)})
+        builder.insert(call_instr)
+        builder.insert(IRReturn(Reference(result)))
+        builder.insert(IRScopeEnd("a", StructureType.FUNCTION))
+
+        builder.insert(IRFunction(b))
+        builder.insert(IRScopeBegin("b", StructureType.FUNCTION))
+        builder.insert(IRReturn(Reference(other)))  # other 属于 b，不应出现在 a 的 live 集中
+        builder.insert(IRScopeEnd("b", StructureType.FUNCTION))
+
+        instructions = builder.get_instructions()
+        call_index = next(i for i, instr in enumerate(instructions) if instr.opcode is IROpCode.CALL)
+
+        live = _live_vars_at_call(instructions, call_index, result.get_name())
+        self.assertNotIn("other", live)
+
+    def test_void_call_no_result(self):
+        """void 调用：result 为 None"""
+        n = _make_int_var("n")
+        proc = _make_function("proc", [n], return_type=PrimitiveDataType.VOID)
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(proc))
+        builder.insert(IRScopeBegin("proc", StructureType.FUNCTION))
+        call_instr = IRCall(None, proc, {"n": Reference(n)})
+        builder.insert(call_instr)
+        builder.insert(IRReturn(None))
+        builder.insert(IRScopeEnd("proc", StructureType.FUNCTION))
+
+        instructions = builder.get_instructions()
+        call_index = next(i for i, instr in enumerate(instructions) if instr.opcode is IROpCode.CALL)
+
+        # result_var_name = None，不应 crash
+        live = _live_vars_at_call(instructions, call_index, None)
+        self.assertEqual(live, set())
+
+
 # ─── IRCall 标记测试 ─────────────────────────────────────────────────────────
 
 class TestTagRecursiveCalls(unittest.TestCase):
@@ -301,15 +547,54 @@ class TestTagRecursiveCalls(unittest.TestCase):
         calls = _find_calls(builder)
         self.assertEqual(len(calls), 1)
         self.assertNotIn(META_KEY_NEEDS_STACK_SAVE, calls[0].metadata)
+        self.assertNotIn(META_KEY_LIVE_VARS, calls[0].metadata)
 
-    def test_direct_recursive_tagged(self):
-        """直接递归调用应被打标签"""
+    def test_direct_recursive_tagged_with_live_vars(self):
+        """
+        fn fact(n: int) -> int {
+            return fact(n)
+        }
+        return 引用 result（即 __tmp），但 result 被排除 → live_vars 为空
+        """
         builder, _, _ = _build_self_recursive_function("fact")
         tag_recursive_calls(builder)
 
         calls = _find_calls(builder)
         self.assertEqual(len(calls), 1)
         self.assertTrue(calls[0].metadata.get(META_KEY_NEEDS_STACK_SAVE))
+        self.assertIn(META_KEY_LIVE_VARS, calls[0].metadata)
+        # return 引用的是 call result，被排除
+        self.assertEqual(calls[0].metadata[META_KEY_LIVE_VARS], set())
+
+    def test_direct_recursive_with_live_var(self):
+        """
+        fn foo(n: int) -> int {
+            calc1 = n + 1
+            tmp = foo(calc1)
+            return calc1        ← calc1 live
+        }
+        """
+        n = _make_int_var("n")
+        calc1 = _make_int_var("calc1")
+        foo = _make_function("foo", [n])
+        result = _make_int_var("__tmp")
+
+        builder = IRBuilder()
+        builder.insert(IRFunction(foo))
+        builder.insert(IRScopeBegin("foo", StructureType.FUNCTION))
+        builder.insert(IRDeclare(calc1))
+        call_instr = IRCall(result, foo, {"n": Reference(calc1)})
+        builder.insert(call_instr)
+        builder.insert(IRReturn(Reference(calc1)))
+        builder.insert(IRScopeEnd("foo", StructureType.FUNCTION))
+
+        tag_recursive_calls(builder)
+
+        calls = _find_calls(builder)
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(calls[0].metadata.get(META_KEY_NEEDS_STACK_SAVE))
+        live = calls[0].metadata[META_KEY_LIVE_VARS]
+        self.assertIn("calc1", live)
 
     def test_mutual_recursive_both_tagged(self):
         """互递归：A 调 B 和 B 调 A 都应打标签"""
@@ -337,6 +622,7 @@ class TestTagRecursiveCalls(unittest.TestCase):
         self.assertEqual(len(calls), 2)
         for call in calls:
             self.assertTrue(call.metadata.get(META_KEY_NEEDS_STACK_SAVE))
+            self.assertIn(META_KEY_LIVE_VARS, call.metadata)
 
     def test_call_outside_scc_not_tagged(self):
         """递归 SCC 内的函数调用 SCC 外的函数，外部调用不应打标签"""
@@ -423,6 +709,7 @@ class TestTagRecursiveCalls(unittest.TestCase):
         calls = _find_calls(builder)
         for call in calls:
             self.assertNotIn(META_KEY_NEEDS_STACK_SAVE, call.metadata)
+            self.assertNotIn(META_KEY_LIVE_VARS, call.metadata)
 
     def test_idempotent(self):
         """重复调用 tag_recursive_calls 不应产生重复标签或副作用"""
@@ -434,48 +721,40 @@ class TestTagRecursiveCalls(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         # 仍然是 True，不是 True 被覆盖两次
         self.assertTrue(calls[0].metadata.get(META_KEY_NEEDS_STACK_SAVE))
+        # live_vars 不应被重复写入为不同值
+        self.assertIsInstance(calls[0].metadata.get(META_KEY_LIVE_VARS), set)
 
-
-# ─── Tarjan 算法测试 ─────────────────────────────────────────────────────────
-
-class TestTarjanSCC(unittest.TestCase):
-    """单独测试 Tarjan 算法的正确性"""
-
-    def _tarjan(self, graph: dict[str, set[str]]) -> list[frozenset[str]]:
-        """便捷入口"""
-        from dovetail.plugins.je1215.backend.recursive_call_analysis import _tarjan_scc
-        return _tarjan_scc(graph)
-
-    def test_single_node_no_self_loop(self):
-        graph = {"a": set()}
-        sccs = self._tarjan(graph)
-        self.assertEqual(len(sccs), 1)
-        self.assertEqual(sccs[0], frozenset({"a"}))
-
-    def test_single_node_self_loop(self):
-        graph = {"a": {"a"}}
-        sccs = self._tarjan(graph)
-        self.assertEqual(len(sccs), 1)
-        self.assertEqual(sccs[0], frozenset({"a"}))
-
-    def test_two_cycles_isolated(self):
-        graph = {
-            "a": {"b"}, "b": {"a"},
-            "c": {"d"}, "d": {"c"},
+    def test_live_vars_excludes_result(self):
+        """
+        fn f(n: int) -> int {
+            x = n + 1
+            result = f(x)
+            return result + x     ← x live, result 被 exclude
         }
-        sccs = self._tarjan(graph)
-        members = {s for s in sccs}
-        self.assertEqual(len(sccs), 2)
-        self.assertIn(frozenset({"a", "b"}), members)
-        self.assertIn(frozenset({"c", "d"}), members)
+        """
+        n = _make_int_var("n")
+        x = _make_int_var("x")
+        f = _make_function("f", [n])
+        result = _make_int_var("__tmp")
 
-    def test_dag(self):
-        """DAG：每个节点自身就是一个 SCC"""
-        graph = {"a": {"b"}, "b": {"c"}, "c": set()}
-        sccs = self._tarjan(graph)
-        self.assertEqual(len(sccs), 3)
-        members = {s for s in sccs}
-        self.assertEqual(members, {frozenset({"a"}), frozenset({"b"}), frozenset({"c"})})
+        builder = IRBuilder()
+        builder.insert(IRFunction(f))
+        builder.insert(IRScopeBegin("f", StructureType.FUNCTION))
+        builder.insert(IRDeclare(x))
+        call_instr = IRCall(result, f, {"n": Reference(x)})
+        builder.insert(call_instr)
+        # return result + x → 用 IRAssign 模拟读取 x
+        builder.insert(IRAssign(x, Reference(result)))
+        builder.insert(IRReturn(Reference(x)))
+        builder.insert(IRScopeEnd("f", StructureType.FUNCTION))
+
+        tag_recursive_calls(builder)
+
+        calls = _find_calls(builder)
+        self.assertEqual(len(calls), 1)
+        live = calls[0].metadata[META_KEY_LIVE_VARS]
+        # result (即 __tmp) 被 return 引用但它是 call 返回值，应被排除
+        self.assertNotIn("__tmp", live)
 
 
 if __name__ == "__main__":

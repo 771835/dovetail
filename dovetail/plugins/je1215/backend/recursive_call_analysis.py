@@ -3,7 +3,7 @@
 递归调用分析
 
 基于调用图的强连通分量（SCC）检测，识别所有可能递归的函数/方法调用，
-并在对应调用指令上标记 needs_stack_save。
+并在对应调用指令上标记 needs_stack_save 及 live_vars。
 
 支持两种调用指令：
   - IRCall:         operands[1] 是 Function
@@ -20,7 +20,7 @@ from typing import NamedTuple
 from dovetail.core.ir_code import IROpCode, IROpDescriptor
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.instructions import IRInstruction
-from dovetail.core.symbols import Function
+from dovetail.core.symbols import Function, Reference, Variable
 from dovetail.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -29,6 +29,9 @@ logger = get_logger(__name__)
 
 META_KEY_NEEDS_STACK_SAVE: str = "needs_stack_save"
 """IRInstruction.metadata 中的键名，值为 bool"""
+
+META_KEY_LIVE_VARS: str = "live_vars"
+"""IRInstruction.metadata 中的键名，值为 set[str]——调用后仍需使用的变量名"""
 
 
 # ─── 数据结构 ────────────────────────────────────────────────────────────────
@@ -66,8 +69,7 @@ def _get_callee_from_call(instr: IRInstruction) -> str | None:
     """
     从调用指令中提取 callee 的函数名。
 
-    支持三种调用指令，通过预定义的 operands 索引取 Function 对象。
-    未来统一方法调用指令后，只需修改此映射。
+    通过预定义的 operands 索引取 Function 对象。
 
     Args:
         instr: 调用指令
@@ -84,11 +86,31 @@ def _get_callee_from_call(instr: IRInstruction) -> str | None:
     return callee.get_name()
 
 
+def _get_callees_from_call(instr: IRInstruction) -> set[str]:
+    """
+    从调用指令中提取所有可能的 callee 函数名。
+
+    当前仅支持单态调用。多态分派需查询分派表返回多个实现，
+    结果为 over-approximate，保证安全性。
+
+    Args:
+        instr: 调用指令
+
+    Returns:
+        所有可能的 callee 函数名集合
+    """
+    callee = _get_callee_from_call(instr)
+    if callee is None:
+        return set()
+    # TODO: 多态——查分派表，返回 {ImplA.method, ImplB.method, ...}
+    return {callee}
+
+
 def build_call_graph(builder: IRBuilder) -> CallGraph:
     """
     从 IR 指令中提取函数/方法调用关系，构建调用图。
 
-    遍历所有 IRFunction 和调用指令（CALL / CALL_METHOD / STRUCT_CALL），
+    遍历所有 IRFunction 和调用指令（CALL / CALL_METHOD），
     记录 caller -> callee 的边。
     方法定义挂在类/结构体内部，但其 IRFunction 的 name 应为限定名
     （如 MyClass.method），与调用侧的 Function.get_name() 对齐。
@@ -109,10 +131,10 @@ def build_call_graph(builder: IRBuilder) -> CallGraph:
             current_func = func.name
             all_functions.add(func.name)
         else:
-            callee_name = _get_callee_from_call(instr)
-            if callee_name is not None and current_func is not None:
-                edges[current_func].add(callee_name)
-                all_functions.add(callee_name)
+            callees = _get_callees_from_call(instr)
+            if callees and current_func is not None:
+                edges[current_func].update(callees)
+                all_functions.update(callees)
 
     return CallGraph(edges=dict(edges), all_functions=all_functions)
 
@@ -207,16 +229,65 @@ def find_recursive_sccs(call_graph: CallGraph) -> list[RecursiveSCC]:
     return recursive
 
 
+# ─── 活跃变量分析 ───────────────────────────────────────────────────────────
+
+def _live_vars_at_call(
+        instructions: list[IRInstruction],
+        call_index: int,
+        result_var_name: str | None,
+) -> set[str]:
+    """
+    前向扫描计算调用点的活跃变量集合（over-approximate）。
+
+    从 call 后扫描到当前函数结束，收集所有被读取的变量名。
+    不考虑 kill（重定义），因此可能多报变量，但保证安全——
+    所有真正需要的变量不会被遗漏。
+
+    排除 result 变量：其值由调用返回赋值，无需保存旧值。
+
+    Args:
+        instructions: 全部 IR 指令列表
+        call_index: 调用指令的索引位置
+        result_var_name: 调用的结果变量名，用于排除
+
+    Returns:
+        调用后仍需使用的变量名集合
+    """
+    live: set[str] = set()
+    for i in range(call_index + 1, len(instructions)):
+        instr = instructions[i]
+
+        # 遇到下一个函数定义，停止扫描
+        if instr.opcode is IROpCode.FUNCTION:
+            break
+
+        # 收集本指令读取的所有变量引用
+        for ref in instr.opcode.get_used_refs(instr.operands):
+            if isinstance(ref, Reference) and not ref.is_literal():
+                live.add(ref.get_name())
+            elif isinstance(ref, Variable):
+                live.add(ref.get_name())
+
+    # result 变量的值由调用返回赋值，无需保存其旧值
+    if result_var_name is not None:
+        live.discard(result_var_name)
+
+    return live
+
+
 # ─── 调用指令标记 ───────────────────────────────────────────────────────────
 
 def tag_recursive_calls(builder: IRBuilder) -> None:
     """
     识别所有递归调用点，在对应调用指令的 metadata 上
-    打上 needs_stack_save = True 标记。
+    打上 needs_stack_save = True 标记，并记录 live_vars。
 
     标记规则：caller 和 callee 属于同一个递归 SCC 内的调用
     一律标记。这保证了正确性优先于性能——即使运行时
     某条路径不构成递归，也执行 save/restore。
+
+    live_vars 为前向扫描的 over-approximate 活跃变量集合，
+    仅包含调用后仍需使用的变量，供后端选择性保存。
 
     Args:
         builder: IR 构建器（将被就地修改 metadata）
@@ -235,10 +306,11 @@ def tag_recursive_calls(builder: IRBuilder) -> None:
             func_to_scc[func_name] = scc.members
 
     # 遍历 IR，标记递归调用
+    instructions = builder.get_instructions()
     current_func: str | None = None
     tagged_count: int = 0
 
-    for instr in builder:
+    for i, instr in enumerate(instructions):
         if instr.opcode is IROpCode.FUNCTION:
             current_func = instr.operands[0].get_name()
             continue
@@ -247,7 +319,14 @@ def tag_recursive_calls(builder: IRBuilder) -> None:
         if callee_name is not None and current_func is not None:
             if (current_func in func_to_scc
                     and callee_name in func_to_scc[current_func]):
+                # 调用的结果变量名（operands[0]），用于从 live_vars 中排除
+                result_var = instr.operands[0]
+                result_var_name = result_var.get_name() if result_var is not None else None
+
                 instr.metadata[META_KEY_NEEDS_STACK_SAVE] = True
+                instr.metadata[META_KEY_LIVE_VARS] = _live_vars_at_call(
+                    instructions, i, result_var_name,
+                )
                 tagged_count += 1
 
     scc_summary = ", ".join(

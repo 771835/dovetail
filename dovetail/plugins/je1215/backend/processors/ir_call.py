@@ -26,6 +26,7 @@ class IRCallProcessor(IRProcessor):
         func: Function = instruction.get_operands()[1]
         args: dict[str, Reference[Variable | Literal]] = instruction.get_operands()[2]
         needs_stack_save: bool = instruction.metadata.get("needs_stack_save", False)
+        live_vars: set[str] = instruction.metadata.get("live_vars", set())
 
         match func.func_type:
             case FunctionType.BUILTIN:
@@ -33,7 +34,7 @@ class IRCallProcessor(IRProcessor):
             case FunctionType.EXTERN:
                 self._handle_ffi(result, func, args, func.all_metadata(), context)
             case _:
-                self._handle_user_call(result, func, args, context, needs_stack_save)
+                self._handle_user_call(result, func, args, context, needs_stack_save, live_vars)
 
     # ── 用户函数调用 ──────────────────────────────────────────────────────────
 
@@ -43,18 +44,19 @@ class IRCallProcessor(IRProcessor):
             func: Function,
             args: dict[str, Reference[Variable | Literal]],
             context: GenerationContext,
-            needs_stack_save: bool
+            needs_stack_save: bool,
+            live_vars: set[str]
     ):
         """普通用户函数调用：填参数 → 调用 → 取返回值"""
         func_path = self._resolve_func_path(func, context)
         objective = context.objective
         if needs_stack_save:
             logger.debug(f"Function call '{func}' save stack frame")
-            self._save_stack_frame(objective, context, result)
+            self._save_stack_frame(objective, context, result, live_vars)
         self._fill_arguments(args, func.params, objective, func_path, context)
         self._emit_call(context.namespace, func_path, context)
         if needs_stack_save:
-            self._load_stack_frame(objective, context, result)
+            self._load_stack_frame(objective, context, result, live_vars)
         self._copy_return_value(result, func, objective, func_path, context)
 
     # ── 参数与返回值 ──────────────────────────────────────────────────────────
@@ -116,15 +118,18 @@ class IRCallProcessor(IRProcessor):
             self,
             context: GenerationContext,
             exclude_path: str = "",
+            live_vars: Optional[set[str]] = None
     ) -> set[str]:
-        """收集当前函数作用域内所有记分板变量的路径"""
+        """收集当前函数作用域内所有活跃的记分板变量的路径"""
         score_vars: set[str] = set()
         for scope in reversed(context.scope_stack):
             for symbol in scope.symbols.values():
                 if symbol.get_dtype() in (PrimitiveDataType.INT, PrimitiveDataType.BOOLEAN):
                     symbol_path = scope.get_symbol_path(symbol)
                     if symbol_path != exclude_path:
-                        score_vars.add(symbol_path)
+                        if live_vars is None or symbol.get_name() in live_vars:
+                            # 如果存在活跃变量集合则比对名称
+                            score_vars.add(symbol_path)
             if scope.scope_type == StructureType.FUNCTION:
                 break
         else:
@@ -141,7 +146,8 @@ class IRCallProcessor(IRProcessor):
             raise RuntimeError("未找到 FUNCTION 作用域，作用域结构无效")
         return func_scope
 
-    def _save_stack_frame(self, objective: str, context: GenerationContext, result: Optional[Variable]):
+    def _save_stack_frame(self, objective: str, context: GenerationContext, result: Optional[Variable],
+                          live_vars: set[str]):
         """保存栈帧"""
         func_scope = self._get_current_function_scope(context)
         result_path = context.current_scope.get_symbol_path(result) if result else ""
@@ -153,7 +159,7 @@ class IRCallProcessor(IRProcessor):
         )
 
         # 保存当前函数所有存储在计分板上的数字
-        score_vars = self._collect_score_vars(context, result_path)
+        score_vars = self._collect_score_vars(context, result_path, live_vars)
 
         for score_var in score_vars:
             context.add_command(Copy.copy(
@@ -168,7 +174,8 @@ class IRCallProcessor(IRProcessor):
             )
         )
 
-    def _load_stack_frame(self, objective: str, context: GenerationContext, result: Optional[Variable]):
+    def _load_stack_frame(self, objective: str, context: GenerationContext, result: Optional[Variable],
+                          live_vars: set[str]):
         """加载栈帧（pop）并还原，跳过 result 以保留返回值"""
         func_scope = self._get_current_function_scope(context)
         result_path = context.current_scope.get_symbol_path(result) if result else ""
@@ -191,7 +198,7 @@ class IRCallProcessor(IRProcessor):
         ))
 
         # 收集并应用
-        score_vars = self._collect_score_vars(context, result_path)
+        score_vars = self._collect_score_vars(context, result_path, live_vars)
 
         for score_var in score_vars:
             context.add_command(Copy.copy(
