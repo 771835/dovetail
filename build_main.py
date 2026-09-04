@@ -27,7 +27,6 @@ script_run_timeout = 75
 # 将 sys.argv[0] 设置为绝对路径
 sys.argv[0] = str(Path(sys.argv[0]).resolve())
 
-
 def main():
     parent = argparse.ArgumentParser(add_help=False)
     parent.add_argument('--debug', action='store_true', help='启用调试模式')

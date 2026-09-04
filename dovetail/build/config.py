@@ -96,7 +96,8 @@ class BuildConfig:
     @property
     def version(self) -> str:
         """项目版本"""
-        return self._data.get("package", {}).get("version", "0.0.0")
+        version = self._data.get("package", {}).get("version", "0.0.0")
+        return version if version != "dev" else "0.0.0"
 
     @property
     def description(self) -> str:

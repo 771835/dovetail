@@ -9,6 +9,8 @@ license = "Apache 2.0"
 
 # 以下 [build] 配置仅供参考，dovetail 编译器本身不能编译自身谢谢喵
 [build]
-tool = "python"
 entry = "main.py"
 output = "build"
+
+[hooks]
+pre_build = "./build.bat"

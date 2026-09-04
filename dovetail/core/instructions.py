@@ -652,6 +652,7 @@ def IRCompute(result: Variable, provider_tree: dict, integer: bool = True) -> IR
             Reference 叶节点 = 变量/常量引用
             int/float    = 内部常量（如 -1）
             dict         = 嵌套子表达式
+            以上仅供参考，因为 Minecraft 游戏对于该特性并不稳定，语法可能会有较大变化
         integer:       整数模式（True = 每步截断，False = 浮点模式）
                        当前 Dovetail 只有整数，默认 True
     """

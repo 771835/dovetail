@@ -340,8 +340,10 @@ class Builder:
         # 解析并验证配置
         try:
             config = BuildConfig(self.project_root)
-            shutil.rmtree(self.project_root / config.output, ignore_errors=True)
-            shutil.rmtree(self.project_root / config.library, ignore_errors=True)
+            if config.output:
+                shutil.rmtree(self.project_root / config.output, ignore_errors=True)
+            if config.library:
+                shutil.rmtree(self.project_root / config.library, ignore_errors=True)
         except (FileNotFoundError, ValueError):
             pass # 跳过以便于清理其他内容
 
