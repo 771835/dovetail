@@ -1,92 +1,156 @@
-// number_provider_demo.mcdl
-// 演示数值提供器提升优化的各种模式
+// test_number_provider_lifting_pass.mcdl
+// 数值提供器提升 Pass 的端到端测试
 // 编译目标 >= 26.3 时，以下算术链会被提升为 /compute
+// 26.3 格式：add/mul/min/max/avg(sub 独立二元，inputs 字段)
 
 include "math"
 
-// ──────────────────────────────────────
-// 模式 1：多参数聚合
-// a + b + c + d → sum(a, b, c, d)
-// 4 条 scoreboard → 1 条 /compute
-// ──────────────────────────────────────
+// ════════════════════════════════════════════════════
+//  模式 1：多参数聚合（multi-arg）
+//  a + b + c + d → add(inputs=[a, b, c, d])
+// ════════════════════════════════════════════════════
 fn total_damage(base: int, bonus: int, buff: int, crit: int) -> int {
     return base + bonus + buff + crit
 }
 
-// ──────────────────────────────────────
-// 模式 2：减法包装
-// a + b - c → sum(a, b, product(c, -1))
-// ──────────────────────────────────────
+// ════════════════════════════════════════════════════
+//  模式 2：独立减法（26.3 新语义）
+//  a + b - c → sub(left=add(inputs=[a, b]), right=c)
+//  不再包装为 add(a, b, mul(c, -1))
+// ════════════════════════════════════════════════════
 fn net_score(gross: int, bonus: int, penalty: int) -> int {
     return gross + bonus - penalty
 }
 
-// ──────────────────────────────────────
-// 模式 3：跨类型嵌套
-// min(a + b, c * d) → minimum(sum(a, b), product(c, d))
-// ──────────────────────────────────────
+// 连续减法：a - b - c → sub(left=sub(left=a, right=b), right=c)
+fn compound_debt(base: int, fee1: int, fee2: int) -> int {
+    return base - fee1 - fee2
+}
+
+// ════════════════════════════════════════════════════
+//  模式 3：跨类型嵌套
+//  min(a + b, c * d) → min(inputs=[add(a, b), mul(c, d)])
+// ════════════════════════════════════════════════════
 fn clamped_value(raw: int, offset: int, scale: int, limit: int) -> int {
     let boosted = raw + offset
     let scaled = scale * limit
     return min(boosted, scaled)
 }
 
-// ──────────────────────────────────────
-// 模式 4：average 模式
-// (a + b + c) / 3 → average(a, b, c)
-// ──────────────────────────────────────
+// ════════════════════════════════════════════════════
+//  模式 4：average 反向推导
+//  (a + b + c) / 3 → avg(inputs=[a, b, c])
+// ════════════════════════════════════════════════════
 fn avg_stat(hp: int, atk: int, def: int) -> int {
     return (hp + atk + def) / 3
 }
 
-// ──────────────────────────────────────
-// 模式 5：嵌套的 min/max + sum
-// max(a + b + c, min(d, e + f))
-// → maximum(sum(a,b,c), minimum(d, sum(e,f)))
-// ──────────────────────────────────────
+// ════════════════════════════════════════════════════
+//  模式 5：嵌套 min/max + add
+//  max(a + b + c, min(d, e + f))
+//  → max(inputs=[add(a,b,c), min(inputs=[d, add(e,f)])])
+// ════════════════════════════════════════════════════
 fn best_of(lo: int, mid: int, hi: int, cap: int, base: int, extra: int) -> int {
     let total = lo + mid + hi
     let floor = min(cap, base + extra)
     return max(total, floor)
 }
 
-// ──────────────────────────────────────
-// 不触发提升的例子
-// ──────────────────────────────────────
-
-// 单条运算，无收益
-fn single_add(a: int, b: int) -> int {
-    return a + b
-}
-
-// 除数不匹配操作数个数，sum 提升但 DIV 保留
+// ════════════════════════════════════════════════════
+//  模式 6：DIV 独立提升（非 average）
+//  除数不匹配操作数数量 → div(left=add(...), right=n)
+// ════════════════════════════════════════════════════
 fn weird_avg(a: int, b: int, c: int) -> int {
     return (a + b + c) / 2
 }
 
-// ──────────────────────────────────────
-// 主函数：调用以上所有，确保编译通过
-// ──────────────────────────────────────
+// ════════════════════════════════════════════════════
+//  模式 7：MOD 独立提升
+//  (a + b) % c → mod(left=add(a, b), right=c)
+// ════════════════════════════════════════════════════
+fn damage_mod(base: int, bonus: int, cap: int) -> int {
+    return (base + bonus) % cap
+}
+
+// ════════════════════════════════════════════════════
+//  模式 8：乘法链聚合
+//  a * b * c → mul(inputs=[a, b, c])
+// ════════════════════════════════════════════════════
+fn compound_interest(principal: int, rate: int, time: int) -> int {
+    return principal * rate * time
+}
+
+// ════════════════════════════════════════════════════
+//  模式 9：多层减法 + 加法混合
+//  a - b + c → add(inputs=[sub(left=a, right=b), c])
+// ════════════════════════════════════════════════════
+fn adjusted_score(raw: int, penalty: int, bonus: int) -> int {
+    return raw - penalty + bonus
+}
+
+// ════════════════════════════════════════════════════
+//  不触发提升的例子
+// ════════════════════════════════════════════════════
+
+// 单条运算，subtree < 2，无收益
+fn single_add(a: int, b: int) -> int {
+    return a + b
+}
+
+// 单条减法，同样不提升
+fn single_sub(a: int, b: int) -> int {
+    return a - b
+}
+
+// ════════════════════════════════════════════════════
+//  主函数：调用以上所有，确保编译通过 + 验证运行时正确性
+// ════════════════════════════════════════════════════
 @init
 fn main() {
+    // 模式 1：total_damage(10,5,3,2) = 20
     let r1 = total_damage(10, 5, 3, 2)
     print(f"total_damage = {r1}")
 
+    // 模式 2：net_score(100,20,15) = 105
     let r2 = net_score(100, 20, 15)
     print(f"net_score = {r2}")
 
+    // 模式 2b：compound_debt(1000,200,150) = 650
+    let r2b = compound_debt(1000, 200, 150)
+    print(f"compound_debt = {r2b}")
+
+    // 模式 3：clamped_value(50,10,3,40) = min(60, 120) = 60
     let r3 = clamped_value(50, 10, 3, 40)
     print(f"clamped_value = {r3}")
 
+    // 模式 4：avg_stat(90,75,60) = 225/3 = 75
     let r4 = avg_stat(90, 75, 60)
     print(f"avg_stat = {r4}")
 
+    // 模式 5：best_of(10,20,30,80,40,15) = max(60, min(80,55)) = max(60,55) = 60
     let r5 = best_of(10, 20, 30, 80, 40, 15)
     print(f"best_of = {r5}")
 
-    let r6 = single_add(1, 2)
-    print(f"single_add = {r6}")
+    // 模式 6：weird_avg(10,20,30) = 60/2 = 30
+    let r6 = weird_avg(10, 20, 30)
+    print(f"weird_avg = {r6}")
 
-    let r7 = weird_avg(10, 20, 30)
-    print(f"weird_avg = {r7}")
+    // 模式 7：damage_mod(15,7,10) = 22%10 = 2
+    let r7 = damage_mod(15, 7, 10)
+    print(f"damage_mod = {r7}")
+
+    // 模式 8：compound_interest(100,2,3) = 600
+    let r8 = compound_interest(100, 2, 3)
+    print(f"compound_interest = {r8}")
+
+    // 模式 9：adjusted_score(100,30,15) = 85
+    let r9 = adjusted_score(100, 30, 15)
+    print(f"adjusted_score = {r9}")
+
+    // 不提升
+    let r10 = single_add(1, 2)
+    print(f"single_add = {r10}")
+
+    let r11 = single_sub(10, 3)
+    print(f"single_sub = {r11}")
 }

@@ -59,6 +59,7 @@ class PrimitiveDataType(DataTypeBase, SafeEnum):
 
     Attributes:
         INT: 整数类型
+        FLOAT: 浮点数类型（暂不启用）
         STRING: 字符串类型
         BOOLEAN: 布尔类型
         NULL_TYPE: 句柄null的独有类型，不可作为其他值的类型
@@ -67,6 +68,7 @@ class PrimitiveDataType(DataTypeBase, SafeEnum):
         FUNCTION: 函数句柄，表示一个函数
     """
     INT = 'int'
+    FLOAT = 'float'
     STRING = 'string'
     BOOLEAN = 'boolean'
     NULL_TYPE = 'null'  # 特殊类型，不可作为变量的类型
@@ -84,12 +86,12 @@ class PrimitiveDataType(DataTypeBase, SafeEnum):
         """检查当前类型是否为另一类型的子类型"""
         if self is other:
             return True
-        if self == PrimitiveDataType.BOOLEAN and other == PrimitiveDataType.INT:
+        if self == self.BOOLEAN and other == self.INT:
             return True
         return False
 
     def is_definable(self) -> bool:
-        return self not in (PrimitiveDataType.UNDEFINED, PrimitiveDataType.NULL_TYPE, PrimitiveDataType.VOID)
+        return self not in (self.UNDEFINED, self.NULL_TYPE, self.VOID, self.FLOAT)
 
     @staticmethod
     def from_literal(value: int | str | bool | float | None):

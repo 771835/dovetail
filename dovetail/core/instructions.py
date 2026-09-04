@@ -641,45 +641,31 @@ def _free_repr(instr: IRInstruction) -> str:
 
 
 @validate_instruction
-def IRCompute(result: Variable, provider_tree: dict, integer: bool = True) -> IRInstruction:
+def IRCompute(
+        result: Variable,
+        tree: dict,
+        compute_kind: str = "integer",
+        scale: Optional[float] = None,
+) -> IRInstruction:
     """
-    数值提供器计算指令
+    COMPUTE 指令：将表达式树映射到 /compute 命令。
 
     Args:
         result:        结果存储变量
-        provider_tree: 语义化表达式树，例如:
-            {"op": "sum", "args": [ref_a, ref_b, {"op": "product", "args": [ref_c, 3]}]}
-            Reference 叶节点 = 变量/常量引用
-            int/float    = 内部常量（如 -1）
-            dict         = 嵌套子表达式
-            以上仅供参考，因为 Minecraft 游戏对于该特性并不稳定，语法可能会有较大变化
-        integer:       整数模式（True = 每步截断，False = 浮点模式）
-                       当前 Dovetail 只有整数，默认 True
+        tree:          语义表达式树（MC provider 格式的 dict）
+        compute_kind:  "integer" 或 "float"，对应 /compute 的 integer/float 子命令
+        scale:         浮点计算的 scale 参数（仅 float 时有效，默认 1.0）
     """
-    return IRInstruction(IROpCode.COMPUTE, result, provider_tree, integer)
+    return IRInstruction(IROpCode.COMPUTE, result, tree, compute_kind, scale)
 
 
 @register_repr(IROpCode.COMPUTE)
 def _compute_repr(instr: IRInstruction) -> str:
     result = instr.operands[0].get_name()
     tree = instr.operands[1]
-    integer = instr.operands[2]
-    mode = "int" if integer else "float"
-    return f"{result} = COMPUTE.{mode} -> {_tree_to_str(tree)}"
-
-
-def _tree_to_str(node) -> str:
-    """递归把语义 dict 转成可读伪代码"""
-    if isinstance(node, (int, float)):
-        return str(node)
-    if isinstance(node, Reference):
-        return node.get_name()
-    if isinstance(node, dict):
-        op = node.get("op", "?")
-        args = node.get("args", [])
-        args_str = ", ".join(_tree_to_str(a) for a in args)
-        return f"{op}({args_str})"
-    return str(node)
+    compute_kind = instr.operands[2]
+    scale = instr.operands[3]
+    return f"{result} = COMPUTE.{compute_kind} -> {tree}" + (f" * {scale}" if scale else "")
 
 # ==================== 面向对象指令 ====================
 

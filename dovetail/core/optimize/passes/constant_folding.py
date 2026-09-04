@@ -24,12 +24,39 @@ from dovetail.core.symbols import Variable, Literal, Reference, Function, Class
 from dovetail.utils.constant_operator_handlers import COMPARE_OP_HANDLERS, BINARY_OP_HANDLERS, UNARY_OP_HANDLERS, \
     number_to_int32
 
-_NP_OP_EVAL = {
-    "sum": lambda args: sum(args),
-    "product": lambda args: _product(args),
-    "minimum": lambda args: min(args),
-    "maximum": lambda args: max(args),
-    "average": lambda args: sum(args) / len(args) if args else 0,
+# multi-arg 求值器
+_MULTI_ARG_EVAL = {
+    "add": lambda args: sum(args),
+    "mul": lambda args: _product(args),
+    "min": lambda args: min(args),
+    "max": lambda args: max(args),
+    "avg": lambda args: sum(args) / len(args) if args else 0,
+    "length": lambda args: sum(a * a for a in args) ** 0.5,
+}
+
+# binary 求值器：键为 mc_type（不含 minecraft: 前缀）
+_BINARY_EVAL = {
+    "sub": lambda l, r: l - r,
+    "div": lambda l, r: int(l / r) if r != 0 else None,  # 向零截断
+    "mod": lambda l, r: int(l % r) if r != 0 else None,  # 向零截断
+    "floor_div": lambda l, r: l // r if r != 0 else None,
+    "floor_mod": lambda l, r: l % r if r != 0 else None,
+    "pow": lambda l, r: l ** r if r >= 0 else None,
+}
+
+# unary 求值器
+_UNARY_EVAL = {
+    "abs": lambda v: abs(v),
+    "negate": lambda v: -v,
+    "from_int": lambda v: float(v),
+    "from_float": lambda v: int(v),  # 向零截断
+    "sqrt": lambda v: v ** 0.5 if v >= 0 else None,
+    "sin": lambda v: __import__("math").sin(v),
+    "cos": lambda v: __import__("math").cos(v),
+    "floor": lambda v: __import__("math").floor(v),
+    "ceil": lambda v: __import__("math").ceil(v),
+    "round": lambda v: round(v),
+    "truncate": lambda v: int(v),
 }
 
 
@@ -38,6 +65,14 @@ def _product(args):
     for a in args:
         r *= a
     return r
+
+
+def _product(args):
+    r = 1
+    for a in args:
+        r *= a
+    return r
+
 
 @register_pass(PassMetadata(
     name="constant_folding",
@@ -676,7 +711,8 @@ class ConstantFoldingPass(IROptimizationPass):
         """
         result: Variable = instr.get_operands()[0]
         tree: dict = instr.get_operands()[1]
-        integer: bool = instr.get_operands()[2]
+        compute_kind: str = instr.get_operands()[2]
+        scale: float | None = instr.get_operands()[3]
 
         self.current_table.set(result.get_name(), ConstantFoldingPass.FoldingFlags.UNKNOWN)
 
@@ -687,7 +723,12 @@ class ConstantFoldingPass(IROptimizationPass):
         value = self._try_eval_tree(new_tree)
         if value is not None:
             try:
-                folded = number_to_int32(int(value)) if integer else value
+                if compute_kind == "integer":
+                    folded = number_to_int32(int(value))
+                else:
+                    folded = float(value)
+                    if scale is not None:
+                        folded *= scale
                 new_instr = IRAssign(result, Reference.literal(folded))
                 iterator.set_current(new_instr)
                 self._assign(iterator, new_instr)
@@ -697,20 +738,19 @@ class ConstantFoldingPass(IROptimizationPass):
 
         # 没全折叠，但做了传播 → 更新指令
         if propagated:
-            iterator.set_current(IRCompute(result, new_tree, integer))
+            iterator.set_current(IRCompute(result, new_tree, compute_kind, scale))
             return True
 
         return False
 
-    def _propagate_tree(
-            self,
-            node,
-    ) -> tuple[Any, bool]:
+    def _propagate_tree(self, node) -> tuple[Any, bool]:
         """
         递归传播 provider_tree 中已知为常量的变量叶节点。
 
-        Returns:
-            (new_node, changed)
+        26.3 格式：
+          multi:  {"type": "minecraft:add", "inputs": [...]}
+          binary: {"type": "minecraft:sub", "left": ..., "right": ...}
+          unary:  {"type": "minecraft:abs", "input": ...}
         """
         if isinstance(node, (int, float)):
             return node, False
@@ -718,30 +758,52 @@ class ConstantFoldingPass(IROptimizationPass):
         if isinstance(node, Reference):
             if node.value_type == ValueType.LITERAL:
                 return node, False
-            # 变量 → 查符号表
             value = self._resolve_ref(node)
             if self._is_literal(value):
-                # 替换为字面量 Reference
                 return value, True
             return node, False
 
         if isinstance(node, dict):
-            new_args = []
             changed = False
-            for arg in node.get("args", []):
-                new_arg, c = self._propagate_tree(arg)
-                new_args.append(new_arg)
+            type_str = node.get("type", "")
+
+            # multi-arg: "inputs" 列表
+            if "inputs" in node:
+                new_inputs = []
+                for child in node["inputs"]:
+                    new_child, c = self._propagate_tree(child)
+                    new_inputs.append(new_child)
+                    changed = changed or c
+                if changed:
+                    return {"type": type_str, "inputs": new_inputs}, True
+                return node, False
+
+            # binary: "left" / "right"（或自定义键如 "base"/"exponent"）
+            new_dict = {"type": type_str}
+            for key in ("left", "right", "base", "exponent"):
+                if key in node:
+                    new_val, c = self._propagate_tree(node[key])
+                    new_dict[key] = new_val
+                    changed = changed or c
+
+            # unary: "input"
+            if "input" in node:
+                new_val, c = self._propagate_tree(node["input"])
+                new_dict["input"] = new_val
                 changed = changed or c
+
+            # 拷贝其他未知键（防御性）
+            for k, v in node.items():
+                if k not in new_dict:
+                    new_dict[k] = v
+
             if changed:
-                return {"op": node["op"], "args": new_args}, True
+                return new_dict, True
             return node, False
 
         return node, False
 
-    def _try_eval_tree(
-            self,
-            node,
-    ) -> Optional[int | float]:
+    def _try_eval_tree(self, node) -> Optional[int | float]:
         """
         尝试对整棵 provider_tree 求值。
         所有叶节点必须是字面量，否则返回 None。
@@ -758,20 +820,60 @@ class ConstantFoldingPass(IROptimizationPass):
             return None
 
         if isinstance(node, dict):
-            op = node.get("op")
-            args = node.get("args", [])
-            handler = _NP_OP_EVAL.get(op)
-            if handler is None:
-                return None
-            evaluated = []
-            for arg in args:
-                v = self._try_eval_tree(arg)
+            type_str = node.get("type", "")
+            # 去掉 minecraft: 前缀
+            mc_type = type_str.replace("minecraft:", "") if type_str.startswith("minecraft:") else type_str
+
+            # multi-arg: "inputs" 列表
+            if "inputs" in node:
+                handler = _MULTI_ARG_EVAL.get(mc_type)
+                if handler is None:
+                    return None
+                evaluated = []
+                for child in node["inputs"]:
+                    v = self._try_eval_tree(child)
+                    if v is None:
+                        return None
+                    evaluated.append(v)
+                try:
+                    return handler(evaluated)
+                except (ZeroDivisionError, ValueError, TypeError):
+                    return None
+
+            # binary: "left" / "right"（或 "base" / "exponent"）
+            left_key = None
+            right_key = None
+            for lk, rk in (("left", "right"), ("base", "exponent")):
+                if lk in node and rk in node:
+                    left_key, right_key = lk, rk
+                    break
+            if left_key is not None:
+                handler = _BINARY_EVAL.get(mc_type)
+                if handler is None:
+                    return None
+                lv = self._try_eval_tree(node[left_key])
+                rv = self._try_eval_tree(node[right_key])
+                if lv is None or rv is None:
+                    return None
+                try:
+                    result = handler(lv, rv)
+                    return result
+                except (ZeroDivisionError, ValueError, TypeError):
+                    return None
+
+            # unary: "input"
+            if "input" in node:
+                handler = _UNARY_EVAL.get(mc_type)
+                if handler is None:
+                    return None
+                v = self._try_eval_tree(node["input"])
                 if v is None:
                     return None
-                evaluated.append(v)
-            try:
-                return handler(evaluated)
-            except (ZeroDivisionError, ValueError, TypeError):
-                return None
+                try:
+                    return handler(v)
+                except (ZeroDivisionError, ValueError, TypeError):
+                    return None
+
+            return None
 
         return None

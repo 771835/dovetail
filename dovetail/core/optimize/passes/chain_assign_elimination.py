@@ -452,7 +452,7 @@ class ChainAssignEliminationPass(IROptimizationPass):
         elif opcode == IROpCode.COMPUTE:
             new_tree = deep_remap(instr.operands[1], {k: v.value for k, v in aliases.items()})
             if instr.operands[1] != new_tree:
-                return IRInstruction(opcode, instr.operands[0],new_tree,instr.operands[2])
+                return IRInstruction(opcode, instr.operands[0], new_tree, instr.operands[2], instr.operands[3])
             else:
                 return instr
 

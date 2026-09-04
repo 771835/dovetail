@@ -100,7 +100,7 @@ class IROpDescriptor:
 
 def _collect_compute_refs(tree, found_refs):
     if isinstance(tree, dict):
-        for arg in tree.get("args", []):
+        for arg in tree.values():
             _collect_compute_refs(arg, found_refs)
     elif isinstance(tree, list):
         for item in tree:
@@ -110,7 +110,7 @@ def _collect_compute_refs(tree, found_refs):
 
 def _compute_uses(operands) -> list:
     """COMPUTE: (result, provider_tree, integer) → 提取 args 中所有 Reference"""
-    _, provider_tree, _ = operands
+    _, provider_tree, _, _ = operands
     refs = set()
     _collect_compute_refs(provider_tree, refs)
 
