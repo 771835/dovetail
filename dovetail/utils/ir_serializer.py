@@ -255,7 +255,6 @@ class IRSymbolSerializer:
                 default_id = metadata.get('default')
                 id_to_symbol[symbol_id] = Parameter(
                     var=id_to_symbol[var_id],
-                    mutable=metadata.get('mutable', False),
                     default=id_to_symbol.get(default_id) if default_id else None
                 )
 

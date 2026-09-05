@@ -1,12 +1,13 @@
 # coding=utf-8
 """
-Annotations - Python 注解工具库
-提供类似 Java 注解的功能，用于代码标记、验证和元数据处理
+Decorators - Python 运行时装饰器工具库
+提供实验性标记、计时、参数验证等功能。
+
+注意：本模块与编译期注解系统（dovetail.core.annotations）无关。
 """
 
 import inspect
 import time
-import warnings
 from functools import wraps
 from typing import (
     Any, Callable, TypeVar, Union, cast,
@@ -20,93 +21,6 @@ logger = get_logger(__name__)
 # 类型变量
 T = TypeVar('T')
 F = TypeVar('F', bound=Callable[..., Any])
-
-
-def experimental(reason: str = "") -> Callable[[Any], Any]:
-    """标记实验性功能
-
-    Args:
-        reason (str): 标记为实验性功能的原因说明
-
-    Returns:
-        Callable[[Any], Any]: 装饰器函数
-    """
-
-    def decorator(obj: Any) -> Any:
-        """实验性功能装饰器
-
-        Args:
-            obj (Any): 被装饰的类或函数
-
-        Returns:
-            Any: 装饰后的类或函数
-        """
-        message = f"{obj.__name__} is experimental"
-        if reason: message += f": {reason}"
-
-        if inspect.isclass(obj):
-            return _create_experimental_class(obj, message)
-        else:
-            return _create_experimental_function(obj, message)
-
-    return decorator
-
-
-def _create_experimental_class(cls: type[T], message: str) -> type[T]:
-    """创建实验性类
-
-    Args:
-        cls (type[T]): 原始类
-        message (str): 警告消息
-
-    Returns:
-        type[T]: 带有警告功能的实验性类
-    """
-
-    class ExperimentalClass(cls):
-        """实验性类包装器"""
-
-        def __init__(self, *args, **kwargs):
-            """初始化实验性类实例
-
-            Args:
-                *args: 位置参数
-                **kwargs: 关键字参数
-            """
-            warnings.warn(message, UserWarning, stacklevel=2)
-            super().__init__(*args, **kwargs)
-
-    ExperimentalClass.__name__ = cls.__name__
-    return ExperimentalClass
-
-
-def _create_experimental_function(func: F, message: str) -> F:
-    """创建实验性函数
-
-    Args:
-        func (F): 原始函数
-        message (str): 警告消息
-
-    Returns:
-        F: 带有警告功能的实验性函数
-    """
-
-    @wraps(func)
-    def wrapper(*args, **kwargs) -> Any:
-        """实验性函数包装器
-
-        Args:
-            *args: 位置参数
-            **kwargs: 关键字参数
-
-        Returns:
-            Any: 函数执行结果
-        """
-        warnings.warn(message, UserWarning, stacklevel=2)
-        return func(*args, **kwargs)
-
-    return cast(F, wrapper)
-
 
 # ==================== 性能相关注解 ====================
 
@@ -282,59 +196,3 @@ def not_null(func: F) -> F:
         return result
 
     return cast(F, wrapper)
-
-
-# ==================== 安全相关注解 ====================
-
-def rate_limited(requests_per_minute: int = 60) -> Callable[[F], F]:
-    """速率限制装饰器
-
-    Args:
-        requests_per_minute (int): 每分钟允许的请求数，默认60
-
-    Returns:
-        Callable[[F], F]: 装饰器函数
-    """
-    request_times: list[float] = []
-
-    def decorator(func: F) -> F:
-        """速率限制装饰器
-
-        Args:
-            func (F): 被装饰的函数
-
-        Returns:
-            F: 装饰后的函数
-
-        Raises:
-            RuntimeError: 当超过速率限制时抛出异常
-        """
-
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
-            """速率限制包装器
-
-            Args:
-                *args: 位置参数
-                **kwargs: 关键字参数
-
-            Returns:
-                Any: 函数执行结果
-
-            Raises:
-                RuntimeError: 当超过速率限制时抛出异常
-            """
-            current_time = time.time()
-
-            # 清理过期的请求记录
-            request_times[:] = [t for t in request_times if current_time - t < 60]
-
-            if len(request_times) >= requests_per_minute:
-                raise RuntimeError("Rate limit exceeded")
-
-            request_times.append(current_time)
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator

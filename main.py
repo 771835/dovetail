@@ -22,7 +22,7 @@ from dovetail.core.optimize.pass_registry import get_registry
 from dovetail.core.parser.parser import parser_file
 from dovetail.core.parser.visitor import ASTVisitor
 from dovetail.plugins.plugin_loader.loader import plugin_loader
-from dovetail.utils.annotations import timed
+from dovetail.utils.decorators import timed
 from dovetail.utils.ir_serializer import IRSymbolSerializer
 from dovetail.utils.logger import get_logger, ThreadSafeLogger
 from dovetail.utils.naming import NameDecorator

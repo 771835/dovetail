@@ -1,14 +1,18 @@
 # coding=utf-8
 """
-注解处理器模块
+注解协调器模块
 
 负责注解提取、上下文构建、参数校验和两阶段处理流程。
 """
+from __future__ import annotations
 from typing import Any
 from lark.tree import Meta
 
+from attrs import define
+
 from dovetail.core.annotations import get_registry, AnnotationContext
-from dovetail.core.annotations.base import AnnotationTarget, AnnotationCategory
+from dovetail.core.annotations.base import AnnotationTarget
+from dovetail.core.annotations.category import AnnotationCategory
 from dovetail.core.annotations.spec import get_annotation_spec, Annotation
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.errors import Errors
@@ -18,8 +22,42 @@ from dovetail.core.symbols import Symbol, Function
 from dovetail.core.symbols.base import Annotatable
 
 
-class AnnotationProcessor:
-    """注解处理器 - 管理注解的提取、校验和两阶段处理"""
+@define(slots=True)
+class ResolvedAnnotation:
+    """
+    validate_and_resolve 的结构化结果。
+
+    Attributes:
+        annotation: 注解声明对象，校验失败时为 None
+        params: 参数字典；annotation.params 为 None 时为空字典，
+               参数待 visit 填充时为 None
+        ok: 校验是否通过
+    """
+    annotation: Annotation | None = None
+    params: dict[str, Any] | None = None
+    ok: bool = False
+
+    @property
+    def needs_visit(self) -> bool:
+        """参数待 visit 填充（校验通过但 params 为 None）"""
+        return self.ok and self.params is None
+
+    @staticmethod
+    def undefined() -> ResolvedAnnotation:
+        """未定义注解的哨兵值"""
+        return ResolvedAnnotation(
+            annotation=Annotation("undefined", None, AnnotationCategory.METADATA),
+            params={},
+            ok=True,
+        )
+
+    @staticmethod
+    def failed() -> ResolvedAnnotation:
+        """校验失败的哨兵值"""
+        return ResolvedAnnotation(ok=False)
+
+class AnnotationCoordinator:
+    """注解协调器 - 管理注解的提取、校验和两阶段处理"""
 
     def __init__(
             self,
@@ -57,7 +95,7 @@ class AnnotationProcessor:
             error_reporter=self.error_reporter,
             meta=meta,
             symbol_name=name,
-            symbol=symbol, # noqa
+            symbol=symbol,  # noqa
             symbol_target=target,
             symbol_resolver=self.symbol_resolver,
         )
@@ -69,29 +107,27 @@ class AnnotationProcessor:
             name: str,
             children: list,
             meta: Meta
-    ) -> tuple[Annotation | None, dict[str, Any] | None, bool]:
+    ) -> ResolvedAnnotation:
         """
-        校验注解名和参数，返回处理结果。
-
-        三段返回值的含义：
-          - (annotation, param_dict, True)  → 校验通过，参数已就绪
-          - (annotation, None, True)        → 校验通过，参数待 visit 填充
-          - (None, {}, False)              → 校验失败
+        校验注解名和参数，返回结构化结果。
 
         Args:
-            name: 注解名（如 "inline"、"export"）
+            name: 注解名（如 "version"、"export"）
             children: 参数子节点列表
             meta: 元数据
 
         Returns:
-            (注解对象, 参数字典或None, 是否成功)
+            ResolvedAnnotation:
+              ok=True, params=dict  → 校验通过，参数已就绪
+              ok=True, params=None  → 校验通过，参数待 visit 填充
+              ok=False              → 校验失败
         """
         annotation = get_annotation_spec(name)
 
         # 注解不存在
         if annotation is None:
             self.error_reporter.report(Errors.InvalidAnnotation, name, meta=meta)
-            return None, {}, False
+            return ResolvedAnnotation.failed()
 
         # 无参数注解
         if annotation.params is None:
@@ -100,7 +136,7 @@ class AnnotationProcessor:
                     Errors.ArgumentNumberMismatch,
                     name, "0", str(len(children)), meta=meta
                 )
-            return annotation, {}, True
+            return ResolvedAnnotation(annotation=annotation, params={}, ok=True)
 
         # 参数数量不匹配
         if len(children) != len(annotation.params):
@@ -108,15 +144,10 @@ class AnnotationProcessor:
                 Errors.ArgumentNumberMismatch,
                 name, str(len(annotation.params)), str(len(children)), meta=meta
             )
-            return None, {}, False
+            return ResolvedAnnotation.failed()
 
         # 参数数量匹配，等待 visit 填充
-        return annotation, None, True
-
-    @staticmethod
-    def undefined_annotation() -> tuple[Annotation, dict]:
-        """返回未定义注解的哨兵值"""
-        return Annotation("undefined", None, AnnotationCategory.METADATA), {}
+        return ResolvedAnnotation(annotation=annotation, params=None, ok=True)
 
     # ==================== 两阶段处理流程 ====================
 
@@ -168,7 +199,7 @@ class AnnotationProcessor:
         if not raw_annotations:
             return None
 
-        pre_ctx.symbol = symbol # noqa
+        pre_ctx.symbol = symbol  # noqa
         post = get_registry().process_post(raw_annotations, pre_ctx)
 
         if post.merged.type_override and isinstance(symbol, Function):

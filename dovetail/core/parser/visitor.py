@@ -48,7 +48,7 @@ from dovetail.core.instructions import (
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library_mapping import LibraryMapping
-from dovetail.core.parser.components.annotation_processor import AnnotationProcessor
+from dovetail.core.parser.components.annotation_coordinator import AnnotationCoordinator, ResolvedAnnotation
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.parser.components.include_manager import IncludeManager, CircularIncludeException
 from dovetail.core.parser.components.ir_emitter import IREmitter
@@ -122,7 +122,7 @@ class ASTVisitor(Interpreter):
             self.error_reporter
         )
 
-        self.annotation_processor = AnnotationProcessor(config, self.error_reporter, self.symbol_resolver)
+        self.annotation_coordinator = AnnotationCoordinator(config, self.error_reporter, self.symbol_resolver)
 
         self.ir_emitter = IREmitter(
             self.builder,
@@ -327,7 +327,7 @@ class ASTVisitor(Interpreter):
         name = _n(children.pop(0).value)
 
         # PRE_SYMBOL 阶段处理注解
-        pre, ctx = self.annotation_processor.process_pre(raw_annotations, name, AnnotationTarget.STRUCT, meta)
+        pre, ctx = self.annotation_coordinator.process_pre(raw_annotations, name, AnnotationTarget.STRUCT, meta)
         if pre and pre.skip:
             return
 
@@ -342,7 +342,7 @@ class ASTVisitor(Interpreter):
         symbol = Structure(name, fields, {})
 
         # POST_SYMBOL阶段处理注解
-        self.annotation_processor.process_post(raw_annotations, ctx, symbol)
+        self.annotation_coordinator.process_post(raw_annotations, ctx, symbol)
 
         # 添加符号
         self.symbol_resolver.add_symbol(symbol, meta=meta)
@@ -371,7 +371,7 @@ class ASTVisitor(Interpreter):
         name: str = _n(children.pop(0).value)
 
         # PRE_SYMBOL阶段处理注解
-        pre, ctx = self.annotation_processor.process_pre(raw_annotations, name, AnnotationTarget.FUNCTION, meta)
+        pre, ctx = self.annotation_coordinator.process_pre(raw_annotations, name, AnnotationTarget.FUNCTION, meta)
         if pre and pre.skip:
             return
 
@@ -397,7 +397,7 @@ class ASTVisitor(Interpreter):
         self.ir_emitter.emit(IRFunction(function))
 
         # POST_SYMBOL 阶段处理注解
-        self.annotation_processor.process_post(raw_annotations, ctx, function)
+        self.annotation_coordinator.process_post(raw_annotations, ctx, function)
 
         # 处理函数体
         if children:
@@ -676,7 +676,7 @@ class ASTVisitor(Interpreter):
 
         include_path: str = self.visit(children.pop(0)).value.value
 
-        pre, ctx = self.annotation_processor.process_pre(
+        pre, ctx = self.annotation_coordinator.process_pre(
             raw_annotations, include_path, AnnotationTarget.FUNCTION, meta
         )
         if pre and pre.skip:
@@ -1134,17 +1134,20 @@ class ASTVisitor(Interpreter):
             (注解对象, 参数字典)，出错时返回未定义注解和空字典
         """
         name = children.pop(0).value
-        spec, param_dict, ok = self.annotation_processor.validate_and_resolve(name, children, meta)
-        if not ok:
-            return self.annotation_processor.undefined_annotation()
+        r = self.annotation_coordinator.validate_and_resolve(name, children, meta)
 
-        if spec is None:
-            spec = self.annotation_processor.undefined_annotation()[0]
-            param_dict = {}
+        if not r.ok:
+            undef = ResolvedAnnotation.undefined()
+            return undef.annotation, undef.params
 
-        if param_dict is None and spec.params:  # 需要visit填充实参
+        if r.annotation is None:
+            undef = ResolvedAnnotation.undefined()
+            return undef.annotation, undef.params
+
+        if r.needs_visit and r.annotation.params:  # 需要visit填充实参
             # 访问所有参数值并构建参数字典（参数名 -> 参数值）
             param_values = [self.visit(child).value.value for child in children]
-            param_dict = dict(zip(spec.params, param_values))
+            param_dict = dict(zip(r.annotation.params, param_values))
+            return r.annotation, param_dict
 
-        return spec, param_dict  # noqa
+        return r.annotation, r.params  # noqa

@@ -11,8 +11,8 @@ from ..enums.types import FunctionType
 
 if TYPE_CHECKING:
     from .parameter import Parameter
-    from ..annotations.base import AnnotationAttachment
-    from ..enums.datatypes import DataTypeBase
+    from dovetail.core.annotations.base import AnnotationAttachment
+    from dovetail.core.enums.datatypes import DataTypeBase
 
 
 @define(slots=True, repr=False)

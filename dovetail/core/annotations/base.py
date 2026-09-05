@@ -1,47 +1,26 @@
+# dovetail/core/annotations/base.py
 # coding=utf-8
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from enum import auto
 from typing import Any, TYPE_CHECKING
 
 from attrs import define, field
 
+from dovetail.core.annotations.category import AnnotationCategory, AnnotationTiming
+from dovetail.core.annotations.targets import AnnotationTarget
 from dovetail.core.symbols.class_ import Class
 from dovetail.core.symbols.enumeration import Enumeration
 from dovetail.core.symbols.function import Function
 from dovetail.core.symbols.structure import Structure
-from dovetail.utils.safe_enum import SafeEnum
 
 if TYPE_CHECKING:
     from lark.tree import Meta
-
     from dovetail.core.enums import FunctionType
     from dovetail.core.compile_config import CompileConfig
     from dovetail.core.parser.components import ErrorReporter, SymbolResolver
 
 CAN_ANNOTATION_SYMBOLS = Class | Structure | Enumeration | Function
-
-
-class AnnotationTarget(SafeEnum):
-    """注解可作用于的符号类型"""
-    FUNCTION = "function"
-    VARIABLE = "variable"
-    CLASS = "class"
-    STRUCT = "struct"
-    ENUM = "enum"
-    INCLUDE = "include" # 很不合理，但是为了条件编译暂时忍忍？
-
-
-class AnnotationTiming(SafeEnum):
-    """
-    注解语义的执行时机。
-
-    PRE_SYMBOL:  符号对象创建之前执行（条件编译类）
-    POST_SYMBOL: 符号对象创建之后执行（标记类、校验类）
-    """
-    PRE_SYMBOL = auto()
-    POST_SYMBOL = auto()
 
 
 @define(slots=True)
@@ -58,7 +37,7 @@ class AnnotationResult:
         skip 字段需要在 AnnotationTiming.PRE_SYMBOL 时机执行，因此 AnnotationTiming.POST_SYMBOL 跳过无效
     """
     # visitor 消费
-    skip: bool = False  # 需要在 AnnotationTiming.PRE_SYMBOL 时机执行
+    skip: bool = False
     type_override: FunctionType | None = None
 
     # optimizer 消费
@@ -120,7 +99,15 @@ class AnnotationProcessor(ABC):
     applicable_targets: list[AnnotationTarget] | None = None  # None = 不限
     repeatable: bool = False
     experimental: bool = False
-    timing: AnnotationTiming = AnnotationTiming.PRE_SYMBOL
+    timing: AnnotationTiming | None = None  # None = 由 category 推导
+    category: AnnotationCategory = AnnotationCategory.METADATA  # 默认类别
+
+    @property
+    def effective_timing(self) -> AnnotationTiming:
+        """实际执行时机：显式指定优先，否则从 category 推导"""
+        if self.timing is not None:
+            return self.timing
+        return self.category.default_timing
 
     def validate(self, args: dict[str, Any], context: AnnotationContext) -> bool:
         """
@@ -137,29 +124,3 @@ class AnnotationProcessor(ABC):
     ) -> AnnotationResult:
         """执行注解语义，返回结构化结果。"""
         raise NotImplementedError
-
-
-class AnnotationCategory(SafeEnum):
-    """
-    注解系统声明类型
-
-    用于区分注解类型并根据注解类型在不同时机处理
-
-    Attributes:
-        LIFECYCLE: 控制函数执行时机
-        VISIBILITY: 控制可见性和优化
-        LINKAGE: 控制后端链接接口指令的生成
-        CONDITION: 条件编译
-        METADATA: 元数据注解，不影响编译逻辑
-    """
-    # 核心语义注解 - 影响代码生成和执行
-    LIFECYCLE = "lifecycle"  # 控制函数执行时机
-    VISIBILITY = "visibility"  # 控制可见性和优化
-    LINKAGE = "linkage"  # 控制后端链接接口指令的生成
-    BACKEND_HINT = "backend_hint"  # 控制后端代码生成
-
-    # 条件编译注解 - 在AST遍历阶段处理
-    CONDITION = "condition"  # 控制代码编译生成
-
-    # 元数据注解 - 不影响编译逻辑
-    METADATA = "metadata"  # 元数据注解

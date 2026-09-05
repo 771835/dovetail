@@ -9,7 +9,7 @@ from .base import Symbol, Annotatable, MethodHost
 from ..enums.datatypes import DataTypeBase
 
 if TYPE_CHECKING:
-    from ..annotations.base import AnnotationAttachment
+    from dovetail.core.annotations.base import AnnotationAttachment
     from .function import Function
 
 
