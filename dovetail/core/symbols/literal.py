@@ -9,11 +9,12 @@ from attrs import define
 from .base import Symbol
 from ..enums.datatypes import DataTypeBase
 
-_Literal_Type = str | int | bool | None
+_Literal_Type = str | int | bool
 
 
 @define(slots=True, frozen=True)
 class Literal(Symbol):
+    """一个编译期已知的字面量"""
     _cache: ClassVar[
         weakref.WeakValueDictionary[tuple[DataTypeBase, _Literal_Type], Literal]] = weakref.WeakValueDictionary()
 

@@ -114,6 +114,11 @@ class Errors(SafeEnum):
     # FFI 错误
     NotFFISafeType = (0x2018, "不安全的类型", "类型 '%s' 不可用于FFI调用。", ErrorType.SemanticError)
 
+    # 参数错误
+    UnknownKeywordArgument = (0x2019, "未知关键字参数", "函数 '%s' 不存在关键字参数 '%s'。", ErrorType.SemanticError)
+    DuplicateArgument = (0x201A, "参数重复传入", "函数 '%s' 的参数 '%s' 被重复传入。", ErrorType.SemanticError)
+    MissingRequiredArgument = (0x201B, "缺少必要参数", "调用函数 '%s' 缺少必要参数 '%s'。", ErrorType.SemanticError)
+
     # ==================== 符号解析错误 (0x3xxx) ====================
     SymbolResolution = (0x3001, "符号解析失败", "%s '%s' 未找到。", ErrorType.SemanticError)
     UndefinedSymbol = (0x3002, "未定义符号", "符号 '%s' 未定义。", ErrorType.SemanticError)

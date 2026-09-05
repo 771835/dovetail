@@ -1,17 +1,34 @@
-#deprecated
-include "stdlib"
-// 数组测试
-let arr1: array<int>
-let p = -1
-fn foo(val: int) -> int {
-    p += 1
-    arr1[p] = val
-    return arr1[p]
+include "builtins"
+
+// 位置参数调用
+@init
+fn test1() {
+    print("hello")
+}
+
+// 关键字参数调用
+@init
+fn test2() {
+    tellraw_text(target="@a", msg="hello")
+}
+
+// 混合：位置 + 关键字
+@init
+fn test3() {
+    tellraw_text("@a", msg="hello")
+}
+
+// 自定义函数测试
+fn greet(name: string, msg: string) {
+    tellraw_text(target="@a", msg=msg)
 }
 
 @init
-fn main(){
-    malloc(arr1, 50)
-    let var = foo(121)
-    print(str(var))
+fn test4() {
+    greet(name="world", msg="hi")
+}
+
+@init
+fn test5() {
+    greet("world", msg="hi")
 }

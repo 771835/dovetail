@@ -22,7 +22,7 @@ class CompileConfig:
         optimization_level (OptimizationLevel): 优化等级
         version (MinecraftVersion): Minecraft版本信息
         debug (bool): 调试模式开关
-        recursion (bool): 启用递归开关
+        recursion (bool): 递归开关
         first_class_functions (bool): 启用函数一等公民开关
         disable_deprecated_function (bool): 禁用废弃函数编译
         experimental (bool): 启用实验性功能开关
@@ -33,7 +33,7 @@ class CompileConfig:
     optimization_level: OptimizationLevel
     version: MinecraftVersion
     debug: bool = False
-    recursion: bool = False
+    recursion: bool = True
     first_class_functions: bool = False
     disable_deprecated_function: bool = False
     experimental: bool = False

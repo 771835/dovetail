@@ -113,7 +113,7 @@ struct_init: ID "{" (ID ":" expr ("," ID ":" expr)*)? "}"
 
 arguments : ("(" (argument ("," argument)*)? ")")
 
-argument : expr
+argument : [ID "="] expr
 
 // 数字、普通字符串、布尔值、空值
 literal : INT

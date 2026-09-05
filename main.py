@@ -251,7 +251,7 @@ def main():
     parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')
     parser.add_argument('--no-generate-commands', '-ngc', action='store_true', help='不生成指令')
     parser.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
-    parser.add_argument('--recursion', action='store_true', help='启用递归(需后端支持)')
+    parser.add_argument('--disable-recursion', action='store_true', help='禁用递归(此检测并不完善)')
     parser.add_argument('--disable-deprecated-function', action='store_true', help='禁用对已弃用函数编译')
     # args.add_argument('--first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
     parser.add_argument('--experimental', action='store_true', help='启用扩展模式(测试性功能)')
@@ -295,7 +295,7 @@ def main():
             OptimizationLevel(parsed_args.O),
             MinecraftVersion.instance(parsed_args.minecraft_version),
             parsed_args.debug,
-            parsed_args.recursion,
+            not parsed_args.disable_recursion,
             False,
             parsed_args.disable_deprecated_function,
             parsed_args.experimental,

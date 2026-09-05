@@ -1,7 +1,6 @@
 # coding=utf-8
 from __future__ import annotations
 
-import functools
 import weakref
 from typing import TypeVar, Generic, ClassVar
 
@@ -87,7 +86,7 @@ class Reference(Symbol, Generic[T]):
         return self.value.get_dtype()
 
     @classmethod
-    def literal(cls: type[Reference], value: bool | int | str | None) -> Reference[Literal]:
+    def literal(cls: type[Reference], value: bool | int | str) -> Reference[Literal]:
         return cls(Literal(PrimitiveDataType.from_literal(value), value))  # noqa
 
     @classmethod
@@ -108,7 +107,18 @@ class Reference(Symbol, Generic[T]):
             return self.get_name()
 
     @classmethod
-    @functools.lru_cache(maxsize=1)
+    def null(cls) -> Reference[Variable]:
+        """
+        返回一个类型为 PrimitiveDataType.NULLTYPE 的句柄
+
+        通常用于逻辑不可达路径
+
+        Returns:
+            一个类型为 PrimitiveDataType.NULLTYPE 的句柄
+        """
+        return NULL
+
+    @classmethod
     def void(cls) -> Reference[Variable]:
         """
         返回一个类型为 PrimitiveDataType.VOID 的不可声明变量
@@ -118,10 +128,9 @@ class Reference(Symbol, Generic[T]):
         Returns:
             一个类型为 PrimitiveDataType.VOID 的不可声明变量
         """
-        return cls.variable("_", PrimitiveDataType.VOID, mutable=False)
+        return VOID
 
     @classmethod
-    @functools.lru_cache(maxsize=1)
     def undefined(cls) -> Reference[Variable]:
         """
         返回一个类型为 PrimitiveDataType.UNDEFINED 的不可声明变量
@@ -131,10 +140,10 @@ class Reference(Symbol, Generic[T]):
         Returns:
             一个类型为 PrimitiveDataType.UNDEFINED 的不可声明变量
         """
-        return cls.variable("_", PrimitiveDataType.UNDEFINED, mutable=False)
+        return UNDEFINED
 
     @classmethod
-    def default(cls, dtype: DataTypeBase) -> Reference[Literal] | None:
+    def default(cls, dtype: DataTypeBase) -> Reference[Literal | Variable] | None:
         """
         根据传入参数的默认值返回一个其类型的默认值
 
@@ -150,9 +159,14 @@ class Reference(Symbol, Generic[T]):
         elif dtype == PrimitiveDataType.STRING:
             return Reference.literal("")
         elif isinstance(dtype, Class):
-            return Reference.literal(None)
+            return Reference.null()
         else:
             return None
 
     def __repr__(self):
         return self.get_display_value()
+
+
+NULL = Reference.variable("null", PrimitiveDataType.NULL_TYPE, mutable=False)
+VOID = Reference.variable("_", PrimitiveDataType.VOID, mutable=False)
+UNDEFINED = Reference.variable("_", PrimitiveDataType.UNDEFINED, mutable=False)

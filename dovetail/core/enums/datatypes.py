@@ -94,7 +94,7 @@ class PrimitiveDataType(DataTypeBase, SafeEnum):
         return self not in (self.UNDEFINED, self.NULL_TYPE, self.VOID, self.FLOAT)
 
     @staticmethod
-    def from_literal(value: int | str | bool | float | None):
+    def from_literal(value: int | str | bool | float):
         if isinstance(value, bool):
             return PrimitiveDataType.BOOLEAN
         elif isinstance(value, int):

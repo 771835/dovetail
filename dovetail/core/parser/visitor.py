@@ -68,6 +68,9 @@ _dn = NameDecorator.denormalize
 
 _SIMPLE_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
+"""(参数名，实参值)"""
+_ARGUMENT = tuple[str | None, Reference]
+
 
 def _try_fast_path_expr(
         data: str,
@@ -195,55 +198,90 @@ class ASTVisitor(Interpreter):
 
         return annotations
 
-    def _process_call_arguments(self, symbol: Function, args: list[Reference], meta: Meta) \
+    def _process_call_arguments(self, symbol: Function, args: list[_ARGUMENT], meta: Meta) \
             -> dict[str, Reference]:
         """
         处理函数/方法调用的参数
 
-        根据符号形参填写实参并生成dict=
+        两遍扫描：第一遍按顺序填位置参数，第二遍按名字填关键字参数，重复则报错。
 
         Args:
             symbol: 函数
-            args: 实参列表
+            args: 实参列表，每个元素为 (关键字名|None, 值)
             meta: 调用处元数据
 
         Returns:
             参数名到参数值的映射字典
         """
-
-        min_args: int = sum(not param.is_optional() for param in symbol.params)
-        max_args: int = len(symbol.params)
-        # 参数字典
         args_dict: dict[str, Reference] = {}
+        used_names: set[str] = set()
+        positional_idx: int = 0
 
-        # 检查参数数量是否在有效范围内
-        if not min_args <= len(args) <= max_args:
-            self.error_reporter.report(
-                Errors.ArgumentNumberMismatch,
-                symbol.name,
-                f"{min_args}-{max_args}",
-                str(len(args)),
-                meta=meta
-            )
-            return args_dict
+        param_by_name: dict[str, Parameter] = {p.get_name(): p for p in symbol.params}
 
-        # 效验数据并记录参数字典
-        for i, (arg, param) in enumerate(itertools.zip_longest(args, symbol.params)):
-            assert isinstance(param, Parameter)
-            arg_ref: Reference
-            if arg is not None:
-                arg_ref = arg
-            else:
-                # 形参和缺省值必然存在一个，因此void()不可能被调用
-                arg_ref = param.default or Reference.void()
-            args_dict[param.get_name()] = arg_ref
-            # 类型检查
+        # ---- 第一遍：填位置参数 ----
+        for kw, ref in args:
+            if kw is not None:
+                continue
+            if positional_idx >= len(symbol.params):
+                self.error_reporter.report(
+                    Errors.ArgumentNumberMismatch,
+                    symbol.name,
+                    f"{sum(not p.is_optional() for p in symbol.params)}-{len(symbol.params)}",
+                    str(len(args)),
+                    meta=meta
+                )
+                return args_dict
+            param = symbol.params[positional_idx]
+            positional_idx += 1
+            used_names.add(param.get_name())
+            args_dict[param.get_name()] = ref
             self.type_checker.check_type_match(
-                param.dtype,
-                arg_ref.dtype,
-                f"函数 {symbol.name} 的参数 '{param.var.name}' 类型不匹配",
-                meta
+                param.dtype, ref.dtype,
+                f"函数 {symbol.name} 的参数 '{param.var.name}' 类型不匹配", meta
             )
+
+        # ---- 第二遍：填关键字参数 ----
+        for kw, ref in args:
+            if kw is None:
+                continue
+            param = param_by_name.get(kw)
+            if param is None:
+                self.error_reporter.report(
+                    Errors.UnknownKeywordArgument,
+                    symbol.name,
+                    kw,
+                    meta=meta
+                )
+                return args_dict
+            if param.get_name() in used_names:
+                self.error_reporter.report(
+                    Errors.DuplicateArgument,
+                    symbol.name,
+                    param.get_name(),
+                    meta=meta
+                )
+                return args_dict
+            used_names.add(param.get_name())
+            args_dict[param.get_name()] = ref
+            self.type_checker.check_type_match(
+                param.dtype, ref.dtype,
+                f"函数 {symbol.name} 的参数 '{param.var.name}' 类型不匹配", meta
+            )
+
+        # ---- 填充缺省值 ----
+        for param in symbol.params:
+            pname = param.get_name()
+            if pname not in used_names:
+                if not param.is_optional():
+                    self.error_reporter.report(
+                        Errors.MissingRequiredArgument,
+                        symbol.name,
+                        pname,
+                        meta=meta
+                    )
+                    return args_dict
+                args_dict[pname] = param.default or Reference.void()
 
         return args_dict
 
@@ -879,7 +917,7 @@ class ASTVisitor(Interpreter):
     @v_args(meta=True)
     def function_call(self, meta: Meta, children: list):
         function: Function = self.visit(children.pop(0)).value
-        args: list[Reference] = self.visit(children.pop(0))
+        args: list[_ARGUMENT] = self.visit(children.pop(0))
 
         # 检查符号类型
         if not isinstance(function, Function):
@@ -924,13 +962,17 @@ class ASTVisitor(Interpreter):
                 return Reference.void()
 
     @v_args(meta=True)
-    def arguments(self, _: Meta, children: list[Tree]) -> list[Reference]:
+    def arguments(self, _: Meta, children: list[Tree]) -> list[_ARGUMENT]:
+        """arguments : ("(" (argument ("," argument)*)? ")")"""
         return [self.visit(child) for child in children]
 
     @v_args(meta=True)
-    def argument(self, _: Meta, children: list) -> Reference:
-        value = self.visit(children.pop(0))
-        return value
+    def argument(self, _: Meta, children: tuple[Token | None, Tree]) -> _ARGUMENT:
+        """argument : [ID "="] expr"""
+        name_token = children[0]
+        name = _n(name_token.value) if name_token else None
+        value: Reference = self.visit(children[1])
+        return name, value
 
     @v_args(meta=True)
     def index_get(self, meta: Meta, children: list):
@@ -985,7 +1027,7 @@ class ASTVisitor(Interpreter):
 
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""
-        return Reference.literal(None)
+        return Reference.null()
 
     @v_args(meta=True)
     def literal(self, meta: Meta, children: list[Token | Tree]) -> Reference:
@@ -1026,12 +1068,14 @@ class ASTVisitor(Interpreter):
                         )
                         # ── 慢速路径：复杂表达式，走 lark ───────────────────
                         if expr is None:
-                            expr: Reference = self.visit(parser_code(data, "expr"))
+                            expr_tree = parser_code(data, "expr")
+                            if expr_tree:
+                                expr: Reference = self.visit(expr_tree)
                 except LarkError as e:
                     self.error_reporter.report(Errors.FStringExpressionError, data, e.__repr__(), meta=meta)
                     break
 
-                appended = self.ir_emitter.emit_fstring_append_expr(result, expr)
+                appended = self.ir_emitter.emit_fstring_append_expr(result, expr or Reference.literal(""))
                 if appended is None:
                     self.error_reporter.report(Errors.FStringExpressionError, data, "不支持的字符串转换", meta=meta)
                     break
