@@ -226,7 +226,7 @@ class LibraryBase(Library):
                 # 尝试解析返回类型
                 hints = get_type_hints(method)
                 try:
-                    returns = _resolve_type(hints.get("return",None))
+                    returns = _resolve_type(hints.get("return", None))
                 except TypeError:
                     pass
 
@@ -267,14 +267,13 @@ class LibraryBase(Library):
             default_ref: Optional[Reference]
             if param_name in optional_set:
                 default_ref = Reference.literal(defaults_map.get(param_name))
-            else: # 检查是否存在默认值
+            else:  # 检查是否存在默认值
                 if param.default is not inspect.Parameter.empty:
                     default_ref = Reference.literal(param.default)
                 else:
                     default_ref = None
 
-
-            params.append(Parameter.new(param_name, dtype,default_ref))
+            params.append(Parameter.new(param_name, dtype, default_ref))
 
         return params
 

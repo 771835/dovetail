@@ -1,6 +1,7 @@
 # coding=utf-8
 from dovetail.core.lib.lib_factory import LibraryBase, builtin_func
 
+
 class Random(LibraryBase):
     def __init__(self, context):
         self._init(context)

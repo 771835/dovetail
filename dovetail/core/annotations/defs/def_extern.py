@@ -117,7 +117,8 @@ class ExternProcessor(AnnotationProcessor):
     def validate(self, args, context):
         abi = args.get("abi", "dovetail")
         path = args.get("path", "")
-        if isinstance(context.symbol, Function) and not (_check_ffi_types(context.symbol, abi, ctx) and _check_path(path, ctx)):
+        if isinstance(context.symbol, Function) and not (
+                _check_ffi_types(context.symbol, abi, ctx) and _check_path(path, ctx)):
             return False
         return _check_abi(abi, context)
 

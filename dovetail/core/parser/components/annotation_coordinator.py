@@ -5,10 +5,11 @@
 负责注解提取、上下文构建、参数校验和两阶段处理流程。
 """
 from __future__ import annotations
+
 from typing import Any
-from lark.tree import Meta
 
 from attrs import define
+from lark.tree import Meta
 
 from dovetail.core.annotations import get_registry, AnnotationContext
 from dovetail.core.annotations.base import AnnotationTarget
@@ -55,6 +56,7 @@ class ResolvedAnnotation:
     def failed() -> ResolvedAnnotation:
         """校验失败的哨兵值"""
         return ResolvedAnnotation(ok=False)
+
 
 class AnnotationCoordinator:
     """注解协调器 - 管理注解的提取、校验和两阶段处理"""

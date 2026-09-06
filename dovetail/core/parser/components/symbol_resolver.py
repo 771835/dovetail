@@ -160,7 +160,8 @@ class SymbolResolver:
         return None
 
     def resolve_scope(self, stype: StructureType,
-                      continue_stype: tuple[StructureType, ...] = (StructureType.CONDITIONAL, StructureType.LOOP_BODY)) -> Scope | None:
+                      continue_stype: tuple[StructureType, ...] = (StructureType.CONDITIONAL,
+                                                                   StructureType.LOOP_BODY)) -> Scope | None:
         """
         向上查找最近的指定类型的作用域
 

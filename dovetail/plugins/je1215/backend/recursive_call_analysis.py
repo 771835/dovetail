@@ -17,9 +17,9 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import NamedTuple
 
-from dovetail.core.ir_code import IROpCode, IROpDescriptor
-from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.instructions import IRInstruction
+from dovetail.core.ir_builder import IRBuilder
+from dovetail.core.ir_code import IROpCode, IROpDescriptor
 from dovetail.core.symbols import Function, Reference, Variable
 from dovetail.utils.logger import get_logger
 

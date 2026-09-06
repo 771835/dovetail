@@ -26,6 +26,7 @@ from dovetail.core.symbols import Function, Reference
 _TCO_SCOPE_SUFFIX = "_1_tco_loop"  # _1 是为了保证不会与其他函数命名重复，关闭命名修饰无效
 PASS_NAME = "tail_call_optimization"
 
+
 # ─── Pass 注册 ────────────────────────────────────────────────────────────────
 
 @register_pass(PassMetadata(
@@ -64,7 +65,7 @@ class TailCallOptimizationPass(IROptimizationPass):
 
     # ── 分析阶段 ──────────────────────────────────────────────────────────────
 
-    def analyze(self, context = None) -> dict:
+    def analyze(self, context=None) -> dict:
         """
         扫描 IR，找出所有直接尾递归候选。
 
@@ -255,7 +256,7 @@ class TailCallOptimizationPass(IROptimizationPass):
 
     # ── 执行阶段 ──────────────────────────────────────────────────────────────
 
-    def execute(self, context = None) -> bool:
+    def execute(self, context=None) -> bool:
         """
         执行优化。
 

@@ -177,7 +177,8 @@ Thank you for your support!
 ### Code Usage
 
 > Due to `Minecraft` version differences and actual usage considerations, necessary modifications may be made to the
-> following projects when used. If you are an author or contributor of the following projects and do not want your project
+> following projects when used. If you are an author or contributor of the following projects and do not want your
+> project
 > to be used or modified, please contact the project author to discuss removal.
 
 - Project [fast_integer_sqrt](https://github.com/Triton365/fast_integer_sqrt) - Fast integer square root *The isqrt

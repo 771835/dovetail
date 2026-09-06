@@ -61,7 +61,10 @@ from dovetail.core.symbols.base import MethodHost
 from dovetail.core.symbols.structure import Structure
 from dovetail.core.symbols.typedef import Typedef
 from dovetail.utils.constant_operator_handlers import number_to_int32
+from dovetail.utils.logger import get_logger
 from dovetail.utils.naming import NameDecorator
+
+logger = get_logger(__name__)
 
 _n = NameDecorator.normalize
 _dn = NameDecorator.denormalize
@@ -376,7 +379,9 @@ class ASTVisitor(Interpreter):
             return
 
         # 处理形参
-        params = self.visit(children.pop(0))  # noqa
+        params: list[Parameter] = self.visit(children.pop(0))  # noqa
+
+        # 返回值类型
         if children[0] is not None:
             return_type: DataTypeBase = self.visit(children.pop(0))  # noqa
         else:
@@ -410,8 +415,12 @@ class ASTVisitor(Interpreter):
                     # 访问函数体
                     self.visit(children.pop(0))  # noqa
 
-                    # 末尾强制补return
-                    if self.builder.peek().opcode != IROpCode.RETURN:
+                    # 末尾强制补充 return
+                    # 说实话...这并不太完美，因为对于本应返回不可空的类来说，这会使其返回 null，通常这并不是被期待的行为
+                    # 但是呢，作为报错可能则会对一些代码产生误报问题
+                    if self.builder.peek().opcode != IROpCode.RETURN and return_type != PrimitiveDataType.VOID:
+                        logger.warning(
+                            f"函数 {_dn(name)} 末尾缺少 return，已补充 return {Reference.default(return_type)}")
                         self.ir_emitter.emit(IRReturn(Reference.default(return_type)))
 
     @v_args(meta=True)

@@ -1,6 +1,7 @@
 # coding=utf-8
 from dovetail.core.lib.lib_factory import LibraryBase, lib_var, builtin_func
 
+
 class Math(LibraryBase):
     INT_MAX = lib_var(int, 2147483647)
     INT_MIN = lib_var(int, -2147483648)

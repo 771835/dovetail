@@ -6,9 +6,9 @@ from typing import TypeVar, Generic, ClassVar
 
 from attrs import define, field
 
+from .base import Symbol
 from .class_ import Class
 from .function import Function
-from .base import Symbol
 from .literal import Literal
 from .variable import Variable
 from ..config import FAST_MODE

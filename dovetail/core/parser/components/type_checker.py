@@ -203,7 +203,7 @@ class TypeChecker:
         # 其他情况返回左操作数类型
         return left
 
-    def check_boolean_type(self, dtype:DataTypeBase, meta: Meta) -> bool:
+    def check_boolean_type(self, dtype: DataTypeBase, meta: Meta) -> bool:
         """
         检查传入类型是否为布尔值或整数，并报错
 

@@ -100,7 +100,7 @@ def validate_ir(builder: IRBuilder) -> list[str]:
                         if not _is_has:
                             errors.append(f"[{idx}] {instr.opcode.desc} '{operand_val.name}' 未被定义但被使用")
 
-    while stack :
+    while stack:
         scope_name, scope_type, begin_idx, var_table = stack.pop()
         if scope_type == StructureType.GLOBAL:
             continue

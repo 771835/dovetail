@@ -16,8 +16,8 @@ else:
 
 IS_COMPILED = COMPILED_BY is not None
 
-
 IS_BROWSER = sys.platform == 'emscripten'
+
 
 def _get_project_root() -> Path:
     """获取项目资源根目录，兼容所有部署模式"""

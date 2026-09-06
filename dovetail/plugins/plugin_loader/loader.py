@@ -8,11 +8,10 @@
 import json
 import os
 import re
+import sys
 import traceback
 from pathlib import Path
 from typing import Dict
-
-import sys
 
 from dovetail.plugins.plugin_api import Plugin, api_version
 from dovetail.utils.logger import get_logger

@@ -32,17 +32,17 @@ from dovetail.core.enums import (
 )
 from dovetail.core.enums.minecraft import NewMinecraftVersion
 from dovetail.core.enums.types import ValueType
+from dovetail.core.instructions import IRInstruction, IRCompute, IRAssign
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.ir_code import IROpCode
-from dovetail.core.instructions import IRInstruction, IRCompute, IRAssign
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
+from dovetail.core.symbols import Literal, Reference, Function
 from dovetail.utils.provider_format import (
     lookup_op, lookup_by_func_name,
     emit_provider, flatten_multi, is_same_multi_type,
 )
-from dovetail.core.symbols import Literal, Reference, Function
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  可提升运算集合

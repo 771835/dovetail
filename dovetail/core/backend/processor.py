@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import  Type, TYPE_CHECKING
+from typing import Type, TYPE_CHECKING
 
 from dovetail.core.ir_code import IROpDescriptor
 from dovetail.utils.logger import get_logger

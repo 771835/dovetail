@@ -5,8 +5,6 @@
 提供插件的自动发现、加载和管理功能，支持从指定目录加载插件并执行其生命周期方法。
 """
 
-from pathlib import Path
-
 from dovetail.plugins.plugin_api.plugin import Plugin
 from dovetail.plugins.plugin_api.v2 import plugin_manager
 from dovetail.utils.resource import resolve_project_path

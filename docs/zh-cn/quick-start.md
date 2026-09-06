@@ -421,8 +421,7 @@ my_project/
 
 ### 如何创建项目
 
-当使用二进制文件时， 直接执行 `dovetial-build init 项目名` 即可
-通过 `git` 下载源码的，执行 `python .\build_main.py init`
+当使用二进制文件时， 直接执行 `dovetial-build init 项目名` 即可 通过 `git` 下载源码的，执行 `python .\build_main.py init`
 
 ### 构建钩子（可选）
 
@@ -478,7 +477,7 @@ python main.py build .
     - Windows: `%APPDATA%\.minecraft\saves\<世界名>\`
     - Linux: `~/.minecraft/saves/<世界名>/`
     - macOS: `~/Library/Application Support/minecraft/saves/<世界名>/`
-    - 或者你所使用的启动器设置的位置 
+    - 或者你所使用的启动器设置的位置
 
 2. 将编译输出目录（如 `target/` 或 `build/datapack/`） **整体**复制到存档的 `datapacks/` 文件夹中：
    ```

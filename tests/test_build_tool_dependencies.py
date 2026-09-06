@@ -511,7 +511,6 @@ class TestSameDepDedup(unittest.TestCase):
         self.assertEqual(c_count, 1)
 
 
-
 class TestReadDepDependencies(unittest.TestCase):
     """_read_dep_dependencies — 传递依赖读取"""
 

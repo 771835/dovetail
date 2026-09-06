@@ -33,7 +33,6 @@ params : "(" (param ("," param)*)? ")"
 
 // 强制类型标注
 param: ID ":" type ("=" expr)?
-     | type ID ("=" expr)?
 
 // 代码块，包含多个语句
 ?block : "{" statement* "}"

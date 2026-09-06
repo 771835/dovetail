@@ -345,7 +345,7 @@ class Builder:
             if config.library:
                 shutil.rmtree(self.project_root / config.library, ignore_errors=True)
         except (FileNotFoundError, ValueError):
-            pass # 跳过以便于清理其他内容
+            pass  # 跳过以便于清理其他内容
 
         for file_path in self.project_root.rglob(f"*"):
             if file_path.is_file() and file_path.suffix in (CACHE_FILE_PREFIX, IR_CACHE_FILE_PREFIX):

@@ -16,11 +16,13 @@ IRBuilder — Unrolled Linked List 实现
 """
 
 from typing import SupportsIndex, Optional, List
+
 from dovetail.core.instructions import IRInstruction, IROpCode
 
 CHUNK_SIZE = 32  # 每个 chunk 的容量上限，调大降低链表开销，调小降低插入移动成本
 
 __all__ = ["IRBuilder", "IRBuilderIterator", "IRBuilderReversibleIterator"]
+
 
 # ─── chunk ────────────────────────────────────────────────────────────────────
 
@@ -254,7 +256,6 @@ class IRBuilderIterator:
     def insert_and_continue_with(self, instruction: IRInstruction) -> None:
         self.insert_here(instruction)
         self.rollback()
-
 
 
 class IRBuilderReversibleIterator:

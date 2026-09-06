@@ -98,6 +98,7 @@ class IROpDescriptor:
             return None
         return operands[self.result_index]
 
+
 def _collect_compute_refs(tree, found_refs):
     if isinstance(tree, dict):
         for arg in tree.values():
@@ -108,6 +109,7 @@ def _collect_compute_refs(tree, found_refs):
     elif isinstance(tree, Reference):
         found_refs.add(tree)
 
+
 def _compute_uses(operands) -> list:
     """COMPUTE: (result, provider_tree, integer) → 提取 args 中所有 Reference"""
     _, provider_tree, _, _ = operands
@@ -115,6 +117,7 @@ def _compute_uses(operands) -> list:
     _collect_compute_refs(provider_tree, refs)
 
     return list(refs)
+
 
 def _call_uses(operands) -> list:
     """CALL: (result, func, args_dict) → 提取 args 中所有 Reference"""
@@ -191,9 +194,9 @@ def deep_remap(
         remapped = [deep_remap(item, rename_map, scope_rename) for item in operand]
         return tuple(remapped) if isinstance(operand, tuple) else remapped
 
-
     # int, float, bool, enum, Function, Class, StructureType, ... → 原样
     return operand
+
 
 class IROpCode:
     """指令操作码。每个成员是自描述的 IROpDescriptor，比较/哈希的金标准是 code属性。"""
@@ -419,7 +422,7 @@ class IROpCode:
     #     0xA4, "结构体方法调用", InstructionCategory.STRUCT,
     #     flags=InstructionFlag.SIDE_EFFECT | InstructionFlag.CALL | InstructionFlag.PRODUCES_RESULT,
     #     result_index=0,
-    #     use_extractor=_struct_call_uses,
+    #     use_extractor=_struct_call_uses
     # )
 
     STRUCT_FREE = IROpDescriptor(

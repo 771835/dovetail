@@ -18,6 +18,7 @@ else:
             else:
                 # 使用整数索引插入
                 self._instructions.insert(index, instr)
+
         def extend(self, instrs: Iterator[IRInstruction]):
             self._instructions.extend(instrs)
 

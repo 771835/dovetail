@@ -22,6 +22,7 @@ logger = get_logger(__name__)
 T = TypeVar('T')
 F = TypeVar('F', bound=Callable[..., Any])
 
+
 # ==================== 性能相关注解 ====================
 
 def timed(message: str = "用时{:.3f}s") -> Callable[[F], F]:

@@ -80,4 +80,5 @@ class LiteralPoolTools:
     @staticmethod
     def get_literal_path(literal: int | bool | str | None, target: str) -> DataPath:
         path_str = LiteralPoolTools.get_literal_path_str(literal)
-        return DataPath(path_str, target, StorageLocation.STORAGE if isinstance(literal, str) else StorageLocation.SCORE)
+        return DataPath(path_str, target,
+                        StorageLocation.STORAGE if isinstance(literal, str) else StorageLocation.SCORE)

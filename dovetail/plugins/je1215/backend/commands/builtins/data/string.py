@@ -2,9 +2,9 @@
 from dovetail.core.symbols import Variable, Literal
 from ..base import CommandRegistry, CommandHandler, TemplateCommandHandler
 from ..template import TemplateParameter, ParameterBuilder
-from ...copy import Copy
-from ..._execute import Execute
 from ..._data import DataBuilder
+from ..._execute import Execute
+from ...copy import Copy
 from ...tools import DataPath, LiteralPoolTools
 
 
@@ -26,7 +26,7 @@ class StrcatFastCommand(TemplateCommandHandler):
 class StrlenCommand(CommandHandler):
     no_size_effects = True
 
-    def handle(self, result, context,args) -> None:
+    def handle(self, result, context, args) -> None:
         assert result is not None
         s: Variable | Literal = args["s"].value
         result_path = DataPath.from_symbol(context, result)

@@ -21,7 +21,7 @@ from .strlib import *
 from .tools import LiteralPoolTools, DataPath, StorageLocation
 from .unary_op import UnaryOp
 
-... # 防止IDE调整 import 顺序
+...  # 防止IDE调整 import 顺序
 # 必须后被导入
 from .builtins import *
 

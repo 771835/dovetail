@@ -11,10 +11,11 @@ from .constant_folding import ConstantFoldingPass
 from .dead_code_elimination import DeadCodeEliminationPass
 from .empty_scope import EmptyScopeRemovalPass
 from .function_inlining import FunctionInliningPass
+from .number_provider_lifting import NumberProviderLiftingPass
 from .tail_call_optimization import TailCallOptimizationPass
 from .unconditional_scope_inlining import UnconditionalScopeInliningPass
 from .unreachable_code_remove import UnreachableCodeRemovalPass
-from .unused_function import UnusedFunctionEliminationPass  # 可能能用，不确定
 from .unreachable_scope_elimination import UselessScopeEliminationPass
-from .number_provider_lifting import NumberProviderLiftingPass
+from .unused_function import UnusedFunctionEliminationPass  # 可能能用，不确定
+
 __all__ = []

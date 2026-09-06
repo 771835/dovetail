@@ -2,13 +2,12 @@
 from typing import cast, Optional
 
 from dovetail.core.compile_config import CompileConfig
+from dovetail.core.enums import OptimizationLevel, ValueType, FunctionType
+from dovetail.core.instructions import IROpCode, IRAssign
 from dovetail.core.ir_builder import IRBuilder
-
 from dovetail.core.optimize.base import IROptimizationPass
 from dovetail.core.optimize.pass_metadata import PassMetadata, PassPhase
 from dovetail.core.optimize.pass_registry import register_pass
-from dovetail.core.enums import OptimizationLevel, ValueType, FunctionType
-from dovetail.core.instructions import IROpCode, IRAssign
 from dovetail.core.symbols import Reference, Function, Variable
 from dovetail.utils.constant_operator_handlers import number_to_int32
 from dovetail.utils.naming import NameDecorator

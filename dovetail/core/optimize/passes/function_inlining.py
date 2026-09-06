@@ -20,7 +20,6 @@ from dovetail.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-
 # 内联阈值：函数体指令数超过此值不内联
 INLINE_THRESHOLD = 15
 
@@ -350,6 +349,8 @@ class FunctionInliningPass(IROptimizationPass):
             for op in instr.operands
         )
         return IRInstruction(instr.opcode, *new_operands)
+
+
 '''
     def _remap_instruction(
             self,

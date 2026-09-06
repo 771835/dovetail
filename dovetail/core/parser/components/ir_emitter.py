@@ -113,7 +113,7 @@ class IREmitter:
 
         # 检查常量必须初始化
         if not mutable and value is None:
-            self.error_reporter.report(Errors.ConstantRequiresInitialization,name,meta=meta)
+            self.error_reporter.report(Errors.ConstantRequiresInitialization, name, meta=meta)
             return None
 
         # 创建并注册符号

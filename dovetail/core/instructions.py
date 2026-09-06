@@ -15,11 +15,11 @@ from typing import Any, Optional, Union, get_type_hints, Callable
 
 from dovetail.core.config import ENABLE_INSTRUCTION_VALIDATION, FAST_MODE
 from dovetail.core.enums import PrimitiveDataType, StructureType, BinaryOps, CompareOps, UnaryOps
+from dovetail.core.ir_code import InstructionFlag, InstructionCategory, IROpCode, IROpDescriptor  # noqa
 from dovetail.core.symbols import Variable, Literal, Reference, Function
 from dovetail.core.symbols.class_ import Class
 from dovetail.core.symbols.enumeration import Enumeration
 from dovetail.core.symbols.structure import Structure
-from dovetail.core.ir_code import InstructionFlag, InstructionCategory, IROpCode, IROpDescriptor  # noqa
 
 _DefinableDataTypes = Union[
     PrimitiveDataType,
@@ -667,6 +667,7 @@ def _compute_repr(instr: IRInstruction) -> str:
     scale = instr.operands[3]
     return f"{result} = COMPUTE.{compute_kind} -> {tree}" + (f" * {scale}" if scale else "")
 
+
 # ==================== 面向对象指令 ====================
 
 @validate_instruction
@@ -1095,6 +1096,7 @@ def _struct_set_repr(instr: IRInstruction) -> str:
     field = instr.operands[1]
     value = instr.operands[2]
     return f"{instance}.{field} = {value}"
+
 
 @validate_instruction
 def IRStructFree(instance: Reference) -> IRInstruction:

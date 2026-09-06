@@ -6,8 +6,8 @@ from lark.tree import Meta
 
 from dovetail.core.errors import Errors
 from dovetail.core.parser.components.error_reporter import ErrorReporter
-from .event import Event
 from dovetail.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
+from .event import Event
 
 
 class ErrorReportEvent(Event):

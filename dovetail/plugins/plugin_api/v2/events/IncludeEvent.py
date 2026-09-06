@@ -3,8 +3,8 @@ from pathlib import Path
 
 from dovetail.core.lib.library import Library
 from dovetail.core.parser.visitor import ASTVisitor
-from .event import Event
 from dovetail.utils.mixin_manager import Mixin, Inject, At, CallbackInfoReturnable
+from .event import Event
 
 
 class IncludeEvent(Event):

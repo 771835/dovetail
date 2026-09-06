@@ -2,8 +2,6 @@
 from functools import lru_cache
 from pathlib import Path
 
-import sys
-
 from dovetail.plugins.plugin_api.plugin import Plugin
 
 

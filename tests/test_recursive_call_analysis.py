@@ -16,9 +16,6 @@ from dovetail.core.instructions import (
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.symbols import Function, Variable, Reference, Parameter
-
-# ── 导入被测模块 ──────────────────────────────────────────────────────────────
-
 from dovetail.plugins.je1215.backend.recursive_call_analysis import (
     build_call_graph,
     find_recursive_sccs,
@@ -28,6 +25,9 @@ from dovetail.plugins.je1215.backend.recursive_call_analysis import (
     META_KEY_NEEDS_STACK_SAVE,
     META_KEY_LIVE_VARS,
 )
+
+
+# ── 导入被测模块 ──────────────────────────────────────────────────────────────
 
 
 # ─── 工具函数 ─────────────────────────────────────────────────────────────────

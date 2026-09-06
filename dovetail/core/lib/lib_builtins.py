@@ -17,13 +17,16 @@ class Builtins(LibraryBase):
         self._init(context)
 
     @builtin_func()
-    def exec(self, command: str) -> None:...
+    def exec(self, command: str) -> None:
+        ...
 
     @builtin_func()
-    def tellraw_text(self, target: str, msg: str) -> None:...
+    def tellraw_text(self, target: str, msg: str) -> None:
+        ...
 
     @builtin_func()
-    def tellraw_json(self, target: str, json: str) -> None:...
+    def tellraw_json(self, target: str, json: str) -> None:
+        ...
 
     @library_func(returns=int, name="int")
     def _int(self, value: int | str | bool):

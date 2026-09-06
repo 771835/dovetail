@@ -12,7 +12,8 @@ class Plugin(ABC):
     _name: str
     _version: str
 
-    def __init__(self): ...
+    def __init__(self):
+        ...
 
     @abstractmethod
     def load(self):

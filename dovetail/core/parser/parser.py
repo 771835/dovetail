@@ -154,6 +154,7 @@ def _translate_syntax_error(exc: UnexpectedInput, source_code: str) -> dict:
         "suggestion": suggestion,
     }
 
+
 def parser_code(
         code: str,
         start: Optional[str] = None,
@@ -184,11 +185,10 @@ def parser_code(
             meta = Meta()
             meta.line = line
             meta.column = column
-            error_reporter.report(Errors.InvalidSyntax,message,meta=meta,suggestion=suggestion)
+            error_reporter.report(Errors.InvalidSyntax, message, meta=meta, suggestion=suggestion)
             return None
         else:
             report(Errors.InvalidSyntax, message, line=line, column=column, suggestion=suggestion)
-
 
 
 def parser_file(filepath: Path, start: Optional[str] = None, error_reporter: Optional[ErrorReporter] = None) -> \
