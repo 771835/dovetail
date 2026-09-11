@@ -8,55 +8,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from attrs import define
 from lark.tree import Meta
 
 from dovetail.core.annotations import get_registry, AnnotationContext
 from dovetail.core.annotations.base import AnnotationTarget
 from dovetail.core.annotations.category import AnnotationCategory
-from dovetail.core.annotations.spec import get_annotation_spec, Annotation
+from dovetail.core.annotations.spec import Annotation
 from dovetail.core.compile_config import CompileConfig
-from dovetail.core.errors import Errors
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.parser.components.symbol_resolver import SymbolResolver
 from dovetail.core.symbols import Symbol, Function
 from dovetail.core.symbols.base import Annotatable
 
-
-@define(slots=True)
-class ResolvedAnnotation:
-    """
-    validate_and_resolve 的结构化结果。
-
-    Attributes:
-        annotation: 注解声明对象，校验失败时为 None
-        params: 参数字典；annotation.params 为 None 时为空字典，
-               参数待 visit 填充时为 None
-        ok: 校验是否通过
-    """
-    annotation: Annotation | None = None
-    params: dict[str, Any] | None = None
-    ok: bool = False
-
-    @property
-    def needs_visit(self) -> bool:
-        """参数待 visit 填充（校验通过但 params 为 None）"""
-        return self.ok and self.params is None
-
-    @staticmethod
-    def undefined() -> ResolvedAnnotation:
-        """未定义注解的哨兵值"""
-        return ResolvedAnnotation(
-            annotation=Annotation("undefined", None, AnnotationCategory.METADATA),
-            params={},
-            ok=True,
-        )
-
-    @staticmethod
-    def failed() -> ResolvedAnnotation:
-        """校验失败的哨兵值"""
-        return ResolvedAnnotation(ok=False)
-
+UNDEFINED_ANNOTATION = Annotation("undefined", {}, AnnotationCategory.METADATA)
 
 class AnnotationCoordinator:
     """注解协调器 - 管理注解的提取、校验和两阶段处理"""
@@ -101,55 +65,6 @@ class AnnotationCoordinator:
             symbol_target=target,
             symbol_resolver=self.symbol_resolver,
         )
-
-    # ==================== 校验 ====================
-
-    def validate_and_resolve(
-            self,
-            name: str,
-            children: list,
-            meta: Meta
-    ) -> ResolvedAnnotation:
-        """
-        校验注解名和参数，返回结构化结果。
-
-        Args:
-            name: 注解名（如 "version"、"export"）
-            children: 参数子节点列表
-            meta: 元数据
-
-        Returns:
-            ResolvedAnnotation:
-              ok=True, params=dict  → 校验通过，参数已就绪
-              ok=True, params=None  → 校验通过，参数待 visit 填充
-              ok=False              → 校验失败
-        """
-        annotation = get_annotation_spec(name)
-
-        # 注解不存在
-        if annotation is None:
-            self.error_reporter.report(Errors.InvalidAnnotation, name, meta=meta)
-            return ResolvedAnnotation.failed()
-
-        # 无参数注解
-        if annotation.params is None:
-            if children:
-                self.error_reporter.report(
-                    Errors.ArgumentNumberMismatch,
-                    name, "0", str(len(children)), meta=meta
-                )
-            return ResolvedAnnotation(annotation=annotation, params={}, ok=True)
-
-        # 参数数量不匹配
-        if len(children) != len(annotation.params):
-            self.error_reporter.report(
-                Errors.ArgumentNumberMismatch,
-                name, str(len(annotation.params)), str(len(children)), meta=meta
-            )
-            return ResolvedAnnotation.failed()
-
-        # 参数数量匹配，等待 visit 填充
-        return ResolvedAnnotation(annotation=annotation, params=None, ok=True)
 
     # ==================== 两阶段处理流程 ====================
 

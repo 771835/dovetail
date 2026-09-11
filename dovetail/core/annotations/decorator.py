@@ -10,7 +10,7 @@ from dovetail.core.annotations.spec import Annotation, inject_annotation_spec
 
 
 def annotation_processor(
-        cls: type[AnnotationProcessor] = None,
+        cls: Optional[type[AnnotationProcessor]] = None,
         *,
         name: str | None = None,
         category: AnnotationCategory = AnnotationCategory.METADATA,
@@ -40,7 +40,7 @@ def annotation_processor(
         if category is not None:
             cls.category = category
         if params is not None:
-            cls._spec_params = params  # 存到类上供 spec 注册使用
+            setattr(cls, '_spec_params', params)  # 存到类上供 spec 注册使用
 
         # 注册处理器
         instance = cls()
@@ -49,7 +49,7 @@ def annotation_processor(
         # 自动注册 spec 声明
         ann = Annotation(
             name=instance.annotation_name,
-            params=getattr(cls, '_spec_params', None),
+            params=getattr(cls, '_spec_params', {}),
             category=instance.category,
         )
         inject_annotation_spec(ann)

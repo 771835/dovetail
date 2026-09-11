@@ -14,6 +14,7 @@ from lark.tree import Meta
 
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.errors import Errors
+from dovetail.core.lib.library import Library
 from dovetail.core.parser.components import ErrorReporter
 
 
@@ -169,7 +170,7 @@ class IncludeManager:
             return False
         return str(include_path.resolve()) in self._included_paths
 
-    def search_include_path(self, filepath: Path, meta: Meta) -> Path | None:
+    def search_include_path(self, filepath: Path, meta: Meta) -> Path | Library | None:
         """
         搜索导入文件的实际路径
 

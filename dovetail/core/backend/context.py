@@ -18,7 +18,7 @@ from dovetail.core.symbols import Symbol
 @define(slots=True)
 class DependencyFile:
     url: str
-    sha256: str = None
+    sha256: Optional[str] = None
     min_version: int | float = 0
     max_version: int | float = 127
     hook: Optional[Callable[[Path, MinecraftVersion], Any]] = None  # 在下载完成后执行，对下载的包进行一定修改以适应版本

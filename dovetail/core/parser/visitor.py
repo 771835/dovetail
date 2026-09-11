@@ -34,7 +34,7 @@ from lark.tree import Meta
 from lark.visitors import Interpreter
 
 from dovetail.core.annotations.base import AnnotationTarget
-from dovetail.core.annotations.spec import Annotation
+from dovetail.core.annotations.spec import Annotation, get_annotation_spec
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.enums import (
     StructureType, PrimitiveDataType, FunctionType,
@@ -47,8 +47,10 @@ from dovetail.core.instructions import (
     IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRIndexGet, IROpCode, IRStructDef, IRStructNew
 )
 from dovetail.core.ir_builder import IRBuilder
+from dovetail.core.lib.library import Library
 from dovetail.core.lib.library_mapping import LibraryMapping
-from dovetail.core.parser.components.annotation_coordinator import AnnotationCoordinator, ResolvedAnnotation
+from dovetail.core.parser.components.annotation_coordinator import AnnotationCoordinator, \
+    UNDEFINED_ANNOTATION
 from dovetail.core.parser.components.error_reporter import ErrorReporter
 from dovetail.core.parser.components.include_manager import IncludeManager, CircularIncludeException
 from dovetail.core.parser.components.ir_emitter import IREmitter
@@ -73,6 +75,38 @@ _SIMPLE_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
 """(参数名，实参值)"""
 _ARGUMENT = tuple[str | None, Reference]
+
+
+class ParamDescriptor(typing.NamedTuple):
+    """通用参数描述，Function 和 Annotation 都能适配"""
+    name: str
+    optional: bool
+    default: Reference | None
+    dtype: DataTypeBase | None  # None = 跳过类型检查（注解场景）
+
+    @staticmethod
+    def from_function(func: Function) -> list['ParamDescriptor']:
+        return [
+            ParamDescriptor(
+                name=p.get_name(),
+                optional=p.is_optional(),
+                default=p.default,
+                dtype=p.dtype,
+            )
+            for p in func.params
+        ]
+
+    @staticmethod
+    def from_annotation_spec(spec: Annotation) -> list['ParamDescriptor']:
+        return [
+            ParamDescriptor(
+                name=k,
+                optional=v is not None,
+                default=Reference.literal(v) if v is not None else None,
+                dtype=None,
+            )
+            for k, v in spec.params.items()
+        ]
 
 
 def _try_fast_path_expr(
@@ -201,15 +235,21 @@ class ASTVisitor(Interpreter):
 
         return annotations
 
-    def _process_call_arguments(self, symbol: Function, args: list[_ARGUMENT], meta: Meta) \
-            -> dict[str, Reference]:
+    def _process_arguments(
+            self,
+            caller_name: str,
+            param_descs: list[ParamDescriptor],
+            args: list[tuple[str | None, Reference]],
+            meta: Meta
+    ) -> dict[str, Reference]:
         """
-        处理函数/方法调用的参数
+        参数处理
 
         两遍扫描：第一遍按顺序填位置参数，第二遍按名字填关键字参数，重复则报错。
 
         Args:
-            symbol: 函数
+            caller_name: 调用目标名（函数名/注解名），仅用于错误信息
+            param_descs: 参数描述列表
             args: 实参列表，每个元素为 (关键字名|None, 值)
             meta: 调用处元数据
 
@@ -220,29 +260,31 @@ class ASTVisitor(Interpreter):
         used_names: set[str] = set()
         positional_idx: int = 0
 
-        param_by_name: dict[str, Parameter] = {p.get_name(): p for p in symbol.params}
+        param_by_name: dict[str, ParamDescriptor] = {p.name: p for p in param_descs}
 
         # ---- 第一遍：填位置参数 ----
         for kw, ref in args:
             if kw is not None:
                 continue
-            if positional_idx >= len(symbol.params):
+            if positional_idx >= len(param_descs):
+                min_required = sum(not p.optional for p in param_descs)
                 self.error_reporter.report(
                     Errors.ArgumentNumberMismatch,
-                    symbol.name,
-                    f"{sum(not p.is_optional() for p in symbol.params)}-{len(symbol.params)}",
+                    caller_name,
+                    f"{min_required}-{len(param_descs)}",
                     str(len(args)),
                     meta=meta
                 )
                 return args_dict
-            param = symbol.params[positional_idx]
+            param = param_descs[positional_idx]
             positional_idx += 1
-            used_names.add(param.get_name())
-            args_dict[param.get_name()] = ref
-            self.type_checker.check_type_match(
-                param.dtype, ref.dtype,
-                f"函数 {symbol.name} 的参数 '{param.var.name}' 类型不匹配", meta
-            )
+            used_names.add(param.name)
+            args_dict[param.name] = ref
+            if param.dtype is not None:
+                self.type_checker.check_type_match(
+                    param.dtype, ref.dtype,  # noqa
+                    f"{caller_name} 的参数 '{param.name}' 类型不匹配", meta
+                )
 
         # ---- 第二遍：填关键字参数 ----
         for kw, ref in args:
@@ -252,39 +294,39 @@ class ASTVisitor(Interpreter):
             if param is None:
                 self.error_reporter.report(
                     Errors.UnknownKeywordArgument,
-                    symbol.name,
+                    caller_name,
                     kw,
                     meta=meta
                 )
                 return args_dict
-            if param.get_name() in used_names:
+            if param.name in used_names:
                 self.error_reporter.report(
                     Errors.DuplicateArgument,
-                    symbol.name,
-                    param.get_name(),
+                    caller_name,
+                    param.name,
                     meta=meta
                 )
                 return args_dict
-            used_names.add(param.get_name())
-            args_dict[param.get_name()] = ref
-            self.type_checker.check_type_match(
-                param.dtype, ref.dtype,
-                f"函数 {symbol.name} 的参数 '{param.var.name}' 类型不匹配", meta
-            )
+            used_names.add(param.name)
+            args_dict[param.name] = ref
+            if param.dtype is not None:
+                self.type_checker.check_type_match(
+                    param.dtype, ref.dtype,  # noqa
+                    f"{caller_name} 的参数 '{param.name}' 类型不匹配", meta
+                )
 
         # ---- 填充缺省值 ----
-        for param in symbol.params:
-            pname = param.get_name()
-            if pname not in used_names:
-                if not param.is_optional():
+        for param in param_descs:
+            if param.name not in used_names:
+                if not param.optional:
                     self.error_reporter.report(
                         Errors.MissingRequiredArgument,
-                        symbol.name,
-                        pname,
+                        caller_name,
+                        param.name,
                         meta=meta
                     )
                     return args_dict
-                args_dict[pname] = param.default or Reference.void()
+                args_dict[param.name] = param.default or Reference.void()
 
         return args_dict
 
@@ -699,6 +741,11 @@ class ASTVisitor(Interpreter):
         # 搜索文件路径
         filepath = self.include_manager.search_include_path(Path(include_path), meta)
 
+        # 再次检测，用于支持插件修改搜索路径
+        if isinstance(filepath, Library):
+            self._load_library(include_path)
+            return
+
         if filepath is None or filepath in self.include_manager:
             return
 
@@ -951,7 +998,7 @@ class ASTVisitor(Interpreter):
                     return Reference.undefined()
                 cs = cs.parent
 
-        args_dict = self._process_call_arguments(function, args, meta)
+        args_dict = self._process_arguments(function.name, ParamDescriptor.from_function(function), args, meta)
         # 调用函数
         if function.func_type == FunctionType.LIBRARY:
             # 由于对内建函数的调用过程中的错误无行列信息提示，极难调试，故在此记录上下文
@@ -1135,28 +1182,42 @@ class ASTVisitor(Interpreter):
         """
         处理注解声明
 
-        Args:
-            children: 注解名称和参数列表
-            meta: 元数据
+        annotation: "@" ID [arguments]
 
         Returns:
             (注解对象, 参数字典)，出错时返回未定义注解和空字典
         """
         name = children.pop(0).value
-        r = self.annotation_coordinator.validate_and_resolve(name, children, meta)
+        args_tree: Tree | None = children.pop(0)
+        args: list[_ARGUMENT] = self.visit(args_tree) if args_tree else []
 
-        if not r.ok:
-            undef = ResolvedAnnotation.undefined()
-            return undef.annotation, undef.params
+        annotation = get_annotation_spec(name)
 
-        if r.annotation is None:
-            undef = ResolvedAnnotation.undefined()
-            return undef.annotation, undef.params
+        # 注解不存在
+        if annotation is None:
+            self.error_reporter.report(Errors.InvalidAnnotation, name, meta=meta)
+            return UNDEFINED_ANNOTATION, {}
 
-        if r.needs_visit and r.annotation.params:  # 需要visit填充实参
-            # 访问所有参数值并构建参数字典（参数名 -> 参数值）
-            param_values = [self.visit(child).value.value for child in children]
-            param_dict = dict(zip(r.annotation.params, param_values))
-            return r.annotation, param_dict
+        # 处理原始参数
+        formatted_arguments = self._process_arguments(
+            annotation.name,
+            ParamDescriptor.from_annotation_spec(annotation),
+            args,
+            meta
+        )
 
-        return r.annotation, r.params  # noqa
+        # 检查格式化后的参数
+        checked_arguments = {}
+
+        for arg_name, arg_value in formatted_arguments.items():
+            if not arg_value.is_literal():
+                self.error_reporter.report(
+                    Errors.AnnotationArgumentError,
+                    name,
+                    f"注解参数必须为字面量，而不是'{arg_value}'",
+                    meta=meta
+                )
+                return UNDEFINED_ANNOTATION, {}
+            checked_arguments[arg_name] = arg_value.value.value
+
+        return annotation, checked_arguments
