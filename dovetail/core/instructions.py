@@ -1005,12 +1005,13 @@ def IRStructDef(structure: Structure) -> IRInstruction:
     """
     return IRInstruction(IROpCode.STRUCT_DEF, structure)
 
-
 @register_repr(IROpCode.STRUCT_DEF)
 def _struct_def_repr(instr: IRInstruction) -> str:
     s: Structure = instr.operands[0]
-    fields_str = ", \n".join(f"{name}:{dtype.get_name()}" for name, dtype in s.fields.items())
-    return f"struct {s.get_name()} {{ {fields_str} }}"
+    if not s.fields:
+        return f"struct {s.get_name()} {{}}"
+    fields_str = ",\n".join(f"    {name}: {dtype.get_name()}" for name, dtype in s.fields.items())
+    return f"struct {s.get_name()} {{\n{fields_str}\n}}"
 
 
 @validate_instruction

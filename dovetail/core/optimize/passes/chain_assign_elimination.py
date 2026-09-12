@@ -456,6 +456,12 @@ class ChainAssignEliminationPass(IROptimizationPass):
             else:
                 return instr
 
+        elif opcode == IROpCode.STRUCT_NEW:
+            args = instr.operands[-1]
+            new_args, changed = self._resolve_args(args, aliases)
+            if changed:
+                return IRInstruction(opcode, *instr.operands[:-1], new_args)
+
         else:
             logger.debug(f"指令 {opcode.desc}({opcode.code}) 缺少对应的别名替换，已返回原始指令。")
 

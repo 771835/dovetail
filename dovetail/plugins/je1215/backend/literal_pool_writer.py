@@ -4,7 +4,7 @@
 
 用于收集字面量并将字面量加载
 """
-import uuid
+import hashlib
 
 from dovetail.core.backend import OutputWriter, GenerationContext
 from dovetail.core.enums import ValueType
@@ -26,7 +26,10 @@ class LiteralPoolWriter(OutputWriter):
         function_dir_path.mkdir(parents=True, exist_ok=True)
         commands = []
         # 记录标志以保证仅加载一次
-        flag = uuid.uuid4().hex[:5]
+        collected = list(self._collect_literals(context))
+        flag = hashlib.md5(
+            "".join(str(x) for x in collected).encode()
+        ).hexdigest()[:8]
 
         commands.append(
             Execute.execute().if_score_matches(
@@ -76,7 +79,7 @@ class LiteralPoolWriter(OutputWriter):
         literals.add(context.objective)
         literals.update(LiteralPoolWriter.builtin_literals)
 
-        return literals
+        return sorted(literals, key=lambda x: (type(x).__name__, str(x)))
 
     def get_name(self) -> str:
         return "LiteralPoolWriter"

@@ -1248,7 +1248,7 @@ class ASTVisitor(Interpreter):
         for fname, fvalue_tree in batched(children, 2):
             fvalue: Reference = self.visit(fvalue_tree)
             if fname not in symbol.fields:
-                self.error_reporter.report(Errors.InvalidMemberAccess, fname, meta=meta)
+                self.error_reporter.report(Errors.InvalidMemberAccess, struct_name, fname, meta=meta)
                 continue
             self.type_checker.check_type_match(
                 symbol.fields[fname], fvalue.get_dtype(),
