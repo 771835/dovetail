@@ -1,9 +1,118 @@
-#deprecated
-struct String {
-    data: string
+// test_struct.mcdl — 结构体集成测试
+ 
+// ═══════════════════════════════════════════════════════════════
+//  基础结构体定义
+// ═══════════════════════════════════════════════════════════════
+struct Point {
+    x: int
+    y: int
 }
+
+struct Vec3 {
+    x: int
+    y: int
+    z: int
+}
+
+struct Player {
+    name: string
+    hp: int
+    score: int
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  测试函数
+// ═══════════════════════════════════════════════════════════════
+
+fn test_point_basic() {
+    print("=== 测试 Point 基础字段读写 ===")
+
+    let p = Point{x: 3, y: 7}
+    print(f"p.x = {p.x}")     // 期望: 3
+    print(f"p.y = {p.y}")     // 期望: 7
+
+    p.x = 10
+    p.y = 20
+    print(f"p.x = {p.x}")     // 期望: 10
+    print(f"p.y = {p.y}")     // 期望: 20
+
+    p.x += 5
+    p.y -= 2
+    print(f"p.x += 5 => {p.x}")  // 期望: 15
+    print(f"p.y -= 2 => {p.y}")  // 期望: 18
+
+    print("")
+}
+
+fn test_vec3() {
+    print("=== 测试 Vec3 三字段结构体 ===")
+
+    let v = Vec3{x: 1, y: 2, z: 3}
+    print(f"v = ({v.x}, {v.y}, {v.z})")  // 期望: (1, 2, 3)
+
+    v.x *= 2
+    v.y *= 2
+    v.z *= 2
+    print(f"v*2 = ({v.x}, {v.y}, {v.z})")  // 期望: (2, 4, 6)
+
+    print("")
+}
+
+fn test_player() {
+    print("=== 测试 Player 混合类型字段 ===")
+
+    let p = Player{name: "Alex", hp: 20, score: 0}
+    print(f"name={p.name}, hp={p.hp}, score={p.score}")
+    // 期望: name=Alex, hp=20, score=0
+
+    p.hp -= 5
+    print(f"受伤5点后 hp={p.hp}")   // 期望: 15
+
+    p.score += 100
+    print(f"加分后 score={p.score}")  // 期望: 100
+
+    print("")
+}
+
+fn test_multiple_instances() {
+    print("=== 测试多实例独立性 ===")
+
+    let a = Point{x: 1, y: 1}
+    let b = Point{x: 99, y: 99}
+
+    a.x += 10
+    print(f"a.x = {a.x}")   // 期望: 11
+    print(f"b.x = {b.x}")   // 期望: 99
+
+    print("")
+}
+
+fn test_struct_in_function() {
+    print("=== 测试函数内创建结构体 ===")
+
+    let p1 = Point{x: 100, y: 200}
+    let p2 = Point{x: -3, y: -7}
+
+    let sum_x = p1.x + p2.x
+    let sum_y = p1.y + p2.y
+    print(f"p1 + p2 = ({sum_x}, {sum_y})")  // 期望: (97, 193)
+
+    print("")
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  主入口
+// ═══════════════════════════════════════════════════════════════
 @init
 fn main() {
-    let s = String{data : "fuck"}
-    print(s.data)
+    print("===== 结构体集成测试 =====")
+    print("")
+
+    test_point_basic()
+    test_vec3()
+    test_player()
+    test_multiple_instances()
+    test_struct_in_function()
+ 
+    print("===== 所有结构体测试完成 =====")
 }

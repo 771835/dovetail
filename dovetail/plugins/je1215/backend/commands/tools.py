@@ -1,6 +1,7 @@
 # coding=utf-8
 import hashlib
 from enum import auto
+from typing import Optional
 
 from attrs import define, evolve
 
@@ -36,11 +37,12 @@ class DataPath:
     location: StorageLocation = StorageLocation.SCORE
 
     @classmethod
-    def from_symbol(cls, context: GenerationContext, symbol: Symbol) -> 'DataPath':
+    def from_symbol(cls, context: GenerationContext, symbol: Symbol,
+                    location: Optional[StorageLocation] = None) -> 'DataPath':
         return cls(
             context.current_scope.get_symbol_path(symbol.get_name()),
             context.objective,
-            StorageLocation.get_storage(symbol.get_dtype())
+            location or StorageLocation.get_storage(symbol.get_dtype())
         )
 
     def __iter__(self):

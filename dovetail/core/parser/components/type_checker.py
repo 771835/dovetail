@@ -42,8 +42,8 @@ class TypeChecker:
             if not any(self._check_a_type_match(i, actual) for i in expected.types):
                 self.error_reporter.report(
                     Errors.TypeMismatch,
-                    repr(expected),
-                    actual.get_name(),
+                    expected,
+                    actual,
                     meta=meta,
                     suggestion=f"在 {context} 时发生类型不匹配"
                 )
@@ -53,8 +53,8 @@ class TypeChecker:
             if not self._check_a_type_match(expected, actual):
                 self.error_reporter.report(
                     Errors.TypeMismatch,
-                    expected.get_name(),
-                    actual.get_name(),
+                    expected,
+                    actual,
                     meta=meta,
                     suggestion=f"在 {context} 时发生类型不匹配"
                 )
@@ -101,9 +101,9 @@ class TypeChecker:
             self.error_reporter.report(
                 Errors.TypeMismatch,
                 "可定义类型",
-                dtype.get_name(),
+                dtype,
                 meta=meta,
-                suggestion=f"{dtype.get_name()} 不可作为变量类型定义"
+                suggestion=f"{dtype} 不可作为变量类型定义"
             )
             return False
         return True
@@ -128,8 +128,8 @@ class TypeChecker:
         if not (left.is_subclass_of(right) or right.is_subclass_of(left)):
             self.error_reporter.report(
                 Errors.TypeMismatch,
-                left.get_name(),
-                right.get_name(),
+                left,
+                right,
                 meta=meta,
                 suggestion="比较运算要求两侧类型兼容"
             )
@@ -159,8 +159,8 @@ class TypeChecker:
         if not (left.is_subclass_of(right) or right.is_subclass_of(left)):
             self.error_reporter.report(
                 Errors.TypeMismatch,
-                left.get_name(),
-                right.get_name(),
+                left,
+                right,
                 meta=meta,
                 suggestion=f"运算符 '{op}' 要求两侧类型兼容"
             )
@@ -219,7 +219,7 @@ class TypeChecker:
             self.error_reporter.report(
                 Errors.TypeMismatch,
                 "boolean",
-                f"{dtype}",
+                dtype,
                 meta=meta
             )
             return False
@@ -229,7 +229,7 @@ class TypeChecker:
             self,
             func: Function,
             param_types: list[DataTypeBase],
-            return_value_type: DataTypeBase,
+            return_dtype: DataTypeBase,
             meta: Meta
     ) -> Function | None:
         """
@@ -238,7 +238,7 @@ class TypeChecker:
         Args:
             func: 方法
             param_types: 形参类型
-            return_value_type: 返回值类型
+            return_dtype: 返回值类型
             meta: 元数据
 
         Returns:
@@ -265,18 +265,18 @@ class TypeChecker:
                 self.error_reporter.report(
                     Errors.ArgumentTypeMismatch,
                     func.name,
-                    str(expected_type),
-                    str(actual_type),
+                    expected_type,
+                    actual_type,
                     meta=meta
                 )
 
         # 检查返回值类型
-        if return_value_type.is_subclass_of(func.get_dtype()):
+        if return_dtype.is_subclass_of(func.get_dtype()):
             self.error_reporter.report(
                 Errors.ArgumentTypeMismatch,
                 func.name,
-                str(return_value_type),
-                str(func.get_dtype()),
+                return_dtype,
+                func.get_dtype(),
                 meta=meta
             )
 

@@ -301,7 +301,7 @@ class IROpCode:
     )
 
     """
-    此指令仅限 Java 26.3+ 并通过优化管道生成，不应被前端生成
+    此指令仅限 Java 26.3+ 并通过优化管道产生，不应被前端主动产生
     """
     COMPUTE = IROpDescriptor(
         0x27, "数值提供器计算", InstructionCategory.DATA_OP,

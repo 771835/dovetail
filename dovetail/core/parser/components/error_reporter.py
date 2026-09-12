@@ -10,7 +10,9 @@ from typing import Optional
 
 from lark.tree import Meta
 
+from dovetail.core.enums.datatypes import DataTypeBase
 from dovetail.core.errors import report, Errors
+from dovetail.utils.naming import NameDecorator
 
 
 class ErrorReporter:
@@ -25,7 +27,7 @@ class ErrorReporter:
     def report(
             self,
             error: Errors,
-            *args: str,
+            *args: str | DataTypeBase,
             meta: Optional[Meta] = None,
             suggestion: Optional[str] = None
     ) -> None:
@@ -44,7 +46,7 @@ class ErrorReporter:
         # 委托给全局 report 函数
         report(
             error,
-            *args,
+            *(NameDecorator.denormalize(arg.get_name()) if isinstance(arg, DataTypeBase) else arg for arg in args),
             filepath=self.filepath,
             line=line,
             column=column,

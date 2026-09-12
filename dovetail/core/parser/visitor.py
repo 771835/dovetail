@@ -44,7 +44,8 @@ from dovetail.core.enums.datatypes import DataTypeBase, ListType, ArrayType, Dic
 from dovetail.core.errors import Errors
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp,
-    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRIndexGet, IROpCode, IRStructDef, IRStructNew
+    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRIndexGet, IROpCode, IRStructDef, IRStructNew, IRStructGet,
+    IRStructSet
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
@@ -60,11 +61,13 @@ from dovetail.core.parser.parser import parser_file, parse_fstring_iter, parser_
 from dovetail.core.parser.scope import Scope
 from dovetail.core.symbols import Variable, Reference, Literal, Function, Class, Parameter
 from dovetail.core.symbols.base import MethodHost
+from dovetail.core.symbols.enumeration import Enumeration
 from dovetail.core.symbols.structure import Structure
 from dovetail.core.symbols.typedef import Typedef
 from dovetail.utils.constant_operator_handlers import number_to_int32
 from dovetail.utils.logger import get_logger
 from dovetail.utils.naming import NameDecorator
+from dovetail.utils.string_similarity import suggest_similar
 
 logger = get_logger(__name__)
 
@@ -75,6 +78,9 @@ _SIMPLE_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
 """(参数名，实参值)"""
 _ARGUMENT = tuple[str | None, Reference]
+
+"""运算符"""
+COMPOUND_ASSIGN = typing.Literal["+=", "-=", "*=", "/=", "%=", "="]
 
 
 class ParamDescriptor(typing.NamedTuple):
@@ -531,8 +537,8 @@ class ASTVisitor(Interpreter):
             if default_value.get_dtype() != dtype:
                 self.error_reporter.report(
                     Errors.TypeMismatch,
-                    default_value.get_dtype().get_name(),
-                    dtype.get_name(),
+                    default_value.dtype,
+                    dtype,
                     meta=meta
                 )
                 # 错误时返回无默认值的参数
@@ -639,7 +645,7 @@ class ASTVisitor(Interpreter):
             self.error_reporter.report(
                 Errors.TypeMismatch,
                 "boolean/int",
-                value.get_dtype().get_name(),
+                value.dtype,
                 meta=meta
             )
             return Reference.literal(False)
@@ -689,7 +695,7 @@ class ASTVisitor(Interpreter):
             if func.return_type != value.dtype:
                 self.error_reporter.report(
                     Errors.ReturnTypeMismatch,
-                    value.dtype.get_name(),
+                    value.dtype,
                     func.return_type.get_name(),
                     meta=meta
                 )
@@ -875,8 +881,8 @@ class ASTVisitor(Interpreter):
             # 当两方类型不同时不进行比较
             self.error_reporter.report(
                 Errors.CompareTypeMismatch,
-                repr(left.get_dtype()),
-                repr(right.get_dtype()),
+                left.dtype,
+                right.dtype,
                 meta=meta
             )
             return Reference.literal(False)
@@ -950,15 +956,15 @@ class ASTVisitor(Interpreter):
             )
             return None
 
-        op: typing.Literal["+=", "-=", "*=", "/=", "%=", "="] = children.pop(0).value
+        op: COMPOUND_ASSIGN = children.pop(0).value
 
         value: Reference = self.visit(children.pop(0))
 
         if variable.dtype != value.get_dtype():
             self.error_reporter.report(
                 Errors.TypeMismatch,
-                variable.dtype.get_name(),
-                value.get_dtype().get_name(),
+                variable.dtype,
+                value.dtype,
                 meta=meta
             )
             return None
@@ -1018,6 +1024,60 @@ class ASTVisitor(Interpreter):
                 return Reference.void()
 
     @v_args(meta=True)
+    def member_assign(self, meta: Meta, children: list):
+        """post_expr "." ID COMPOUND_ASSIGN expr -> member_assign"""
+        expr_ref: Reference = self.visit(children.pop(0))
+        expr_dtype = expr_ref.get_dtype()
+        member_name = str(children.pop(0).value)
+        op: COMPOUND_ASSIGN = children.pop(0).value
+
+        if isinstance(expr_dtype, Class):
+            return Reference.undefined()  # TODO: 类实例的属性写入
+        elif isinstance(expr_dtype, Structure):
+            field_dtype = expr_dtype.fields.get(member_name, None)
+            if field_dtype is None:
+                self.error_reporter.report(
+                    Errors.InvalidEnumMember,
+                    member_name,
+                    f"结构体 '{expr_dtype.name}' 不存在字段 '{member_name}'",
+                    meta=meta
+                )
+                return Reference.undefined()
+
+            value: Reference = self.visit(children.pop(0))
+
+            if value.dtype != field_dtype:
+                self.error_reporter.report(
+                    Errors.TypeMismatch,
+                    field_dtype,
+                    value.dtype,
+                    meta=meta
+                )
+                return Reference.undefined()
+
+            if op == "=":
+                self.ir_emitter.emit(IRStructSet(expr_ref, member_name, value))
+            else:
+                if not self.type_checker.check_binary_op_compatibility(field_dtype, value.dtype, op[0], meta):
+                    return Reference.undefined()
+                temp_var = self.ir_emitter.create_temp_var_declared(field_dtype)
+                self.ir_emitter.emit(IRStructGet(temp_var, expr_ref, member_name))
+                self.ir_emitter.emit(IRBinaryOp(temp_var, BinaryOps(op[0]), Reference(temp_var), value))
+                self.ir_emitter.emit(IRStructSet(expr_ref, member_name, Reference(temp_var)))
+
+            return expr_ref
+
+        else:
+            self.error_reporter.report(
+                Errors.SymbolCategory,
+                expr_ref.get_name(),
+                "有可变字段、属性的类型",
+                expr_ref.value_type.name,
+                meta=meta
+            )
+            return Reference.undefined()
+
+    @v_args(meta=True)
     def arguments(self, _: Meta, children: list[Tree]) -> list[_ARGUMENT]:
         """arguments : ("(" (argument ("," argument)*)? ")")"""
         return [self.visit(child) for child in children]
@@ -1055,7 +1115,7 @@ class ASTVisitor(Interpreter):
             if method is None:
                 self.error_reporter.report(
                     Errors.MagicMethodNotImplemented,
-                    repr(dtype),  # noqa
+                    dtype,
                     "__getitem__",
                     "索引读取",
                     meta=meta
@@ -1067,7 +1127,7 @@ class ASTVisitor(Interpreter):
             # TODO: 调用具体方法
             ...
         elif isinstance(dtype, PrimitiveDataType):
-            self.error_reporter.report(Errors.PrimitiveTypeOperation, "数组访问", dtype.get_name(), meta=meta)
+            self.error_reporter.report(Errors.PrimitiveTypeOperation, "数组访问", dtype, meta=meta)
         else:
             self.error_reporter.report(Errors.InvalidOperator, f"[{index!r}]", meta=meta)
         return Reference.void()
@@ -1077,9 +1137,45 @@ class ASTVisitor(Interpreter):
         pass  # TODO: 实现索引写入
 
     @v_args(meta=True)
-    def member_access(self, meta: Meta, children: list[Tree]):
+    def member_access(self, meta: Meta, children: list) -> Reference:
         expr_ref: Reference = self.visit(children.pop(0))
-        pass  # TODO: 实现成员访问
+        expr_dtype = expr_ref.get_dtype()
+        member_name = str(children.pop(0).value)
+
+        if isinstance(expr_dtype, Class):
+            return Reference.undefined()  # TODO:  实现类实例的成员访问
+        elif isinstance(expr_dtype, Structure):
+            field_type = expr_dtype.fields.get(member_name, None)
+            if field_type is None:
+                suggested_member = suggest_similar(member_name, list(expr_dtype.fields.keys()))
+                self.error_reporter.report(
+                    Errors.InvalidEnumMember,
+                    member_name,
+                    f"结构体 '{expr_dtype.name}' 不存在字段 '{member_name}'",
+                    meta=meta,
+                    suggestion=f"你是指 '{suggested_member}' 吗" if suggested_member else None
+                )
+                return Reference.undefined()
+
+            result_var = self.ir_emitter.create_temp_var_declared(field_type)
+            self.ir_emitter.emit(IRStructGet(result_var, expr_ref, member_name))
+            return Reference(result_var)
+        elif isinstance(expr_dtype, Enumeration):
+            lit_val = expr_dtype.member.get(member_name, None)
+            if lit_val is None:
+                suggested_member = suggest_similar(member_name, list(expr_dtype.member.keys()))
+                self.error_reporter.report(
+                    Errors.InvalidEnumMember,
+                    member_name,
+                    f"枚举 '{expr_dtype.name}' 不存在成员 '{member_name}'",
+                    meta=meta,
+                    suggestion=f"你是指 '{suggested_member}' 吗" if suggested_member else None
+                )
+                return Reference.undefined()
+            return Reference(lit_val)
+        else:
+            self.error_reporter.report(Errors.InvalidOperator, f"{expr_ref!r}.{member_name}", meta=meta)
+            return Reference.undefined()
 
     def null(self, _: Tree) -> Reference:
         """处理 null 字面量"""

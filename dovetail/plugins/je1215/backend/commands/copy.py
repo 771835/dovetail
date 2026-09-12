@@ -63,16 +63,15 @@ class Copy:
     @staticmethod
     def copy_literals(
             target: DataPath,
-            source: int | str | bool | None
+            source: int | str | bool
     ) -> str:
-        assert isinstance(source, int | str | bool | None), f"Invalid literal type: {type(source)}"
-        if isinstance(source, int):
-            return ScoreboardBuilder.set_score(*target, int(source))  # noqa
-        elif isinstance(source, str):
+        assert isinstance(source, int | str | bool), f"Invalid literal type: {type(source)}"
+        from .tools import StorageLocation
+        if target.location == StorageLocation.STORAGE:
             return DataBuilder.modify_storage_set_value(*reversed(target), repr(source))
-        elif source is None:
-            return ScoreboardBuilder.set_score(*target, 0)  # noqa
-        raise
+        else:
+            assert isinstance(source, int | bool), f"记分板目标仅支持 int/bool"
+            return ScoreboardBuilder.set_score(*target, int(source))  # noqa
 
     @staticmethod
     def copy(target: DataPath, source: DataPath) -> str:
@@ -100,7 +99,7 @@ class Copy:
             return Copy.copy_score_to_storage(target, source)
 
     @staticmethod
-    def copy_all(target: DataPath, source: DataPath | int | str | bool | None) -> str:
+    def copy_all(target: DataPath, source: DataPath | int | str | bool) -> str:
         """
         通用复制函数
 
