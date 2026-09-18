@@ -187,7 +187,7 @@ class CommandRegistry:
     @classmethod
     def get(cls, name: str) -> CommandHandler:
         """根据名称获得对应命令处理器"""
-        name = NameDecorator.denormalize(name)
+        name = NameDecorator.undecorate(name)
         command_handler = cls._handlers.get(name)
         if command_handler is None:
             return DefaultCommandHandler(name)

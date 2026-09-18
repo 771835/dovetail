@@ -27,7 +27,7 @@ class NameDecorator:
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def normalize(name: str) -> str:
+    def decorate(name: str) -> str:
         """
         将原始字符串修饰为兼容格式。
 
@@ -65,7 +65,7 @@ class NameDecorator:
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def denormalize(normalized_name: str) -> str:
+    def undecorate(normalized_name: str) -> str:
         """
         将修饰后的名称还原为原始字符串。
 

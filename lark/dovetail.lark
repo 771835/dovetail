@@ -12,7 +12,7 @@ class: annotation* "class" ID ("(" identifier ("," identifier)* ")")? "{" (class
 class_property: "let" ID ":" type
 
 // 结构体
-struct: annotation* "struct" ID "{" struct_field* method*"}"
+struct: annotation* "struct" ID "{" struct_field* "}"
 
 struct_field: ID ":" type
 

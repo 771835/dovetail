@@ -95,11 +95,35 @@ class Builtins(LibraryBase):
 
         return None
 
+    @library_func(name="__builtin_name_decorate__")
+    def _decorate(self, s: str):
+        s: Reference[Literal]
+        if not s.is_literal() or s.get_dtype() != PrimitiveDataType.STRING:
+            report(
+                Errors.InvalidSyntax,
+                "被装饰的对象必须是字面量字符串"
+            )
+            return None
+
+        return Reference.literal(NameDecorator.decorate(str(s.value.value)))
+
+    @library_func(name="__builtin_name_undecorate__")
+    def _undecorate(self, s: str):
+        s: Reference[Literal]
+        if not s.is_literal() or s.get_dtype() != PrimitiveDataType.STRING:
+            report(
+                Errors.InvalidSyntax,
+                "被反装饰的对象必须是字面量字符串"
+            )
+            return None
+
+        return Reference.literal(NameDecorator.undecorate(str(s.value.value)))
+
     def __str__(self) -> str:
         return "built-in"
 
     def get_variables(self):
-        _n = NameDecorator.normalize
+        _n = NameDecorator.decorate
         return {
             Variable(_n("__namespace__"), PrimitiveDataType.STRING, mutable=False):
                 Reference.literal(self.context.config.namespace),

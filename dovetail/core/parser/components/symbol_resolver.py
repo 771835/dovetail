@@ -52,7 +52,7 @@ class SymbolResolver:
         if symbol is None:
             # 生成相似名称建议
             all_names = list(self.current_scope.get_all_symbols().keys())
-            suggestion = suggest_similar(NameDecorator.denormalize(name), all_names)
+            suggestion = suggest_similar(NameDecorator.undecorate(name), all_names)
 
             hint = f"你的意思是 '{suggestion}'？" if suggestion else None
 

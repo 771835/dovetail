@@ -219,7 +219,7 @@ class LibraryBase(Library):
             if meta is None:
                 continue
 
-            func_name: str = NameDecorator.normalize(meta["name"] or attr_name)
+            func_name: str = NameDecorator.decorate(meta["name"] or attr_name)
             returns: DataTypeBase = meta["returns"]
 
             if meta["returns"] == VOID:
@@ -284,7 +284,7 @@ class LibraryBase(Library):
             descriptor = getattr(type(self), attr_name, None)
             if not isinstance(descriptor, _LibVarDescriptor):
                 continue
-            var_name = NameDecorator.normalize(descriptor.override_name or attr_name)
+            var_name = NameDecorator.decorate(descriptor.override_name or attr_name)
             var = Variable(var_name, descriptor.dtype, mutable=descriptor.mutable)
             self._variables[var] = Reference.literal(descriptor.value)
 
@@ -308,7 +308,7 @@ class LibraryBase(Library):
         Returns:
             Function or None
         """
-        func_name_n = NameDecorator.normalize(func_name)
+        func_name_n = NameDecorator.decorate(func_name)
         try:
             return next(func for func in self._functions.keys() if func.name == func_name_n)
         except StopIteration:

@@ -31,6 +31,7 @@ _DefinableDataTypes = Union[
 _CastableDataTypes = Union[
     PrimitiveDataType,
     Class,
+    Structure
 ]
 
 
@@ -991,28 +992,6 @@ def _dict_remove_repr(instr: IRInstruction) -> str:
 
 
 # ==================== 结构体指令 ====================
-
-@validate_instruction
-def IRStructDef(structure: Structure) -> IRInstruction:
-    """
-    结构体定义指令
-
-    Args:
-        structure: 结构体符号对象（含 fields + methods）
-
-    Returns:
-        结构体定义指令
-    """
-    return IRInstruction(IROpCode.STRUCT_DEF, structure)
-
-@register_repr(IROpCode.STRUCT_DEF)
-def _struct_def_repr(instr: IRInstruction) -> str:
-    s: Structure = instr.operands[0]
-    if not s.fields:
-        return f"struct {s.get_name()} {{}}"
-    fields_str = ",\n".join(f"    {name}: {dtype.get_name()}" for name, dtype in s.fields.items())
-    return f"struct {s.get_name()} {{\n{fields_str}\n}}"
-
 
 @validate_instruction
 def IRStructNew(

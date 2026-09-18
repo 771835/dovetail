@@ -20,6 +20,10 @@ struct Player {
     score: int
 }
 
+struct Object {
+    __struct__: Point
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  测试函数
 // ═══════════════════════════════════════════════════════════════
@@ -28,6 +32,7 @@ fn test_point_basic() {
     print("=== 测试 Point 基础字段读写 ===")
 
     let p = Point{x: 3, y: 7}
+    let p1: struct<Point> = Object{struct: p}.__struct__
     print(f"p.x = {p.x}")     // 期望: 3
     print(f"p.y = {p.y}")     // 期望: 7
 

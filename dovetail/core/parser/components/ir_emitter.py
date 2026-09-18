@@ -117,7 +117,7 @@ class IREmitter:
             return None
 
         # 创建并注册符号
-        variable = Variable(NameDecorator.normalize(name), dtype, mutable=mutable)
+        variable = Variable(NameDecorator.decorate(name), dtype, mutable=mutable)
         if not self.symbol_resolver.add_symbol(variable, meta=meta):
             return None
 

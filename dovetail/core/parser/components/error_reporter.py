@@ -46,7 +46,7 @@ class ErrorReporter:
         # 委托给全局 report 函数
         report(
             error,
-            *(NameDecorator.denormalize(arg.get_name()) if isinstance(arg, DataTypeBase) else arg for arg in args),
+            *(NameDecorator.undecorate(arg.get_name()) if isinstance(arg, DataTypeBase) else arg for arg in args),
             filepath=self.filepath,
             line=line,
             column=column,

@@ -34,6 +34,6 @@ class IRCastProcessor(IRProcessor):
         elif value.dtype == PrimitiveDataType.STRING and dtype.is_subclass_of(PrimitiveDataType.INT):
             # str -> int
             assert isinstance(value_path, (DataPath, str))
-            CommandRegistry.get(NameDecorator.normalize("to_integer")).call(result, context, {"value": value})
+            CommandRegistry.get(NameDecorator.decorate("to_integer")).call(result, context, {"value": value})
         else:
             logger.error(f"未知的类型转换: 从 '{value.dtype}' 转换为 '{dtype}'")

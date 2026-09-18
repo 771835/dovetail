@@ -5,6 +5,8 @@ import uuid
 from enum import Enum
 from typing import Any, NoReturn
 
+from typing_extensions import deprecated
+
 from dovetail.core.annotations.base import AnnotationCategory
 from dovetail.core.config import PROJECT_VERSION
 from dovetail.core.enums import CompareOps, FunctionType, ClassType, BinaryOps, UnaryOps, PrimitiveDataType, \
@@ -27,7 +29,7 @@ restore_enums_ref: dict[str, type[Enum]] = {
     "CompareOps": CompareOps
 }
 
-
+@deprecated("长期缺少维护，已弃用")
 class IRSymbolSerializer:
     """序列化 IRBuilder 中的符号信息。
 

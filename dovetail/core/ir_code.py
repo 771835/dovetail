@@ -393,11 +393,6 @@ class IROpCode:
 
     # ==================== STRUCT (0xA0-0xBF) ====================
 
-    STRUCT_DEF = IROpDescriptor(
-        0xA0, "结构体定义", InstructionCategory.STRUCT,
-        flags=InstructionFlag.SIDE_EFFECT,
-    )
-
     STRUCT_NEW = IROpDescriptor(
         0xA1, "结构体实例化", InstructionCategory.STRUCT,
         flags=InstructionFlag.SIDE_EFFECT | InstructionFlag.PRODUCES_RESULT,

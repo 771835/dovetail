@@ -32,7 +32,7 @@ class IRArrayAccessProcessor(IRProcessor):
             return
         else:  # 调用宏函数
             if StorageLocation.get_storage(result.dtype) == StorageLocation.STORAGE:  # (string等数据)
-                CommandRegistry.get(NameDecorator.normalize("array_access_to_storage")).call(
+                CommandRegistry.get(NameDecorator.decorate("array_access_to_storage")).call(
                     result,
                     context,
                     {
@@ -41,7 +41,7 @@ class IRArrayAccessProcessor(IRProcessor):
                     }
                 )
             else:  # SCORE (int, bool等值)
-                CommandRegistry.get(NameDecorator.normalize("array_access_to_score")).call(
+                CommandRegistry.get(NameDecorator.decorate("array_access_to_score")).call(
                     result,
                     context,
                     {

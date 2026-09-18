@@ -7,11 +7,12 @@ from typing import TYPE_CHECKING
 from attrs import define, field
 
 from .base import Symbol, Annotatable, MethodHost
+from .structure import Structure
 from ..enums.datatypes import DataTypeBase
 from ..enums.types import ClassType
 
 if TYPE_CHECKING:
-    from . import Function, Variable
+    from . import Function
     from dovetail.core.annotations.base import AnnotationAttachment
 
 
@@ -21,7 +22,7 @@ class Class(Symbol, DataTypeBase, Annotatable, MethodHost):
     methods: dict[str, Function]
     interface: Optional[Class]
     parent: Optional[Class]
-    properties: set[Variable]
+    properties: dict[str, DataTypeBase]
     type: ClassType = ClassType.CLASS
     annotations: dict[str, "AnnotationAttachment"] = field(factory=dict)
 
@@ -41,6 +42,13 @@ class Class(Symbol, DataTypeBase, Annotatable, MethodHost):
             current_class = current_class.parent
         return False
 
+    def as_struct(self) -> Structure:
+        return Structure(
+            f"struct<{self.name}>",
+            self.properties,
+            self.annotations
+        )
+
     def __hash__(self):
         return hash(
             (
@@ -48,7 +56,7 @@ class Class(Symbol, DataTypeBase, Annotatable, MethodHost):
                 tuple(self.methods),
                 id(self.interface),
                 id(self.parent),
-                tuple(self.properties),
+                id(self.properties),
                 self.type
             )
         )

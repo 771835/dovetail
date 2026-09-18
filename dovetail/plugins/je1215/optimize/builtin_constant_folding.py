@@ -59,7 +59,7 @@ class BuiltinConstantFoldingPass(IROptimizationPass):
 
             optimized = True
             try:
-                match NameDecorator.denormalize(func.name):
+                match NameDecorator.undecorate(func.name):
                     case "abs":
                         if result:
                             new_val = number_to_int32(abs(arg_values["value"]))

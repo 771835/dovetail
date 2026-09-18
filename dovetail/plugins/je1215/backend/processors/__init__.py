@@ -20,7 +20,6 @@ from .ir_scope_begin import IRScopeBeginProcessor
 from .ir_scope_end import IRScopeEndProcessor
 from .ir_unary_op import IRUnaryOpProcessor
 from .ir_struct_get import IRStructGetProcessor
-from .ir_struct_def import IRStructDefProcessor
 from .ir_struct_new import IRStructNewProcessor
 from .ir_struct_set import IRStructSetProcessor
 __all__ = []

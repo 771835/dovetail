@@ -44,8 +44,8 @@ from dovetail.core.enums.datatypes import DataTypeBase, ListType, ArrayType, Dic
 from dovetail.core.errors import Errors
 from dovetail.core.instructions import (
     IRDeclare, IRAssign, IRFunction, IRReturn, IRBreak, IRContinue, IRCondJump, IRJump, IRBinaryOp,
-    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRIndexGet, IROpCode, IRStructDef, IRStructNew, IRStructGet,
-    IRStructSet
+    IRUnaryOp, IRCall, IRScopeBegin, IRScopeEnd, IRIndexGet, IROpCode, IRStructNew, IRStructGet,
+    IRStructSet, IRCast
 )
 from dovetail.core.ir_builder import IRBuilder
 from dovetail.core.lib.library import Library
@@ -71,8 +71,8 @@ from dovetail.utils.string_similarity import suggest_similar
 
 logger = get_logger(__name__)
 
-_n = NameDecorator.normalize
-_dn = NameDecorator.denormalize
+_n = NameDecorator.decorate
+_dn = NameDecorator.undecorate
 
 _SIMPLE_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
@@ -390,14 +390,13 @@ class ASTVisitor(Interpreter):
             field_name, field_type = self.visit(field)
             fields[field_name] = field_type
 
-        symbol = Structure(name, fields, {})
+        symbol = Structure(name, fields)
 
         # POST_SYMBOL阶段处理注解
         self.annotation_coordinator.process_post(raw_annotations, ctx, symbol)
 
         # 添加符号
         self.symbol_resolver.add_symbol(symbol, meta=meta)
-        self.ir_emitter.emit(IRStructDef(symbol))
 
     @v_args(meta=True)
     def struct_field(self, meta: Meta, children: list[Tree | Token]) -> tuple[str, DataTypeBase]:
@@ -819,6 +818,18 @@ class ASTVisitor(Interpreter):
                     dtype = ArrayType(types.pop(0))
                 case "dict":
                     dtype = DictType(types.pop(0), types.pop(0))
+                case "struct":
+                    original_type = types.pop(0)
+                    if isinstance(original_type, Class):
+                        dtype = original_type.as_struct()
+                    elif isinstance(original_type, Structure):
+                        dtype = original_type
+                    else:
+                        self.error_reporter.report(
+                            Errors.InvalidTypeDeclaration,
+                            f"struct 类型参数仅能为类和结构体，而不是 {original_type}",
+                            meta=meta
+                        )
                 case _:
                     dtype = PrimitiveDataType.get_by_value(original_name)
         except IndexError:
@@ -1143,7 +1154,13 @@ class ASTVisitor(Interpreter):
         member_name = str(children.pop(0).value)
 
         if isinstance(expr_dtype, Class):
-            return Reference.undefined()  # TODO:  实现类实例的成员访问
+            if member_name == "__struct__" and expr_dtype.properties.get(member_name) is None:
+                struct_type = expr_dtype.as_struct()
+                result = self.ir_emitter.create_temp_var_declared(struct_type)
+                self.ir_emitter.emit(IRCast(result, struct_type, expr_ref))
+                return Reference(result)
+            else:
+                return Reference.undefined()  # TODO:  实现类实例的成员访问
         elif isinstance(expr_dtype, Structure):
             field_type = expr_dtype.fields.get(member_name, None)
             if field_type is None:
