@@ -3,7 +3,7 @@
 后端工厂
 """
 from pathlib import Path
-from typing import Type, Optional
+from typing import Type, Optional, NoReturn
 
 from dovetail.core.backend.base import Backend
 from dovetail.core.compile_config import CompileConfig
@@ -58,7 +58,7 @@ class BackendFactory:
         return backend_class(ir_builder, target, config)
 
     @classmethod
-    def auto_select(cls, config: CompileConfig, backend_name: Optional[str] = None) -> type[Backend] | None:
+    def auto_select(cls, config: CompileConfig, backend_name: Optional[str] = None) -> type[Backend] | NoReturn:
         """
         自动选择合适的后端
 

@@ -46,5 +46,6 @@ class ASTVisitorMixin:
         event.call_event()
         if event.is_cancelled():
             ci.set_return_value(None)
-            return
+            return None
         ci.set_return_value(event.return_path)
+        return event.return_path

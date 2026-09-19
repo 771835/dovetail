@@ -47,6 +47,9 @@ class Reference(Symbol, Generic[T]):
             v_type = ValueType.CLASS
         elif isinstance(value, Literal):
             v_type = ValueType.LITERAL
+        elif isinstance(value, Reference):
+            logger.warning(f"引用嵌套: {value!r}")
+            return value
         else:
             v_type = ValueType.VARIABLE
 
@@ -54,8 +57,6 @@ class Reference(Symbol, Generic[T]):
         instance = super().__new__(cls)
         object.__setattr__(instance, '_value_type', v_type)
 
-        if not FAST_MODE and isinstance(value, Reference):
-            logger.error(f"多重引用: {value}")
         # 存入弱引用缓存
         cls._cache[value] = instance
         return instance

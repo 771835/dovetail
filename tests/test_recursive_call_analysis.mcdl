@@ -67,12 +67,16 @@ fn add_two(x: int) -> int {
 fn main() {
     let r1: int = fact(5)
     let r2: int = fib(10)
+    /*
     let r3: int = is_even(6)
+    */
     let r4: int = recurse_with_helper(3)
     let r5: int = add_two(7)
     say(str(r1))
     say(str(r2))
+    /*
     say(str(r3))
+    */
     say(str(r4))
     say(str(r5))
 }

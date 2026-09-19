@@ -95,7 +95,7 @@ class Builtins(LibraryBase):
 
         return None
 
-    @library_func(name="__builtin_name_decorate__")
+    @library_func(name="__builtin_name_decorate__", returns=str)
     def _decorate(self, s: str):
         s: Reference[Literal]
         if not s.is_literal() or s.get_dtype() != PrimitiveDataType.STRING:
@@ -105,9 +105,9 @@ class Builtins(LibraryBase):
             )
             return None
 
-        return Reference.literal(NameDecorator.decorate(str(s.value.value)))
+        return Literal(PrimitiveDataType.STRING,NameDecorator.decorate(str(s.value.value)))
 
-    @library_func(name="__builtin_name_undecorate__")
+    @library_func(name="__builtin_name_undecorate__", returns=str)
     def _undecorate(self, s: str):
         s: Reference[Literal]
         if not s.is_literal() or s.get_dtype() != PrimitiveDataType.STRING:
@@ -117,7 +117,7 @@ class Builtins(LibraryBase):
             )
             return None
 
-        return Reference.literal(NameDecorator.undecorate(str(s.value.value)))
+        return Literal(PrimitiveDataType.STRING,NameDecorator.undecorate(str(s.value.value)))
 
     def __str__(self) -> str:
         return "built-in"

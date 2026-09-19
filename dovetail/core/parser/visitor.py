@@ -72,7 +72,6 @@ from dovetail.utils.string_similarity import suggest_similar
 logger = get_logger(__name__)
 
 _n = NameDecorator.decorate
-_dn = NameDecorator.undecorate
 
 _SIMPLE_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
@@ -241,13 +240,8 @@ class ASTVisitor(Interpreter):
 
         return annotations
 
-    def _process_arguments(
-            self,
-            caller_name: str,
-            param_descs: list[ParamDescriptor],
-            args: list[tuple[str | None, Reference]],
-            meta: Meta
-    ) -> dict[str, Reference]:
+    def _process_arguments(self, caller_name: str, param_descs: list[ParamDescriptor],
+                           args: list[tuple[str | None, Reference]], meta: Meta) -> dict[str, Reference]:
         """
         参数处理
 
@@ -454,7 +448,7 @@ class ASTVisitor(Interpreter):
         # 处理函数体
         if children:
             with self._push_scope(name, StructureType.FUNCTION):  # NOQA
-                with self.error_reporter.context(f"函数 {_dn(name)}"):
+                with self.error_reporter.context(f"函数 {NameDecorator.undecorate(name)}"):
                     # 添加参数到作用域，批量写入以减少性能损耗(虽然经过我的测试，耗时更长了，代码还跟史一样)
                     param_vars = [param.var for param in params]
                     self.symbol_resolver.current_scope.symbols.update((v.name, v) for v in param_vars)
@@ -467,7 +461,7 @@ class ASTVisitor(Interpreter):
                     # 但是呢，作为报错可能则会对一些代码产生误报问题
                     if self.builder.peek().opcode != IROpCode.RETURN and return_type != PrimitiveDataType.VOID:
                         logger.warning(
-                            f"函数 {_dn(name)} 末尾缺少 return，已补充 return {Reference.default(return_type)}")
+                            f"函数 {NameDecorator.undecorate(name)} 末尾缺少 return，已补充 return {Reference.default(return_type)}")
                         self.ir_emitter.emit(IRReturn(Reference.default(return_type)))
 
     @v_args(meta=True)

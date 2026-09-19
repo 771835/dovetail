@@ -6,6 +6,7 @@ from pathlib import Path
 __all__ = ["resolve_project_path", "install_root", "IS_COMPILED", "COMPILED_BY", "IS_BROWSER"]
 
 # Nuitka 打包后存在 __compiled__ 属性，不设置 sys.frozen
+COMPILED_BY: str | None
 if "__compiled__" in globals():
     COMPILED_BY = "Nuitka"
 elif getattr(sys, "frozen", False):
