@@ -1,4 +1,6 @@
 // fraction.mcdl -  测试性的基于分数的浮点数实现
+// 计划弃用: 将在26.3支持支持浮点数
+
 include "mathlib.mcdl"
 
 class Fraction {

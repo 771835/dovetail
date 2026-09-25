@@ -72,6 +72,7 @@ from dovetail.utils.string_similarity import suggest_similar
 logger = get_logger(__name__)
 
 _n = NameDecorator.decorate
+_un = NameDecorator.undecorate
 
 _SIMPLE_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
@@ -404,6 +405,36 @@ class ASTVisitor(Interpreter):
         return name, dtype
 
     @v_args(meta=True)
+    def enums(self, meta: Meta, children: list):
+        # 处理注解
+        raw_annotations = self._process_annotations(children)
+
+        # 解析枚举签名
+        # annotation* "enum" ID "{" (enum_member ("," enum_member)* ","?)? "}"
+        enum_member: dict[str, Literal] = {}
+        name: str = _n(children.pop(0).value)
+
+        # PRE_SYMBOL阶段处理注解
+        pre, ctx = self.annotation_coordinator.process_pre(raw_annotations, name, AnnotationTarget.FUNCTION, meta)
+        if pre and pre.skip:
+            return
+
+        for child in children:
+            c_name, c_value = typing.cast(tuple[str, Literal], self.visit(child))
+            enum_member[c_name] = c_value
+
+        # 创建枚举符号
+        enum = Enumeration(name, enum_member, {})
+        self.symbol_resolver.add_symbol(enum, meta=meta)
+
+        # POST_SYMBOL 阶段处理注解
+        self.annotation_coordinator.process_post(raw_annotations, ctx, enum)
+
+    @v_args(meta=True)
+    def enum_member(self, meta: Meta, children: tuple[Token, Tree]):
+        return children[0].value, self.visit(children[1]).value
+
+    @v_args(meta=True)
     def function(self, meta: Meta, children: list[Tree | Token]):
         """处理函数定义"""
         # 处理注解
@@ -448,7 +479,7 @@ class ASTVisitor(Interpreter):
         # 处理函数体
         if children:
             with self._push_scope(name, StructureType.FUNCTION):  # NOQA
-                with self.error_reporter.context(f"函数 {NameDecorator.undecorate(name)}"):
+                with self.error_reporter.context(f"函数 {_un(name)}"):
                     # 添加参数到作用域，批量写入以减少性能损耗(虽然经过我的测试，耗时更长了，代码还跟史一样)
                     param_vars = [param.var for param in params]
                     self.symbol_resolver.current_scope.symbols.update((v.name, v) for v in param_vars)
@@ -457,11 +488,11 @@ class ASTVisitor(Interpreter):
                     self.visit(children.pop(0))  # noqa
 
                     # 末尾强制补充 return
-                    # 说实话...这并不太完美，因为对于本应返回不可空的类来说，这会使其返回 null，通常这并不是被期待的行为
+                    # 说实话...这并不太完美，因为对于本应返回不可空实例的类来说，这会使其返回 null，通常这并不是被期待的行为
                     # 但是呢，作为报错可能则会对一些代码产生误报问题
                     if self.builder.peek().opcode != IROpCode.RETURN and return_type != PrimitiveDataType.VOID:
                         logger.warning(
-                            f"函数 {NameDecorator.undecorate(name)} 末尾缺少 return，已补充 return {Reference.default(return_type)}")
+                            f"函数 {_un(name)} 末尾缺少 return，已补充 return {Reference.default(return_type)}")
                         self.ir_emitter.emit(IRReturn(Reference.default(return_type)))
 
     @v_args(meta=True)
@@ -1044,7 +1075,7 @@ class ASTVisitor(Interpreter):
                 self.error_reporter.report(
                     Errors.InvalidEnumMember,
                     member_name,
-                    f"结构体 '{expr_dtype.name}' 不存在字段 '{member_name}'",
+                    f"结构体 '{_un(expr_dtype.name)}' 不存在字段 '{member_name}'",
                     meta=meta
                 )
                 return Reference.undefined()
@@ -1162,7 +1193,7 @@ class ASTVisitor(Interpreter):
                 self.error_reporter.report(
                     Errors.InvalidEnumMember,
                     member_name,
-                    f"结构体 '{expr_dtype.name}' 不存在字段 '{member_name}'",
+                    f"结构体 '{_un(expr_dtype.name)}' 不存在字段 '{member_name}'",
                     meta=meta,
                     suggestion=f"你是指 '{suggested_member}' 吗" if suggested_member else None
                 )
@@ -1178,7 +1209,7 @@ class ASTVisitor(Interpreter):
                 self.error_reporter.report(
                     Errors.InvalidEnumMember,
                     member_name,
-                    f"枚举 '{expr_dtype.name}' 不存在成员 '{member_name}'",
+                    f"枚举 '{_un(expr_dtype.name)}' 不存在成员 '{member_name}'",
                     meta=meta,
                     suggestion=f"你是指 '{suggested_member}' 吗" if suggested_member else None
                 )
@@ -1263,7 +1294,7 @@ class ASTVisitor(Interpreter):
                 continue
             self.type_checker.check_type_match(
                 symbol.fields[fname], fvalue.get_dtype(),
-                f"结构体 {struct_name} 字段 {fname}", meta
+                f"结构体 {_un(struct_name)} 字段 {fname}", meta
             )
             field_values[fname] = fvalue
 

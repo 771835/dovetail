@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from dovetail.core.annotations.base import AnnotationAttachment
 
 
-@define(slots=True, frozen=True)
+@define(slots=True, frozen=True, hash=False)
 class Enumeration(Symbol, DataTypeBase, Annotatable, MethodHost):
     name: str
     member: dict[str, Literal]
@@ -25,3 +25,6 @@ class Enumeration(Symbol, DataTypeBase, Annotatable, MethodHost):
 
     def get_dtype(self) -> DataTypeBase:
         return self
+
+    def __hash__(self) -> int:
+        return hash((self.name, id(self.member), id(self.methods), id(self.annotations)))

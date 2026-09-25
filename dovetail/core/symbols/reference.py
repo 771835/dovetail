@@ -48,8 +48,12 @@ class Reference(Symbol, Generic[T]):
         elif isinstance(value, Literal):
             v_type = ValueType.LITERAL
         elif isinstance(value, Reference):
-            logger.warning(f"引用嵌套: {value!r}")
-            return value
+            if value.value is value:
+                logger.error("自引用")
+                return Reference.undefined()
+            else:
+                logger.warning(f"引用嵌套: {value!r}")
+                return value
         else:
             v_type = ValueType.VARIABLE
 
