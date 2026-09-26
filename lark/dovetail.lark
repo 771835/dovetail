@@ -46,9 +46,9 @@ param: ID ":" type ("=" expr)?
     | while_loop                              // while循环
     | expr                                    // 表达式
     | if_stmt                                 // 条件语句
-    | "return" expr?          -> return_stmt  // 返回
-    | "break"                 -> break_stmt   // break语句
-    | "continue"              -> continue_stmt// continue语句
+    | "return" expr?         -> return_stmt   // 返回
+    | "break"                -> break_stmt    // break语句
+    | "continue"             -> continue_stmt // continue语句
     | pass_stmt                               // 空语句
 
 typedef: "typedef" type ID

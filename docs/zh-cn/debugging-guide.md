@@ -102,15 +102,8 @@ python main.py your_code.mcdl -ngc
 - 若加上该参数后运行依然出现如编译器堆栈、报错信息，则可初步排除后端问题
 - 若加上该参数后不再报错，则应当重点怀疑后端生成部分
 
-#### 5. 输出 IR 临时文件
 
-```bash
-python main.py your_code.mcdl --output-temp-file
-```
-
-会在输出目录生成一个 `.mcdc` 临时文件，里面是序列化后的 IR 数据（二进制格式）。 如果你在提 Issue，把这个文件附上有助于开发者快速复现。
-
-#### 6. 禁用插件（注意副作用）
+#### 5. 禁用插件（注意副作用）
 
 ```bash
 python main.py your_code.mcdl --disable-plugins
@@ -126,7 +119,7 @@ python main.py your_code.mcdl --disable-plugins
 - 如果禁用后报"后端不存在"，说明问题是"没有第三方插件干扰"——这反而是好事， 说明问题出在编译器核心或你的代码本身
 - 如果你有多个后端插件，可以改用 `--backend <名称>` 手动指定一个来排查
 
-#### 7. 对照示例
+#### 6. 对照示例
 
 从 `examples/` 目录里找一个最接近你写法的例子：
 
@@ -140,7 +133,7 @@ python main.py your_code.mcdl -o target -O 2 -mcv 1.21.5
 
 逐行对比你的代码和示例的差异。
 
-#### 8. 逐步删减
+#### 7. 逐步删减
 
 把你的代码删到最小可复现版本——删掉一切无关的函数、变量、include， 只保留能触发问题的最小代码块。如果删着删着问题没了，说明是某段特定写法触发的。
 
@@ -215,7 +208,6 @@ python main.py your_code.mcdl -o target -O 2 -mcv 1.21.5
 - **错误输出**：完整的错误信息或异常堆栈
 - **期望行为**：你觉得正确的输出应该是什么
 - **调试日志**（如有）：附上 `--debug` 模式下生成的 `logs/dovetail.log`
-- **IR 临时文件**（如有）：用 `--output-temp-file` 生成的 `.mcdc` 文件
 
 > 别只贴一句"它报错了"。没有最小复现用例的 bug 报告约等于没有 bug 报告。
 
@@ -267,7 +259,6 @@ Minecraft 要求数据包遵循严格的目录结构：
 
 - 检查输出目录下是否存在 `pack.mcmeta`
 - 检查函数文件是否在 `data/<命名空间>/function/` 下
-- 如果用了 `--output-temp-file` 输出的 `.mcdc` 二进制文件，那不是最终产物，不能直接放进 Minecraft
 
 #### 3. 命名空间问题
 

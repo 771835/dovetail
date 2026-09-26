@@ -175,6 +175,11 @@ class BuildConfig:
         """实验性功能，对应编译器 --experimental"""
         return bool(self._data.get("compiler", {}).get("experimental", False))
 
+    @property
+    def additional_args(self) -> list[str]:
+        """其他添加的参数，用于直接给编译器传参"""
+        return self._data.get("compiler", {}).get("additional_args", [])
+
     # ── [hooks] ───────────────────────────────────────────────
 
     @property

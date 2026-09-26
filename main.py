@@ -11,7 +11,7 @@ from typing import NoReturn, Optional
 from dovetail.core.backend import BackendFactory
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.config import PROJECT_NAME, PROJECT_VERSION, \
-    PROJECT_WEBSITE, PROJECT_LICENSE, IR_CACHE_FILE_PREFIX, COMMIT_HASH
+    PROJECT_WEBSITE, PROJECT_LICENSE, COMMIT_HASH
 from dovetail.core.enums.minecraft import MinecraftVersion
 from dovetail.core.enums.optimization import OptimizationLevel
 from dovetail.core.errors import CompilationError, report_count
@@ -23,7 +23,6 @@ from dovetail.core.parser.parser import parser_file
 from dovetail.core.parser.visitor import ASTVisitor
 from dovetail.plugins.plugin_loader.loader import plugin_loader
 from dovetail.utils.decorators import timed
-from dovetail.utils.ir_serializer import IRSymbolSerializer
 from dovetail.utils.logger import get_logger, ThreadSafeLogger
 from dovetail.utils.naming import NameDecorator
 from dovetail.utils.resource import resolve_project_path, IS_BROWSER, COMPILED_BY
@@ -39,15 +38,13 @@ class Compiler:
         config (CompileConfig): 编译器配置对象
         backend_name (str): 后端名(不填时自动选择)
         generate (bool): 生成指令
-        output_temp_file (bool): 输出临时文件
     """
 
     def __init__(
             self,
             config: CompileConfig,
             backend_name: Optional[str] = None,
-            generate: bool = True,
-            output_temp_file: bool = False
+            generate: bool = True
     ):
         """
         初始化编译器
@@ -56,12 +53,10 @@ class Compiler:
             config (CompileConfig): 编译器配置对象
             backend_name (Optional[str]): 后端名(不填时自动选择)
             generate (bool): 是否生成指令
-            output_temp_file (bool): 输出临时文件
         """
         self.config = config
         self.backend_name = backend_name
         self.generate = generate
-        self.output_temp_file = output_temp_file
 
     def compile(self, source_path: Path, target_path: Path) -> int:
         """
@@ -142,9 +137,6 @@ class Compiler:
                     print("最终IR:")
                     builder.print()
 
-                if self.output_temp_file:
-                    self._write_ir(builder, target_dir_path)
-
                 if self.generate:
                     self._generate_backend_code(builder, target_dir_path)
 
@@ -160,19 +152,6 @@ class Compiler:
                 raise
 
         return 0
-
-    @timed("写入临时文件用时{:.3f}s")
-    def _write_ir(self, builder: IRBuilder, target_dir_path: Path):
-        """
-        写入 IR 序列
-
-        Args:
-            builder (IRBuilder): IR构建器
-            target_dir_path (Path): 目标目录路径
-        """
-        temp_file = target_dir_path / f"{self.config.namespace}{IR_CACHE_FILE_PREFIX}"
-        with open(temp_file, "wb") as f:
-            f.write(IRSymbolSerializer.dump(builder))
 
     @timed("最终代码生成与写入用时{:.3f}s")
     def _generate_backend_code(self, builder: IRBuilder, target_path: Path):
@@ -217,7 +196,8 @@ def main():
         print("")
 
         try:
-            # 后加载插件，至少保证基本版本信息能被正常打印出来
+            # 基本信息打印完后再加载插件
+            # 保证哪怕后续报错基本版本信息依旧能被正常打印出来
             import dovetail.core.optimize.passes  # noqa
             ThreadSafeLogger.DISABLED = True
             plugin_loader.load_plugin("plugin_loader")
@@ -250,14 +230,14 @@ def main():
     parser.add_argument('--namespace', '-n', metavar='namespace', type=str, help='输出数据包命名空间')
     parser.add_argument('-O', metavar='level', type=int, choices=[0, 1, 2, 3], default=2, help='优化级别')
     parser.add_argument('--no-generate-commands', '-ngc', action='store_true', help='不生成指令')
-    parser.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
+    # parser.add_argument('--output-temp-file', action='store_true', help='生成中间文件')
     parser.add_argument('--disable-recursion', action='store_true', help='禁用递归(此检测并不完善)')
     parser.add_argument('--disable-deprecated-function', action='store_true', help='禁用对已弃用函数编译')
     # args.add_argument('--first-class-functions', action='store_true',help='启用函数一等公民(所有代码都未适配，开不开都那样)')
     parser.add_argument('--experimental', action='store_true', help='启用扩展模式(测试性功能)')
     parser.add_argument('--disable-names-decorator', action='store_true', help='禁用命名修饰')
     parser.add_argument('--disable-plugins', action='store_true', help='禁用插件加载')
-    parser.add_argument('--disable-info-logger', action='store_true', help='仅输出 warring 及以上的日志信息')
+    parser.add_argument('--disable-info-logger', action='store_true', help='仅输出 warning 及以上的日志信息')
     parser.add_argument('--debug', action='store_true', help='启用调试模式')
     parser.add_argument('--version', action='store_true', help='显示版本后退出')
 
@@ -304,8 +284,7 @@ def main():
             description
         ),
         parsed_args.backend,
-        generate=not parsed_args.no_generate_commands,
-        output_temp_file=parsed_args.output_temp_file
+        generate=not parsed_args.no_generate_commands
     )
 
     sys.exit(compiler.compile(entry, target_path))

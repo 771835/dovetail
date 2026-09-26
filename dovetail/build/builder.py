@@ -194,6 +194,9 @@ class Builder:
         for include_dir in config.includes:
             args.extend(["--include-dir", str(self.project_root / include_dir)])
 
+        # 其他手动添加的参数
+        args.extend(config.additional_args)
+
         # 禁止子进程编译器输出 info 日志（避免双重输出）
         args.append("--disable-info-logger")
 
@@ -241,7 +244,7 @@ class Builder:
         toml_path = self.project_root / "dovetail.toml"
         toml_path.write_text(
             "[package]\n"
-            f'name = "{self.project_root.name}"\n'
+            f'name = {self.project_root.name!r}\n'
             'version = "0.1.0"\n'
             "authors = []\n"
             'description = ""\n'
@@ -341,8 +344,10 @@ class Builder:
         try:
             config = BuildConfig(self.project_root)
             if config.output:
+                logger.debug(f"删除了输出目录 {config.output!r}")
                 shutil.rmtree(self.project_root / config.output, ignore_errors=True)
             if config.library:
+                logger.debug(f"删除了第三方目录 {config.library!r}")
                 shutil.rmtree(self.project_root / config.library, ignore_errors=True)
         except (FileNotFoundError, ValueError):
             pass  # 跳过以便于清理其他内容

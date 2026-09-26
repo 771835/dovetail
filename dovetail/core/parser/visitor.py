@@ -36,6 +36,7 @@ from lark.visitors import Interpreter
 from dovetail.core.annotations.base import AnnotationTarget
 from dovetail.core.annotations.spec import Annotation, get_annotation_spec
 from dovetail.core.compile_config import CompileConfig
+from dovetail.core.config import MAX_LITERAL_NUMBER_LENGTH
 from dovetail.core.enums import (
     StructureType, PrimitiveDataType, FunctionType,
     ValueType, BinaryOps, UnaryOps, CompareOps
@@ -1043,8 +1044,8 @@ class ASTVisitor(Interpreter):
         args_dict = self._process_arguments(function.name, ParamDescriptor.from_function(function), args, meta)
         # 调用函数
         if function.func_type == FunctionType.LIBRARY:
-            # 由于对内建函数的调用过程中的错误无行列信息提示，极难调试，故在此记录上下文
-            with self.error_reporter.context(f"调用内建函数 {function.name} 位于 {meta.line}:{meta.column}"):
+            # 由于对内建库函数的调用过程中的错误无行列信息提示，极难调试，故在此记录上下文
+            with self.error_reporter.context(f"调用内建库函数 {function.name} 位于 {meta.line}:{meta.column}"):
                 result_var = self.builtin_function[function.get_name()](**args_dict)
             if result_var is not None:
                 return Reference(result_var)
@@ -1232,7 +1233,7 @@ class ASTVisitor(Interpreter):
             case "STRING":
                 return Reference.literal(ast.literal_eval(token))
             case "INT":
-                if len(token) >= 1000:
+                if len(token) >= MAX_LITERAL_NUMBER_LENGTH:
                     self.error_reporter.report(Errors.InvalidSyntax, "数字字面量不应过长。", meta=meta)
                     return Reference.undefined()
                 return Reference.literal(number_to_int32(int(token)))
