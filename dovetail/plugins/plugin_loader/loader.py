@@ -5,15 +5,13 @@
 负责插件的实际加载、执行环境构建和生命周期管理。
 """
 
-import json
 import os
 import re
 import sys
 import traceback
 from pathlib import Path
-from typing import Dict
 
-from dovetail.plugins.plugin_api import Plugin, api_version
+from dovetail.plugins.plugin_api import Plugin
 from dovetail.utils.logger import get_logger
 from dovetail.utils.resource import resolve_project_path, install_root
 
@@ -34,12 +32,25 @@ logger = get_logger(__name__)
 
 load_stack = []
 
+# 编译器自身在依赖图中的保留名，声明此依赖即表示对编译器版本的约束
+COMPILER_DEPENDENCY_NAME = "dovetail-core"
+
 
 # ── 语义化版本工具 ────────────────────────────────────────────
 
+
+def _strip_pre_release(version: str) -> str:
+    """去除预发布标识 (dev / rc)，用于纯版本比较，根据DFP-901规范"""
+    if version.startswith("dev"):
+        return "" # dev 版本无法比较
+    if "rc" in version:
+        return version.split("-", 1)[0].strip()
+    return version.strip()
+
+
 def _parse_semver(version: str) -> tuple[int, int, int]:
     """解析语义化版本字符串 (主.次.修订)"""
-    m = re.match(r'^(\d+)\.(\d+)\.(\d+)$', version.strip())
+    m = re.match(r'^(\d+)\.(\d+)\.(\d+)$', _strip_pre_release(version))
     if not m:
         raise ValueError(f"Invalid semver: {version}")
     return int(m[1]), int(m[2]), int(m[3])
@@ -47,7 +58,7 @@ def _parse_semver(version: str) -> tuple[int, int, int]:
 
 def _parse_api_version(version: str) -> tuple[int, int]:
     """解析 API 版本 (主.次)"""
-    m = re.match(r'^(\d+)\.(\d+)$', version.strip())
+    m = re.match(r'^(\d+)\.(\d+)$', _strip_pre_release(version))
     if not m:
         raise ValueError(f"Invalid api_version: {version}")
     return int(m[1]), int(m[2])
@@ -66,18 +77,6 @@ def _check_semver_constraint(version: str, constraint: str) -> bool:
         return v >= c and v[0] == c[0]
     return v == c
 
-
-def _check_api_version_compatibility(plugin_api_version: str, current_api_version: str) -> bool:
-    """检查 api_version 兼容性 (DFP-602 §8.1)"""
-    if plugin_api_version == "~":
-        return True
-
-    p = _parse_api_version(plugin_api_version)
-    c = _parse_api_version(current_api_version)
-    return p[0] == c[0] and p[1] <= c[1]
-
-
-# ── PluginLoader ──────────────────────────────────────────────
 
 class PluginLoader:
     """
@@ -99,13 +98,12 @@ class PluginLoader:
         """初始化 PluginLoader 实例"""
         self.plugins_locals: dict[str, dict] = {}
         self.plugins_instance: dict[str, Plugin] = {}
-        self.plugin_metadata: dict[str, dict] = {}  # 新增：缓存 TOML 元数据
-        self._load_order: list[str] = []  # 新增：拓扑排序结果
+        self.plugin_metadata: dict[str, dict] = {}  # 缓存 TOML 元数据
+        self._load_order: list[str] = []  # 拓扑排序结果
 
     def _load_metadata(self, plugin_path: Path) -> dict | None:
-        """加载插件元数据，优先 TOML，向后兼容 JSON"""
+        """加载插件元数据 (plugin.toml)"""
         toml_path = plugin_path / "plugin.toml"
-        json_path = plugin_path / "plugin.metadata"
 
         if toml_path.exists():
             try:
@@ -115,35 +113,7 @@ class PluginLoader:
                 logger.error(f"Failed to parse {toml_path}: {e}")
                 return None
 
-        if json_path.exists():
-            logger.warning(
-                f"插件 '{plugin_path.name}' 使用已弃用的 plugin.metadata (JSON) 格式，"
-                f"请迁移至 plugin.toml。参见 DFP-602。",
-            )
-            try:
-                with open(json_path, encoding="utf-8") as f:
-                    return self._convert_json_metadata(json.load(f))
-            except Exception as e:
-                logger.error(f"Failed to parse {json_path}: {e}")
-                return None
-
         return None
-
-    def _convert_json_metadata(self, json_meta: dict) -> dict:
-        """将旧 JSON 元数据转换为 TOML 等效结构"""
-        return {
-            "plugin": {
-                "name": json_meta.get("display_name", "").lower().replace("-", "_"),
-                "version": json_meta.get("plugin_version", "0.0.0"),
-                "api_version": api_version(),
-                "entry": json_meta.get("plugin_main", "main.py").replace(".py", ""),
-                "type": json_meta.get("plugin_type", "plugin"),
-                "main_class": json_meta.get("main_class", ""),
-            },
-            "metadata": {
-                "author": ", ".join(json_meta.get("plugin_author", [])),
-            },
-        }
 
     def _get_entry_file(self, plugin_path: Path, metadata: dict) -> Path | None:
         """从元数据中获取入口文件路径"""
@@ -158,12 +128,38 @@ class PluginLoader:
     # ── 依赖解析 (DFP-602 §7.2) ────────────────────────
 
     def _resolve_dependencies(self, all_metadata: dict[str, dict]) -> list[str]:
-        """拓扑排序插件加载顺序"""
-        # 构建依赖图
+        """拓扑排序插件加载顺序，并校验所有依赖版本约束"""
+        from dovetail.core.config import PROJECT_VERSION
+
+        # 构建依赖图（排除编译器自身依赖，它不在插件图中）
         graph: dict[str, set[str]] = {}
         for name, meta in all_metadata.items():
             deps = meta.get("dependencies", {})
-            graph[name] = set(deps.keys())
+            graph[name] = {d for d in deps if d != COMPILER_DEPENDENCY_NAME}
+
+        # 校验依赖版本约束 (DFP-602 §7.2 + §8.1)
+        for name, meta in all_metadata.items():
+            deps = meta.get("dependencies", {})
+            for dep_name, constraint in deps.items():
+                # 编译器版本约束
+                if dep_name == COMPILER_DEPENDENCY_NAME:
+                    if not _check_semver_constraint(PROJECT_VERSION, constraint):
+                        logger.warning(
+                            f"插件 '{name}' 要求 {COMPILER_DEPENDENCY_NAME} 满足 "
+                            f"{constraint}，当前 {PROJECT_VERSION}"
+                        )
+                    continue
+                # 插件间依赖版本约束
+                if dep_name not in graph:
+                    logger.warning(f"插件 '{name}' 依赖 '{dep_name}' 未找到，跳过加载被依赖插件")
+                    continue
+                dep_version = all_metadata[dep_name] \
+                    .get("plugin", {}).get("version", "0.0.0")
+                if not _check_semver_constraint(dep_version, constraint):
+                    logger.warning(
+                        f"插件 '{name}' 要求 '{dep_name}' 满足 {constraint}，"
+                        f"实际版本 {dep_version}"
+                    )
 
         # Kahn 拓扑排序
         in_degree = {n: 0 for n in graph}
@@ -171,7 +167,6 @@ class PluginLoader:
         for name, deps in graph.items():
             for dep in deps:
                 if dep not in graph:
-                    logger.warning(f"插件 '{name}' 依赖 '{dep}' 未找到，跳过加载")
                     continue
                 adjacency[dep].append(name)
                 in_degree[name] += 1
@@ -194,38 +189,36 @@ class PluginLoader:
 
         return result
 
-    def _check_version_compatibility(self, plugin_name: str, metadata: dict) -> bool:
-        """检查版本兼容性 (DFP-602 §8)"""
-        plugin = metadata.get("plugin", {})
+    # ── 批量加载 ────────────────────────────────────────
 
-        # api_version 检查
-        api_ver = plugin.get("api_version", "")
-        if not _check_api_version_compatibility(api_ver, api_version()):
-            logger.warning(
-                f"插件 '{plugin_name}' api_version={api_ver} 与当前插件API版本 {api_version()} 不兼容，跳过加载"
-            )
-            return False
+    def load_all(self) -> None:
+        """扫描所有插件路径，按依赖顺序批量加载插件 (DFP-602 §7.2)"""
+        all_metadata: dict[str, dict] = {}
 
-        # 编译器版本兼容性
-        compat = metadata.get("compatibility", {})
-        from dovetail.core.config import PROJECT_VERSION
-        if compat.get("dovetail_min"):
-            if PROJECT_VERSION < compat["dovetail_min"]:
-                logger.warning(
-                    f"插件 '{plugin_name}' 要求最低编译器版本 {compat['dovetail_min']}，当前 {PROJECT_VERSION}")
-                return False
-        if compat.get("dovetail_max"):
-            if PROJECT_VERSION > compat["dovetail_max"]:
-                logger.warning(
-                    f"插件 '{plugin_name}' 要求最高编译器版本 {compat['dovetail_max']}，当前 {PROJECT_VERSION}")
-                return False
+        for plugins_dir in self.plugins_paths:
+            plugins_path = resolve_project_path(plugins_dir)
+            if not plugins_path.exists() or not plugins_path.is_dir():
+                continue
+            for plugin_dir in plugins_path.iterdir():
+                if not plugin_dir.is_dir() or plugin_dir.name[0] in ("_", ".", "!"):
+                    continue
+                if plugin_dir.name in self.plugins_instance:
+                    continue
+                meta = self._load_metadata(plugin_dir)
+                if meta is not None:
+                    all_metadata[plugin_dir.name] = meta
 
-        return True
+        # 按拓扑排序确定加载顺序
+        self._load_order = self._resolve_dependencies(all_metadata)
 
-    # ── 插件加载 ───────────────────────────────────────
+        for plugin_name in self._load_order:
+            if plugin_name not in self.plugins_instance:
+                self.load_plugin(plugin_name)
+
+    # ── 单插件加载 ─────────────────────────────────────
 
     def load_plugin(self, plugin_input: str | Path) -> None:
-        """加载指定名称的插件（支持 TOML 和 JSON 元数据）"""
+        """加载指定名称的插件"""
         input_path = Path(plugin_input)
         is_absolute_path = input_path.is_absolute() and input_path.exists() and input_path.is_dir()
 
@@ -257,10 +250,6 @@ class PluginLoader:
                     logger.error(f"Plugin '{plugin_path}' 入口文件未找到")
                     continue
 
-                # 版本兼容性检查
-                if not self._check_version_compatibility(plugin_name, metadata):
-                    return
-
                 break
         else:
             logger.error(f"No valid plugin found for '{plugin_input}'")
@@ -287,8 +276,7 @@ class PluginLoader:
                 package_path = plugin_name
                 logger.warning("无法解析插件相对路径计算")
 
-            # TOML 元数据中 entry 不含 .py，对应 main_class 在代码中搜索
-            plugin_info = metadata.get("plugin", metadata)  # 兼容 JSON 转换后的结构
+            plugin_info = metadata.get("plugin", {})
             main_class_name = plugin_info.get("main_class", "PluginMain")
 
             global_env.update({

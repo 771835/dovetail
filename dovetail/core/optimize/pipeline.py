@@ -250,10 +250,10 @@ class OptimizationPipeline:
                         f"  执行：{pass_class.get_metadata().display_name}，"
                         f"用时{time.time() - s_t:1f}，"
                         f"期间{yes_str if pass_changed else no_str}存在\033[0m修改。")
-                    if not FAST_MODE:
-                        from dovetail.utils.ir_validator import assert_ir
-                        assert_ir(builder)
                     # builder.print()
+                if not FAST_MODE:
+                    from dovetail.utils.ir_validator import assert_ir
+                    assert_ir(builder)
                 changed = changed or pass_changed
 
             if not changed:

@@ -75,7 +75,7 @@ class Backend(ABC, metaclass=BackendMeta):
             try:
                 processor.process(instr, context)
             except Exception as e:
-                logger.error(f"Failed to process {instr.opcode.name}: {e.__repr__()}")
+                logger.error(f"Failed to process {instr.opcode.desc}: {e.__repr__()}")
                 if self.config.debug:
                     raise
 

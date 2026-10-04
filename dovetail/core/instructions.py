@@ -305,7 +305,7 @@ def _function_repr(instr: IRInstruction) -> str:
         f"{p.var.dtype.get_name()} {p.var.get_name()}"
         for p in func.params
     )
-    annotations_str = "\n".join(f"@{name}{attachment}" for name, attachment in func.annotations.items())
+    annotations_str = "\n".join(f"@{name}{attachment.args!r}" for name, attachment in func.annotations.items())
     return f"{annotations_str}\nfunction {func.return_type.get_name()} {func.get_name()}({params_str})"
 
 

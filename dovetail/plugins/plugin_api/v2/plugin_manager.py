@@ -1,6 +1,5 @@
 # coding=utf-8
 from functools import lru_cache
-from pathlib import Path
 
 from dovetail.plugins.plugin_api.plugin import Plugin
 
@@ -23,17 +22,6 @@ def get_loaded_plugins() -> dict[str, Plugin]:
 def get_plugin(plugin_name: str) -> Plugin | None:
     """根据插件名称获得插件实例"""
     return get_loaded_plugins().get(plugin_name, None)
-
-
-def load_plugin(plugin_name: str | Path) -> bool:
-    """
-    加载插件
-    """
-    try:
-        get_loader_instance().load_plugin(plugin_name)
-        return True
-    except Exception as e:
-        return False
 
 
 def get_plugin_config(plugin_name: str) -> dict:

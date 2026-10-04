@@ -18,10 +18,11 @@ fn fib(n: int) -> int {
     return fib(n - 1) + fib(n - 2)
 }
 
-/*
 // ── 互递归：even/odd ────────────────────────────────────────────────────────
+@noinline
 fn is_odd(n: int) -> int;
 
+@noinline
 fn is_even(n: int) -> int {
     if (n == 0) {
         return 1
@@ -29,13 +30,14 @@ fn is_even(n: int) -> int {
     return is_odd(n - 1)
 }
 
+@noinline
 fn is_odd(n: int) -> int {
     if (n == 0) {
         return 0
     }
     return is_even(n - 1)
 }
-*/
+
 
 // ── 递归函数调用非递归辅助函数 ─────────────────────────────────────────────
 
@@ -67,16 +69,12 @@ fn add_two(x: int) -> int {
 fn main() {
     let r1: int = fact(5)
     let r2: int = fib(10)
-    /*
     let r3: int = is_even(6)
-    */
     let r4: int = recurse_with_helper(3)
     let r5: int = add_two(7)
     say(str(r1))
     say(str(r2))
-    /*
     say(str(r3))
-    */
     say(str(r4))
     say(str(r5))
 }

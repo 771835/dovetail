@@ -8,14 +8,17 @@ from dovetail.core.backend.output import DependentDatapackWriter
 from dovetail.core.compile_config import CompileConfig
 from dovetail.core.ir_builder import IRBuilder
 from .commands.builtins import TemplateRegistry
-from .initializer_function_writer import InitializerFunctionWriter
-from .literal_pool_writer import LiteralPoolWriter
+from .output_writers import *
 from .recursive_call_analysis import tag_recursive_calls
 
 
 class JE1215Backend(Backend):
+    stub_functions: list[StubFunction]
+
     def __init__(self, ir_builder: IRBuilder, target: Path, config: CompileConfig):
         super().__init__(ir_builder, target, config)
+        JE1215Backend.stub_functions = []
+        self.output_manager.register_writer(StubFunctionWriter(JE1215Backend.stub_functions))
         self.output_manager.register_writer(TagWriter(["initializer"], []))
         self.output_manager.register_writer(CommandWriter())
         self.output_manager.register_writer(MetadataWriter())

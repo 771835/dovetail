@@ -10,9 +10,9 @@ from dovetail.core.backend import OutputWriter, GenerationContext
 from dovetail.core.enums import ValueType
 from dovetail.core.symbols import Reference, Literal
 from dovetail.utils.logger import get_logger
-from .commands import ReturnBuilder, Execute, ScoreboardBuilder
-from .commands.copy import Copy
-from .commands.tools import LiteralPoolTools
+from ..commands import ReturnBuilder, Execute, ScoreboardBuilder
+from ..commands.copy import Copy
+from ..commands.tools import LiteralPoolTools
 
 logger = get_logger(__name__)
 

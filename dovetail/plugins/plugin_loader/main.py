@@ -7,7 +7,6 @@
 
 from dovetail.plugins.plugin_api.plugin import Plugin
 from dovetail.plugins.plugin_api.v2 import plugin_manager
-from dovetail.utils.resource import resolve_project_path
 
 
 class PluginMain(Plugin):
@@ -21,25 +20,9 @@ class PluginMain(Plugin):
         super().__init__()
 
     def load(self):
-        """加载所有可用的插件
-
-        遍历插件目录，自动发现并加载所有符合条件的插件。
-        """
+        """加载所有可用的插件"""
         loader_instance = plugin_manager.get_loader_instance()
-        # 首先尝试加载 plugin_api
-        plugin_manager.load_plugin("plugin_api")
-        for plugins_dir in loader_instance.plugins_paths:
-            plugins_path = resolve_project_path(plugins_dir)
-            if plugins_path.exists() and plugins_path.is_dir():
-                for plugin_dir in plugins_path.iterdir():
-                    plugin_name = plugin_dir.name
-
-                    # 对于已加载或名称前缀为特殊符号的跳过加载
-                    if plugin_name in loader_instance.plugins_instance or plugin_name[0] in ("_", ".", "!"):
-                        continue
-
-                    if plugin_dir.is_dir():
-                        plugin_manager.load_plugin(plugin_dir)
+        loader_instance.load_all()
 
     def unload(self):
         """卸载插件

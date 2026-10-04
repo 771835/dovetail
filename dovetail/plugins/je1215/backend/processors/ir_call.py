@@ -2,6 +2,7 @@
 """
 IRCall 指令处理器
 """
+import hashlib
 from typing import Optional
 
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
@@ -106,7 +107,7 @@ class IRCallProcessor(IRProcessor):
             Copy.copy(
                 DataPath.from_symbol(context, result),
                 DataPath(
-                    f"return_{hash(func_path)}",
+                    f"return_{hashlib.md5(func_path.encode()).hexdigest()}",
                     objective,
                     StorageLocation.get_storage(func.return_type),
                 )
@@ -278,10 +279,11 @@ class IRCallProcessor(IRProcessor):
             objective: str,
             context: GenerationContext,
     ):
-        """dovetail ABI：复用标准填参和返回值逻辑"""
-        self._fill_arguments(args, func.params, objective, func_path, context)
-
+        """dovetail ABI"""
         namespace, path = func_path.split(":", maxsplit=1)
+
+        self._fill_arguments(args, func.params, objective, hashlib.md5(func_path.encode()).hexdigest(), context)
+
         self._emit_call(namespace, path, context)
 
         self._copy_return_value(result, func, objective, func_path, context)

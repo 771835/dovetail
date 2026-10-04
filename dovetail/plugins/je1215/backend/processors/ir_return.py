@@ -2,6 +2,7 @@
 """
 IRReturn 指令处理器
 """
+import hashlib
 from typing import Optional
 
 from dovetail.core.backend import ir_processor, IRProcessor, GenerationContext
@@ -34,7 +35,7 @@ class IRReturnProcessor(IRProcessor):
             return
         if return_value_ref:  # 如果存在返回值
             return_path = DataPath(
-                f"return_{hash(func_path)}",
+                f"return_{hashlib.md5(func_path.encode()).hexdigest()}",
                 context.objective,
                 StorageLocation.get_storage(return_value_ref.dtype)
             )

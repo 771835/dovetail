@@ -159,11 +159,11 @@ metadata 键：`hook_type`（值 `"tick"`）、`interval`（值为实际传入�
 **适用目标**：函数
 
 **语义**  
-将此函数导出，使其可被外部数据包调用。 导出的函数名不经过修饰处理，因此函数名不可含大写字母或非 ASCII 字符。 此注解产生
-flags：`no_dce`、`preserve_name`。 此注解产生 metadata 键：`abi`、`path`。
+将此函数导出，使其可被外部数据包调用。 导出路径不可含大写字母或非 ASCII 字符。 此注解产生
+flags：`no_dce`、`preserve_name`。 此注解产生 metadata 键：`abi`、`path`、`objective`。
 
 当 `abi` 为 `"clang-mc"` 时，编译器须对函数的全部参数类型及返回值类型进行 FFI 安全性校验，不合法的类型须报
-`NotFFISafeType` 错误。详见 ABI 说明。
+`NotFFISafeType` 错误。详见 ABI 说明。（由于 `clang-mc` 缺少维护，考虑放弃支持）
 
 ---
 
@@ -187,10 +187,10 @@ flags：`no_dce`、`preserve_name`。 此注解产生 metadata 键：`abi`、`pa
 
 ### ABI 说明
 
-| 值           | 说明                                                    |
-|--------------|---------------------------------------------------------|
-| `"dovetail"` | Dovetail 原生调用约定，支持完整类型系统                 |
-| `"clang-mc"` | 与 clang-mc 编译产物兼容的调用约定，仅支持 FFI 安全类型 |
+| 值           | 说明                                                                                              |
+|--------------|---------------------------------------------------------------------------------------------------|
+| `"dovetail"` | Dovetail 原生调用约定，支持完整类型系统                                                           |
+| `"clang-mc"` | 与 clang-mc 编译产物兼容的调用约定，仅支持 FFI 安全类型（由于 `clang-mc` 缺少维护，考虑放弃支持） |
 
 **FFI 安全类型（`abi="clang-mc"` 时有效）**
 

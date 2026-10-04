@@ -11,7 +11,7 @@
 """
 
 from dovetail.core.backend import OutputWriter, GenerationContext
-from .commands import FunctionBuilder, DataBuilder, ScoreboardBuilder
+from ..commands import FunctionBuilder, DataBuilder, ScoreboardBuilder
 
 
 class InitializerFunctionWriter(OutputWriter):

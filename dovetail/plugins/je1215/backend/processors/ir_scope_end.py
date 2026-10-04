@@ -14,8 +14,12 @@ class IRScopeEndProcessor(IRProcessor):
     def process(self, instruction, context: GenerationContext):
         space_type: StructureType = instruction.operands[1]
         if space_type not in (StructureType.CLASS, StructureType.ENUM):
+            if context.current_scope.commands[-1].startswith("return "):
+                context.current_scope.commands.pop()
+
             if context.config.debug:
                 context.add_command("# 清理作用域的变量")
+
             context.add_command(
                 DataBuilder.remove_storage(context.objective, context.current_scope.get_absolute_path()))
         context.pop_scope()
